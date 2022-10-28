@@ -1,0 +1,15 @@
+# Ansible vars to use with the system role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+
+---
+
+SYSTEM_APPS:
+  - acpi_call-dkms
+  - blueman
+  - bluez
+  - bluez-utils
+  - lm_sensors
+  - tlp
+  - tlp-rdw
+  - wget
+

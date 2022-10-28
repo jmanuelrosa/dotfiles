@@ -1,0 +1,29 @@
+# Ansible role to install and configure firmware related thinkpad laptops
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Install app to update Lenovo Thinkpad firmware
+  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake fwupd
+  register: result
+  ignore_errors: true
+  changed_when:
+    - result.failed
+
+- name: Update the latest metadata from vendors
+  ansible.builtin.shell: fwupdmgr refresh
+  register: result
+  changed_when:
+    - result.failed
+
+- name: Showing the latests updates availables
+  ansible.builtin.shell: fwupdmgr get-updates
+  register: result
+  changed_when:
+    - result.failed
+
+- name: Updating firmares
+  ansible.builtin.shell: fwupdmgr update
+  register: result
+  changed_when:
+    - result.failed
+

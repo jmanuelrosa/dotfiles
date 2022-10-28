@@ -1,0 +1,16 @@
+# Ansible role to install all packages related to arch system
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Install all packages related to the system
+  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+  loop: "{{ SYSTEM_APPS }}"
+  register: result
+  ignore_errors: true
+  changed_when:
+    - result.failed
+
+- name: Creating user config directory
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config"
+    state: directory

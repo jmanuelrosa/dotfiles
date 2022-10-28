@@ -1,0 +1,11 @@
+# Ansible role to install and configure all infrastructure apps
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Install infrastructure apps
+  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+  loop: "{{ INFRASTRUCTURE_APPS }}"
+  register: result
+  ignore_errors: true
+  changed_when:
+    - result.failed

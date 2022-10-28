@@ -1,0 +1,9 @@
+# Ansible role to remove unnecessary dependencies and clear cache
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Removing unnecessary dependencies...
+  ansible.builtin.shell: yay --yay --clean --noconfirm
+
+- name: Clearing cache ...
+  ansible.builtin.shell: yay --sync --clean --noconfirm

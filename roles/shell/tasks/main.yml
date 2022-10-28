@@ -1,0 +1,86 @@
+# Ansible role to configure all related to shell
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Install packages related to the shell
+  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+  loop: "{{ TERMINAL_APPS }}"
+  register: result
+  changed_when:
+    - result.failed
+
+- name: Make fish as our default shell
+  become: true
+  user:
+    name: "{{ USER }}"
+    shell: /usr/bin/fish
+    state: present
+
+- name: Install fish plugins
+  ansible.builtin.shell: "fisher install {{ item }}"
+  args:
+    executable: /usr/bin/fish
+  loop: "{{ FISH_PLUGINS }}"
+  register: result
+  ignore_errors: true
+  changed_when:
+    - result.failed
+
+- name: Creating settings config directory
+  ansible.builtin.file:
+    path: "{{ HOME }}/{{ item }}"
+    state: directory
+  with_items:
+    - .config/fish
+    - .config/kitty
+
+
+- name: Creating backup directory for shell
+  ansible.builtin.file:
+    path: "backups/{{ item }}"
+    state: directory
+    recurse: true
+  with_items:
+    - .config/fish/conf.d
+    - .config/kitty/kitty.conf
+
+- name: Check if files to backup exists
+  stat:
+    path: "{{ HOME }}/{{ item }}"
+  with_items:
+    - .config/fish/fish_plugins
+    - .config/fish/config.fish
+    - .config/fish/conf.d/aliases.fish
+    - .config/fish/conf.d/exports.fish
+    - .config/kitty/kitty.conf
+  register: results
+
+- name: Backup fish settings
+  ansible.builtin.copy:
+    src: "{{ item.stat.path }}"
+    dest: "{{ CURRENT_DIR }}/backups/{{ item.item }}"
+  when: item.stat.exists == True
+  with_items: "{{ results.results }}"
+
+- name: Configuring Kitty
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/kitty/kitty.conf"
+    dest: "{{ HOME }}/.config/kitty/kitty.conf"
+    state: link
+    force: true
+
+- name: Configuring fish
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/{{ item }}"
+    dest: "{{ HOME }}/.config/{{ item }}"
+    state: link
+    force: true
+  with_items:
+    - fish/config.fish
+    - fish/conf.d/aliases.fish
+    - fish/conf.d/exports.fish
+
+- name: Generating exports with secrets
+  ansible.builtin.template:
+    src: secrets.fish.j2
+    dest: "{{ HOME }}/.config/fish/conf.d/secrets.yml"

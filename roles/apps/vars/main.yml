@@ -1,0 +1,51 @@
+# Ansible vars to use with the apps role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+BROWSERS_APPS:
+  - brave-bin
+  - firefox-developer-edition
+  - google-chrome
+
+CHAT_APPS:
+  - slack-desktop
+  - discord
+
+DEVELOPMENT_APPS:
+  - insomnia-bin
+  - httpie
+  - git
+  - github-cli
+  - git-delta
+  # - fnm-bin
+  - scc-bin
+  - hyperfine
+  - scc-bin
+
+EDITORS_APPS:
+  - visual-studio-code-bin
+
+INFRASTRUCTURE_APPS:
+  - ansible
+  - docker
+  - docker-compose
+  - docker-buildx
+
+MULTIMEDIA_APPS:
+  - imv
+  - mpv
+  - spotify
+  - zathura
+
+SECURITY_APPS:
+  - firejail
+
+SYSTEM:
+  - balena-etcher
+  - bat
+  - duf
+  - glances
+  - neofetch
+  - p7zip
+  - ripgrep
+  - noto-fonts-emoji
