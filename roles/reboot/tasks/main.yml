@@ -1,0 +1,13 @@
+# Ansible role to reboot the system
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Ask the user if they want to restart
+  pause:
+    prompt: "Do you want to restart the computer? (yes/no)"
+  register: user_input
+
+- name: Restart the computer
+  become: true
+  ansible.builtin.command: shutdown -r now
+  when: user_input.user_input == "yes"

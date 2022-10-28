@@ -1,0 +1,128 @@
+# Ansible role to configure all related to shell
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Load global variables
+  include_vars: vars/global.yml
+
+# Install packages related to linux
+- block:
+    - name: Load system variables
+      include_vars: vars/linux.yml
+
+    - name: Install packages related to the shell
+      ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+      loop: "{{ TERMINAL_APPS }}"
+      register: result
+      changed_when:
+        - result.failed
+  when:
+    - ansible_os_family != 'Windows'
+    - ansible_os_family != 'Darwin'
+
+# Install packages related to mac
+- block:
+    - name: Load system variables
+      include_vars: vars/mac.yml
+
+    - name: Install packages related to the shell
+      ansible.builtin.shell: brew install {{ item }}
+      loop: "{{ TERMINAL_APPS }}"
+      register: result
+      changed_when:
+        - result.failed
+
+    - name: Add fish as a know shell
+      become: true
+      ansible.builtin.shell: sh -c 'echo {{ FISH_PATH }} >> /etc/shells'
+  when: ansible_os_family == 'Darwin'
+
+- name: Make fish as our default shell
+  become: true
+  user:
+    name: "{{ USER }}"
+    shell: "{{ FISH_PATH }}"
+    state: present
+
+- name: Install fish plugins
+  ansible.builtin.shell: "fisher install {{ item }}"
+  args:
+    executable: "{{ FISH_PATH }}"
+  loop: "{{ FISH_PLUGINS }}"
+  register: result
+  ignore_errors: true
+  changed_when:
+    - result.failed
+
+- name: Creating settings config directory
+  ansible.builtin.file:
+    path: "{{ HOME }}/{{ item }}"
+    state: directory
+  with_items:
+    - .config/fish
+    - .config/ghostty
+
+- name: Creating backup directory for shell
+  ansible.builtin.file:
+    path: "backups/{{ item }}"
+    state: directory
+    recurse: true
+  with_items:
+    - .config/fish/conf.d
+    - .config/fish/functions
+    - .config/fish/completions
+    - .config/ghostty
+
+- name: Check if files to backup exists
+  stat:
+    path: "{{ HOME }}/{{ item }}"
+  with_items:
+    - .config/ghostty/config
+    - .config/fish/config.fish
+    - .config/fish/conf.d/aliases.fish
+    - .config/fish/conf.d/exports.fish
+    - .config/fish/functions/blue.fish
+    - .config/fish/functions/functions.fish
+    - .config/fish/functions/create_gitconfig.fish
+    - .config/starship.toml
+  register: results
+
+- name: Backup fish settings
+  ansible.builtin.copy:
+    src: "{{ item.stat.path }}"
+    dest: "{{ CURRENT_DIR }}/backups/{{ item.item }}"
+  when: item.stat.exists == True
+  with_items: "{{ results.results }}"
+
+- name: Configuring Ghostty
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/ghostty/config"
+    dest: "{{ HOME }}/.config/ghostty/config"
+    state: link
+    force: true
+
+- name: Configuring fish
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/{{ item }}"
+    dest: "{{ HOME }}/.config/{{ item }}"
+    state: link
+    force: true
+  with_items:
+    - fish/config.fish
+    - fish/conf.d/aliases.fish
+    - fish/conf.d/exports.fish
+    - fish/functions/functions.fish
+    - fish/functions/blue.fish
+    - fish/functions/create_gitconfig.fish
+
+- name: Configuring starship plugin
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/starship.toml"
+    dest: "{{ HOME }}/.config/starship.toml"
+    state: link
+    force: true
+
+- name: Generating exports with secrets
+  ansible.builtin.template:
+    src: secrets.fish.j2
+    dest: "{{ HOME }}/.config/fish/conf.d/secrets.fish"

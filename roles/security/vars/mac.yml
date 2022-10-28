@@ -1,0 +1,6 @@
+# Ansible vars to use with the security role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+SECURITY_APPS:
+  - mas search nextdns

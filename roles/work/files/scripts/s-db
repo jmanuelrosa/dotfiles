@@ -1,0 +1,242 @@
+#!/usr/bin/env fish
+
+# Script to connect to cloud-sql-proxy for different environments
+# Usage: s-db [production|staging] [OPTIONS]
+
+# ============================================================================
+# Configuration
+# ============================================================================
+
+set -g RED (set_color red)
+set -g GREEN (set_color green)
+set -g YELLOW (set_color yellow)
+set -g BLUE (set_color blue)
+set -g NC (set_color normal)
+
+set -g WORK_DIR "$HOME/Developer/work/addingwell"
+set -g PROXY_BIN "./cloud-sql-proxy"
+
+set -g ENVIRONMENT ""
+set -g DETACH_MODE 0
+set -g PORT ""
+set -g INSTANCE ""
+
+# ============================================================================
+# Utility Functions
+# ============================================================================
+
+function die
+    echo -e "$RED❌ Error: $argv$NC" >&2
+    exit 1
+end
+
+function usage
+    echo "Usage: s-db [production|staging] [OPTIONS]"
+    echo ""
+    echo "Connects to cloud-sql-proxy for the specified environment."
+    echo ""
+    echo "Environments:"
+    echo "  production  - Port 5433, addingwell-prod database"
+    echo "  staging     - Port 5432, addingwell-dev database"
+    echo ""
+    echo "Options:"
+    echo "  -d, --detach  Run in background (detached mode)"
+    echo "  -h, --help    Show this help message"
+    echo ""
+    echo "If no environment is specified, you will be prompted to choose."
+    exit 1
+end
+
+# ============================================================================
+# Configuration Functions
+# ============================================================================
+
+function get_port
+    switch $argv[1]
+        case production
+            echo "5433"
+        case staging
+            echo "5432"
+    end
+end
+
+function get_instance
+    switch $argv[1]
+        case production
+            echo "addingwell-prod:europe-west1:addingwell-prod-postgres-13"
+        case staging
+            echo "addingwell-dev-326312:europe-west1:addingwell-dev-postgres"
+    end
+end
+
+# ============================================================================
+# Validation Functions
+# ============================================================================
+
+function validate_prerequisites
+    if not test -d "$WORK_DIR"
+        die "Work directory not found: $WORK_DIR"
+    end
+
+    cd "$WORK_DIR"; or die "Could not change to work directory: $WORK_DIR"
+
+    if not test -x "$PROXY_BIN"
+        die "cloud-sql-proxy not found or not executable at: $WORK_DIR/$PROXY_BIN"
+    end
+end
+
+function check_existing_connection
+    set -l port $argv[1]
+    set -l environment $argv[2]
+
+    echo -e "$YELLOW🔍 Checking for existing connection...$NC"
+
+    set -l existing_pid (lsof -ti :$port 2>/dev/null)
+
+    if test -n "$existing_pid"
+        set -l process_info (ps -p $existing_pid -o comm= 2>/dev/null)
+
+        if string match -q "*cloud-sql-proxy*" -- $process_info
+            echo ""
+            echo -e "$YELLOW⚠️  Cloud-sql-proxy is already running for $environment environment$NC"
+            echo -e "$GREEN✓ PID: $existing_pid$NC"
+            echo -e "$GREEN✓ Port: $port$NC"
+            echo -e "$GREEN✓ Connect using: localhost:$port$NC"
+            echo ""
+            echo -e "$YELLOW💡 To stop it: kill $existing_pid$NC"
+            echo -e "$YELLOW💡 To view logs: tail -f $WORK_DIR/cloud-sql-proxy-$environment.log$NC"
+            exit 0
+        else
+            die "Port $port is already in use by another process (PID: $existing_pid). Stop it first or use a different port."
+        end
+    end
+
+    echo -e "$GREEN✓ Port $port is available$NC"
+    echo ""
+end
+
+# ============================================================================
+# Input Functions
+# ============================================================================
+
+function parse_arguments
+    for arg in $argv
+        switch $arg
+            case -d --detach
+                set -g DETACH_MODE 1
+            case -h --help
+                usage
+            case production prod p
+                set -g ENVIRONMENT "production"
+            case staging stage stg s dev
+                set -g ENVIRONMENT "staging"
+            case '*'
+                if test -z "$ENVIRONMENT"
+                    die "Invalid argument: $arg. Use 'production' or 'staging'"
+                end
+        end
+    end
+end
+
+function prompt_environment_selection
+    if test -n "$ENVIRONMENT"
+        return
+    end
+
+    echo -e "$BLUE""Select environment:$NC"
+    echo "  1) Staging (port 5432)"
+    echo "  2) Production (port 5433)"
+    echo ""
+    read -P "Enter choice [1-2]: " choice
+
+    switch $choice
+        case 1 staging s
+            set -g ENVIRONMENT "staging"
+        case 2 production p
+            set -g ENVIRONMENT "production"
+        case '*'
+            die "Invalid choice: $choice"
+    end
+end
+
+# ============================================================================
+# Display Functions
+# ============================================================================
+
+function success
+    set -l port $argv[1]
+    set -l instance $argv[2]
+    set -l environment $argv[3]
+
+    echo ""
+    echo -e "$GREEN✨ Successfully connected to $ENVIRONMENT$NC"
+    echo -e "$GREEN💡 Use:$NC localhost:$PORT$GREEN as server$NC"
+    echo -e "$GREEN⚙️ Instance:$NC $instance"
+end
+
+# ============================================================================
+# Proxy Management Functions
+# ============================================================================
+
+function start_proxy_detached
+    set -l port $argv[1]
+    set -l instance $argv[2]
+    set -l environment $argv[3]
+    set -l log_file "$WORK_DIR/cloud-sql-proxy-$environment.log"
+
+    echo -e "$GREEN🚀 Connecting to $environment in background...$NC"
+
+    nohup $PROXY_BIN --port $port $instance > $log_file 2>&1 &
+    set -l proxy_pid $last_pid
+
+    sleep 1
+
+    if kill -0 $proxy_pid 2>/dev/null
+        success $PORT $INSTANCE $ENVIRONMENT
+        echo -e "$GREEN🌱 PID: $proxy_pid"
+        echo -e "$GREEN📝 Logs:$NC $log_file$NC"
+        echo ""
+        echo -e "$YELLOW🛑 To stop: kill $proxy_pid$NC"
+        echo -e "$YELLOW   Or find it: ps aux | grep cloud-sql-proxy$NC"
+    else
+        die "Failed to start cloud-sql-proxy. Check logs: $log_file"
+    end
+end
+
+function start_proxy_foreground
+    set -l port $argv[1]
+    set -l instance $argv[2]
+    set -l environment $argv[3]
+
+    echo -e "$GREEN🚀 Connecting to $environment...$NC"
+
+    success $PORT $INSTANCE $ENVIRONMENT
+    echo -e "$YELLOW🛑 Press Ctrl+C to stop$NC"
+
+    exec $PROXY_BIN --port $port $instance
+
+end
+
+# ============================================================================
+# Main Execution
+# ============================================================================
+
+function main
+    validate_prerequisites
+    parse_arguments $argv
+    prompt_environment_selection
+
+    set -g PORT (get_port $ENVIRONMENT)
+    set -g INSTANCE (get_instance $ENVIRONMENT)
+
+    check_existing_connection $PORT $ENVIRONMENT
+
+    if test $DETACH_MODE -eq 1
+        start_proxy_detached $PORT $INSTANCE $ENVIRONMENT
+    else
+        start_proxy_foreground $PORT $INSTANCE $ENVIRONMENT
+    end
+end
+
+# Run the script
+main $argv

@@ -1,0 +1,287 @@
+# Ansible mac vars to use with the system role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+
+---
+
+SYSTEM_APPS:
+  - unar
+
+OSX_DEFAULTS:
+  # Keyboard: Set 15 ms key repeat
+  - domain: NSGlobalDomain
+    key: KeyRepeat
+    type: int
+    value: 1
+    state: present
+  # Keyboard: Set 15 ms initial delay
+  - domain: NSGlobalDomain
+    key: InitialKeyRepeat
+    type: int
+    value: 13
+    state: present
+  # Keyboard: Disable tooltip when holding key
+  - domain: NSGlobalDomain
+    key: ApplePressAndHoldEnabled
+    type: bool
+    value: false
+    state: present
+  # Show all filename extensions
+  - domain: NSGlobalDomain
+    key: AppleShowAllExtensions
+    type: bool
+    value: true
+    state: present
+  # Disables animations when opening or closing windows, speeding up UI interactions
+  - domain: NSGlobalDomain
+    key: NSAutomaticWindowAnimationsEnabled
+    type: bool
+    value: false
+    state: present
+  # Reverses the “natural” scrolling direction
+  - domain: NSGlobalDomain
+    key: com.apple.swipescrolldirection
+    type: bool
+    value: false
+    state: present
+    # Set language to english
+  - domain: NSGlobalDomain
+    key: AppleLanguages
+    type: array
+    value:
+      - en-US
+    state: present
+  # Set currency to EUR
+  - domain: NSGlobalDomain
+    key: AppleLocale
+    type: string
+    value: en_US@currency=EUR
+    state: present
+  # Set the measurement units to centimeters
+  - domain: NSGlobalDomain
+    key: AppleMeasurementUnits
+    type: string
+    value: Centimeters
+    state: present
+  # Set the metric system
+  - domain: NSGlobalDomain
+    key: AppleMetricUnits
+    type: bool
+    value: true
+    state: present
+  # Set hour format to 24h
+  - domain: NSGlobalDomain
+    key: AppleICUForce24HourTime
+    type: bool
+    value: true
+    state: present
+
+  # Hides external hard drives from the desktop
+  - domain: com.apple.finder
+    key: ShowExternalHardDrivesOnDesktop
+    type: bool
+    value: false
+    state: present
+  # Hides internal hard drives from the desktop
+  - domain: com.apple.finder
+    key: ShowExternalHardDrivesOnDesktop
+    type: bool
+    value: false
+    state: present
+  # Hides mounted servers from the desktop
+  - domain: com.apple.finder
+    key: ShowMountedServersOnDesktop
+    type: bool
+    value: false
+    state: present
+  # Hides removable media (USBs, SD cards) from the desktop
+  - domain: com.apple.finder
+    key: ShowRemovableMediaOnDesktop
+    type: bool
+    value: false
+    state: present
+  # Shows hidden files (e.g., files starting with .)
+  - domain: com.apple.finder
+    key: AppleShowAllFiles
+    type: bool
+    value: true
+    state: present
+  # Sets the default search scope to “Current Folder.”
+  - domain: com.apple.finder
+    key: FXDefaultSearchScope
+    type: string
+    value: SCcf
+    state: present
+  # Disables warnings when changing a file extension
+  - domain: com.apple.finder
+    key: FXEnableExtensionChangeWarning
+    type: bool
+    value: false
+    state: present
+  # Displays the full POSIX path in the Finder window title
+  - domain: com.apple.finder
+    key: _FXShowPosixPathInTitle
+    type: bool
+    value: true
+    state: present
+  # Sets Finder’s default view style to “List View.”
+  - domain: com.apple.finder
+    key: FXPreferredViewStyle
+    type: string
+    value: Nlsv
+    state: present
+  # Shows the status bar in Finder
+  - domain: com.apple.finder
+    key: ShowStatusBar
+    type: bool
+    value: true
+    state: present
+  # Shows the path bar in Finder
+  - domain: com.apple.finder
+    key: ShowPathbar
+    type: bool
+    value: true
+    state: present
+  # Disable the warning before emptying the Trash
+  - domain: com.apple.finder
+    key: WarnOnEmptyTrash
+    type: bool
+    value: false
+    state: present
+  # Empty Trash securely by default
+  - domain: com.apple.finder
+    key: EmptyTrashSecurely
+    type: bool
+    value: true
+    state: present
+
+  # Automatically hide and show the Dock
+  - domain: com.apple.dock
+    key: autohide
+    type: bool
+    value: true
+    state: present
+  # Remove the auto-hiding Dock delay
+  - domain: com.apple.dock
+    key: autohide-delay
+    type: float
+    value: 0
+    state: present
+  # Disables automatically rearranging Spaces based on most recent usage
+  - domain: com.apple.dock
+    key: mru-spaces
+    type: bool
+    value: false
+    state: present
+  # Set the icon size of Dock items to 36 pixels
+  - domain: com.apple.dock
+    key: tilesize
+    type: int
+    value: 36
+    state: present
+  # Minimize windows into their application’s icon
+  - domain: com.apple.dock
+    key: minimize-to-application
+    type: bool
+    value: true
+    state: present
+  # Minimize windows into their application’s icon
+  - domain: com.apple.dock
+    key: show-process-indicators
+    type: bool
+    value: true
+    state: present
+  # Speed up Mission Control animations
+  - domain: com.apple.dock
+    key: expose-animation-duration
+    type: float
+    value: 0.1
+    state: present
+  # Speed up Mission Control animations
+  - domain: com.apple.dock
+    key: showhidden
+    type: bool
+    value: true
+    state: present
+  # Speed up Mission Control animations
+  - domain: com.apple.dock
+    key: show-recents
+    type: bool
+    value: false
+    state: present
+
+  # Disable the 'Are you sure you want to open this application?' dialog
+  - domain: com.apple.LaunchServices
+    key: LSQuarantine
+    type: bool
+    value: false
+    state: present
+
+  # Disable the crash reporter
+  - domain: com.apple.CrashReporter
+    key: DialogType
+    type: string
+    value: none
+    state: present
+
+  # Automatically illuminate built-in MacBook keyboard in low light
+  - domain: com.apple.BezelServices
+    key: kDim
+    type: bool
+    value: true
+    state: present
+  # Turn off keyboard illumination when computer is not used for 5 minutes
+  - domain: com.apple.BezelServices
+    key: kDimTime
+    type: int
+    value: 300
+    state: present
+
+  # Increase sound quality for Bluetooth headphones/headsets
+  - domain: com.apple.BluetoothAudioAgent
+    key: "Apple Bitpool Min (editable)"
+    type: int
+    value: 40
+    state: present
+
+  # Require password immediately after sleep or screen saver begins
+  - domain: com.apple.screensaver
+    key: askForPassword
+    type: int
+    value: 1
+    state: present
+  # Reduce the delay to ask for the password
+  - domain: com.apple.screensaver
+    key: askForPasswordDelay
+    type: int
+    value: 0
+    state: present
+
+  - domain: com.apple.ActivityMonitor
+    key: OpenMainWindow
+    type: bool
+    value: true
+    state: present
+
+  - domain: com.apple.ActivityMonitor
+    key: IconType
+    type: int
+    value: 5
+    state: present
+
+  - domain: com.apple.ActivityMonitor
+    key: ShowCategory
+    type: int
+    value: 0
+    state: present
+
+  - domain: com.apple.ActivityMonitor
+    key: SortColumn
+    type: string
+    value: "CPUUsage"
+    state: present
+
+  - domain: com.apple.ActivityMonitor
+    key: SortDirection
+    type: int
+    value: 0
+    state: present

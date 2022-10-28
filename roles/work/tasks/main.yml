@@ -1,0 +1,42 @@
+# Ansible role to configure all related to work
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Generating exports with secrets
+  ansible.builtin.template:
+    src: exports.fish.j2
+    dest: "{{ HOME }}/.config/fish/conf.d/exports.fish"
+
+- name: Ensure scripts directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/fish/conf.d/scripts"
+    state: directory
+    mode: '0755'
+
+- name: Link all scripts to config directory
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/scripts/{{ item | basename }}"
+    dest: "{{ HOME }}/.local/bin/{{ item | basename }}"
+    state: link
+    force: true
+  with_fileglob:
+    - "{{ role_path }}/files/scripts/*"
+
+- name: Creating SSH config directory
+  ansible.builtin.file:
+    path: "{{ HOME }}/.ssh"
+    state: directory
+
+- name: Loading SSH private key
+  ansible.builtin.copy:
+    content: "{{ SSH_DIDOMI_KEY }}"
+    dest: "{{ HOME }}/.ssh/id_didomi"
+    owner: "{{ USER }}"
+    mode: 0600
+
+- name: Loading SSH public key
+  ansible.builtin.copy:
+    content: "{{ SSH_DIDOMI_PUBLIC }}"
+    dest: "{{ HOME }}/.ssh/id_didomi.pub"
+    owner: "{{ USER }}"
+    mode: 0644

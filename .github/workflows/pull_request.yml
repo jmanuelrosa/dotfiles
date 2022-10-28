@@ -1,0 +1,35 @@
+name: Pull Request Verification
+on:
+  pull_request:
+  push:
+    branches: main
+
+env:
+  CI: true
+  HUSKY: 0
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: write
+
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secret-scan:
+    name: Secret Detection (GitLeaks)
+    runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run GitLeaks secret scanner
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

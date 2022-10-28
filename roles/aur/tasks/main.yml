@@ -1,0 +1,46 @@
+# Ansible role to install yay AUR helper and dependencies
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+- name: Update all packages and mirrors with pacman
+  become: true
+  community.general.pacman:
+    update_cache: true
+    upgrade: true
+  register: result
+  changed_when:
+    - result.failed
+
+- name: Install dependencies for Yay
+  become: true
+  community.general.pacman:
+    name:
+      - base-devel
+      - git
+    state: present
+    reason: explicit
+    reason_for: all
+
+- name: Downloading YAY
+  ansible.builtin.git:
+    repo: https://aur.archlinux.org/yay.git
+    dest: "{{ HOME }}/yay"
+
+- name: Install AUR helper yay
+  ansible.builtin.shell: |
+    cd "{{ HOME }}/yay"
+    makepkg -si --noconfirm
+  register: result
+  changed_when:
+    - result.failed
+
+- name: Remove YAY cache source dir
+  ansible.builtin.file:
+    path: "{{ HOME }}/yay"
+    state: absent
+
+- name: Update all packages and mirrors with yay
+  ansible.builtin.shell: yay --quiet --sync --refresh --sysupgrade --noconfirm --removemake
+  register: result
+  ignore_errors: true
+  changed_when:
+    - result.failed

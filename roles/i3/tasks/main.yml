@@ -1,0 +1,41 @@
+# Ansible role to configure all related to sway desktop
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Creating backup directory for sway
+  ansible.builtin.file:
+    path: "backups/{{ item }}"
+    state: directory
+    recurse: true
+  with_items:
+    - .i3
+
+- name: Check if files to backup exists
+  stat:
+    path: "{{ HOME }}/{{ item }}"
+  with_items:
+    - .i3/config
+  register: results
+
+- name: Backup i3 settings
+  ansible.builtin.copy:
+    src: "{{ item.stat.path }}"
+    dest: "{{ CURRENT_DIR }}/backups/{{ item.item }}"
+  when: item.stat.exists == True
+  with_items: "{{ results.results }}"
+
+- name: Creating directory for i3 settings
+  ansible.builtin.file:
+    path: "{{ HOME }}/.i3"
+    state: directory
+    recurse: true
+
+- name: Configuring i3
+  ansible.builtin.file:
+    src: "{{ role_path }}/files"
+    dest: "{{ HOME }}/"
+    state: link
+    force: true
+    with_items:
+      - .i3/config
+      - i3status/i3status.conf

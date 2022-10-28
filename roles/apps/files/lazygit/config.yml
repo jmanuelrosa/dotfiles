@@ -1,0 +1,161 @@
+disableStartupPopups: true
+notARepository: "skip"
+promptToReturnFromSubprocess: false
+os:
+  edit: "code {{filename}}"
+  editAtLine: "code {{filename}}:{{line}}"
+  editAtLineAndWait: "code --wait {{filename}}:{{line}}"
+  editInTerminal: false
+  openDirInEditor: "code {{dir}}"
+git:
+  pagers:
+    - colorArg: always
+      pager: delta --paging=never --line-numbers --hyperlinks --hyperlinks-file-link-format="lazygit-edit://{path}:{line}"
+gui:
+  skipDiscardChangeWarning: true
+  showCommandLog: false
+  nerdFontsVersion: "3"
+  showFileTree: true
+  showBottomLine: false
+  showRandomTip: false
+  border: "rounded"
+  theme:
+    activeBorderColor:
+      - "#ff9e64"
+      - "bold"
+    inactiveBorderColor:
+      - "#27a1b9"
+    searchingActiveBorderColor:
+      - "#ff9e64"
+      - "bold"
+    optionsTextColor:
+      - "#7aa2f7"
+    selectedLineBgColor:
+      - "#283457"
+    cherryPickedCommitFgColor:
+      - "#7aa2f7"
+    cherryPickedCommitBgColor:
+      - "#bb9af7"
+    markedBaseCommitFgColor:
+      - "#7aa2f7"
+    markedBaseCommitBgColor:
+      - "#e0af68"
+    unstagedChangesColor:
+      - "#db4b4b"
+    defaultFgColor:
+      - "#c0caf5"
+update:
+  method: never
+customCommands:
+  - key: "<c-n>"
+    description: "New branch with prefix"
+    prompts:
+      - type: "menu"
+        title: "Creating new branch. What kind of branch is it?"
+        options:
+          - name: "feature"
+            value: "feat"
+          - name: "release"
+            value: "release"
+          - name: "fix"
+            value: "fix"
+          - name: "chore"
+            value: "chore"
+      - type: "input"
+        title: "What is the new branch name?"
+        initialValue: ""
+    command: "git switch -c {{index .PromptResponses 0}}/{{index .PromptResponses 1}}"
+    context: "localBranches"
+    loadingText: "Creating branch"
+  - key: "<c-v>"
+    context: "global"
+    description: "Create new conventional commit"
+    prompts:
+      - type: "menu"
+        key: "Type"
+        title: "Type of change"
+        options:
+          - name: "build"
+            description: "Changes that affect the build system or external dependencies"
+            value: "build"
+          - name: "feat"
+            description: "A new feature"
+            value: "feat"
+          - name: "fix"
+            description: "A bug fix"
+            value: "fix"
+          - name: "chore"
+            description: "Other changes that don't modify src or test files"
+            value: "chore"
+          - name: "ci"
+            description: "Changes to CI configuration files and scripts"
+            value: "ci"
+          - name: "docs"
+            description: "Documentation only changes"
+            value: "docs"
+          - name: "perf"
+            description: "A code change that improves performance"
+            value: "perf"
+          - name: "refactor"
+            description: "A code change that neither fixes a bug nor adds a feature"
+            value: "refactor"
+          - name: "revert"
+            description: "Reverts a previous commit"
+            value: "revert"
+          - name: "style"
+            description: "Changes that do not affect the meaning of the code"
+            value: "style"
+          - name: "test"
+            description: "Adding missing tests or correcting existing tests"
+            value: "test"
+      - type: "input"
+        title: "Scope"
+        key: "Scope"
+        initialValue: ""
+      - type: "menu"
+        key: "Breaking"
+        title: "Breaking change"
+        options:
+          - name: "no"
+            value: ""
+          - name: "yes"
+            value: "!"
+      - type: "input"
+        title: "message"
+        key: "Message"
+        initialValue: ""
+      - type: "menu"
+        key: "Verify"
+        title: "Verify?"
+        options:
+          - name: "no"
+            value: "--no-verify"
+          - name: "yes"
+            value: ""
+      - type: "confirm"
+        key: "Confirm"
+        title: "Commit"
+        body: "Are you sure you want to commit?"
+    command: "git commit --message '{{.Form.Type}}{{ if .Form.Scope }}({{ .Form.Scope }}){{ end }}{{.Form.Breaking}}: {{.Form.Message}}' {{.Form.Verify}}"
+    loadingText: "Creating conventional commit..."
+  - key: "<c-p>"
+    command: "git bclean"
+    context: "localBranches"
+    loadingText: "Pruning..."
+    description: "Prune local branches whose upstream is gone"
+  - key: "<c-p>"
+    command: "git remote prune {{.SelectedRemote.Name}}"
+    context: "remotes"
+    description: "Prune deleted remote branches"
+    loadingText: "Pruning..."
+  - key: "M"
+    command: "git mergetool"
+    context: "files"
+    description: "Open git mergetool"
+    loadingText: "Opening git mergetool"
+    output: terminal
+  - key: "R"
+    command: "git reset --soft HEAD~1"
+    context: "files"
+    description: "Undo last commit"
+    loadingText: "Undoing last commit"

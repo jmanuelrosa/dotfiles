@@ -1,0 +1,203 @@
+[alias]
+  # Branches
+  br       = branch --list --remote
+  brl      = branch -vv
+  branches = branch --sort=-committerdate --list --remote --verbose --format='%(HEAD) %(color:red)%(objectname:short)%(color:reset) - %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(color:green)(%(committerdate:relative))%(color:reset) %(color:blue)<%(authorname)>%(color:reset)'
+
+  # Checkout
+  co  = checkout
+  cob = checkout -b
+  sw  = switch
+  swc = switch -c
+
+  # Cherry pick
+  cp = cherry-pick
+
+  # Clean
+  bclean = "!git fetch -p && git for-each-ref refs/heads --format='%(refname:short) %(upstream:track)' | grep '\\[gone\\]' | awk '{print $1}' | grep -v \"$(git symbolic-ref --short HEAD)\" | xargs -r git branch -D"
+
+
+  # Commit
+  a = commit --amend --no-edit             # ammend your last commit
+  c     = commit                           # commit
+  ca    = !git add --all && git commit -am # add all and commit with messageß
+
+  # Diff
+  d  = diff --color --color-words --abbrev
+  dc = diff --cached
+  dt = difftool
+
+  # Fetch
+  f = fetch --prune
+
+  # Flow
+  # more information: http://haacked.com/archive/2014/07/28/github-flow-aliases/
+  res  = reset --hard HEAD
+  undo = reset HEAD~1 --mixed
+  rh   = reset --hard HEAD
+
+  # Hash
+  hash = rev-parse HEAD
+
+  # Logs
+  lc    = shortlog --email --numbered --summary --no-merges # List contributors.
+  lg    = log --graph --date=relative --pretty=format:'%C(bold blue)%h%C(reset) - %C(green)(%ar) %C(white)%s %C(dim white) [%an] %C(bold yellow)%d'
+  lgall = log --all --graph --date=relative --pretty=format:'%C(bold blue)%h%C(reset) - %C(green)(%ar) %C(white)%s %C(dim white) [%an] %C(bold yellow)%d'
+  lh    = log -p -10 # Show custom log.
+
+  # Pull
+  pl   = pull
+  down = pull --rebase --autostash
+
+  # Push
+  p  = push
+  pf = push --force-with-lease
+  up = push
+
+  # Remotes
+  remotes = remote -v
+
+  # Status
+  s  = status -s
+  st = status
+
+  # Tags
+  tags = tag -l
+  tag  = tag -a
+
+  # Upstream
+  set-upstream = !git branch --set-upstream-to=origin/`git symbolic-ref --short HEAD`
+
+  # Wip
+  wip = "!git add --all; git c -m WIP"
+  apf = "!git amend --no-verify --no-edit && git push --force"
+
+  # Worktree
+  wt = worktree
+  wt-l = worktree list
+  wt-a = worktree add
+  wt-r = worktree remove
+  wt-p = worktree prune
+
+[init]
+	defaultBranch = main
+
+[color]
+  ui = always
+
+[apply]
+  whitespace = fix
+
+[core]
+  pager = delta
+  excludesfile = ~/.gitignore
+  attributesfile = ~/.gitattributes
+  sshCommand = ssh -i ~/.ssh/id_ed25519
+  whitespace = fix,space-before-tab,tab-in-indent,trailing-space
+  editor = vim
+  autocrlf = input
+  ignorecase = false
+
+[color "branch"]
+  current = yellow reverse
+  local = yellow
+  remote = green
+
+[color "diff"]
+  meta = yellow bold
+  frag = magenta bold
+  old = red bold
+  new = green bold
+
+[color "status"]
+  added = yellow
+  changed = green
+  untracked = cyan
+
+[mergetool "code"]
+  cmd = code $MERGED
+  trustExitCode = false
+
+[merge]
+  tool = vim
+  log = false
+  conflictstyle = diff3
+
+[url "git@github.com:"]
+  insteadOf = "gh:"
+  pushInsteadOf = "github:"
+  pushInsteadOf = "git://github.com/"
+
+[url "git://github.com/"]
+  insteadOf = "github:"
+
+[url "git@gist.github.com:"]
+  insteadOf = "gst:"
+  pushInsteadOf = "gist:"
+  pushInsteadOf = "git://gist.github.com/"
+
+[url "git://gist.github.com/"]
+  insteadOf = "gist:"
+
+# Any GitHub repo with my username should be checked out r/w by default
+# http://rentzsch.tumblr.com/post/564806957/public-but-hackable-git-submodules
+[url "git@github.com:jmanuelrosa/"]
+  insteadOf = "git://github.com/jmanuelrosa/"
+
+[diff]
+  colorMoved = default
+  # Detect copies in addition to renames
+	renames = copies
+	# A la `git submodule summary`
+	submodule = log
+
+[difftool]
+  prompt = false
+
+[mergetool]
+  prompt = false
+
+[user]
+	name = Jose Manuel Rosa Moncayo
+	email = josemanuel.rosamoncayo+github@gmail.com
+
+# Include other gitconfig files depending on the directory (case non-sensitive)
+[includeIf "gitdir/i:~/developer/work/didomi/"]
+  path = ~/developer/work/.gitconfig.didomi
+
+[push]
+	default = current
+  autoSetupRemote = true
+
+[pull]
+  rebase = false
+
+[commit]
+	gpgsign = false
+
+[gpg]
+	program =
+
+[interactive]
+  diffFilter = delta --color-only
+
+[add.interactive]
+  useBuiltin = false
+
+[delta]
+  features = side-by-side line-numbers decorations
+  syntax-theme = Dracula
+  plus-style = syntax "#003800"
+  minus-style = syntax "#3f0001"
+
+[delta "decorations"]
+  commit-decoration-style = bold yellow box ul
+  file-style = bold yellow ul
+  file-decoration-style = none
+  hunk-header-decoration-style = cyan box ul
+
+[delta "line-numbers"]
+  line-numbers-left-style = cyan
+  line-numbers-right-style = cyan
+  line-numbers-minus-style = 124
+  line-numbers-plus-style = 28

@@ -1,0 +1,22 @@
+# Ansible role to configure all related to ssh keys and agent
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Creating settings config directory
+  ansible.builtin.file:
+    path: "{{ HOME }}/.ssh"
+    state: directory
+
+- name: Loading SSH private key
+  ansible.builtin.copy:
+    content: "{{ SSH_KEY }}"
+    dest: "{{ HOME }}/.ssh/id_ed25519"
+    owner: "{{ USER }}"
+    mode: 0600
+
+- name: Loading SSH public key
+  ansible.builtin.copy:
+    content: "{{ SSH_PUBLIC }}"
+    dest: "{{ HOME }}/.ssh/id_ed25519.pub"
+    owner: "{{ USER }}"
+    mode: 0644

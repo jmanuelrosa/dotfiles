@@ -1,0 +1,14 @@
+# Ansible role to install and configure all related to apps
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- ansible.builtin.include_tasks: browsers.yml
+- ansible.builtin.include_tasks: chat.yml
+- ansible.builtin.include_tasks: development.yml
+- ansible.builtin.include_tasks: ai.yml
+- ansible.builtin.include_tasks: editors.yml
+- ansible.builtin.include_tasks: infrastructure.yml
+- ansible.builtin.include_tasks: multimedia.yml
+- ansible.builtin.include_tasks: system.yml
+- ansible.builtin.include_tasks: npm-packages.yml
+- ansible.builtin.include_tasks: other.yml
