@@ -1,0 +1,16 @@
+# Ansible role to install and configure other apps without category
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Install other tools
+  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+  loop: "{{ OTHER_TOOLS }}"
+  register: result
+  ignore_errors: true
+  changed_when:
+    - result.failed
+
+- name: Install development apps
+  ansible.builtin.shell: sh -c "$(curl -Ls https://raw.githubusercontent.com/jarun/nnn/master/plugins/getplugs)"
+  args:
+    warn: false

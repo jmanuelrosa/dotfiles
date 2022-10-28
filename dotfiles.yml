@@ -1,0 +1,18 @@
+# Ansible playbook to manage setup of Arch Linux
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+
+- name: Dotfiles
+  hosts: all
+  roles:
+    - role: aur
+    - role: system
+    - role: shell
+    - role: ssh
+    - role: user
+    - role: sway
+    - role: apps
+    - role: services
+    # - role: security
+    - role: cleanup
+  vars_files:
+    - vars/secrets.yml

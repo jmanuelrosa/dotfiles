@@ -1,0 +1,3 @@
+CURRENT_DIR: "{{ playbook_dir }}"
+USER: "{{ ansible_user_id }}"
+HOME: "{{ ansible_env.HOME }}"
