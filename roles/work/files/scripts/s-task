@@ -1,0 +1,152 @@
+#!/usr/bin/env fish
+
+# Script to create a git branch from a Jira issue
+# Usage: s-task JIRA-123
+
+# Colors for output
+set -g RED (set_color red)
+set -g GREEN (set_color green)
+set -g YELLOW (set_color yellow)
+set -g NC (set_color normal)
+
+# Configuration
+set -g JIRA_URL "https://didomi.atlassian.net"
+set -g DID_JIRA_EMAIL "$DID_JIRA_EMAIL"
+set -g DID_JIRA_API_TOKEN "$DID_JIRA_API_TOKEN"
+
+# Function to display error and exit
+function die
+    echo -e "$RED❌ Error: $argv$NC" >&2
+    exit 1
+end
+
+# Function to display usage
+function usage
+    echo "Usage: s-task <JIRA_ID>"
+    echo "Example: s-task JIRA-123"
+    echo ""
+    echo "Required environment variables:"
+    echo "  DID_JIRA_EMAIL      - Your Jira email address"
+    echo "  DID_JIRA_API_TOKEN  - Your Jira API token"
+    echo ""
+    echo "Get your API token at: https://id.atlassian.com/manage-profile/security/api-tokens"
+    exit 1
+end
+
+# Function to create slug from text
+function create_slug
+    echo $argv[1] | iconv -c -f utf-8 -t ascii//TRANSLIT | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g'
+end
+
+# Function to map Jira issue type to branch prefix
+function get_branch_prefix
+    set issue_type (echo $argv[1] | tr '[:upper:]' '[:lower:]')
+    switch $issue_type
+        case bug defect
+            echo "fix"
+        case story "user story"
+            echo "feature"
+        case task chore
+            echo "feature"
+        case improvement enhancement
+            echo "feature"
+        case '*'
+            echo "feature"
+    end
+end
+
+# Validate dependencies
+if not command -v jq >/dev/null 2>&1
+    die "jq is required but not installed. Install it with: brew install jq"
+end
+
+# Check if Jira ID is provided
+if test (count $argv) -eq 0
+    usage
+end
+
+set -g JIRA_ID $argv[1]
+
+# Check if current directory is a git repo
+if not git rev-parse --is-inside-work-tree >/dev/null 2>&1
+    die "Current directory is not a git repository"
+end
+
+# Check for required environment variables
+if test -z "$DID_JIRA_EMAIL" -o -z "$DID_JIRA_API_TOKEN"
+    die "DID_JIRA_EMAIL and DID_JIRA_API_TOKEN environment variables must be set"
+end
+
+echo -e "$YELLOW🔍 Fetching Jira Cloud ID...$NC"
+
+# Fetch Cloud ID using jq for reliable JSON parsing
+set -g CLOUD_ID (curl -s "$JIRA_URL/_edge/tenant_info" | jq -r '.cloudId // empty')
+if test -z "$CLOUD_ID"
+    die "Could not fetch Cloud ID"
+end
+
+echo -e "$YELLOW📥 Fetching issue details from Jira...$NC"
+
+# Fetch issue details from Jira API using Cloud ID
+set -g RESPONSE (curl -s -u "$DID_JIRA_EMAIL:$DID_JIRA_API_TOKEN" \
+    -H "Accept: application/json" \
+    "https://api.atlassian.com/ex/jira/$CLOUD_ID/rest/api/3/issue/$JIRA_ID?fields=summary,issuetype")
+
+# Check for errors and parse using jq
+if echo "$RESPONSE" | jq -e '.errorMessages' >/dev/null 2>&1
+    set ERROR_MSG (echo "$RESPONSE" | jq -r '.errorMessages[]' 2>/dev/null; or echo "Unknown error")
+    die "Failed to fetch issue from Jira: $ERROR_MSG"
+end
+
+# Parse issue type and summary with jq
+set -g ISSUE_TYPE (echo "$RESPONSE" | jq -r '.fields.issuetype.name // empty')
+set -g ISSUE_SUMMARY (echo "$RESPONSE" | jq -r '.fields.summary // empty')
+
+if test -z "$ISSUE_TYPE" -o -z "$ISSUE_SUMMARY"
+    die "Could not parse issue details"
+end
+
+echo -e "$GREEN✓ Issue found:$NC"
+echo "  📋 Type: $ISSUE_TYPE"
+echo "  📝 Summary: $ISSUE_SUMMARY"
+
+# Create branch name
+set -g BRANCH_PREFIX (get_branch_prefix "$ISSUE_TYPE")
+set -g TITLE_SLUG (create_slug "$ISSUE_SUMMARY")
+set -g BRANCH_NAME "$BRANCH_PREFIX/$JIRA_ID-$TITLE_SLUG"
+
+echo ""
+echo -e "$YELLOW🌿 Creating branch: $GREEN$BRANCH_NAME$NC"
+
+# Fetch latest changes and detect default branch
+echo -e "$YELLOW⬇️  Fetching latest changes...$NC"
+git fetch origin >/dev/null 2>&1
+
+# Detect default branch from origin/HEAD
+set -g DEFAULT_BRANCH (git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+
+if test -z "$DEFAULT_BRANCH"
+    echo -e "$YELLOW⚙️  Setting origin/HEAD...$NC"
+    git remote set-head origin --auto >/dev/null 2>&1
+    set DEFAULT_BRANCH (git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+end
+
+if test -z "$DEFAULT_BRANCH"
+    die "Could not determine default branch"
+end
+
+echo -e "$GREEN✓ Using default branch: $DEFAULT_BRANCH$NC"
+
+# Checkout and update default branch, then create new branch
+echo -e "$YELLOW🔀 Updating $DEFAULT_BRANCH...$NC"
+if not git checkout "$DEFAULT_BRANCH" 2>/dev/null
+    die "Could not checkout $DEFAULT_BRANCH branch"
+end
+git pull origin "$DEFAULT_BRANCH" --quiet
+
+# Create and checkout new branch
+echo -e "$YELLOW🌱 Creating new branch...$NC"
+git checkout -b "$BRANCH_NAME" >/dev/null 2>&1
+
+echo ""
+echo -e "$GREEN✨ Successfully created and checked out branch: $BRANCH_NAME$NC"

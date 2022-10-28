@@ -1,0 +1,73 @@
+font-family = FiraCode Nerd Font Mono Ret
+
+font-feature = +ss02
+font-feature = +ss03
+font-feature = +ss05
+font-feature = +ss07
+
+font-size = 11.0
+
+# List themes
+# ghostty +list-themes
+theme = Solarized Dark Patched
+
+# Settings
+# macos-non-native-fullscreen = true
+clipboard-paste-protection = false
+cursor-style-blink = false
+macos-non-native-fullscreen = visible-menu
+macos-option-as-alt = left
+macos-window-buttons = hidden
+mouse-hide-while-typing = true
+quick-terminal-animation-duration = 0
+quick-terminal-position = top
+quit-after-last-window-closed = true
+resize-overlay = never
+scrollback-limit = 1000000000
+# The default font size specified in the configuration font-size will be used: https://ghostty.org/docs/config/reference#window-inherit-font-size
+window-inherit-font-size = false
+# The default working directory will be used (the working-directory option): https://ghostty.org/docs/config/reference#window-inherit-working-directory
+window-inherit-working-directory = true
+window-save-state = always
+# set height/width to a ridiculous size so it would always start in max window
+window-height = 200
+window-width = 500
+
+shell-integration-features = no-cursor,sudo,title,ssh-env,ssh-terminfo
+
+# Keybindings
+## Window Management
+### Window Fullscreen
+keybind = super+shift+enter=toggle_split_zoom
+
+### Move Focus
+keybind = super+shift+i=goto_split:top
+keybind = super+shift+k=goto_split:bottom
+keybind = super+shift+j=goto_split:left
+keybind = super+shift+l=goto_split:right
+
+keybind = super+f=goto_split:next
+keybind = super+b=goto_split:previous
+
+### New window
+keybind = super+d=new_split:auto
+keybind = super+ctrl+i=new_split:up
+keybind = super+ctrl+k=new_split:down
+keybind = super+ctrl+j=new_split:left
+keybind = super+ctrl+l=new_split:right
+
+### Close window
+keybind = super+shift+w=close_window
+
+## New tab
+keybind = super+t=new_tab
+keybind = super+tab=next_tab
+keybind = super+shift+tab=previous_tab
+keybind = ctrl+shift+j=move_tab:-1
+keybind = ctrl+shift+l=move_tab:1
+
+# search entire scrollback history in default text editor
+keybind = super+shift+f=write_screen_file:open
+
+# copy scrollback history to the clipboard
+# keybind = super+shift+f=write_screen_file:copy

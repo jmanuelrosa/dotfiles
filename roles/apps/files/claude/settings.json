@@ -1,0 +1,31 @@
+{
+  "cleanupPeriodDays": 180,
+  "env": {
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "opusplan",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
+    "DISABLE_ERROR_REPORTING": "1",
+    "DISABLE_NON_ESSENTIAL_MODEL_CALLS": "1",
+    "DISABLE_TELEMETRY": "1",
+    "USE_BUILTIN_RIPGREP": "0"
+  },
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "read": {
+      "deny": [
+        "**/.env*",
+        "**/*.pem",
+        "**/*.key",
+        "**/secrets/**",
+        "**/credentials/**",
+        "**/.aws/**",
+        "**/.ssh/**"
+      ],
+      "allow": [
+        "Bash(grep:*)",
+        "Bash(xargs:*)"
+      ]
+    }
+  },
+  "alwaysThinkingEnabled": true
+}

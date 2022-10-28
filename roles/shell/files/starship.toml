@@ -1,0 +1,23 @@
+
+# Inserts a blank line between shell prompts
+add_newline = false
+
+# Timeout for commands executed by starship (in milliseconds).
+command_timeout = 3600000
+
+[git_metrics]
+disabled = false
+
+[cmd_duration]
+disabled = false
+
+[gcloud]
+disabled = true
+
+[mise]
+disabled = false
+
+[sudo]
+style = 'bold yellow'
+symbol = '🧙'
+disabled = false

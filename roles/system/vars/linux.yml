@@ -1,0 +1,23 @@
+# Ansible vars to use with the system role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+
+---
+
+SYSTEM_APPS:
+  - acpi_call-dkms
+  - lm_sensors
+  - p7zip
+  - ripgrep
+  - tlp
+  - tlp-rdw
+
+BLUETOOTH_APPS:
+  - blueman
+  - bluez
+  - bluez-utils
+
+AUDIO_LIBS:
+  - pipewire
+  - pipewire-audio
+  - pipewire-pulse
+  - pavucontrol

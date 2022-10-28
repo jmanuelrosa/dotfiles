@@ -1,0 +1,13 @@
+# Ansible vars to use with the shell role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+
+---
+
+FISH_PLUGINS:
+  - danhper/fish-ssh-agent
+  - franciscolourenco/done
+  - jorgebucaran/autopair.fish
+  - jorgebucaran/replay.fish
+  - meaningful-ooo/sponge
+  - nickeb96/puffer-fish
+  - PatrickF1/fzf.fish

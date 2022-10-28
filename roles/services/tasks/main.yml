@@ -1,0 +1,53 @@
+# Ansible role to install all packages related to arch system
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- block:
+    - name: Populate service facts
+      ansible.builtin.service_facts:
+
+    - name: Enabling some service with systemd
+      systemd_service:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+        daemon_reload: true
+      become: true
+      with_items:
+        - tlp
+        - fstrim.timer
+
+    - name: Stopping some service with systemd
+      systemd_service:
+        name: "{{ item }}"
+        enabled: false
+        force: true
+        state: stopped
+        daemon_reload: true
+      become: true
+      when: "item in services"
+      with_items:
+        - docker
+        - bluetooth
+        - avahi-daemon
+        - ModemManager
+        - org.cups.cupsd
+
+    - name: Disabling some service with systemd
+      systemd_service:
+        name: "{{ item }}"
+        enabled: false
+        state: stopped
+        daemon_reload: true
+      become: true
+      when: "item in services"
+      with_items:
+        - docker
+        - bluetooth
+        - avahi-daemon
+        - ModemManager
+        - org.cups.cupsd
+
+  when:
+    - ansible_os_family != 'Windows'
+    - ansible_os_family != 'Darwin'

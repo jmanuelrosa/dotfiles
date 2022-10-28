@@ -1,0 +1,69 @@
+# Ansible vars to use with the apps role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+BROWSERS_APPS:
+  - --cask google-chrome
+  - --cask zen
+  - --cask brave-browser
+
+CHAT_APPS:
+  - --cask slack
+  - --cask discord
+  - --cask whatsapp
+
+DEVELOPMENT_APPS:
+  - httpie
+  - git
+  - git-delta
+  - lazygit
+  - gh
+  - fnm
+  - oven-sh/bun/bun
+  - scc
+  - hyperfine
+
+AI_APPS:
+  - --cask chatgpt
+  - --cask cursor
+  - --cask claude
+  - --cask claude-code
+  - gemini-cli
+  - --cask steipete/tap/codexbar
+  - ollama
+
+DATABASE_APPS:
+  - libpq
+  - pgcli
+  - --cask dbeaver-community
+
+EDITORS_APPS:
+  - --cask visual-studio-code
+  - --cask zed
+
+INFRASTRUCTURE_APPS:
+  # - ansible
+  - awscli
+  - --cask gcloud-cli
+  - docker
+  - docker-compose
+  - docker-buildx
+
+MULTIMEDIA_APPS:
+  - mpv
+  - --cask spotify
+
+SYSTEM_APPS:
+  - --cask nikitabobko/tap/aerospace
+  - --cask font-fira-code-nerd-font
+  - --cask logi-options+
+  - tw93/tap/mole
+  # - noto-fonts-emoji
+
+NPM_PACKAGES:
+  - @github/copilot
+
+OTHER_TOOLS:
+  - nnn
+  - --cask tradingview
+  - --cask bitwarden

@@ -1,0 +1,41 @@
+# Ansible role to install and configure all browser apps
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+# Install local packages depending on the platform
+- block:
+    - name: Load system variables
+      include_vars: vars/linux.yml
+
+    - name: Install browsers
+      ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+      loop: "{{ BROWSERS_APPS }}"
+
+  when:
+    - ansible_os_family != 'Windows'
+    - ansible_os_family != 'Darwin'
+
+# Install local packages depending on the platform
+- block:
+    - name: Load system variables
+      include_vars: vars/mac.yml
+
+    - name: Install browsers
+      ansible.builtin.shell: brew install --force {{ item }}
+      loop: "{{ BROWSERS_APPS }}"
+
+    - name: Setting Harper (Grammar Checking That Respects Your Privacy|)
+      ansible.builtin.file:
+        src: "{{ role_path }}/files/harper/config.toml"
+        dest: "{{ HOME }}/.config/harper/config.toml"
+        state: link
+        force: true
+
+    - name: Setting Harper dictionary
+      ansible.builtin.file:
+        src: "{{ role_path }}/files/harper/dictionary.txt"
+        dest: "{{ HOME }}/Library/Application Support/harper-ls/dictionary.txt"
+        state: link
+        force: true
+
+  when: ansible_os_family == 'Darwin'

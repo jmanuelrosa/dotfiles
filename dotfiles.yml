@@ -1,0 +1,31 @@
+# Ansible playbook to manage setup of Arch Linux
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+
+- name: Dotfiles
+  hosts: all
+  vars_files:
+    - vars/secrets.yml
+    - vars/work.yml
+
+  roles:
+    - role: aur
+      when:
+        - ansible_os_family != 'Windows'
+        - ansible_os_family != 'Darwin'
+    - role: brew
+      when:
+        - ansible_os_family == 'Darwin'
+    - role: system
+    - role: shell
+    - role: ssh
+    - role: user
+    - role: sway
+      when:
+        - ansible_os_family != 'Windows'
+        - ansible_os_family != 'Darwin'
+    - role: apps
+    - role: services
+    - role: security
+    - role: work
+    - role: cleanup
+    - role: reboot
