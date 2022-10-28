@@ -1,0 +1,282 @@
+/* COLORS */
+
+@define-color bg #2E3440;
+/* @define-color bg #353C4A; */
+@define-color light #D8DEE9;
+@define-color slate #434C5E;
+@define-color blue #546484;
+@define-color red #C9545D;
+
+@define-color warning #ebcb8b;
+@define-color critical #BF616A;
+
+@define-color state_base @slate;
+@define-color state_focused @light;
+
+@define-color tray @focused;
+@define-color sound @warning;
+@define-color network #5D7096;
+@define-color memory @blue;
+@define-color cpu #596A8D;
+@define-color temp #4D5C78;
+@define-color layout #5e81ac;
+
+/* ANIMATIONS*/
+@keyframes blink-warning {
+  70% {
+    background-color: @state_base;
+  }
+
+  to {
+    background-color: @warning;
+  }
+}
+
+
+@keyframes blink-critical {
+  70% {
+    background-color: @state_base;
+  }
+
+  to {
+    background-color: @critical;
+  }
+}
+
+/* Reset all styles */
+* {
+  border: none;
+  border-radius: 3px;
+  min-height: 0;
+  padding: 0;
+  margin: 0.2em 0.3em 0.2em 0.3em;
+}
+
+/* The whole bar */
+#waybar {
+  background: @bg;
+  color: @light;
+  font-family: "Cantarell", "Font Awesome 5 Pro";
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Each module */
+#battery,
+#clock,
+#cpu,
+#custom-layout,
+#memory,
+#mode,
+#network,
+#pulseaudio,
+#temperature,
+#custom-alsa,
+#custom-pacman,
+#custom-weather,
+#custom-gpu,
+#tray,
+#backlight,
+#language,
+#custom-cpugovernor {
+  padding-left: 0.6em;
+  padding-right: 0.6em;
+}
+
+/* Each module that should blink */
+#memory,
+#temperature,
+#battery {
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+/* Each critical module */
+#memory.critical,
+#cpu.critical,
+#temperature.critical,
+#battery.critical {
+  color: @light;
+}
+
+/* Each critical that should blink */
+#memory.critical,
+#temperature.critical,
+#battery.critical.discharging {
+  animation-name: blink-critical;
+  animation-duration: 2s;
+}
+
+/* Each warning */
+#network.disconnected,
+#memory.warning,
+#cpu.warning,
+#temperature.warning,
+#battery.warning {
+  color: @light;
+}
+
+/* Each warning that should blink */
+#battery.warning.discharging {
+  animation-name: blink-warning;
+  animation-duration: 3s;
+}
+
+/* MODULE: Workspaces */
+#workspaces {
+  color: @light;
+  margin-right: 10px;
+}
+
+#workspaces button {
+  font-weight: bold;
+  padding: 0 0.4rem;
+  color: #999;
+  opacity: 1;
+  background: none;
+  font-size: 1em;
+}
+
+#workspaces button.focused {
+  background: @state_focused;
+  color: @state_base;
+  opacity: 1;
+  padding: 0 0.4rem;
+}
+
+#workspaces button.urgent {
+  border-color: @red;
+  color: @red;
+  opacity: 1;
+}
+
+/* MODULE: Mode */
+#mode {
+  color: @state_base;
+  background: @light;
+}
+
+/* MODULE: Window */
+#window {
+  margin-right: 40px;
+  margin-left: 40px;
+  font-weight: normal;
+}
+
+/* MODULE: Clock */
+#clock {
+  background: @slate;
+  color: @light;
+}
+
+#clock.date {
+  background: @state_base;
+}
+
+#clock.time {
+  background: @state_base;
+}
+
+/* MODULE: Network */
+#network {
+  background: @state_base;
+}
+
+#bluetooth {
+  background: @blue;
+  font-size: 1.2em;
+  font-weight: bold;
+  padding: 0 0.6em;
+}
+#custom-gpu {
+  background: @state_base;
+  font-weight: bold;
+  padding: 0 0.6em;
+}
+#custom-weather {
+  background: @state_base;
+  font-weight: bold;
+  padding: 0 0.6em;
+}
+#custom-pacman {
+  background: @light;
+  color: @slate;
+  font-weight: bold;
+  padding: 0 0.6em;
+}
+#custom-scratchpad-indicator {
+  background: @light;
+  color: @slate;
+  font-weight: bold;
+  padding: 0 0.6em;
+}
+#idle_inhibitor {
+  background: @state_base;
+  /*font-size: 1.6em;*/
+  font-weight: bold;
+  padding: 0 0.6em;
+}
+#custom-alsa {
+  background: @sound;
+}
+
+#memory {
+  background: @memory;
+}
+
+#cpu {
+  background: @state_base;
+  color: @light;
+}
+#cpu.critical {
+  color: @slate;
+}
+#language {
+  background: @blue;
+  color: @light;
+  padding: 0 0.4em;
+}
+#custom-cpugovernor {
+  background-color: @light;
+  color: @slate;
+}
+#custom-cpugovernor.perf {
+
+}
+#temperature {
+  background-color: @state_base;
+  color: @light;
+}
+#temperature.critical {
+  background:  @critical;
+}
+#custom-layout {
+  background: @layout;
+}
+
+#battery {
+  background: @state_base;
+}
+
+#backlight {
+  background: @state_base;
+}
+
+#pulseaudio {
+  background: @blue;
+  color: @light;
+}
+
+#pulseaudio.muted {
+  background: @critical;
+  color: @critical;
+}
+#pulseaudio.source-muted {
+  background: #D08770;
+  color: @light;
+}
+
+#tray {
+  background: @slate;
+}

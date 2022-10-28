@@ -1,0 +1,4 @@
+# Ansible vars to use with the sway role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+
+---
