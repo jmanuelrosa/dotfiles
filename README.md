@@ -33,8 +33,28 @@ If you want to manage the dotfiles by yourself, you can download and run them wi
 ```
 
 ## Tools
+
 * [yay](https://github.com/Jguer/yay): A powerful AUR Helper written in Go to use as an alternative to Pacman
 * [bat](https://github.com/sharkdp/bat): A cat(1) clone with wings
 * [glances](https://github.com/nicolargo/glances): A top/htop alternative for GNU/Linux, BSD, Mac OS and Windows operating systems.
 * github: ... you know it
   * [gh](https://github.com/cli/cli): GitHub’s official command line tool
+
+## Testing
+
+Instead to run the dotfiles in our current machine all time that we change or update a config, you can test these playbooks with Vagrant. There is a Vagrant file configuration with the minimun required (an empty arch installation).
+
+You can choose to run the GUI or not to see Sway and Wayland in action.
+
+If you want to run vagrant in headless mode, you need to run it with:
+
+```
+> vagrant up
+```
+
+If you want to run Vagrant with the GUI and see how beautiful Sway is and how it's works in Wayland, you can run:
+
+
+```
+> GUI=true vagrant up
+```
