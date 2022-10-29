@@ -1,2 +1,40 @@
-# dotfiles
- A set of configurations, applications and adjustments for Arch Linux
+# jmanuelrosa's dotfiles
+
+ A set of configurations, applications and tweaks for Arch Linux
+
+## Packages Overview
+
+* [System](./roles/system/tasks/main.yml) packages
+
+## Installation
+
+**Warning**: These dotfiles are well tested with Arch Linux and should work *ONLY* with Arch Linux. If you want to try it with another Linux distribution, you should use the packaging tool for your Linux distribution, such as the [apt module](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/apt_module.html#ansible-collections-ansible-builtin-apt-module) for Debian.
+
+### No dependencies
+You don't need to do anything to install the dotfiles in this way, just run the bootstrap script and it will do the rest.
+
+```
+> mkdir dotfiles
+> cd dotfiles
+> bash <(curl -L https://github.com/jmanuelrosa/dotfiles/bootstrap.sh)
+```
+
+### Using Ansible and Git
+
+If you want to manage the dotfiles by yourself, you can download and run them with Ansible. In this case, you'll need to install git, ansible, and some plugins.
+
+```
+> sudo pacman -S git ansible
+> ansible-galaxy collection install community.general
+> mkdir dotfiles
+> cd dotfiles
+> git clone git@github.com:jmanuelrosa/dotfiles.git . &> /dev/nul
+> ansible --inventory inventory.yml --ask-became-pass setups.yml
+```
+
+## Tools
+* [yay](https://github.com/Jguer/yay): A powerful AUR Helper written in Go to use as an alternative to Pacman
+* [bat](https://github.com/sharkdp/bat): A cat(1) clone with wings
+* [glances](https://github.com/nicolargo/glances): A top/htop alternative for GNU/Linux, BSD, Mac OS and Windows operating systems.
+* github: ... you know it
+  * [gh](https://github.com/cli/cli): GitHub’s official command line tool

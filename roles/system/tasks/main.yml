@@ -1,0 +1,33 @@
+# Ansible role for install all packages related to arch system
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Install Git package
+  become: true
+  become_method: sudo
+  become_user: root
+  community.general.pacman:
+    name: git
+    state: present
+    reason: explicit
+    reason_for: all
+
+- name: Install AUR helper yay
+  ansible.builtin.shell: |
+    git clone https://aur.archlinux.org/yay.git ~/yay
+    cd ~/yay
+    makepkg -si --noconfirm
+    cd ..
+    rm -rf yay
+
+- name: Update all packages and mirrorss with yay
+  become: true
+  become_method: sudo
+  become_user: root
+  ansible.builtin.shell: | 
+    sudo pacman -Sy
+    yay -Sy
+
+- name: Install all packages related to the system
+  ansible.builtin.shell: yay -S --noconfirm "{{ item }}"
+  loop: "{{ system_apps }}"

@@ -1,0 +1,2 @@
+home: "{{ path | expanduser }}"
+dotfiles: "{{ home }}/personal/dotfiles"
