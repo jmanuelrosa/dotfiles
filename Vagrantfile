@@ -2,7 +2,7 @@ $GUI = ENV.fetch("GUI", false)
 
 Vagrant.configure("2") do |config|
   # from https://vagrantcloud.com/search.
-  config.vm.box = "generic/arch"
+  config.vm.box = "archlinux/archlinux"
 
   config.vm.provider "virtualbox" do |v|
     v.name = "archlinux"
@@ -13,7 +13,9 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.provision "ansible" do |ansible|
-    ansible.playbook = "setup.yml"
+    ansible.playbook = "vagrant.yml"
+    ansible.limit = "all"
+    ansible.extra_vars = { ansible_python_interpreter: "/usr/bin/python3" }
   end
 end
 
