@@ -1,0 +1,6 @@
+# Ansible playbook to manage a dbeug mode printing message or text
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+
+- name: test
+  ansible.builtin.debug:
+    msg: test message

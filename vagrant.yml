@@ -1,0 +1,10 @@
+# Ansible playbook to manage setup of Vagrant with Arch Linux
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+
+- name: Running Vagrant settings
+  hosts: all
+  roles:
+    - role: vagrant
+
+- name: Runnign dotfiles
+  ansible.builtin.import_playbook: setup.yml

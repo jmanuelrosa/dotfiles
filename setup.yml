@@ -1,6 +1,10 @@
 # Ansible playbook to manage setup of Arch Linux
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 
-- hosts: arch
+- name: Dotfiles
+  hosts: arch
   roles:
-    - role: system
+    # - role: system
+    - role: ssh
+  # vars_files:
+  #   - vars/secrets.yml

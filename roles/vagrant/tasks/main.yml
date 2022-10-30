@@ -1,0 +1,13 @@
+# Ansible role to install all packages needed to run arch in vagrant
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Install base-devel package
+  become: true
+  become_method: sudo
+  become_user: root
+  community.general.pacman:
+    name: base-devel
+    state: present
+    reason: explicit
+    reason_for: all

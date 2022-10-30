@@ -3,8 +3,11 @@
 
 ---
 
-system_apps:
+SYSTEM_APPS:
   - bat
+  - duf
   - glances
-  - git
+  - neofetch
   - github-cli
+  - wget
+  - p7zip
