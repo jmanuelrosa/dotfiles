@@ -10,6 +10,6 @@ sudo pacman -Sy --noconfirm git ansible &> /dev/null
 ansible-galaxy collection install community.general
 
 printf "\e[1;33m  [⬇️]\e[0m Installing dotfiles ...\e[0m\n"
-ansible --inventory inventory.yml --ask-became-pass setups.yml
+ansible-playbook --inventory inventory.yml --ask-vault-password --ask-become-pass setup.yml
 
 printf "\e[1;32m  [✔]\e[0m Dotfiles installed successfully\e[0m\n"
