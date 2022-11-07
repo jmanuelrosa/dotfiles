@@ -2,9 +2,9 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 
 - name: Dotfiles
-  hosts: arch
+  hosts: all
   roles:
-    # - role: system
+    - role: system
     - role: ssh
   # vars_files:
   #   - vars/secrets.yml
