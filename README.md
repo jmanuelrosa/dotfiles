@@ -42,9 +42,15 @@ If you want to manage the dotfiles by yourself, you can download and run them wi
 
 ## Testing
 
-Instead to run the dotfiles in our current machine all time that we change or update a config, you can test these playbooks with Vagrant. There is a Vagrant file configuration with the minimun required (an empty arch installation).
+Instead to run the dotfiles in your current machine all time that we change or update a config, you can test these playbooks with Vagrant. There is a Vagrant file configuration with the minimun required (an empty arch installation).
 
-You can choose to run the GUI or not to see Sway and Wayland in action.
+The first that you need is install the dependencies:
+
+```
+> yay -S vagrant virtualbox ansible
+```
+
+After install all dependencies, you can choose to run the GUI or not to see Sway and Wayland in action.
 
 If you want to run vagrant in headless mode, you need to run it with:
 
