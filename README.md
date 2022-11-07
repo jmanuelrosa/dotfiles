@@ -64,3 +64,13 @@ If you want to run Vagrant with the GUI and see how beautiful Sway is and how it
 ```
 > GUI=true vagrant up
 ```
+
+## Errors
+
+### Vagrant errors
+
+* `VERR_VMX_MSR_ALL_VMX_DISABLED` error whrn try to run `vagrant up`, you need to active virtualization in your BIOS. You need to active
+  * Intel Virtualization technology
+  * Intel VT-d Feature
+
+* If you get an error related to `vboxdrv`, run `sudo modprobe vboxdrv` to add this module to the kernel. For this, you should have installed `linux-lts-headers`.
