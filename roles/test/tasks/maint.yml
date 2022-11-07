@@ -4,3 +4,11 @@
 - name: test
   ansible.builtin.debug:
     msg: test message
+
+- name: USUARIO SSH
+  ansible.builtin.debug:
+    msg: User {{ ansible_ssh_user }}
+
+- name: USUARIO
+  ansible.builtin.debug:
+    msg: User {{ ansible_user_id }}

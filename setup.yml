@@ -6,5 +6,5 @@
   roles:
     - role: system
     - role: ssh
-  # vars_files:
-  #   - vars/secrets.yml
+  vars_files:
+    - vars/secrets.yml
