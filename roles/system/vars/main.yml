@@ -9,5 +9,6 @@ SYSTEM_APPS:
   - glances
   - neofetch
   - github-cli
+  - httpie
   - wget
   - p7zip
