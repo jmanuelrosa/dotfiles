@@ -8,6 +8,7 @@
   become_user: root
   community.general.pacman:
     update_cache: true
+    upgrade: true
 
 - name: Install Git package
   become: true
@@ -33,7 +34,6 @@
   ansible.builtin.file:
     path: "{{ HOME }}/yay"
     state: absent
-
 
 - name: Update all packages and mirrors with yay
   ansible.builtin.command: yay -Sy

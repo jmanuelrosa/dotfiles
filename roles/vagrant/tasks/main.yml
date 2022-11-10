@@ -8,6 +8,7 @@
   become_user: root
   community.general.pacman:
     update_cache: true
+    upgrade: true
 
 - name: Install base-devel package
   become: true

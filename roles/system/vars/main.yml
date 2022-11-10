@@ -6,9 +6,9 @@
 SYSTEM_APPS:
   - bat
   - duf
-  - glances
-  - neofetch
   - github-cli
+  - glances
   - httpie
-  - wget
+  - neofetch
   - p7zip
+  - wget

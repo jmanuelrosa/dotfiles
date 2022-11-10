@@ -1,3 +1,2 @@
 USER: "{{ ansible_user_id }}"
-HOME: "{{ '~' | expanduser }}"
-DOTFILES: "{{ HOME }}/personal/dotfiles"
+HOME: "{{ ansible_env.HOME }}"

@@ -15,6 +15,8 @@ Vagrant.configure("2") do |config|
   config.vm.provision "ansible" do |ansible|
     ansible.playbook = "vagrant.yml"
     ansible.limit = "all"
+    ansible.ask_vault_pass = true
+    ansible.verbose = true
     ansible.extra_vars = { ansible_python_interpreter: "/usr/bin/python3" }
   end
 end

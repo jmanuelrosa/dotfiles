@@ -7,4 +7,4 @@
     - role: vagrant
 
 - name: Runnign dotfiles
-  ansible.builtin.import_playbook: setup.yml
+  ansible.builtin.import_playbook: dotfiles.yml
