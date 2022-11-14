@@ -1,1 +1,5 @@
 .vagrant
+*.log
+
+backups
+vault_pass
