@@ -1,0 +1,30 @@
+# Ansible role to configure all related to sway desktop
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Install all packages related to desktop
+  community.general.pacman:
+    name: "{{ item }}"
+    state: present
+    executable: yay
+    extra_args: --noconfirm
+  loop: "{{ SWAY_APPS }}"
+
+- name: Creating backup directory for sway
+  ansible.builtin.file:
+    path: "backups/.config/sway"
+    state: directory
+    recurse: true
+
+- name: Creating directory for sway settings
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/sway/"
+    state: directory
+    recurse: true
+
+- name: Configuring Sway
+  ansible.builtin.copy:
+    src: "{{ CURRENT }}/files/config"
+    dest: "{{ HOME }}/.config/sway/config"
+    state: link
+    force: true

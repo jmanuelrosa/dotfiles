@@ -5,6 +5,8 @@
   hosts: all
   roles:
     - role: system
+    - role: shell
     - role: ssh
+    # - role: sway
   vars_files:
     - vars/secrets.yml

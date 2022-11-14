@@ -29,7 +29,7 @@ If you want to manage the dotfiles by yourself, you can download and run them wi
 > mkdir dotfiles
 > cd dotfiles
 > git clone git@github.com:jmanuelrosa/dotfiles.git . &> /dev/nul
-> ansible-playbook --inventory inventory.yml --ask-vault-password --ask-become-pass setup.yml
+> ansible-playbook --inventory inventory.yml --ask-vault-password --ask-become-pass dotfiles.yml
 ```
 
 ## Tools

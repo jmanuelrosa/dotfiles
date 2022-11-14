@@ -1,0 +1,52 @@
+# Ansible role to configure all related to shell
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Install packages related to the shell
+  community.general.pacman:
+    name: "{{ item }}"
+    state: present
+    executable: yay
+    extra_args: --noconfirm
+  loop: "{{ TERMINAL_APPS }}"
+
+- name: Make fish as our default shell
+  become: true
+  user:
+    name: "{{ USER }}"
+    shell: /usr/bin/fish
+    state: present
+
+- name: Install fish plugins
+  ansible.builtin.shell: "fisher install {{ item }}"
+  args:
+    executable: /usr/bin/fish
+  loop: "{{ FISH_PLUGINS }}"
+
+- name: Creating backup directory for fish
+  ansible.builtin.file:
+    path: "backups/.config/fish/conf.d"
+    state: directory
+    recurse: true
+
+- name: Backup fish settings
+  ansible.builtin.copy:
+    src: "{{ HOME }}/.config/fish/{{ item.file }}"
+    dest: "{{ CURRENT }}/backups/.config/fish/{{ item.file }}"
+  when: "'{{ HOME }}/.config/fish/{{ item.file }}' is exists"
+  with_items:
+    - { file: 'fish_plugins' }
+    - { file: 'config.fish' }
+    - { file: 'conf.d/aliases.fish' }
+    - { file: 'conf.d/exports.fish' }
+
+- name: Configuring fish
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/{{ item.file }}"
+    dest: "{{ HOME }}/.config/fish/{{ item.file }}"
+    state: link
+    force: true
+  with_items:
+    - { file: 'config.fish' }
+    - { file: 'conf.d/aliases.fish' }
+    - { file: 'conf.d/exports.fish' }
