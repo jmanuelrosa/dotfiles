@@ -50,3 +50,8 @@
     - { file: 'config.fish' }
     - { file: 'conf.d/aliases.fish' }
     - { file: 'conf.d/exports.fish' }
+
+- name: Generating exports with secrets
+  ansible.builtin.template:
+    src: secrets.fish.j2
+    dest: "{{ HOME }}/.config/fish/conf.d/secrets.yml"
