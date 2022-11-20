@@ -7,3 +7,4 @@ SWAY_APPS:
   - sway
   - xorg-xwayland
   - polkit
+  - waybar

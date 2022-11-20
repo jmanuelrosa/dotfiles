@@ -1,0 +1,13 @@
+# Ansible role to install and configure all multimedia apps
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Install multimedia apps
+  community.general.pacman:
+    name: "{{ item }}"
+    state: present
+    executable: yay
+    extra_args: --noconfirm
+  loop: "{{ MULTIMEDIA_APPS }}"
+
+

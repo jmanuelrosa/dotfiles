@@ -1,0 +1,194 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 24,
+    "modules-left": [
+        "sway/workspaces",
+        "sway/mode"
+    ],
+	"modules-center": [
+        "custom/ncspot",
+        "custom/spotify",
+	],
+    "modules-right": [
+        "network",
+        "custom/separator",
+        "custom/vpn",
+        "custom/separator",
+        "memory",
+        "custom/separator",
+        "cpu",
+        "custom/separator",
+        "sway/language",
+        "custom/separator",
+        "idle_inhibitor",
+        "custom/separator",
+        "backlight",
+        "custom/separator",
+        "pulseaudio",
+        "custom/separator",
+        "battery",
+        "custom/separator",
+        "clock",
+        "custom/separator",
+        "tray"
+    ],
+    "fixed-center": false,
+
+
+    // -------------------------------------------------------------------------
+    // Modules
+    // -------------------------------------------------------------------------
+
+    "battery": {
+        "interval": 30,
+        "states": {
+            "warning": 20,
+            "critical": 10
+        },
+        // Connected to AC
+        "format": "{icon}  {capacity}%",
+        // Not connected to AC
+        "format-discharging": "{icon} {capacity}%",
+        "format-icons": [ "", "", "", "", "" ]
+    },
+
+    "clock": {
+        "interval": 1,
+        "format": " {:%a %Y.%m.%d %H:%M}",
+        "tooltip": false
+    },
+
+    "cpu": {
+        "interval": 10,
+        "format": " {usage}%",
+        "states": {
+          "warning": 70,
+          "critical": 90
+        }
+    },
+
+    "backlight": {
+        "format": "{icon} {percent}%",
+        "format-icons": ["", "", "", ""]
+    },
+
+
+    "sway/language": {
+        "format": " {short}",
+        "tooltip": false
+    },
+
+    "memory": {
+        "interval": 10,
+        "format": " {}%",
+        "states": {
+            "warning": 70,
+            "critical": 90
+        }
+    },
+
+    "idle_inhibitor": {
+        "format": "{icon}",
+        "format-icons": {
+            "activated": "",
+            "deactivated": ""
+        }
+    },
+
+    "network": {
+        "interval": 10,
+        "format-wifi": " {essid} ({signalStrength}%)",
+        "format-ethernet": " {ifname}: {ipaddr}/{cidr}",
+        "format-disconnected": "⚠ Disconnected",
+        "tooltip-format": "{ifname}: {ipaddr}",
+        "on-click": "nm-connection-editor"
+    },
+
+    "custom/vpn":{
+        "interval": 10,
+        "tooltip-format": "{icon}",
+        "format": " {icon} ",
+        "exec": "$HOME/.local/bin/vpn_echo",
+        "return-type": "json",
+        "format": "{}",
+    },
+
+    "custom/spotify": {
+        "exec": "$HOME/.local/bin/mediaplayer.py --player spotify",
+        "format": " {}",
+        "escape": true,
+        "max-length": 45,
+        "return-type": "json",
+        "on-click": "playerctl -p spotify play-pause"
+    },
+
+    "custom/ncspot": {
+        "exec": "$HOME/.local/bin/mediaplayer.py --player ncspot",
+        "format": " {}",
+        "escape": true,
+        "max-length": 45,
+        "return-type": "json",
+        "on-click": "playerctl -p ncspot play-pause"
+    },
+
+    "sway/mode": {
+        "format": "<span style=\"italic\"> {}</span>",
+        "tooltip": true
+    },
+
+    "sway/window": {
+        "format": "{}",
+        "max-length": 120
+    },
+
+    "sway/workspaces": {
+        "all-outputs": true,
+        "disable-scroll": true,
+        "format": "{icon}",
+        "format-icons": {
+            "1.terminals": "",
+            "2.www": "",
+            "3.chat": "",
+            "4.neovim": "",
+            "5.chromium": "",
+            "6.news": "",
+            "7.movie": "",
+            "8.steam": "",
+            "9.spotify": "",
+            "10.arch": "",
+            "urgent": "",
+            "focused": "",
+            "default": ""
+        }
+    },
+
+    "pulseaudio": {
+        "format": "{icon} {volume}% {format_source}",
+        "format-bluetooth": "{icon}  {volume}% {format_source}",
+        "format-bluetooth-muted": " {icon}  {format_source}",
+        "format-muted": " {format_source}",
+        "format-source": " {volume}%",
+        "format-source-muted": "",
+        "format-icons": {
+            "headphone": "",
+            "hands-free": "",
+            "headset": "",
+            "phone": "",
+            "portable": "",
+            "car": "",
+            "default": ["", "", ""]
+        },
+        "on-click": "pavucontrol"
+    },
+
+    "tray": {
+        "icon-size": 18,
+        "spacing": 5
+    },
+
+    "custom/separator": {
+        "format": "|",
+        "tooltip": false
+    }
+}

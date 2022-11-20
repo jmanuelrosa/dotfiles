@@ -2,7 +2,7 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Install all packages related to desktop
+- name: Install all window manager and wm apps
   community.general.pacman:
     name: "{{ item }}"
     state: present
@@ -12,9 +12,22 @@
 
 - name: Creating backup directory for sway
   ansible.builtin.file:
-    path: "backups/.config/sway"
+    path: "backups/{{ item.file }}"
     state: directory
     recurse: true
+  with_items:
+    - { file: .config/sway }
+    - { file: .config/waybar }
+
+- name: Backup sway settings
+  ansible.builtin.copy:
+    src: "{{ HOME }}/{{ item.file }}"
+    dest: "{{ CURRENT_DIR }}/backups/{{ item.file }}"
+  when: "'{{ HOME }}/{{ item.file }}' is exists"
+  with_items:
+    - { file: .config/sway/config }
+    - { file: .config/waybar/config }
+    - { file: .config/waybar/style.css }
 
 - name: Creating directory for sway settings
   ansible.builtin.file:
@@ -22,9 +35,25 @@
     state: directory
     recurse: true
 
+- name: Creating directory for waybar settings
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/waybar/"
+    state: directory
+    recurse: true
+
 - name: Configuring Sway
-  ansible.builtin.copy:
-    src: "{{ CURRENT }}/files/config"
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/sway/config"
     dest: "{{ HOME }}/.config/sway/config"
     state: link
     force: true
+
+- name: Configuring Waybar
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/{{ item.file }}"
+    dest: "{{ HOME }}/.config/{{ item.file }}"
+    state: link
+    force: true
+  with_items:
+    - { file: waybar/config }
+    - { file: waybar/style.css }

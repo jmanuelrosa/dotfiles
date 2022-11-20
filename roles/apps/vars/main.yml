@@ -1,0 +1,27 @@
+# Ansible vars to use with the apps role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+
+---
+
+BROWSERS_APPS:
+  - brave-bin
+  - firefox-developer-edition
+  - google-chrome
+
+MULTIMEDIA_APPS:
+  - imv
+  - mpv
+  - spotify
+  - zathura
+
+EDITORS_APPS:
+  - visual-studio-code-bin
+
+INFRASTRUCTURE_APPS:
+  - ansible
+  - docker
+  - docker-compose
+
+DEVELOPMENT_APPS:
+  - insomnia-bin
+  - httpie

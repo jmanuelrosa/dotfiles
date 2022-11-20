@@ -7,9 +7,19 @@ Vagrant.configure("2") do |config|
   config.vm.provider :virtualbox do |v|
     v.name = "archlinux"
     v.gui = $GUI
+
+    # Amount of memory RAM on the VM:
     v.memory = 8000
-    v.cpus = 4
+
+    # Amount of cpus on the VM:
+    v.cpus = 2
+
+    # Set the video memory to 128Mb and VMSVGA
     v.customize ["modifyvm", :id, "--vram", "128"]
+    v.customize ['modifyvm', :id, '--graphicscontroller', 'vmsvga']
+
+    # Enable 3D acceleration:
+    v.customize ["modifyvm", :id, "--accelerate3d", "on"]
   end
 
   config.vm.provision "shell", inline: "pacman -Syu --quiet --noconfirm"

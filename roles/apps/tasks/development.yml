@@ -1,0 +1,12 @@
+
+# Ansible role to install and configure all development apps
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Install development apps
+  community.general.pacman:
+    name: "{{ item }}"
+    state: present
+    executable: yay
+    extra_args: --noconfirm
+  loop: "{{ DEVELOPMENT_APPS }}"

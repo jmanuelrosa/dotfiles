@@ -7,6 +7,8 @@
     - role: system
     - role: shell
     - role: ssh
-    # - role: sway
+    - role: user
+    - role: sway
+    - role: apps
   vars_files:
     - vars/secrets.yml
