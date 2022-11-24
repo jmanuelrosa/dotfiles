@@ -65,6 +65,18 @@ If you want to run Vagrant with the GUI and see how beautiful Sway is and how it
 > GUI=true vagrant up
 ```
 
+### Install Guest additions on vagrant
+
+```
+> vagrant ssh -c "sudo pacman --remove --noconfirm virtualbox-guest-utils-nox"
+> vagrant ssh -c "sudo pacman --sync --quiet --noconfirm virtualbox-guest-utils virtualbox-guest-iso"
+> vagrant reload
+> vagrant ssh -c "sudo mount -t iso9660 -o loop /usr/lib/virtualbox/additions/VBoxGuestAdditions.iso /mnt"
+> vagrant ssh -c "sudo yes | sudo sh /mnt/VBoxLinuxAdditions.run --accept"
+> vagrant reload
+> vagrant ssh -c "sudo /sbin/rcvboxadd quicksetup all"
+```
+
 ## Errors
 
 ### Vagrant errors
