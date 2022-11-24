@@ -1,175 +1,296 @@
-/*
-* nightfox
-  primary:
-    background: "#192330"
-    foreground: "#cdcecf"
-  # Normal colors
-  normal:
-    black: "#393b44"
-    red: "#c94f6d"
-    green: "#81b29a"
-    yellow: "#dbc074"
-    blue: "#719cd6"
-    magenta: "#9d79d6"
-    cyan: "#63cdcf"
-    white: "#dfdfe0"
-  # Bright colors
-  bright:
-    black: "#475072"
-    red: "#d6616b"
-    green: "#58cd8b"
-    yellow: "#ffe37e"
-    blue: "#84cee4"
-    magenta: "#b8a1e3"
-    cyan: "#59f0ff"
-    white: "#f2f2f2"
-  indexed_colors:
-    - { index: 16, color: "#f4a261" }
-    - { index: 17, color: "#d67ad2" }
-*/
+
+@keyframes blink-warning {
+    70% {
+        color: @light;
+    }
+
+    to {
+        color: @light;
+        background-color: @warning;
+    }
+}
+
+@keyframes blink-critical {
+    70% {
+      color: @light;
+    }
+
+    to {
+        color: @light;
+        background-color: @critical;
+    }
+}
+
 
 /* -----------------------------------------------------------------------------
- * Base styles
+ * Styles
  * -------------------------------------------------------------------------- */
+
+/* COLORS */
+
+/* Nord */
+@define-color bg #4b5563;
+/*@define-color bg #353C4A;*/
+@define-color light #D8DEE9;
+/*@define-color dark @nord_dark_font;*/
+@define-color warning #ebcb8b;
+@define-color critical #BF616A;
+@define-color mode #434C5E;
+/*@define-color workspaces @bg;*/
+/*@define-color workspaces @nord_dark_font;*/
+/*@define-color workspacesfocused #434C5E;*/
+@define-color workspacesfocused #4C566A;
+@define-color tray @workspacesfocused;
+@define-color sound #EBCB8B;
+@define-color network #5D7096;
+@define-color memory #546484;
+@define-color cpu #596A8D;
+@define-color temp #4D5C78;
+@define-color layout #5e81ac;
+@define-color battery #88c0d0;
+@define-color date #434C5E;
+@define-color time #434C5E;
+@define-color backlight #434C5E;
+@define-color nord_bg #434C5E;
+@define-color nord_bg_blue #546484;
+@define-color nord_light #D8DEE9;
+@define-color nord_light_font #D8DEE9;
+@define-color nord_dark_font #434C5E;
 
 /* Reset all styles */
 * {
-  border: none;
-  border-radius: 0;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
+    border: none;
+    border-radius: 3px;
+    min-height: 0;
+    margin: 0.2em 0.3em 0.2em 0.3em;
 }
 
 /* The whole bar */
 #waybar {
-  background: #192330;
-  color: #dfdfe0;
-  font-family: Roboto Mono;
-  font-size: 15px;
+    background: @bg;
+    color: @light;
+    font-family: "Cantarell", "Font Awesome 5 Pro";
+    font-size: 12px;
+    font-weight: bold;
 }
 
-button {
-  border: none;
+/* Each module */
+#battery,
+#clock,
+#cpu,
+#custom-layout,
+#memory,
+#mode,
+#network,
+#pulseaudio,
+#temperature,
+#custom-alsa,
+#custom-pacman,
+#custom-weather,
+#custom-gpu,
+#tray,
+#backlight,
+#language,
+#custom-cpugovernor {
+    padding-left: 0.6em;
+    padding-right: 0.6em;
 }
 
-label:disabled,
-button:disabled {
-  color: inherit;
-}
-
-button:hover {
-  background: inherit;
-}
-
-/* -----------------------------------------------------------------------------
- * Module styles
- * -------------------------------------------------------------------------- */
-
+/* Each module that should blink */
+#mode,
+#memory,
+#temperature,
 #battery {
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  animation-direction: alternate;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
 }
 
-#battery.warning {
-  color: #f4a261;
-  font-weight: bold;
-}
-
+/* Each critical module */
+#memory.critical,
+#cpu.critical,
+#temperature.critical,
 #battery.critical {
-  color: #c94f6d;
-  font-weight: bold;
+    color: @critical;
 }
 
-#clock {
-  font-weight: bold;
+/* Each critical that should blink */
+#mode,
+#memory.critical,
+#temperature.critical,
+#battery.critical.discharging {
+    animation-name: blink-critical;
+    animation-duration: 2s;
 }
 
-#cpu.warning {
-  color: #f4a261;
+/* Each warning */
+#network.disconnected,
+#memory.warning,
+#cpu.warning,
+#temperature.warning,
+#battery.warning {
+    background: @warning;
+    color: @nord_dark_font;
 }
 
-#cpu.critical {
-  color: #c94f6d;
-  font-weight: bold;
+/* Each warning that should blink */
+#battery.warning.discharging {
+    animation-name: blink-warning;
+    animation-duration: 3s;
 }
 
-#memory {
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  animation-direction: alternate;
+/* And now modules themselves in their respective order */
+
+#mode { /* Shown current Sway mode (resize etc.) */
+    color: @light;
+    background: @mode;
 }
 
-#memory.warning {
-  color: #f4a261;
-}
+/* Workspaces stuff */
 
-#memory.critical {
-  font-weight: bold;
-  color: #c94f6d;
-}
-
-#mode {
-  background: #64727d;
-  padding-left: 4px;
-  padding-right: 4px;
-  border: 1px solid #dfdfe0;
-}
-
-#network {
-  color: #dfdfe0;
-}
-
-#network.disconnected {
-  color: #f4a261;
-}
-
-#custom-separator {
-  padding-left: 2px;
-  padding-right: 2px;
-  color: #63cdcf;
-  background: transparent;
-}
-
-#tray {
-  padding-left: 2px;
-  padding-right: 2px;
-}
-
-#workspaces button:hover {
-  border-top: 2px solid #ffe37e;
+#workspaces {
+ /*   color: #D8DEE9;
+    margin-right: 10px;*/
 }
 
 #workspaces button {
-  border-top: 2px solid transparent;
-  background-color: transparent;
-  color: #dfdfe0;
-  font-size: 20px;
+    font-weight: bold; /* Somewhy the bar-wide setting is ignored*/
+    padding: 0;
+    /*color: #999;*/
+    opacity: 0.3;
+    background: none;
+    font-size: 1em;
 }
 
 #workspaces button.focused {
-  color: #131a24;
-  background-color: #dbc074;
+    background: @workspacesfocused;
+    color: #D8DEE9;
+    opacity: 1;
+    padding: 0 0.4em;
 }
 
 #workspaces button.urgent {
-  border-color: #c9545d;
-  color: #c9545d;
+    border-color: #c9545d;
+    color: #c9545d;
+    opacity: 1;
 }
 
-#pulseaudio {
-  color: #dfdfe0;
+#window {
+    margin-right: 40px;
+    margin-left: 40px;
+    font-weight: normal;
 }
-
+#bluetooth {
+    background: @nord_bg_blue;
+    font-size: 1.2em;
+    font-weight: bold;
+    padding: 0 0.6em;
+}
+#custom-gpu {
+    background: @nord_bg;
+    font-weight: bold;
+    padding: 0 0.6em;
+}
+#custom-weather {
+    background: @mode;
+    font-weight: bold;
+    padding: 0 0.6em;
+}
+#custom-pacman {
+    background: @nord_light;
+    color: @nord_dark_font;
+    font-weight: bold;
+    padding: 0 0.6em;
+}
+#custom-scratchpad-indicator {
+    background: @nord_light;
+    color: @nord_dark_font;
+    font-weight: bold;
+    padding: 0 0.6em;
+}
 #idle_inhibitor {
-  color: #dfdfe0;
+    background: @mode;
+    /*font-size: 1.6em;*/
+    font-weight: bold;
+    padding: 0 0.6em;
+}
+#custom-alsa {
+    background: @sound;
 }
 
-#custom-spotify {
-  color: #dfdfe0;
+#network {
+    background: @nord_bg_blue;
 }
 
-#custom-ncspot {
-  color: #dfdfe0;
+#memory {
+    background: @memory;
+}
+
+#cpu {
+    background: @nord_bg;
+    color: #D8DEE9;
+}
+#cpu.critical {
+    color: @nord_dark_font;
+}
+#language {
+    background: @nord_bg_blue;
+    color: #D8DEE9;
+    padding: 0 0.4em;
+}
+#custom-cpugovernor {
+    background-color: @nord_light;
+    color: @nord_dark_font;
+}
+#custom-cpugovernor.perf {
+    
+}
+#temperature {
+    background-color: @nord_bg;
+    color: #D8DEE9;
+}
+#temperature.critical {
+    background:  @critical;
+}
+#custom-layout {
+    background: @layout;
+}
+
+#battery {
+    background: @battery;
+}
+
+#backlight {
+    background: @backlight;
+}
+
+#clock {
+    background: @nord_bg_blue;
+    color: #D8DEE9;
+}
+#clock.date {
+    background: @date;
+}
+
+#clock.time {
+    background: @mode;
+}
+
+#pulseaudio { /* Unsused but kept for those who needs it */
+    background: @nord_bg_blue;
+    color: #D8DEE9;
+}
+
+#pulseaudio.muted {
+    background: #BF616A;
+    color: #BF616A;
+    /* No styles */
+}
+#pulseaudio.source-muted {
+    background: #D08770;
+    color: #D8DEE9;
+    /* No styles */
+}
+#tray {
+    background: #434C5E;
 }

@@ -4,7 +4,7 @@
 - name: Running Vagrant settings
   hosts: all
   roles:
-    - role: vagrant
+    - role: aur
 
 - name: Runnign dotfiles
   ansible.builtin.import_playbook: dotfiles.yml

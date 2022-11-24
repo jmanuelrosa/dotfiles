@@ -34,25 +34,25 @@
 
 - name: Backup fish settings
   ansible.builtin.copy:
-    src: "{{ HOME }}/{{ item.file }}"
-    dest: "{{ CURRENT_DIR }}/backups/{{ item.file }}"
-  when: "'{{ HOME }}/{{ item.file }}' is exists"
+    src: "{{ HOME }}/{{ item }}"
+    dest: "{{ CURRENT_DIR }}/backups/{{ item }}"
+  when: "'{{ HOME }}/{{ item }}' is exists"
   with_items:
-    - { file: .config/fish/fish_plugins }
-    - { file: .config/fish/config.fish }
-    - { file: .config/fish/conf.d/aliases.fish }
-    - { file: .config/fish/conf.d/exports.fish }
+    - .config/fish/fish_plugins
+    - .config/fish/config.fish
+    - .config/fish/conf.d/aliases.fish
+    - .config/fish/conf.d/exports.fish
 
 - name: Configuring fish
   ansible.builtin.file:
-    src: "{{ role_path }}/files/{{ item.file }}"
-    dest: "{{ HOME }}/.config/{{ item.file }}"
+    src: "{{ role_path }}/files/{{ item }}"
+    dest: "{{ HOME }}/.config/{{ item }}"
     state: link
     force: true
   with_items:
-    - { file: fish/config.fish }
-    - { file: fish/conf.d/aliases.fish }
-    - { file: fish/conf.d/exports.fish }
+    - fish/config.fish
+    - fish/conf.d/aliases.fish
+    - fish/conf.d/exports.fish
 
 - name: Generating exports with secrets
   ansible.builtin.template:

@@ -1,6 +1,5 @@
 # Ansible vars to use with the apps role
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
-
 ---
 
 BROWSERS_APPS:
@@ -29,3 +28,6 @@ DEVELOPMENT_APPS:
 CHAT_APPS:
   - discord
   # - slack-desktop
+
+SECURITY_APPS:
+  - firejail

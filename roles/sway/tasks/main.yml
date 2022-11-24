@@ -11,22 +11,22 @@
 
 - name: Creating backup directory for sway
   ansible.builtin.file:
-    path: "backups/{{ item.file }}"
+    path: "backups/{{ item }}"
     state: directory
     recurse: true
   with_items:
-    - { file: .config/sway }
-    - { file: .config/waybar }
+    - .config/sway
+    - .config/waybar
 
 - name: Backup sway settings
   ansible.builtin.copy:
-    src: "{{ HOME }}/{{ item.file }}"
-    dest: "{{ CURRENT_DIR }}/backups/{{ item.file }}"
-  when: "'{{ HOME }}/{{ item.file }}' is exists"
+    src: "{{ HOME }}/{{ item }}"
+    dest: "{{ CURRENT_DIR }}/backups/{{ item }}"
+  when: "'{{ HOME }}/{{ item }}' is exists"
   with_items:
-    - { file: .config/sway/config }
-    - { file: .config/waybar/config }
-    - { file: .config/waybar/style.css }
+    - .config/sway/config
+    - .config/waybar/config
+    - .config/waybar/style.css
 
 - name: Creating directory for sway settings
   ansible.builtin.file:
@@ -49,10 +49,10 @@
 
 - name: Configuring Waybar
   ansible.builtin.file:
-    src: "{{ role_path }}/files/{{ item.file }}"
-    dest: "{{ HOME }}/.config/{{ item.file }}"
+    src: "{{ role_path }}/files/{{ item }}"
+    dest: "{{ HOME }}/.config/{{ item }}"
     state: link
     force: true
   with_items:
-    - { file: waybar/config }
-    - { file: waybar/style.css }
+    - waybar/config
+    - waybar/style.css

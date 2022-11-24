@@ -1,0 +1,15 @@
+# Ansible role to install and configure all security apps
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Install security apps
+  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+  loop: "{{ SECURITY_APPS }}"
+  register: result
+  ignore_errors: true
+  changed_when:
+    - result.failed
+
+- name: Loading all firejail profiles
+  become: true
+  ansible.builtin.shell: firecfg
