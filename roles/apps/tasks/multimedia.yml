@@ -3,11 +3,7 @@
 ---
 
 - name: Install multimedia apps
-  community.general.pacman:
-    name: "{{ item }}"
-    state: present
-    executable: yay
-    extra_args: --noconfirm
+  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
   loop: "{{ MULTIMEDIA_APPS }}"
 
 

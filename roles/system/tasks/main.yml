@@ -39,11 +39,7 @@
   ansible.builtin.command: yay -Sy
 
 - name: Install all packages related to the system
-  community.general.pacman:
-    name: "{{ item }}"
-    state: present
-    executable: yay
-    extra_args: --noconfirm
+  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
   loop: "{{ SYSTEM_APPS }}"
 
 - name: Creating user config directory
