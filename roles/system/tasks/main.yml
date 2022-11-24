@@ -29,6 +29,9 @@
   ansible.builtin.shell: |
     cd "{{ HOME }}/yay"
     makepkg -si --noconfirm
+  register: result
+  changed_when:
+    - result.failed
 
 - name: Remove YAY cache source dir
   ansible.builtin.file:
@@ -36,13 +39,28 @@
     state: absent
 
 - name: Update all packages and mirrors with yay
-  ansible.builtin.command: yay -Sy
+  ansible.builtin.shell: yay -Sy
+  register: result
+  ignore_errors: true
+  changed_when:
+    - result.failed
 
 - name: Install all packages related to the system
   ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
   loop: "{{ SYSTEM_APPS }}"
+  register: result
+  ignore_errors: true
+  changed_when:
+    - result.failed
 
 - name: Creating user config directory
   ansible.builtin.file:
     path: "{{ HOME }}/.config"
     state: directory
+
+- name: Enabling tlp as a service with systemd
+  systemd:
+    name: tlp
+    enabled: true
+    daemon_reload: true
+  become: true

@@ -5,6 +5,9 @@
 - name: Install packages related to the shell
   ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
   loop: "{{ TERMINAL_APPS }}"
+  register: result
+  changed_when:
+    - result.failed
 
 - name: Make fish as our default shell
   become: true
@@ -18,6 +21,10 @@
   args:
     executable: /usr/bin/fish
   loop: "{{ FISH_PLUGINS }}"
+  register: result
+  ignore_errors: true
+  changed_when:
+    - result.failed
 
 - name: Creating backup directory for fish
   ansible.builtin.file:

@@ -5,6 +5,9 @@
 - name: Install all window manager and wm apps
   ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
   loop: "{{ SWAY_APPS }}"
+  register: result
+  changed_when:
+    - result.failed
 
 - name: Creating backup directory for sway
   ansible.builtin.file:

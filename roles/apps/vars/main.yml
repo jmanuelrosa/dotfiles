@@ -25,3 +25,7 @@ INFRASTRUCTURE_APPS:
 DEVELOPMENT_APPS:
   - insomnia-bin
   - httpie
+
+CHAT_APPS:
+  - discord
+  # - slack-desktop
