@@ -18,15 +18,21 @@
     - .config/sway
     - .config/waybar
 
-- name: Backup sway settings
-  ansible.builtin.copy:
-    src: "{{ HOME }}/{{ item }}"
-    dest: "{{ CURRENT_DIR }}/backups/{{ item }}"
-  when: "'{{ HOME }}/{{ item }}' is exists"
+- name: Check if files to backup exists
+  stat:
+    path: "{{ HOME }}/{{ item }}"
   with_items:
     - .config/sway/config
     - .config/waybar/config
     - .config/waybar/style.css
+  register: results
+
+- name: Backup sway settings
+  ansible.builtin.copy:
+    src: "{{ item.stat.path }}"
+    dest: "{{ CURRENT_DIR }}/backups/{{ item.item }}"
+  when: item.stat.exists == True
+  with_items: "{{ results.results }}"
 
 - name: Creating directory for sway settings
   ansible.builtin.file:

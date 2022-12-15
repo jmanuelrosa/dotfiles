@@ -27,7 +27,7 @@ DEVELOPMENT_APPS:
 
 CHAT_APPS:
   - discord
-  # - slack-desktop
+  - slack-desktop
 
 SECURITY_APPS:
   - firejail

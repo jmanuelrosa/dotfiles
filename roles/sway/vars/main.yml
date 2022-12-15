@@ -4,6 +4,8 @@
 ---
 
 SWAY_APPS:
+  - networkmanager
+  - pavucontrol
   - polkit
   - sway
   - swaybg

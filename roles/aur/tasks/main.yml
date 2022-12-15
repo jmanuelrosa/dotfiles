@@ -7,11 +7,14 @@
   community.general.pacman:
     update_cache: true
     upgrade: true
+  register: result
+  changed_when:
+    - result.failed
 
 - name: Install dependencies for Yay
   become: true
   community.general.pacman:
-    name: 
+    name:
       - base-devel
       - git
     state: present
@@ -37,7 +40,7 @@
     state: absent
 
 - name: Update all packages and mirrors with yay
-  ansible.builtin.shell: yay -Sy
+  ansible.builtin.shell: yay --quiet --sync --refresh --sysupgrade --noconfirm --removemake
   register: result
   ignore_errors: true
   changed_when:

@@ -32,16 +32,22 @@
     state: directory
     recurse: true
 
-- name: Backup fish settings
-  ansible.builtin.copy:
-    src: "{{ HOME }}/{{ item }}"
-    dest: "{{ CURRENT_DIR }}/backups/{{ item }}"
-  when: "'{{ HOME }}/{{ item }}' is exists"
+- name: Check if files to backup exists
+  stat:
+    path: "{{ HOME }}/{{ item }}"
   with_items:
     - .config/fish/fish_plugins
     - .config/fish/config.fish
     - .config/fish/conf.d/aliases.fish
     - .config/fish/conf.d/exports.fish
+  register: results
+
+- name: Backup fish settings
+  ansible.builtin.copy:
+    src: "{{ item.stat.path }}"
+    dest: "{{ CURRENT_DIR }}/backups/{{ item.item }}"
+  when: item.stat.exists == True
+  with_items: "{{ results.results }}"
 
 - name: Configuring fish
   ansible.builtin.file:
