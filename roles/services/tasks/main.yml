@@ -2,6 +2,9 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
+- name: Populate service facts
+  ansible.builtin.service_facts:
+
 - name: Enabling some service with systemd
   systemd:
     name: "{{ item }}"
@@ -21,6 +24,7 @@
     state: stopped
     daemon_reload: true
   become: true
+  when: "item in services"
   with_items:
     - docker
     - bluetooth
@@ -35,6 +39,7 @@
     state: stopped
     daemon_reload: true
   become: true
+  when: "item in services"
   with_items:
     - docker
     - bluetooth

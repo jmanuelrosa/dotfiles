@@ -1,194 +1,219 @@
 {
-    "layer": "top",
-    "position": "top",
-    "height": 24,
-    "modules-left": [
-        "sway/workspaces",
-        "sway/mode"
-    ],
-	"modules-center": [
-        "custom/ncspot",
-        "custom/spotify",
-	],
-    "modules-right": [
-        "network",
-        "custom/separator",
-        "custom/vpn",
-        "custom/separator",
-        "memory",
-        "custom/separator",
-        "cpu",
-        "custom/separator",
-        "sway/language",
-        "custom/separator",
-        "idle_inhibitor",
-        "custom/separator",
-        "backlight",
-        "custom/separator",
-        "pulseaudio",
-        "custom/separator",
-        "battery",
-        "custom/separator",
-        "clock",
-        "custom/separator",
-        "tray"
-    ],
-    "fixed-center": false,
+  "layer": "top",
+  "position": "top",
+  // "height": 36,
+  // Archived modules
+  // "bluetooth", "custom/gpu",  "custom/weather", "temperature", sway/language
+  "modules-left": [
+    "sway/workspaces",
+    "sway/mode"
+    // "sway/language",
+    // "custom/scratchpad-indicator",
+    // "custom/pacman",
+    // "idle_inhibitor",
+    // "custom/media"
+  ],
+  "modules-center": [
+    "sway/window"
+  ],
+  "modules-right": [
+    // "custom/cpugovernor",
+    // "cpu",
+    // "temperature",
+    // "custom/gpu",
+    "pulseaudio",
+    "network",
+    "battery",
+    "clock",
+    "tray"
+  ],
 
+  // MODULE: Workspaces
+  "sway/workspaces": {
+    "all-outputs": true,
+    "active-only": false,
+    "on-click": "activate",
+    "format": "{icon}",
+    "format-icons": {
+        "1": "1",
+        "2": "2",
+        "3": "3",
+        "4": "4",
+        "urgent": " Y",
+        "focused": "X",
+        "default": " T"
+      }
+  },
 
-    // -------------------------------------------------------------------------
-    // Modules
-    // -------------------------------------------------------------------------
+  // MODULE: Mode
+  "sway/mode": {
+    "format": "<span style=\"italic\">{}</span>"
+  },
 
-    "battery": {
-        "interval": 30,
-        "states": {
-            "warning": 20,
-            "critical": 10
-        },
-        // Connected to AC
-        "format": "{icon}  {capacity}%",
-        // Not connected to AC
-        "format-discharging": "{icon} {capacity}%",
-        "format-icons": [ "", "", "", "", "" ]
+  // MODULE: Window
+  "sway/window": {
+    "format": "{}",
+    "max-length": 50,
+    "tooltip": false
+  },
+
+  // MODULE: Tray
+  "tray": {
+    "icon-size": 18,
+    "spacing": 5
+  },
+
+  // MODULE: Clock
+  "clock": {
+    "format": "{: %A, %d %B %Y  %H:%M}",
+    "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
+    "today-format": "<b>{}</b>"
+  },
+
+  // MODULE: Battery
+  "battery": {
+    "interval": 30,
+    "states": {
+        "warning": 25,
+        "critical": 10
+      },
+    "format": "{icon}  {capacity}% ({time})",
+    "format-time": "{H}h {M}m",
+    "format-discharging": "{icon} {capacity}% ({time})",
+    "format-charging": " {capacity}% ({time})",
+    "format-icons": ["", "", "", "", ""]
+  },
+
+  // MODULE: Network
+  "network": {
+      // "interface": "wlan0", // (Optional) To force the use of this interface,
+    "format-wifi": " {essid}",
+    "format-ethernet": "{ifname}: {ipaddr}/{cidr} ",
+    "format-linked": "{ifname} (No IP) ",
+    "format-disconnected": "",
+    "format-alt": "{ifname}: {ipaddr}/{cidr}",
+    "family": "ipv4",
+    "tooltip-format-wifi": "  {ifname} @ {essid}\nIP: {ipaddr}\nStrength: {signalStrength}%\nFreq: {frequency}MHz\n {bandwidthUpBits}  {bandwidthDownBits}",
+    "tooltip-format-ethernet": " {ifname}\nIP: {ipaddr}\n {bandwidthUpBits}  {bandwidthDownBits}"
+  },
+
+  // MODULE: Pulseaudio
+  "pulseaudio": {
+    "scroll-step": 3,
+    "format": "{icon} {volume}% {format_source}",
+    "format-bluetooth": "{icon}  {volume}% {format_source}",
+    "format-bluetooth-muted": " {icon} {format_source}",
+    "format-muted": " {format_source}",
+    "format-source": " {volume}%",
+    "format-source-muted": "",
+    "format-icons": {
+      "headphone": "",
+      "hands-free": "",
+      "headset": "",
+      "phone": "",
+      "portable": "",
+      "car": "",
+      "default": ["", "", ""]
     },
+    "on-click": "pavucontrol"
+  },
 
-    "clock": {
-        "interval": 1,
-        "format": " {:%a %Y.%m.%d %H:%M}",
-        "tooltip": false
-    },
-
-    "cpu": {
-        "interval": 10,
-        "format": " {usage}%",
-        "states": {
-          "warning": 70,
-          "critical": 90
-        }
-    },
-
-    "backlight": {
-        "format": "{icon} {percent}%",
-        "format-icons": ["", "", "", ""]
-    },
-
-
-    "sway/language": {
-        "format": " {short}",
-        "tooltip": false
-    },
-
-    "memory": {
-        "interval": 10,
-        "format": " {}%",
-        "states": {
-            "warning": 70,
-            "critical": 90
-        }
-    },
-
-    "idle_inhibitor": {
-        "format": "{icon}",
-        "format-icons": {
-            "activated": "",
-            "deactivated": ""
-        }
-    },
-
-    "network": {
-        "interval": 10,
-        "format-wifi": " {essid} ({signalStrength}%)",
-        "format-ethernet": " {ifname}: {ipaddr}/{cidr}",
-        "format-disconnected": "⚠ Disconnected",
-        "tooltip-format": "{ifname}: {ipaddr}",
-        "on-click": "nm-connection-editor"
-    },
-
-    "custom/vpn":{
-        "interval": 10,
-        "tooltip-format": "{icon}",
-        "format": " {icon} ",
-        "exec": "$HOME/.local/bin/vpn_echo",
-        "return-type": "json",
-        "format": "{}",
-    },
-
-    "custom/spotify": {
-        "exec": "$HOME/.local/bin/mediaplayer.py --player spotify",
-        "format": " {}",
-        "escape": true,
-        "max-length": 45,
-        "return-type": "json",
-        "on-click": "playerctl -p spotify play-pause"
-    },
-
-    "custom/ncspot": {
-        "exec": "$HOME/.local/bin/mediaplayer.py --player ncspot",
-        "format": " {}",
-        "escape": true,
-        "max-length": 45,
-        "return-type": "json",
-        "on-click": "playerctl -p ncspot play-pause"
-    },
-
-    "sway/mode": {
-        "format": "<span style=\"italic\"> {}</span>",
-        "tooltip": true
-    },
-
-    "sway/window": {
-        "format": "{}",
-        "max-length": 120
-    },
-
-    "sway/workspaces": {
-        "all-outputs": true,
-        "disable-scroll": true,
-        "format": "{icon}",
-        "format-icons": {
-            "1.terminals": "",
-            "2.www": "",
-            "3.chat": "",
-            "4.neovim": "",
-            "5.chromium": "",
-            "6.news": "",
-            "7.movie": "",
-            "8.steam": "",
-            "9.spotify": "",
-            "10.arch": "",
-            "urgent": "",
-            "focused": "",
-            "default": ""
-        }
-    },
-
-    "pulseaudio": {
-        "format": "{icon} {volume}% {format_source}",
-        "format-bluetooth": "{icon}  {volume}% {format_source}",
-        "format-bluetooth-muted": " {icon}  {format_source}",
-        "format-muted": " {format_source}",
-        "format-source": " {volume}%",
-        "format-source-muted": "",
-        "format-icons": {
-            "headphone": "",
-            "hands-free": "",
-            "headset": "",
-            "phone": "",
-            "portable": "",
-            "car": "",
-            "default": ["", "", ""]
-        },
-        "on-click": "pavucontrol"
-    },
-
-    "tray": {
-        "icon-size": 18,
-        "spacing": 5
-    },
-
-    "custom/separator": {
-        "format": "|",
-        "tooltip": false
+  "idle_inhibitor": {
+    "format": "{icon}",
+    "format-icons": {
+        "activated": "",
+        "deactivated": ""
+      },
+    "tooltip": "true"
+  },
+  "cpu": {
+    "interval": "1",
+    "format": "  {max_frequency}GHz <span color=\"darkgray\">| {usage}%</span>",
+    "max-length": 13,
+    "min-length": 13,
+    "on-click": "kitty -e htop --sort-key PERCENT_CPU",
+    "tooltip": false
+  },
+  "temperature": {
+      //"thermal-zone": 1,
+    "interval": "4",
+    "hwmon-path": "/sys/class/hwmon/hwmon3/temp1_input",
+    "critical-threshold": 74,
+    "format-critical": "  {temperatureC}°C",
+    "format": "{icon}  {temperatureC}°C",
+    "format-icons": ["", "", ""],
+    "max-length": 7,
+    "min-length": 7
+  },
+  "custom/pacman": {
+    "format": "<big>􏆲</big>  {}",
+    "interval": 3600,
+    "exec": "checkupdates | wc -l",
+    "exec-if": "exit 0",
+    "on-click": "kitty -e 'yay'; pkill -SIGRTMIN+8 waybar",
+    "signal": 8,
+    "max-length": 5,
+    "min-length": 3
+  },
+  "custom/weather": {
+    "exec": "curl 'https://wttr.in/?format=1'",
+    "interval": 3600
+  },
+  "custom/gpu": {
+    "exec": "$HOME/.config/waybar/custom_modules/custom-gpu.sh",
+    "return-type": "json",
+    "format": "  {}",
+    "interval": 2,
+    "tooltip": "{tooltip}",
+    "max-length": 19,
+    "min-length": 19,
+    "on-click": "powerupp"
+  },
+  "custom/cpugovernor": {
+    "format": "{icon}",
+    "interval": "30",
+    "return-type": "json",
+    "exec": "$HOME/.config/waybar/custom_modules/cpugovernor.sh",
+    "min-length": 2,
+    "max-length": 2,
+    "format-icons": {
+      "perf": "",
+      "sched": ""
     }
+  },
+  "custom/media": {
+    "format": "{icon} {}",
+    "return-type": "json",
+    "max-length": 40,
+    "format-icons": {
+      "spotify": "",
+      "default": "🎜"
+    },
+    "escape": true,
+    "exec": "$HOME/.config/waybar/mediaplayer.py 2> /dev/null" // Script in resources folder
+    // "exec": "$HOME/.config/waybar/mediaplayer.py --player spotify 2> /dev/null" // Filter player based on name
+  },
+  "custom/scratchpad-indicator": {
+    "interval": 3,
+    "return-type": "json",
+    "exec": "swaymsg -t get_tree | jq --unbuffered --compact-output '( select(.name == \"root\") | .nodes[] | select(.name == \"__i3\") | .nodes[] | select(.name == \"__i3_scratch\") | .focus) as $scratch_ids | [..  | (.nodes? + .floating_nodes?) // empty | .[] | select(.id |IN($scratch_ids[]))] as $scratch_nodes | { text: \"\\($scratch_nodes | length)\", tooltip: $scratch_nodes | map(\"\\(.app_id // .window_properties.class) (\\(.id)): \\(.name)\") | join(\"\\n\") }'",
+    "format": "{} 􏠜",
+    "on-click": "exec swaymsg 'scratchpad show'",
+    "on-click-right": "exec swaymsg 'move scratchpad'"
+  }
+
+  // "bluetooth": {
+  //   "interval": 30,
+  //   "format": "{icon}",
+  //   "format-alt": "{status}",
+  //   "format-icons": {
+  //     "connected": "",
+  //     "disabled": "",
+  //     "enabled": "",
+  //     "off": "",
+  //     "on": ""
+  //   },
+  //   "tooltip": true,
+  //   "on-click": "blueberry"
+  // },
 }

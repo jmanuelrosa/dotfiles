@@ -4,22 +4,7 @@ Vagrant.configure("2") do |config|
   # from https://vagrantcloud.com/search.
   config.vm.box = "archlinux/archlinux"
 
-  # if Vagrant.has_plugin?("vagrant-vbguest")
-  #   # Vagrant vagrant-vbguest plugin
-  #   config.vbguest.auto_update = true
-  #   config.vbguest.no_remote = false
-  #   config.vbguest.no_install = false
-  #   config.vbguest.auto_reboot = true
-  #   config.vbguest.installer_arguments = ['--nox11']
-  #   # config.vbguest.installer_hooks[:before_install] = [
-  #   #   "pacman -Syu --quiet --noconfirm",
-  #   #   "sudo pacman --remove --noconfirm virtualbox-guest-utils-nox",
-  #   #   "sudo pacman --sync --quiet --noconfirm virtualbox-guest-utils virtualbox-guest-iso"
-  #   # ]
-  #   # config.vbguest.iso_pat2h = "/usr/lib/virtualbox/additions/VBoxGuestAdditions.iso"
-  # end
-
-  config.vm.provider :virtualbox do |v|
+  config.vm.provider :virtualbox do |v|1
     v.name = "archlinux"
     v.gui = $GUI
 
@@ -39,7 +24,7 @@ Vagrant.configure("2") do |config|
     v.customize ["setextradata", :id, "GUI/LastGuestSizeHint", "1920,1080"]
   end
 
-  config.vm.provision "shell", inline: "pacman -Syu --quiet --noconfirm"
+  config.vm.provision "shell", inline: "pacman --sync --quiet --refresh"
   config.vm.provision "shell", inline: "pacman --sync --quiet --noconfirm linux-headers base-devel"
 
   config.vm.provision "ansible_local" do |ansible|

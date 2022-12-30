@@ -76,9 +76,9 @@ output * bg ~/pictures/wallpapers/true-love.png fill
     # Despite the name, also works for non-floating windows.
     # Change normal to inverse to use left mouse button for resizing and right
     # mouse button for dragging.
+    # Reload the configuration file
     floating_modifier $mod normal
 
-    # Reload the configuration file
     bindsym $mod+Shift+c reload
 
     # Exit sway (logs you out of your Wayland session)
