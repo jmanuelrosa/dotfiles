@@ -4,19 +4,18 @@
 ---
 
 SYSTEM_APPS:
+  - acpi_call-dkms
   - bat
   - blueman
   - bluez
   - bluez-utils
   - duf
-  - git
-  - github-cli
   - glances
-  - httpie
+  - lm_sensors
   - neofetch
   - p7zip
-  - wget
+  - ripgrep
   - tlp
   - tlp-rdw
-  - lm_sensors
-  - acpi_call-dkms
+  - wget
+

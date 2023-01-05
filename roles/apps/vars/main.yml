@@ -24,6 +24,8 @@ INFRASTRUCTURE_APPS:
 DEVELOPMENT_APPS:
   - insomnia-bin
   - httpie
+  - git
+  - github-cli
 
 CHAT_APPS:
   - discord

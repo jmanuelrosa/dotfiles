@@ -18,3 +18,4 @@ FISH_PLUGINS:
   - jorgebucaran/replay.fish
   - meaningful-ooo/sponge
   - nickeb96/puffer-fish
+  - PatrickF1/fzf.fish
