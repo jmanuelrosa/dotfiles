@@ -1,5 +1,3 @@
-$GUI = ENV.fetch("GUI", false)
-
 Vagrant.configure("2") do |config|
   # from https://vagrantcloud.com/search.
   config.vm.box = "archlinux/archlinux"
