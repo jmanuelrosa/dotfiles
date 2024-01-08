@@ -22,6 +22,9 @@ DEVELOPMENT_APPS:
   - hyperfine
   - scc-bin
 
+DATABASE_APPS:
+  - pgcli
+
 EDITORS_APPS:
   - visual-studio-code-bin
 

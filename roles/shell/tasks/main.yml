@@ -53,6 +53,7 @@
     - .config/fish/conf.d/aliases.fish
     - .config/fish/conf.d/exports.fish
     - .config/kitty/kitty.conf
+    - .config/starship.toml
   register: results
 
 - name: Backup fish settings
@@ -79,6 +80,13 @@
     - fish/config.fish
     - fish/conf.d/aliases.fish
     - fish/conf.d/exports.fish
+
+- name: Configuring starship plugin
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/starship.toml"
+    dest: "{{ HOME }}/.config/starship.toml"
+    state: link
+    force: true
 
 - name: Generating exports with secrets
   ansible.builtin.template:

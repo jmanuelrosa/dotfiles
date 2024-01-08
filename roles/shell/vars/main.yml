@@ -19,3 +19,4 @@ FISH_PLUGINS:
   - meaningful-ooo/sponge
   - nickeb96/puffer-fish
   - PatrickF1/fzf.fish
+  - lgathy/google-cloud-sdk-fish-completion

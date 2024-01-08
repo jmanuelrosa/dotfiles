@@ -6,3 +6,7 @@
 - name: Install development apps
   ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
   loop: "{{ DEVELOPMENT_APPS }}"
+
+- name: Install databases apps
+  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+  loop: "{{ DATABASE_APPS }}"
