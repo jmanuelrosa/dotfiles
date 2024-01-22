@@ -16,7 +16,7 @@ You don't need to do anything to install the dotfiles in this way, just run the 
 ```
 > mkdir dotfiles
 > cd dotfiles
-> bash <(curl -L https://github.com/jmanuelrosa/dotfiles/bootstrap.sh)
+> bash <(curl -L https://raw.githubusercontent.com/jmanuelrosa/dotfiles/main/bootstrap.sh)
 ```
 
 ### Using Ansible and Git
