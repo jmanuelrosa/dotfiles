@@ -17,7 +17,7 @@ DEVELOPMENT_APPS:
   - git
   - github-cli
   - git-delta
-  # - fnm-bin
+  - fnm-bin
   - scc-bin
   - hyperfine
   - scc-bin
