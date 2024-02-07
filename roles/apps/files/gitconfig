@@ -1,23 +1,25 @@
 [alias]
   # Add
   a = add --all                         # add all
-  ac = !git add --all && git commit -am # add all and commit with message
 
   # Commit
-  c = commit                           # commit
-  cm = commit -am                       # commit with message
+  c = commit                            # commit
+  ca = !git add --all && git commit -am # add all and commit with messageß
   amend = commit --amend                # ammend your last commit
 
+  # Fetch
+  f = fetch --prune
+
   # Pull
-  pl = pull
+  p = pull
   up = pull --rebase --autostash
+
+  # Checkout
+  sw = switch
 
   # Checkout
   co = checkout
   cob = checkout -b
-
-  # Push
-  p = push
 
   # Status
   s = status -s
@@ -31,7 +33,8 @@
   remotes = remote -v
 
   # Branches
-  branches = branch --sort=-committerdate --verbose --format='%(HEAD) %(color:red)%(objectname:short)%(color:reset) - %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(color:green)(%(committerdate:relative))%(color:reset) %(color:blue)<%(authorname)>%(color:reset)'
+  br = branch --list --remote
+  branches = branch --sort=-committerdate --list --remote --verbose --format='%(HEAD) %(color:red)%(objectname:short)%(color:reset) - %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(color:green)(%(committerdate:relative))%(color:reset) %(color:blue)<%(authorname)>%(color:reset)'
 
   # Tags
   tags = tag -l
@@ -42,7 +45,7 @@
 
   # Upstream
   set-upstream = !git branch --set-upstream-to=origin/`git symbolic-ref --short HEAD`
-  sw = !git-show-branches | fzf --ansi --header='checkout branch' --reverse | awk '{print $1}' | xargs git checkout
+  # sw = !git-show-branches | fzf --ansi --header='checkout branch' --reverse | awk '{print $1}' | xargs git checkout
 
   # flow
   # more information: http://haacked.com/archive/2014/07/28/github-flow-aliases/
@@ -83,12 +86,12 @@
   changed = green
   untracked = cyan
 
-[mergetool "sublime"]
-  cmd = sublime -w $MERGED
+[mergetool "code"]
+  cmd = code $MERGED
   trustExitCode = false
 
 [merge]
-  tool = Kaleidoscope
+  tool = vim
   log = false
   conflictstyle = diff3
 
@@ -113,19 +116,12 @@
 [url "git@github.com:jmanuelrosa/"]
   insteadOf = "git://github.com/jmanuelrosa/"
 
-[difftool "Kaleidoscope"]
-  cmd = ksdiff --partial-changeset --relative-path \"$MERGED\" -- \"$LOCAL\" \"$REMOTE\"
-
 [diff]
   external = difft
 
 [difftool]
   prompt = false
   colorMoved = default
-
-[mergetool "Kaleidoscope"]
-  cmd = ksdiff --merge --output \"$MERGED\" --base \"$BASE\" -- \"$LOCAL\" --snapshot \"$REMOTE\" --snapshot
-  trustExitCode = true
 
 [mergetool]
   prompt = false
@@ -136,12 +132,6 @@
 
 [push]
 	default = current
-
-[commit]
-	gpgsign = false
-
-[gpg]
-	program =
 
 [interactive]
   diffFilter = delta --color-only
