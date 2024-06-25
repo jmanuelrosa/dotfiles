@@ -11,11 +11,19 @@
   f = fetch --prune
 
   # Pull
-  p = pull
-  up = pull --rebase --autostash
+  pl = pull
+  down = pull --rebase --autostash
+
+  # Push
+  p = push
+  up = push
+
+  # Push
+  up = push
 
   # Checkout
   sw = switch
+  swc = switch -c
 
   # Checkout
   co = checkout
@@ -34,6 +42,7 @@
 
   # Branches
   br = branch --list --remote
+  brl = branch -vv
   branches = branch --sort=-committerdate --list --remote --verbose --format='%(HEAD) %(color:red)%(objectname:short)%(color:reset) - %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(color:green)(%(committerdate:relative))%(color:reset) %(color:blue)<%(authorname)>%(color:reset)'
 
   # Tags
@@ -53,8 +62,11 @@
   rh = reset --hard HEAD
 
   # wip
-  wip = "!git add --all; git ci -m WIP"
+  wip = "!git add --all; git c -m WIP"
   apf = "!git amend --no-verify --no-edit && git push --force"
+
+  # clean
+  clean = git branch --list --no-color --merged | grep -v 'main|master' | xargs -n 1 git branch -d
 
 [color]
   ui = always
@@ -69,6 +81,7 @@
   whitespace = fix,space-before-tab,tab-in-indent,trailing-space
   editor = vim
   autocrlf = input
+  ignorecase = false
 
 [color "branch"]
   current = yellow reverse
@@ -117,18 +130,21 @@
   insteadOf = "git://github.com/jmanuelrosa/"
 
 [diff]
-  external = difft
+  colorMoved = default
+  # Detect copies in addition to renames
+	renames = copies
+	# A la `git submodule summary`
+	submodule = log
 
 [difftool]
   prompt = false
-  colorMoved = default
 
 [mergetool]
   prompt = false
 
 [user]
-	name = Jose Manuel Rosa
-	email = jose.moncayo@lenus.io
+	name = Jose Manuel Rosa Moncayo
+	email = josemanuel.rosamoncayo+github@gmail.com
 
 [push]
 	default = current
