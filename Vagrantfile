@@ -4,7 +4,8 @@ Vagrant.configure("2") do |config|
 
   config.vm.provider :virtualbox do |v|1
     v.name = "archlinux"
-    v.gui = $GUI
+    # v.gui = $GUI
+    v.gui = true
 
     # Amount of memory RAM on the VM:
     v.memory = 8000

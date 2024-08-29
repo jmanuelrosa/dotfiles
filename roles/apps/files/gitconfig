@@ -66,7 +66,7 @@
   apf = "!git amend --no-verify --no-edit && git push --force"
 
   # clean
-  clean = git branch --list --no-color --merged | grep -v 'main|master' | xargs -n 1 git branch -d
+  bclean = branch --list --no-color --merged | grep -v 'main|master' | xargs -n 1 git branch -d
 
 [color]
   ui = always
@@ -148,6 +148,10 @@
 
 [push]
 	default = current
+  autoSetupRemote = true
+
+[pull]
+	rebase = merges
 
 [interactive]
   diffFilter = delta --color-only

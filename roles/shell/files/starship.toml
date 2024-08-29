@@ -2,5 +2,13 @@
 # Inserts a blank line between shell prompts
 add_newline = false
 
+# Timeout for commands executed by starship (in milliseconds).
+command_timeout = 3600000
+
 [gcloud]
 disabled = true
+
+[sudo]
+style = 'bold yellow'
+symbol = '🧙'
+disabled = false

@@ -22,3 +22,6 @@ alias p pnpm
 alias lock "i3lock"
 alias g "git"
 alias chrome "open -a google\ chrome"
+
+# fish
+alias please-clean-history "history clear"
