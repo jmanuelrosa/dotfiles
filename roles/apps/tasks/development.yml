@@ -11,7 +11,19 @@
   ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
   loop: "{{ DATABASE_APPS }}"
 
-
 - name: Install databases apps
   ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
   loop: "{{ DATABASE_APPS }}"
+
+- name: Configuring git
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/.gitconfig"
+    dest: "{{ HOME }}/.gitconfig"
+    state: link
+    force: true
+
+- name: Configuring docker
+  ansible.builtin.user:
+    name: "{{ USER }}"
+    groups: docker
+    append: yes

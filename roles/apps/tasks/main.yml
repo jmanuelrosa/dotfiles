@@ -8,4 +8,3 @@
 - ansible.builtin.include_tasks: editors.yml
 - ansible.builtin.include_tasks: infrastructure.yml
 - ansible.builtin.include_tasks: multimedia.yml
-- ansible.builtin.include_tasks: system.yml

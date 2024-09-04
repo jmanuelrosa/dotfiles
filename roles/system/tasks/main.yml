@@ -14,3 +14,19 @@
   ansible.builtin.file:
     path: "{{ HOME }}/.config"
     state: directory
+
+- name: Install bluetooth packages
+  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+  loop: "{{ BLUETOOTH_APPS }}"
+  register: result
+  ignore_errors: true
+  changed_when:
+    - result.failed
+
+- name: Install pipewire audio system
+  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+  loop: "{{ AUDIO_LIBS }}"
+  register: result
+  ignore_errors: true
+  changed_when:
+    - result.failed

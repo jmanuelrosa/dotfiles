@@ -12,7 +12,6 @@ CHAT_APPS:
   - discord
 
 DEVELOPMENT_APPS:
-  - insomnia-bin
   - httpie
   - git
   - github-cli
@@ -20,7 +19,6 @@ DEVELOPMENT_APPS:
   - fnm-bin
   - scc-bin
   - hyperfine
-  - scc-bin
 
 DATABASE_APPS:
   - pgcli
@@ -42,13 +40,3 @@ MULTIMEDIA_APPS:
 
 SECURITY_APPS:
   - firejail
-
-SYSTEM:
-  - balena-etcher
-  - bat
-  - duf
-  - glances
-  - neofetch
-  - p7zip
-  - ripgrep
-  - noto-fonts-emoji

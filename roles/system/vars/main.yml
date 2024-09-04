@@ -5,11 +5,25 @@
 
 SYSTEM_APPS:
   - acpi_call-dkms
-  - blueman
-  - bluez
-  - bluez-utils
+  - bat
+  - duf
+  - glances
   - lm_sensors
+  - neofetch
+  - noto-fonts-emoji
+  - p7zip
+  - ripgrep
   - tlp
   - tlp-rdw
   - wget
 
+BLUETOOTH_APPS:
+  - blueman
+  - bluez
+  - bluez-utils
+
+AUDIO_LIBS:
+  - pipewire
+  - pipewire-audio 
+  - pipewire-pulse
+  - pavucontrol

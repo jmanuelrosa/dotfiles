@@ -154,7 +154,13 @@
   autoSetupRemote = true
 
 [pull]
-	rebase = merges
+  rebase = false
+
+[commit]
+	gpgsign = false
+
+[gpg]
+	program =
 
 [interactive]
   diffFilter = delta --color-only

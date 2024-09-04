@@ -9,7 +9,7 @@ alias restart "sudo shutdown -r now"
 alias shutdown "sudo shutdown now"
 
 # update
-alias update "sudo reflector --protocol https --age 5 --number 10 --latest 10 --sort rate --save /etc/pacman.d/mirrorlist && yay -Sc --noconfirm && yay -Syu --noconfirm && yay -RYc"
+alias update "sudo pacman-mirrors -f 10 --method rank && yay -Sc --noconfirm && yay -Syu --noconfirm && yay -RYc"
 
 #navigation
 alias .. "cd .." # Exists by default in fish
