@@ -1,5 +1,4 @@
 starship init fish | source
-direnv hook fish | source
 fnm env --use-on-cd | source
 
 set -gx XDG_CURRENT_DESKTOP sway

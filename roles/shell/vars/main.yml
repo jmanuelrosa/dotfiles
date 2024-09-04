@@ -8,7 +8,6 @@ TERMINAL_APPS:
   - fisher
   - kitty
   - starship
-  - direnv
 
 FISH_PLUGINS:
   - danhper/fish-ssh-agent
