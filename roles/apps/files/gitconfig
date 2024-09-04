@@ -146,6 +146,9 @@
 	name = Jose Manuel Rosa Moncayo
 	email = josemanuel.rosamoncayo+github@gmail.com
 
+[includeIf "gitdir:~/Developer/lenus.io"]
+  path = ~/.gitconfig.lenus
+
 [push]
 	default = current
   autoSetupRemote = true
