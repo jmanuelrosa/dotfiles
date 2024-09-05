@@ -14,6 +14,7 @@ alias lenus:gql "lenus core save-schema; lenus core generate-gql-types"
 
 alias lenus:reset "npx nx reset"
 alias lenus:reset:hard "lenus nx c; find . -name 'ts-declarations' -exec rm -f {} +;lenus nx cc"
+alias lenus:dump "lenus_dump"
 
 function lenus_prs
   clear
@@ -25,6 +26,10 @@ end
 function lenus_merged
   clear
   git log origin/master --pretty=format:'%C(yellow)%h %Cblue%ad %Cgreen%an%Cgreen%d %Creset%s' --date=iso --author='Matt Soltani' --author='Daniel Tadros' --author='José Manuel Rosa Moncayo' --author='Brenno Pimenta' --author='Patryk Mazur'
+end
+
+function lenus_dump
+  lenus db dump client --id $argv --paymentsOnly true
 end
 
 alias lenus:git:pr "lenus_prs"
