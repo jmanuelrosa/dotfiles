@@ -24,6 +24,6 @@ BLUETOOTH_APPS:
 
 AUDIO_LIBS:
   - pipewire
-  - pipewire-audio 
+  - pipewire-audio
   - pipewire-pulse
   - pavucontrol

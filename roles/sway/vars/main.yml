@@ -11,3 +11,4 @@ SWAY_APPS:
   - swaybg
   - waybar
   - xorg-xwayland
+  - ttf-fira-code

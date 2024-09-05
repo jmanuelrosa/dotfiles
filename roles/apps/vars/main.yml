@@ -33,10 +33,11 @@ INFRASTRUCTURE_APPS:
   - docker-buildx
 
 MULTIMEDIA_APPS:
-  - imv
   - mpv
   - spotify
-  - zathura
 
 SECURITY_APPS:
   - firejail
+
+OTHER_TOOLS:
+  - nnn
