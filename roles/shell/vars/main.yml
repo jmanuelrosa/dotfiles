@@ -12,7 +12,6 @@ TERMINAL_APPS:
 FISH_PLUGINS:
   - danhper/fish-ssh-agent
   - franciscolourenco/done
-  - jethrokuan/z
   - jorgebucaran/autopair.fish
   - jorgebucaran/replay.fish
   - meaningful-ooo/sponge

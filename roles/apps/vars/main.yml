@@ -41,3 +41,16 @@ SECURITY_APPS:
 
 OTHER_TOOLS:
   - nnn
+
+SYSTEM:
+  - balena-etcher
+  - bat
+  - fzf
+  - fd
+  - eza
+  - duf
+  - glances
+  - neofetch
+  - p7zip
+  - ripgrep
+  - noto-fonts-emoji
