@@ -25,5 +25,5 @@ alias g "git"
 alias chrome "open -a google\ chrome"
 
 # docker
-alias docker:start systemctl start docker
-alias docker:stop systemctl stop docker
+alias docker:start "systemctl start docker"
+alias docker:stop "systemctl stop docker"

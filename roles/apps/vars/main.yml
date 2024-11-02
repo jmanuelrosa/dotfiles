@@ -6,6 +6,7 @@ BROWSERS_APPS:
   - brave-bin
   - firefox-developer-edition
   - google-chrome
+  - zen-browser-avx2-bin
 
 CHAT_APPS:
   - slack-desktop
@@ -25,6 +26,7 @@ DATABASE_APPS:
 
 EDITORS_APPS:
   - visual-studio-code-bin
+  - zed-preview-bin
 
 INFRASTRUCTURE_APPS:
   - ansible
