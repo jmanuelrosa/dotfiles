@@ -14,7 +14,8 @@ alias shutdown "sudo shutdown now"
 
 #navigation
 alias .. "cd .." # Exists by default in fish
-alias ll "ls -alh" # Exists by default in fish
+alias ls 'eza --color=always --long --git --icons=always --group-directories-first --sort=name'
+alias ll "eza --color=always --long --git --icons=always --group-directories-first --all --sort=name"
 
 # NPM
 alias p pnpm

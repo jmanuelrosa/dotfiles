@@ -1,7 +1,7 @@
 starship init fish | source
+fzf --fish | source
+zoxide init fish | source
 fnm env --use-on-cd | source
-
-fish_add_path /opt/homebrew/opt/libpq/bin
 
 fish_add_path $HOME/.yarn/bin
 fish_add_path $HOME/.node/bin
@@ -15,6 +15,7 @@ fish_add_path /opt/homebrew/bin
 set -gx KITTY_LISTEN_ON "unix:/tmp/kitty-$KITTY_PID"
 
 # Make default programs
+# set -gx XDG_CURRENT_DESKTOP sway
 set -gx BROWSER /usr/bin/google-chrome-stable
 set -gx EDITOR "zed --wait"
 set -gx FILE nnn
@@ -46,3 +47,29 @@ if status is-login
     sway
   end
 end
+
+# FZF options
+set -gx FD_DEFAULT_COMMAND 'fd --hidden --follow'
+set -gx FZF_DEFAULT_COMMAND "$FD_DEFAULT_COMMAND --exclude .git --exclude node_modules"
+# set -gx FZF_DEFAULT_OPTS '
+#   --bind \'ctrl-t:transform:if not string match -q "Files*" $FZF_PROMPT; echo "change-prompt(Files> )+reload:fd --type f --color always"; else; echo "change-prompt(Directories> )+reload:fd --type d --color always"; end\'
+#   --height 50%
+#   --layout=reverse
+#   --border
+#   --info=inline
+#   --marker="*"
+#   --bind "?:toggle-preview"
+#   --bind "alt-down:half-page-down"
+#   --bind "alt-up:half-page-up"
+#   --bind "ctrl-a:toggle-all"
+#   --bind "ctrl-d:preview-half-page-down"
+#   --bind "ctrl-u:preview-half-page-up"
+#   --bind "ctrl-y:execute(echo {+} | pbcopy)"
+#   --bind \'ctrl-r:transform:if not string match -q "Hidden*" $FZF_PROMPT; echo "change-prompt(Hidden files> )+reload:fd --type f --hidden --follow --no-ignore --color always"; else; echo "change-prompt(Files&Directories> )+reload:fd --hidden --follow --color always --exclude .git --exclude node_modules --exclude .venv"; end\'
+# '
+# set fzf_history_opts --sort --exact --history-size=30000
+# set fzf_fd_opts --hidden --follow --exclude=.git
+# set fzf_preview_dir_cmd eza -T -la --git --group-directories-first --icons --color=always
+# set fzf_directory_opts --prompt "Files&Directories> " --bind "ctrl-o:execute($EDITOR {+} &> /dev/tty)"
+
+# fzf_configure_bindings --git_status=\e\cs --git_log=\e\cl --directory=\cp --history=\e\cr --processes=\e\cp --variables=\e\ce
