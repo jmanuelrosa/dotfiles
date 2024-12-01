@@ -2,31 +2,43 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Install all packages related to the system
-  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
-  loop: "{{ SYSTEM_APPS }}"
-  register: result
-  ignore_errors: true
-  changed_when:
-    - result.failed
+- block:
+    - name: Install all packages related to the system
+      ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+      loop: "{{ SYSTEM_APPS }}"
+      register: result
+      ignore_errors: true
+      changed_when:
+        - result.failed
 
-- name: Creating user config directory
-  ansible.builtin.file:
-    path: "{{ HOME }}/.config"
-    state: directory
 
-- name: Install bluetooth packages
-  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
-  loop: "{{ BLUETOOTH_APPS }}"
-  register: result
-  ignore_errors: true
-  changed_when:
-    - result.failed
+    - name: Creating user config directory
+      ansible.builtin.file:
+        path: "{{ HOME }}/.config"
+        state: directory
 
-- name: Install pipewire audio system
-  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
-  loop: "{{ AUDIO_LIBS }}"
-  register: result
-  ignore_errors: true
-  changed_when:
-    - result.failed
+    - name: Install bluetooth packages
+      ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+      loop: "{{ BLUETOOTH_APPS }}"
+      register: result
+      ignore_errors: true
+      changed_when:
+        - result.failed
+
+    - name: Install pipewire audio system
+      ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+      loop: "{{ AUDIO_LIBS }}"
+      register: result
+      ignore_errors: true
+      changed_when:
+        - result.failed
+
+  when:
+    - ansible_os_family != 'Windows'
+    - ansible_os_family != 'Darwin'
+
+- block:
+    - name: MAC
+      ansible.builtin.debug:
+        msg: mac
+  when: ansible_os_family == 'Darwin'

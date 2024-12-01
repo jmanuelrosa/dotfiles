@@ -3,7 +3,29 @@
 
 ---
 
-SYSTEM_APPS:
+SYSTEM_APPS_GLOBAL:
+  - bat
+  - duf
+  - glances
+  - neofetch
+  - noto-fonts-emoji
+  - p7zip
+  - ripgrep
+  - tlp
+  - tlp-rdw
+  - wget
+
+SYSTEM_APPS_LINUX:
+  - acpi_call-dkms
+  - lm_sensors
+  - noto-fonts-emoji
+  - ≈
+  - ripgrep
+  - tlp
+  - tlp-rdw
+  - wget
+
+SYSTEM_APPS_MAC:
   - acpi_call-dkms
   - bat
   - duf

@@ -1,7 +1,6 @@
 # Ansible role to install yay AUR helper and dependencies
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
-
 - name: Update all packages and mirrors with pacman
   become: true
   community.general.pacman:

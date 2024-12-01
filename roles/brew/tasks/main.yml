@@ -1,0 +1,18 @@
+# Ansible role to install HomeBrew and dependencies
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+- name: Ensure Homebrew is installed
+  stat:
+    path: /usr/local/bin/brew
+  register: homebrew_check
+
+- name: Install Homebrew
+  become: true
+  become_user: "{{ USER }}"
+  become_method: sudo
+  shell: NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  when: homebrew_check.stat.exists == False
+
+- name: Update Homebrew
+  homebrew:
+    update_homebrew: true

@@ -3,16 +3,55 @@
 
 - name: Dotfiles
   hosts: all
-  roles:
-    - role: aur
-    - role: system
-    - role: shell
-    - role: ssh
-    - role: user
-    - role: sway
-    - role: apps
-    - role: services
-    # - role: security
-    - role: cleanup
   vars_files:
     - vars/secrets.yml
+
+  roles:
+    # - role: aur
+    #   when:
+    #     - ansible_os_family != 'Windows'
+    #     - ansible_os_family != 'Darwin' # For Mac
+
+    - role: brew
+      when:
+        - ansible_os_family == 'Darwin' # For Mac
+
+    - role: system
+
+    # - role: shell
+    #   when:
+    #     - ansible_os_family != 'Windows'
+    #     - ansible_os_family != 'Darwin'
+
+    # - role: ssh
+    #   when:
+    #     - ansible_os_family != 'Windows'
+    #     - ansible_os_family != 'Darwin'
+
+    # - role: user
+    #   when:
+    #     - ansible_os_family != 'Windows'
+    #     - ansible_os_family != 'Darwin'
+
+    # - role: sway
+    #   when:
+    #     - ansible_os_family != 'Windows'
+    #     - ansible_os_family != 'Darwin'
+
+    # - role: apps
+    #   when:
+    #     - ansible_os_family != 'Windows'
+    #     - ansible_os_family != 'Darwin'
+
+    # - role: services
+    #   when:
+    #     - ansible_os_family != 'Windows'
+    #     - ansible_os_family != 'Darwin'
+
+    # # - role: security
+    # #   when: "ansible_os_family != 'Windows' and ansible_os_family == 'Darwin'"
+
+    # - role: cleanup
+    #   when:
+    #     - ansible_os_family != 'Windows'
+    #     - ansible_os_family != 'Darwin'
