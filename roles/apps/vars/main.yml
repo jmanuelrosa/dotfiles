@@ -3,9 +3,11 @@
 ---
 
 BROWSERS_APPS:
+  - google-chrome
+  - zen-browser-avx2-bin
+  - zen-browser
   - brave-bin
   - firefox-developer-edition
-  - google-chrome
 
 CHAT_APPS:
   - slack-desktop
@@ -25,6 +27,7 @@ DATABASE_APPS:
 
 EDITORS_APPS:
   - visual-studio-code-bin
+  - zed
 
 INFRASTRUCTURE_APPS:
   - ansible
@@ -44,13 +47,4 @@ OTHER_TOOLS:
 
 SYSTEM:
   - balena-etcher
-  - bat
-  - fzf
-  - fd
-  - eza
-  - duf
-  - glances
-  - neofetch
-  - p7zip
-  - ripgrep
   - noto-fonts-emoji

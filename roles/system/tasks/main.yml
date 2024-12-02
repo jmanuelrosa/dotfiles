@@ -2,24 +2,37 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
+- name: Load global variables
+  include_vars: vars/global.yml
+
+- name: Creating user config directory
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config"
+    state: directory
+
 - block:
-    - name: Install all packages related to the system
+    - name: Install all global packages
       ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
       loop: "{{ SYSTEM_APPS }}"
+      include_vars: vars/global.yml
       register: result
       ignore_errors: true
       changed_when:
         - result.failed
 
-
-    - name: Creating user config directory
-      ansible.builtin.file:
-        path: "{{ HOME }}/.config"
-        state: directory
+    - name: Install all packages related to the system
+      ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+      loop: "{{ SYSTEM_APPS }}"
+      include_vars: vars/linux.yml
+      register: result
+      ignore_errors: true
+      changed_when:
+        - result.failed
 
     - name: Install bluetooth packages
       ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
       loop: "{{ BLUETOOTH_APPS }}"
+      include_vars: vars/linux.yml
       register: result
       ignore_errors: true
       changed_when:
@@ -28,6 +41,7 @@
     - name: Install pipewire audio system
       ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
       loop: "{{ AUDIO_LIBS }}"
+      include_vars: vars/linux.yml
       register: result
       ignore_errors: true
       changed_when:
@@ -38,7 +52,28 @@
     - ansible_os_family != 'Darwin'
 
 - block:
-    - name: MAC
-      ansible.builtin.debug:
-        msg: mac
+    - name: Load global variables
+      include_vars: vars/mac.yml
+
+    - name: VARS
+      debug:
+        msg: "{{ item.key }}: {{ item.value }}"
+      with_dict: "{{ hostvars[inventory_hostname] }}"
+      when: item.key not in ['ansible_facts', 'inventory_dir', 'inventory_file', 'playbook_dir', 'group_names', 'inventory_hostname']
+
+    # - name: Install all global packages
+    #   ansible.builtin.shell: brew install {{ item }}
+    #   loop: "{{ SYSTEM_APPS_GLOBAL }}"
+    #   register: result
+    #   ignore_errors: true
+    #   changed_when:
+    #     - result.failed
+
+  # - name: Install a all packages related to the system
+  #     ansible.builtin.shell: brew install {{ item }}
+  #     loop: "{{ SYSTEM_APPS }}"
+  #     register: result
+  #     ignore_errors: true
+  #     changed_when:
+  #       - result.failed
   when: ansible_os_family == 'Darwin'

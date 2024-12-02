@@ -1,0 +1,15 @@
+# Ansible global vars to use with the system role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+
+---
+
+SYSTEM_APPS_GLOBAL:
+  - bat
+  - duf
+  - eza
+  - fd
+  - fzf
+  - glances
+  - neofetch
+  - ripgrep
+  - wget
