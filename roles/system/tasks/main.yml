@@ -14,16 +14,17 @@
     - name: Install all global packages
       ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
       loop: "{{ SYSTEM_APPS }}"
-      include_vars: vars/global.yml
       register: result
       ignore_errors: true
       changed_when:
         - result.failed
 
+    - name: Load system variables
+      include_vars: vars/linux.yml
+
     - name: Install all packages related to the system
       ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
       loop: "{{ SYSTEM_APPS }}"
-      include_vars: vars/linux.yml
       register: result
       ignore_errors: true
       changed_when:
@@ -32,7 +33,6 @@
     - name: Install bluetooth packages
       ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
       loop: "{{ BLUETOOTH_APPS }}"
-      include_vars: vars/linux.yml
       register: result
       ignore_errors: true
       changed_when:
@@ -41,7 +41,6 @@
     - name: Install pipewire audio system
       ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
       loop: "{{ AUDIO_LIBS }}"
-      include_vars: vars/linux.yml
       register: result
       ignore_errors: true
       changed_when:
