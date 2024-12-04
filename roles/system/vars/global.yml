@@ -3,7 +3,7 @@
 
 ---
 
-SYSTEM_APPS_GLOBAL:
+SYSTEM_APPS:
   - bat
   - duf
   - eza
@@ -13,3 +13,4 @@ SYSTEM_APPS_GLOBAL:
   - neofetch
   - ripgrep
   - wget
+  - zoxide

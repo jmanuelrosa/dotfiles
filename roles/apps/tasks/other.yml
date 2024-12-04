@@ -2,15 +2,31 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Install other tools
-  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
-  loop: "{{ OTHER_TOOLS }}"
-  register: result
-  ignore_errors: true
-  changed_when:
-    - result.failed
+# Install local packages depnding on the platform
+- block:
+    - name: Load system variables
+      include_vars: vars/linux.yml
 
-- name: Install development apps
+    - name: Install other tools
+      ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+      loop: "{{ OTHER_TOOLS }}"
+
+  when:
+    - ansible_os_family != 'Windows'
+    - ansible_os_family != 'Darwin'
+
+# Install local packages depnding on the platform
+- block:
+    - name: Load system variables
+      include_vars: vars/mac.yml
+
+    - name: Install other tools
+      ansible.builtin.shell: brew install --force {{ item }}
+      loop: "{{ OTHER_TOOLS }}"
+
+  when: ansible_os_family == 'Darwin'
+
+- name: Install nnn plugins
   ansible.builtin.shell: sh -c "$(curl -Ls https://raw.githubusercontent.com/jarun/nnn/master/plugins/getplugs)"
   args:
     warn: false

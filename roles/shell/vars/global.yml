@@ -3,12 +3,6 @@
 
 ---
 
-TERMINAL_APPS:
-  - fish
-  - fisher
-  - kitty
-  - starship
-
 FISH_PLUGINS:
   - danhper/fish-ssh-agent
   - franciscolourenco/done

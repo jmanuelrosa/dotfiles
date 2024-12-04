@@ -6,7 +6,7 @@
   ansible.builtin.service_facts:
 
 - name: Enabling some service with systemd
-  systemd:
+  systemd_service:
     name: "{{ item }}"
     enabled: true
     state: started
@@ -17,7 +17,7 @@
     - fstrim.timer
 
 - name: Stopping some service with systemd
-  systemd:
+  systemd_service:
     name: "{{ item }}"
     enabled: false
     force: true
@@ -33,7 +33,7 @@
     - org.cups.cupsd
 
 - name: Disabling some service with systemd
-  systemd:
+  systemd_service:
     name: "{{ item }}"
     enabled: false
     state: stopped

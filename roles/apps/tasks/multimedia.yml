@@ -2,10 +2,26 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Install multimedia apps
-  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
-  loop: "{{ MULTIMEDIA_APPS }}"
-  register: result
-  ignore_errors: true
-  changed_when:
-    - result.failed
+# Install local packages depnding on the platform
+- block:
+    - name: Load system variables
+      include_vars: vars/linux.yml
+
+    - name: Install multimedia apps
+      ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+      loop: "{{ MULTIMEDIA_APPS }}"
+
+  when:
+    - ansible_os_family != 'Windows'
+    - ansible_os_family != 'Darwin'
+
+# Install local packages depnding on the platform
+- block:
+    - name: Load system variables
+      include_vars: vars/mac.yml
+
+    - name: Install multimedia apps
+      ansible.builtin.shell: brew install --force {{ item }}
+      loop: "{{ MULTIMEDIA_APPS }}"
+
+  when: ansible_os_family == 'Darwin'

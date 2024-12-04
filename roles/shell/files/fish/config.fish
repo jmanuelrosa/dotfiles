@@ -11,6 +11,9 @@ fish_add_path $HOME/.local/bin
 fish_add_path /opt/homebrew/sbin
 fish_add_path /opt/homebrew/bin
 
+# Set a global env var with the current OS
+set -l CURRENT_OS (uname)
+
 # Kitty config
 set -gx KITTY_LISTEN_ON "unix:/tmp/kitty-$KITTY_PID"
 
@@ -42,10 +45,13 @@ set -gx NNN_BATTHEME base16
 
 set -gx XDG_CURRENT_DESKTOP sway
 
-if status is-login
-  if test -z "$DISPLAY" -a $XDG_VTNR = 1 -a (tty) = /dev/tty1 -a "(pgrep sway)"
+if test "$CURRENT_OS" = "Linux"
+  and status is-login
+  and test -z "$DISPLAY"
+  and test "$XDG_VTNR" = "1"
+  and test (tty) = "/dev/tty1"
+  and pgrep sway > /dev/null
     sway
-  end
 end
 
 # FZF options

@@ -1,0 +1,44 @@
+# Ansible vars to use with the apps role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+BROWSERS_APPS:
+  - --cask google-chrome
+  - --cask zen-browser
+  - --cask brave-browser
+
+CHAT_APPS:
+  - --cask slack
+  - --cask discord
+
+DEVELOPMENT_APPS:
+  - httpie
+  - git
+  - git-delta
+  - fnm
+  - scc
+  - hyperfine
+
+DATABASE_APPS:
+  - pgcli
+  - --cask dbeaver-community
+
+EDITORS_APPS:
+  - --cask visual-studio-code
+  - --cask zed
+
+INFRASTRUCTURE_APPS:
+  # - ansible
+  - --cask docker
+  - docker-compose
+  - docker-buildx
+
+MULTIMEDIA_APPS:
+  - mpv
+  - --cask spotify
+
+OTHER_TOOLS:
+  - nnn
+
+SYSTEM:
+  - noto-fonts-emoji

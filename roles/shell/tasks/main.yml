@@ -2,24 +2,52 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Install packages related to the shell
-  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
-  loop: "{{ TERMINAL_APPS }}"
-  register: result
-  changed_when:
-    - result.failed
+- name: Load global variables
+  include_vars: vars/global.yml
+
+# Install packages related to linux
+- block:
+    - name: Load system variables
+      include_vars: vars/linux.yml
+
+    - name: Install packages related to the shell
+      ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+      loop: "{{ TERMINAL_APPS }}"
+      register: result
+      changed_when:
+        - result.failed
+  when:
+    - ansible_os_family != 'Windows'
+    - ansible_os_family != 'Darwin'
+
+# Install packages related to mac
+- block:
+    - name: Load system variables
+      include_vars: vars/mac.yml
+
+    - name: Install packages related to the shell
+      ansible.builtin.shell: brew install {{ item }}
+      loop: "{{ TERMINAL_APPS }}"
+      register: result
+      changed_when:
+        - result.failed
+
+    - name: Add fish as a know shell
+      become: true
+      ansible.builtin.shell: sh -c 'echo {{ FISH_PATH }} >> /etc/shells'
+  when: ansible_os_family == 'Darwin'
 
 - name: Make fish as our default shell
   become: true
   user:
     name: "{{ USER }}"
-    shell: /usr/bin/fish
+    shell: "{{ FISH_PATH }}"
     state: present
 
 - name: Install fish plugins
   ansible.builtin.shell: "fisher install {{ item }}"
   args:
-    executable: /usr/bin/fish
+    executable: "{{ FISH_PATH }}"
   loop: "{{ FISH_PLUGINS }}"
   register: result
   ignore_errors: true
@@ -33,7 +61,6 @@
   with_items:
     - .config/fish
     - .config/kitty
-
 
 - name: Creating backup directory for shell
   ansible.builtin.file:

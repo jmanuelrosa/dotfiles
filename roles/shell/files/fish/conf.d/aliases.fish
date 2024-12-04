@@ -2,7 +2,16 @@
 alias rm "rm -i"
 alias cat bat
 alias less bat
-alias update "sudo pacman-mirrors -f 10 --method rank && yay -Sc --noconfirm && yay -Syu --noconfirm && yay -RYc"
+
+# Set a global env var with the current OS
+if test "$CURRENT_OS" = "Linux"
+  alias update="sudo pacman-mirrors -f 10 --method rank && yay -Sc --noconfirm && yay -Syu --noconfirm && yay -RYc"
+
+  # apps
+  alias lock "i3lock"
+elseif test "$CURRENT_OS" = "Darwin"
+    alias update="brew update && brew upgrade && brew autoremove && brew cleanup --prune=all && brew cleanup"
+end
 
 # fish
 alias please-clean-history "history clear"
@@ -21,10 +30,14 @@ alias ll "eza --color=always --long --git --icons=always --group-directories-fir
 alias p pnpm
 
 # apps
-alias lock "i3lock"
 alias g "git"
 alias chrome "open -a google\ chrome"
 
 # docker
-alias docker:start systemctl start docker
-alias docker:stop systemctl stop docker
+function docker:start
+  systemctl start docker
+end
+
+function docker:stop
+  systemctl stop docker
+end

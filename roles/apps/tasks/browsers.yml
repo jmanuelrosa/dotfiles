@@ -2,10 +2,26 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Install browsers
-  ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
-  loop: "{{ BROWSERS_APPS }}"
-  register: result
-  ignore_errors: true
-  changed_when:
-    - result.failed
+# Install local packages depnding on the platform
+- block:
+    - name: Load system variables
+      include_vars: vars/linux.yml
+
+    - name: Install browsers
+      ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
+      loop: "{{ BROWSERS_APPS }}"
+
+  when:
+    - ansible_os_family != 'Windows'
+    - ansible_os_family != 'Darwin'
+
+# Install local packages depnding on the platform
+- block:
+    - name: Load system variables
+      include_vars: vars/mac.yml
+
+    - name: Install browsers
+      ansible.builtin.shell: brew install --force {{ item }}
+      loop: "{{ BROWSERS_APPS }}"
+
+  when: ansible_os_family == 'Darwin'

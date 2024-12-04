@@ -149,6 +149,9 @@
 [includeIf "gitdir:~/Developer/lenus.io"]
   path = ~/.gitconfig.lenus
 
+[includeIf "gitdir:~/Developer/didomi"]
+  path = ~/.gitconfig.didomi
+
 [push]
 	default = current
   autoSetupRemote = true
