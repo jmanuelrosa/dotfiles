@@ -21,13 +21,6 @@ alias lenus:dump:coach "lenus_dump_coach"
 
 alias lenus:job "lenus_job"
 
-function lenus_prs
-  clear
-  gh pr list --state=open \
-    --search 'author:mattsoltani author:sudo-at-night author:jmanuelrosa author:DanielRaouf author:brennofaneco' \
-    --json title,author,url --template '{{range .}}{{tablerow (printf "%v" .author.name | autocolor "green") .title .url }}{{end}}'
-end
-
 function lenus_merged
   clear
   git log origin/master --pretty=format:'%C(yellow)%h %Cblue%ad %Cgreen%an%Cgreen%d %Creset%s' --date=iso --author='Matt Soltani' --author='Radoslav Naydenov' --author='José Manuel Rosa Moncayo' --author='Brenno Pimenta' --author='Patryk Mazur'

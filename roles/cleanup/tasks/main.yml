@@ -25,4 +25,4 @@
     - name: Removing unused versions ...
       ansible.builtin.shell: brew cleanup
 
-  when: ansible_os_family = 'Darwin'
+  when: ansible_os_family == 'Darwin'

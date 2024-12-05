@@ -1,4 +1,4 @@
-# Ansible role to install and configure all editors apps
+# Ansible role to install and configure all browser apps
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
@@ -7,9 +7,9 @@
     - name: Load system variables
       include_vars: vars/linux.yml
 
-    - name: Install editors apps
+    - name: Install AI apps
       ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
-      loop: "{{ EDITORS_APPS }}"
+      loop: "{{ AI_APPS }}"
 
   when:
     - ansible_os_family != 'Windows'
@@ -20,11 +20,8 @@
     - name: Load system variables
       include_vars: vars/mac.yml
 
-    - name: Install editors apps
+    - name: Install AI apps
       ansible.builtin.shell: brew install --force {{ item }}
-      loop: "{{ EDITORS_APPS }}"
+      loop: "{{ AI_APPS }}"
 
   when: ansible_os_family == 'Darwin'
-
-- name: Configuring Visual Studio Code
-  ansible.builtin.shell: code --sync on

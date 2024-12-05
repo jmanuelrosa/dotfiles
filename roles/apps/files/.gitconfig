@@ -146,11 +146,11 @@
 	name = Jose Manuel Rosa Moncayo
 	email = josemanuel.rosamoncayo+github@gmail.com
 
-[includeIf "gitdir:~/Developer/lenus.io"]
-  path = ~/.gitconfig.lenus
+[includeIf "gitdir:~/developer/lenus.io"]
+  path = ~/developer/lenus.io/.gitconfig.lenus
 
-[includeIf "gitdir:~/Developer/didomi"]
-  path = ~/.gitconfig.didomi
+[includeIf "gitdir:~/developer/didomi"]
+  path = ~/developer/didomi/.gitconfig.didomi
 
 [push]
 	default = current

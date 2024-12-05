@@ -33,7 +33,7 @@
         - result.failed
   when: ansible_os_family == 'Darwin'
 
-# Install local packages depnding on the platform
+# Install local packages depending on the platform
 - block:
     - name: Load system variables
       include_vars: vars/linux.yml

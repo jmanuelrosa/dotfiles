@@ -3,7 +3,7 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-# Install local packages depnding on the platform
+# Install local packages depending on the platform
 - block:
     - name: Load system variables
       include_vars: vars/linux.yml
@@ -20,7 +20,7 @@
     - ansible_os_family != 'Windows'
     - ansible_os_family != 'Darwin'
 
-# Install local packages depnding on the platform
+# Install local packages depending on the platform
 - block:
     - name: Load system variables
       include_vars: vars/mac.yml
@@ -41,6 +41,9 @@
     dest: "{{ HOME }}/.gitconfig"
     state: link
     force: true
+
+- name: password
+  prompt: What is your password?
 
 # Adding the user to docker's group, only for linux
 - name: Configuring docker

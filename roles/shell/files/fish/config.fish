@@ -6,10 +6,14 @@ fnm env --use-on-cd | source
 fish_add_path $HOME/.yarn/bin
 fish_add_path $HOME/.node/bin
 fish_add_path $HOME/.local/bin
+fish_add_path $HOME/.local/bin
 
 # brew specific paths
 fish_add_path /opt/homebrew/sbin
 fish_add_path /opt/homebrew/bin
+
+# PSQL specific path
+fish_add_path /opt/homebrew/opt/libpq/bin
 
 # Set a global env var with the current OS
 set -l CURRENT_OS (uname)

@@ -107,6 +107,9 @@
     - fish/config.fish
     - fish/conf.d/aliases.fish
     - fish/conf.d/exports.fish
+    - fish/conf.d/lenus.fish
+    - fish/functions/blue.fish
+    - fish/functions/create_gitconfig.fish
 
 - name: Configuring starship plugin
   ansible.builtin.file:

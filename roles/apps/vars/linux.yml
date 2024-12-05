@@ -37,8 +37,8 @@ MULTIMEDIA_APPS:
   - mpv
   - spotify
 
+SYSTEM_APPS:
+  - noto-fonts-emoji
+
 OTHER_TOOLS:
   - nnn
-
-SYSTEM:
-  - noto-fonts-emoji

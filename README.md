@@ -23,8 +23,17 @@ You don't need to do anything to install the dotfiles in this way, just run the 
 
 If you want to manage the dotfiles by yourself, you can download and run them with Ansible. In this case, you'll need to install git, ansible, and some plugins.
 
+for linux
 ```
 > sudo pacman -S git ansible
+```
+
+for Mac
+```
+> brew install ansible git
+```
+
+```
 > ansible-galaxy collection install community.general
 > mkdir dotfiles
 > cd dotfiles
@@ -34,11 +43,15 @@ If you want to manage the dotfiles by yourself, you can download and run them wi
 
 ## Tools
 
-* [yay](https://github.com/Jguer/yay): A powerful AUR Helper written in Go to use as an alternative to Pacman
+### Common
 * [bat](https://github.com/sharkdp/bat): A cat(1) clone with wings
 * [glances](https://github.com/nicolargo/glances): A top/htop alternative for GNU/Linux, BSD, Mac OS and Windows operating systems.
 * github: ... you know it
-  * [gh](https://github.com/cli/cli): GitHub’s official command line tool
+
+### Linux
+* [yay](https://github.com/Jguer/yay): A powerful AUR Helper written in Go to use as an alternative to Pacman
+
+### Mac
 
 ## Testing
 
@@ -46,8 +59,14 @@ Instead to run the dotfiles in your current machine all time that we change or u
 
 The first that you need is to install the dependencies:
 
+for linux:
 ```
 > yay -S vagrant virtualbox ansible
+```
+
+for mac
+```
+> brew install --cask vagrant virtualbox && brew install ansible
 ```
 
 After install all dependencies, you can choose to run the GUI or not to see Sway and Wayland in action.
@@ -90,3 +109,16 @@ If you want to run Vagrant with the GUI and see how beautiful Sway is and how it
 ## Packages
 
 According to [this](https://unix.stackexchange.com/a/543025bin) information, better install `bin` or `git` packages.
+
+
+## Settings for some apps
+
+### DBeaver configuration
+* Set the timezone to UTC:
+
+  DBeaver > Settings > User Interface > Timezone
+* Disable date formating
+
+    DBeaver > Settings > Editors > Data Editor > Data Formats
+
+    Check 'Disable date/time formatting'

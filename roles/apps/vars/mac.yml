@@ -19,7 +19,12 @@ DEVELOPMENT_APPS:
   - scc
   - hyperfine
 
+AI_APPS:
+  - --cask chatgpt
+  - --cask cursor
+
 DATABASE_APPS:
+  - libpq
   - pgcli
   - --cask dbeaver-community
 
@@ -29,6 +34,7 @@ EDITORS_APPS:
 
 INFRASTRUCTURE_APPS:
   # - ansible
+  - awscli
   - --cask docker
   - docker-compose
   - docker-buildx
@@ -37,8 +43,10 @@ MULTIMEDIA_APPS:
   - mpv
   - --cask spotify
 
+SYSTEM_APPS:
+  - --cask nikitabobko/tap/aerospace
+  - sketchybar
+  # - noto-fonts-emoji
+
 OTHER_TOOLS:
   - nnn
-
-SYSTEM:
-  - noto-fonts-emoji
