@@ -7,38 +7,26 @@
     - vars/secrets.yml
 
   roles:
-    # - role: aur
-    #   when:
-    #     - ansible_os_family != 'Windows'
-    #     - ansible_os_family != 'Darwin'
-
-    # - role: brew
-    #   when:
-    #     - ansible_os_family == 'Darwin'
-
-    # - role: system
-
+    - role: aur
+      when:
+        - ansible_os_family != 'Windows'
+        - ansible_os_family != 'Darwin'
+    - role: brew
+      when:
+        - ansible_os_family == 'Darwin'
+    - role: system
     - role: shell
-
-    # - role: ssh
-
-    # - role: user
-
-    # - role: sway
-    #   when:
-    #     - ansible_os_family != 'Windows'
-    #     - ansible_os_family != 'Darwin'
-
-    # - role: apps
-
-    # - role: services
-    #   when:
-    #     - ansible_os_family != 'Windows'
-    #     - ansible_os_family != 'Darwin'
-
-    # - role: security
-    #   when:
-    #     - ansible_os_family != 'Windows'
-    #     - ansible_os_family != 'Darwin'
-
+    - role: ssh
+    - role: user
+    - role: sway
+      when:
+        - ansible_os_family != 'Windows'
+        - ansible_os_family != 'Darwin'
+    - role: apps
+    - role: services
+    - role: security
+      when:
+        - ansible_os_family != 'Windows'
+        - ansible_os_family != 'Darwin'
     - role: cleanup
+    - role: reboot

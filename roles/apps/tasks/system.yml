@@ -20,11 +20,6 @@
     - name: Load system variables
       include_vars: vars/mac.yml
 
-    - name: Adding some hombrew taps
-      ansible.builtin.shell: brew tap {{ item }}
-      with_items:
-        - FelixKratz/formulae
-
     - name: Install system apps
       ansible.builtin.shell: brew install --force {{ item }}
       loop: "{{ SYSTEM_APPS }}"
@@ -35,21 +30,5 @@
         dest: "{{ HOME }}/.aerospace.toml"
         state: link
         force: true
-
-    - name: Creating settings config directory
-      ansible.builtin.file:
-        path: "{{ HOME }}/.config/sketchybar"
-        state: directory
-        recurse: true
-
-    - name: Configuring sketchybar
-      ansible.builtin.file:
-        src: "{{ role_path }}/files/{{ item }}"
-        dest: "{{ HOME }}/.config/{{ item }}"
-        state: link
-        force: true
-      with_items:
-        - sketchybar/sketchybarrc
-        - sketchybar/plugins
 
   when: ansible_os_family == 'Darwin'

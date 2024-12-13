@@ -9,12 +9,6 @@ after-login-command = []
 # You can use it to add commands that run after AeroSpace startup.
 # 'after-startup-command' is run after 'after-login-command'
 # Available commands : https://nikitabobko.github.io/AeroSpace/commands
-after-startup-command = ['exec-and-forget sketchybar']
-
-# Notify Sketchybar about workspace change
-exec-on-workspace-change = ['/bin/bash', '-c',
-  'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE'
-]
 
 # Start AeroSpace at login
 start-at-login = true
@@ -71,6 +65,7 @@ outer.right =      5
 C = 'main'
 D = [3, 'secondary']
 E = ['secondary', 2]
+N = ['secondary', 2]
 P = 'main'
 S = 'main'
 T = [3, 'secondary']
@@ -140,6 +135,7 @@ alt-9 = 'workspace 9'
 alt-c = 'workspace C'
 alt-d = 'workspace D'
 alt-e = 'workspace E'
+alt-n = 'workspace N'
 alt-p = 'workspace P'
 alt-s = 'workspace S'
 alt-t = 'workspace T'
@@ -149,7 +145,6 @@ alt-t = 'workspace T'
 # alt-g = 'workspace G'
 # alt-i = 'workspace I'
 # alt-m = 'workspace M'
-# alt-n = 'workspace N'
 # alt-o = 'workspace O'
 # alt-q = 'workspace Q'
 # alt-r = 'workspace R'
@@ -173,6 +168,7 @@ alt-shift-9 = 'move-node-to-workspace 9'
 alt-shift-c = 'move-node-to-workspace C'
 alt-shift-d = 'move-node-to-workspace D'
 alt-shift-e = 'move-node-to-workspace E'
+alt-shift-n = 'move-node-to-workspace N'
 alt-shift-p = 'move-node-to-workspace P'
 alt-shift-s = 'move-node-to-workspace S'
 alt-shift-t = 'move-node-to-workspace T'

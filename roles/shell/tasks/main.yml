@@ -69,17 +69,21 @@
     recurse: true
   with_items:
     - .config/fish/conf.d
+    - .config/fish/functions
     - .config/kitty/kitty.conf
 
 - name: Check if files to backup exists
   stat:
     path: "{{ HOME }}/{{ item }}"
   with_items:
-    - .config/fish/fish_plugins
+    - .config/kitty/kitty.conf
     - .config/fish/config.fish
     - .config/fish/conf.d/aliases.fish
     - .config/fish/conf.d/exports.fish
-    - .config/kitty/kitty.conf
+    - .config/fish/conf.d/lenus.fish
+    - .config/fish/functions/blue.fish
+    - .config/fish/functions/functions.fish
+    - .config/fish/functions/create_gitconfig.fish
     - .config/starship.toml
   register: results
 
@@ -108,6 +112,7 @@
     - fish/conf.d/aliases.fish
     - fish/conf.d/exports.fish
     - fish/conf.d/lenus.fish
+    - fish/functions/functions.fish
     - fish/functions/blue.fish
     - fish/functions/create_gitconfig.fish
 
@@ -121,4 +126,4 @@
 - name: Generating exports with secrets
   ansible.builtin.template:
     src: secrets.fish.j2
-    dest: "{{ HOME }}/.config/fish/conf.d/secrets.yml"
+    dest: "{{ HOME }}/.config/fish/conf.d/secrets.fish"

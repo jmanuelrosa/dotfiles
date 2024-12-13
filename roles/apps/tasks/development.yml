@@ -37,13 +37,20 @@
 
 - name: Configuring git
   ansible.builtin.file:
-    src: "{{ role_path }}/files/.gitconfig"
-    dest: "{{ HOME }}/.gitconfig"
+    src: "{{ role_path }}/files/{{ item }}"
+    dest: "{{ HOME }}/{{ item }}"
     state: link
     force: true
+  with_items:
+    - .gitconfig
+    - .gitignore
 
-- name: password
-  prompt: What is your password?
+- name: Configuring npmrc
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/.npmrc"
+    dest: "{{ HOME }}/.npmrc"
+    state: link
+    force: true
 
 # Adding the user to docker's group, only for linux
 - name: Configuring docker

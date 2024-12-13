@@ -14,5 +14,5 @@
   when: homebrew_check.stat.exists == False
 
 - name: Update Homebrew
-  homebrew:
+  community.general.homebrew:
     update_homebrew: true

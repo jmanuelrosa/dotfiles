@@ -1,17 +1,14 @@
+# Shortcuts
+alias c "clear && printf '\e[3J'"
+alias dl "cd ~/Downloads"
+alias dt "cd ~/Desktop"
+
 # system
 alias rm "rm -i"
+alias grep rg
 alias cat bat
 alias less bat
-
-# Set a global env var with the current OS
-if test "$CURRENT_OS" = "Linux"
-  alias update="sudo pacman-mirrors -f 10 --method rank && yay -Sc --noconfirm && yay -Syu --noconfirm && yay -RYc"
-
-  # apps
-  alias lock "i3lock"
-elseif test "$CURRENT_OS" = "Darwin"
-    alias update="brew update && brew upgrade && brew autoremove && brew cleanup --prune=all && brew cleanup"
-end
+alias find fd
 
 # fish
 alias please-clean-history "history clear"
@@ -32,6 +29,16 @@ alias p pnpm
 # apps
 alias g "git"
 alias chrome "open -a google\ chrome"
+
+# Set a global env var with the current OS
+if test "$CURRENT_OS" = "Linux"
+  alias update="sudo pacman-mirrors -f 10 --method rank && yay -Sc --noconfirm && yay -Syu --noconfirm && yay -RYc"
+
+  # apps
+  alias lock "i3lock"
+elseif test "$CURRENT_OS" = "Darwin"
+    alias update="brew update && brew upgrade && brew autoremove && brew cleanup --prune=all && brew cleanup"
+end
 
 # docker
 function docker:start

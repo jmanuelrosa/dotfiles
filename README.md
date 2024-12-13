@@ -111,7 +111,14 @@ If you want to run Vagrant with the GUI and see how beautiful Sway is and how it
 According to [this](https://unix.stackexchange.com/a/543025bin) information, better install `bin` or `git` packages.
 
 
-## Settings for some apps
+## Other settings
+
+There are some settings that we can't do it using the CLI for mac or other apps, so you need to change this settings by hand, and using the UI.
+
+### Mac
+* Disable allpaper click and show desktop.
+
+  `Cmd + space` and look for `Desktop & dock`. Go to `Click wallapaper to reveal desktop` and set to `Only in State Manager`.
 
 ### DBeaver configuration
 * Set the timezone to UTC:
