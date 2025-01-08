@@ -10,6 +10,12 @@
     - name: Install infrastructure apps
       ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
       loop: "{{ INFRASTRUCTURE_APPS }}"
+    # Adding the user to docker's group, only for linux
+    - name: Configuring docker
+      ansible.builtin.user:
+        name: "{{ USER }}"
+        groups: docker
+        append: yes
 
   when:
     - ansible_os_family != 'Windows'
@@ -23,5 +29,15 @@
     - name: Install infrastructure apps
       ansible.builtin.shell: brew install --force {{ item }}
       loop: "{{ INFRASTRUCTURE_APPS }}"
+
+    - name: Configuring docker
+      ansible.builtin.shell: brew link docker
+
+    - name: Configuring docker plugins
+      ansible.builtin.file:
+        src: "{{ role_path }}/files/docker/config.json"
+        dest: "{{ HOME }}/.docker/config.json"
+        state: link
+        force: true
 
   when: ansible_os_family == 'Darwin'

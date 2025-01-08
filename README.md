@@ -120,6 +120,14 @@ There are some settings that we can't do it using the CLI for mac or other apps,
 
   `Cmd + space` and look for `Desktop & dock`. Go to `Click wallapaper to reveal desktop` and set to `Only in State Manager`.
 
+### Docker
+
+Sometimes happens you can get an error based on `error getting credentials`. To fix this problem, you can install `docker-credential-helper`:
+
+```bash
+> brew install docker-credential-helper
+```
+
 ### DBeaver configuration
 * Set the timezone to UTC:
 

@@ -1,0 +1,91 @@
+disableStartupPopups: true
+notARepository: "skip"
+promptToReturnFromSubprocess: false
+os:
+  edit: "code {{filename}}"
+  editAtLine: "code {{filename}}:{{line}}"
+  editAtLineAndWait: "code --wait {{filename}}:{{line}}"
+  editInTerminal: false
+  openDirInEditor: "code {{dir}}"
+git:
+  paging:
+    colorArg: always
+    pager: delta --paging=never --line-numbers --hyperlinks --hyperlinks-file-link-format="lazygit-edit://{path}:{line}"
+gui:
+  skipDiscardChangeWarning: true
+  showCommandLog: false
+  nerdFontsVersion: "3"
+  showFileTree: true
+  showBottomLine: false
+  showRandomTip: false
+  border: "rounded"
+  theme:
+    activeBorderColor:
+      - "#ff9e64"
+      - "bold"
+    inactiveBorderColor:
+      - "#27a1b9"
+    searchingActiveBorderColor:
+      - "#ff9e64"
+      - "bold"
+    optionsTextColor:
+      - "#7aa2f7"
+    selectedLineBgColor:
+      - "#283457"
+    cherryPickedCommitFgColor:
+      - "#7aa2f7"
+    cherryPickedCommitBgColor:
+      - "#bb9af7"
+    markedBaseCommitFgColor:
+      - "#7aa2f7"
+    markedBaseCommitBgColor:
+      - "#e0af68"
+    unstagedChangesColor:
+      - "#db4b4b"
+    defaultFgColor:
+      - "#c0caf5"
+update:
+  method: never
+customCommands:
+  - key: "<c-n>"
+    description: "New branch with prefix"
+    prompts:
+      - type: "menu"
+        title: "Creating new branch. What kind of branch is it?"
+        options:
+          - name: "feature"
+            value: "feat"
+          - name: "hotfix"
+            value: "hotfix"
+          - name: "fix/bugfix"
+            value: "fix"
+          - name: "chore"
+            value: "chore"
+      - type: "input"
+        title: "What is the new branch name?"
+        initialValue: ""
+    command: "git switch -c {{index .PromptResponses 0}}/{{index .PromptResponses 1}}"
+    context: "localBranches"
+    loadingText: "Creating branch"
+  - key: "<c-p>"
+    command: "git remote prune {{.SelectedRemote.Name}}"
+    context: "remotes"
+    description: "Prune deleted remote branches"
+    loadingText: "Pruning..."
+  - key: "M"
+    command: "git mergetool"
+    context: "files"
+    description: "Open git mergetool"
+    loadingText: "Opening git mergetool"
+    subprocess: true
+  # - key: "<c-c>"
+  #   command: "gitmoji -c"
+  #   context: "files"
+  #   description: "Open gitmoji"
+  #   loadingText: "Opening gitmoji cli tool"
+  #   subprocess: true
+  - key: "R"
+    command: "git reset --soft HEAD~1"
+    context: "files"
+    description: "Undo last commit"
+    loadingText: "Undoing last commit"

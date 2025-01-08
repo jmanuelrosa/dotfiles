@@ -1,3 +1,9 @@
+if not status is-interactive
+  return
+end
+
+set -U fish_greeting
+
 starship init fish | source
 fzf --fish | source
 zoxide init fish | source
@@ -83,3 +89,10 @@ set fzf_preview_dir_cmd eza -T -la --git --group-directories-first --icons --col
 set fzf_directory_opts --prompt "Files&Directories> " --bind "ctrl-o:execute($EDITOR {+} &> /dev/tty)"
 
 fzf_configure_bindings --git_status=\e\cs --git_log=\e\cl --directory=\cp --history=\e\cr --processes=\e\cp --variables=\e\ce
+
+# pnpm
+set -gx PNPM_HOME "/Users/jmanuelrosa/Library/pnpm"
+if not string match -q -- $PNPM_HOME $PATH
+  set -gx PATH "$PNPM_HOME" $PATH
+end
+# pnpm end

@@ -45,19 +45,18 @@
     - .gitconfig
     - .gitignore
 
+- name: Configuring lazygit
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/{{ item }}"
+    dest: "{{ HOME }}/Library/Application\ Support/{{ item }}"
+    state: link
+    force: true
+  with_items:
+    - lazygit/config.yml
+
 - name: Configuring npmrc
   ansible.builtin.file:
     src: "{{ role_path }}/files/.npmrc"
     dest: "{{ HOME }}/.npmrc"
     state: link
     force: true
-
-# Adding the user to docker's group, only for linux
-- name: Configuring docker
-  ansible.builtin.user:
-    name: "{{ USER }}"
-    groups: docker
-    append: yes
-  when:
-    - ansible_os_family != 'Windows'
-    - ansible_os_family != 'Darwin'

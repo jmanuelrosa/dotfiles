@@ -17,6 +17,7 @@ DEVELOPMENT_APPS:
   - httpie
   - git
   - git-delta
+  - lazygit
   - fnm
   - scc
   - hyperfine
@@ -37,7 +38,7 @@ EDITORS_APPS:
 INFRASTRUCTURE_APPS:
   # - ansible
   - awscli
-  - --cask docker
+  - docker
   - docker-compose
   - docker-buildx
 
@@ -47,6 +48,7 @@ MULTIMEDIA_APPS:
 
 SYSTEM_APPS:
   - --cask nikitabobko/tap/aerospace
+  - --cask font-fira-code-nerd-font
   # - noto-fonts-emoji
 
 OTHER_TOOLS:

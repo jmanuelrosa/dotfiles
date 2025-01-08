@@ -68,6 +68,9 @@
   # clean
   bclean = branch --list --no-color --merged | grep -v 'main|master' | xargs -n 1 git branch -d
 
+[init]
+	defaultBranch = main
+
 [color]
   ui = always
 
@@ -145,10 +148,6 @@
 [user]
 	name = Jose Manuel Rosa Moncayo
 	email = josemanuel.rosamoncayo+github@gmail.com
-
-# Include other gitconfig files depending on the directory (case non-sensitive)
-[includeIf "gitdir/i:~/developer/lenus.io/"]
-  path = ~/developer/lenus.io/.gitconfig.lenus
 
 # Include other gitconfig files depending on the directory (case non-sensitive)
 [includeIf "gitdir/i:~/developer/didomi/"]
