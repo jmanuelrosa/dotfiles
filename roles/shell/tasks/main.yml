@@ -60,7 +60,7 @@
     state: directory
   with_items:
     - .config/fish
-    - .config/kitty
+    - .config/ghostty
 
 - name: Creating backup directory for shell
   ansible.builtin.file:
@@ -71,17 +71,16 @@
     - .config/fish/conf.d
     - .config/fish/functions
     - .config/fish/completions
-    - .config/kitty/kitty.conf
+    - .config/ghostty
 
 - name: Check if files to backup exists
   stat:
     path: "{{ HOME }}/{{ item }}"
   with_items:
-    - .config/kitty/kitty.conf
+    - .config/ghostty/config
     - .config/fish/config.fish
     - .config/fish/conf.d/aliases.fish
     - .config/fish/conf.d/exports.fish
-    - .config/fish/conf.d/lenus.fish
     - .config/fish/functions/blue.fish
     - .config/fish/functions/functions.fish
     - .config/fish/functions/create_gitconfig.fish
@@ -96,10 +95,10 @@
   when: item.stat.exists == True
   with_items: "{{ results.results }}"
 
-- name: Configuring Kitty
+- name: Configuring Ghostty
   ansible.builtin.file:
-    src: "{{ role_path }}/files/kitty/kitty.conf"
-    dest: "{{ HOME }}/.config/kitty/kitty.conf"
+    src: "{{ role_path }}/files/ghostty/config"
+    dest: "{{ HOME }}/.config/ghostty/config"
     state: link
     force: true
 
@@ -113,7 +112,6 @@
     - fish/config.fish
     - fish/conf.d/aliases.fish
     - fish/conf.d/exports.fish
-    - fish/conf.d/lenus.fish
     - fish/functions/functions.fish
     - fish/functions/blue.fish
     - fish/functions/create_gitconfig.fish

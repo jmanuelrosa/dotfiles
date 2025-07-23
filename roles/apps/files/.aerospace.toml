@@ -5,6 +5,7 @@
 # 'start-at-login' needs to be 'true' for 'after-login-command' to work
 # Available commands: https://nikitabobko.github.io/AeroSpace/commands
 after-login-command = []
+after-startup-command = []
 
 # You can use it to add commands that run after AeroSpace startup.
 # 'after-startup-command' is run after 'after-login-command'
@@ -20,7 +21,7 @@ enable-normalization-opposite-orientation-for-nested-containers = true
 # See: https://nikitabobko.github.io/AeroSpace/guide#layouts
 # The 'accordion-padding' specifies the size of accordion padding
 # You can set 0 to disable the padding feature
-accordion-padding = 20
+accordion-padding = 10
 
 # Possible values: tiles|accordion
 default-root-container-layout = 'tiles'
@@ -40,6 +41,10 @@ key-mapping.preset = 'qwerty'
 # See https://nikitabobko.github.io/AeroSpace/commands#move-mouse
 # Fallback value (if you omit the key): on-focused-monitor-changed = []
 on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
+on-focus-changed = ['move-mouse window-lazy-center']
+
+# Also see: https://nikitabobko.github.io/AeroSpace/goodies#disable-hide-app
+automatically-unhide-macos-hidden-apps = true
 
 # Gaps between windows (inner-*) and between monitor edges (outer-*).
 # Possible values:
@@ -49,26 +54,29 @@ on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
 #                 Monitor pattern is the same as for 'workspace-to-monitor-force-assignment'.
 #                 See: https://nikitabobko.github.io/AeroSpace/guide#assign-workspaces-to-monitors
 [gaps]
-inner.horizontal = 5
-inner.vertical =   5
-outer.left =       5
-outer.bottom =     5
-outer.top =        5
-outer.right =      5
+inner.horizontal = 0
+inner.vertical =   0
+outer.left =       0
+outer.bottom =     0
+outer.top =        0
+outer.right =      0
 
 [workspace-to-monitor-force-assignment]
 1 = 'main'
 2 = 'main'
 3 = 'main'
-4 = ['secondary', 2]
-8 = 3
-C = 'main'
-D = [3, 'secondary']
-E = ['secondary', 2]
-N = 'main'
-P = 'main'
-S = 'main'
-T = [3, 'secondary']
+4 = 'secondary'
+AI = 'secondary'
+Browsers = 'secondary'
+Database = 'secondary'
+Editors = 'main'
+Music = 'secondary'
+Notion = 'main'
+Personal = 'main'
+Slack = 'secondary'
+Whatsapp = 'secondary'
+Terminal = 'secondary'
+TradingView = 'secondary'
 
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
@@ -132,28 +140,17 @@ alt-6 = 'workspace 6'
 alt-7 = 'workspace 7'
 alt-8 = 'workspace 8'
 alt-9 = 'workspace 9'
-alt-c = 'workspace C'
-alt-d = 'workspace D'
-alt-e = 'workspace E'
-alt-n = 'workspace N'
-alt-p = 'workspace P'
-alt-s = 'workspace S'
-alt-t = 'workspace T'
-# alt-a = 'workspace A' # In your config, you can drop workspace bindings that you don't need
-# alt-b = 'workspace B'
-# alt-f = 'workspace F'
-# alt-g = 'workspace G'
-# alt-i = 'workspace I'
-# alt-m = 'workspace M'
-# alt-o = 'workspace O'
-# alt-q = 'workspace Q'
-# alt-r = 'workspace R'
-# alt-u = 'workspace U'
-# alt-v = 'workspace V'
-# alt-w = 'workspace W'
-# alt-x = 'workspace X'
-# alt-y = 'workspace Y'
-# alt-z = 'workspace Z'
+alt-a = 'workspace AI'
+alt-b = 'workspace Browsers'
+alt-d = 'workspace Database'
+alt-e = 'workspace Editors'
+alt-m = 'workspace Music'
+alt-o = 'workspace Notion'
+alt-p = 'workspace Personal'
+alt-s = 'workspace Slack'
+alt-t = 'workspace Terminal'
+alt-w = 'workspace Whatsapp'
+alt-v = 'workspace TradingView'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#move-node-to-workspace
 alt-shift-1 = 'move-node-to-workspace 1'
@@ -165,29 +162,17 @@ alt-shift-6 = 'move-node-to-workspace 6'
 alt-shift-7 = 'move-node-to-workspace 7'
 alt-shift-8 = 'move-node-to-workspace 8'
 alt-shift-9 = 'move-node-to-workspace 9'
-alt-shift-c = 'move-node-to-workspace C'
-alt-shift-d = 'move-node-to-workspace D'
-alt-shift-e = 'move-node-to-workspace E'
-alt-shift-n = 'move-node-to-workspace N'
-alt-shift-p = 'move-node-to-workspace P'
-alt-shift-s = 'move-node-to-workspace S'
-alt-shift-t = 'move-node-to-workspace T'
-# alt-shift-a = 'move-node-to-workspace A'
-# alt-shift-b = 'move-node-to-workspace B'
-# alt-shift-f = 'move-node-to-workspace F'
-# alt-shift-g = 'move-node-to-workspace G'
-# alt-shift-i = 'move-node-to-workspace I'
-# alt-shift-m = 'move-node-to-workspace M'
-# alt-shift-n = 'move-node-to-workspace N'
-# alt-shift-o = 'move-node-to-workspace O'
-# alt-shift-q = 'move-node-to-workspace Q'
-# alt-shift-r = 'move-node-to-workspace R'
-# alt-shift-u = 'move-node-to-workspace U'
-# alt-shift-v = 'move-node-to-workspace V'
-# alt-shift-w = 'move-node-to-workspace W'
-# alt-shift-x = 'move-node-to-workspace X'
-# alt-shift-y = 'move-node-to-workspace Y'
-# alt-shift-z = 'move-node-to-workspace Z'
+alt-shift-a = 'move-node-to-workspace AI'
+alt-shift-b = 'move-node-to-workspace Browsers'
+alt-shift-d = 'move-node-to-workspace Database'
+alt-shift-e = 'move-node-to-workspace Editors'
+alt-shift-m = 'move-node-to-workspace Music'
+alt-shift-o = 'move-node-to-workspace Notion'
+alt-shift-p = 'move-node-to-workspace Personal'
+alt-shift-s = 'move-node-to-workspace Slack'
+alt-shift-t = 'move-node-to-workspace Terminal'
+alt-shift-w = 'move-node-to-workspace Whatsapp'
+alt-shift-v = 'move-node-to-workspace TradingView'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#workspace-back-and-forth
 alt-tab = 'workspace-back-and-forth'
@@ -212,3 +197,59 @@ alt-shift-j = ['join-with left', 'mode main']
 alt-shift-k = ['join-with down', 'mode main']
 alt-shift-i = ['join-with up', 'mode main']
 alt-shift-l = ['join-with right', 'mode main']
+
+[[on-window-detected]]
+if.app-id="com.mitchellh.ghostty"
+run= ["layout tiling", 'move-node-to-workspace Terminal']
+
+[[on-window-detected]]
+if.app-id="com.tinyspeck.slackmacgap"
+run= ["layout tiling", 'move-node-to-workspace Slack']
+
+[[on-window-detected]]
+if.app-id="com.google.Chrome"
+run= ["layout tiling", 'move-node-to-workspace Browsers']
+
+[[on-window-detected]]
+if.app-id = 'app.zen-browser.zen'
+run= ["layout tiling", 'move-node-to-workspace Browsers']
+
+[[on-window-detected]]
+if.app-id="com.todesktop.230313mzl4w4u92"
+run= ["layout tiling", 'move-node-to-workspace Editors']
+
+[[on-window-detected]]
+if.app-id="com.microsoft.VSCode"
+run= ["layout tiling", 'move-node-to-workspace Editors']
+
+[[on-window-detected]]
+if.app-id="com.usebruno.app"
+run= ["layout tiling", 'move-node-to-workspace 4']
+
+[[on-window-detected]]
+if.app-id = 'com.spotify.client'
+run= ["layout tiling", 'move-node-to-workspace Music']
+
+[[on-window-detected]]
+if.app-id = 'notion.id'
+run= ["layout tiling", 'move-node-to-workspace Notion']
+
+[[on-window-detected]]
+if.app-id = 'md.obsidian'
+run= ["layout tiling", 'move-node-to-workspace Notion']
+
+[[on-window-detected]]
+if.app-id = 'com.openai.chat'
+run= ["layout tiling", 'move-node-to-workspace AI']
+
+[[on-window-detected]]
+if.app-id = 'org.jkiss.dbeaver.core.product'
+run= ["layout tiling", 'move-node-to-workspace Database']
+
+[[on-window-detected]]
+if.app-id = 'net.whatsapp.WhatsApp'
+run= ["layout tiling", 'move-node-to-workspace Whatsapp']
+
+[[on-window-detected]]
+if.app-id = 'com.tradingview.tradingviewapp.desktop'
+run= ["layout tiling", 'move-node-to-workspace Whatsapp']

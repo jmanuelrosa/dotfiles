@@ -24,4 +24,18 @@
       ansible.builtin.shell: brew install --force {{ item }}
       loop: "{{ BROWSERS_APPS }}"
 
+    - name: Setting Harper (Grammar Checking That Respects Your Privacy|)
+      ansible.builtin.file:
+        src: "{{ role_path }}/files/harper/config.toml"
+        dest: "{{ HOME }}/.config/harper/config.toml"
+        state: link
+        force: true
+
+    - name: Setting Harper dictionary
+      ansible.builtin.file:
+        src: "{{ role_path }}/files/harper/dictionary.txt"
+        dest: "{{ HOME }}/Library/Application Support/harper-ls/dictionary.txt"
+        state: link
+        force: true
+
   when: ansible_os_family == 'Darwin'

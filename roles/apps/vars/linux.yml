@@ -4,7 +4,7 @@
 
 BROWSERS_APPS:
   - google-chrome
-  - zen-browser-avx2-bin
+  - zen-avx2-bin
   - brave-bin
 
 CHAT_APPS:
@@ -15,9 +15,17 @@ DEVELOPMENT_APPS:
   - httpie
   - git
   - git-delta
+  - lazygit
+  - gh
   - fnm-bin
-  - scc-bin
   - hyperfine
+  - scc-bin
+
+AI_APPS:
+  - chatgpt
+  - cursor
+  - claude
+  - gemini-cli
 
 DATABASE_APPS:
   - pgcli
@@ -40,5 +48,9 @@ MULTIMEDIA_APPS:
 SYSTEM_APPS:
   - noto-fonts-emoji
 
+NPM_PACKAGES:
+  - @anthropic-ai/claude-code
+
 OTHER_TOOLS:
   - nnn
+  - tradingview

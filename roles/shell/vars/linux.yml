@@ -7,5 +7,5 @@ FISH_PATH: /usr/bin/fish
 TERMINAL_APPS:
   - fish
   - fisher
-  - kitty
+  - ghostty
   - starship

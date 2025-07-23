@@ -9,10 +9,11 @@ fzf --fish | source
 zoxide init fish | source
 fnm env --use-on-cd | source
 
+fish_add_path $HOME/.local/bin
 fish_add_path $HOME/.yarn/bin
 fish_add_path $HOME/.node/bin
-fish_add_path $HOME/.local/bin
-fish_add_path $HOME/.local/bin
+fish_add_path $HOME/.bun/bin
+fish_add_path $HOME/.claude
 
 # brew specific paths
 fish_add_path /opt/homebrew/sbin
@@ -24,16 +25,13 @@ fish_add_path /opt/homebrew/opt/libpq/bin
 # Set a global env var with the current OS
 set -l CURRENT_OS (uname)
 
-# Kitty config
-set -gx KITTY_LISTEN_ON "unix:/tmp/kitty-$KITTY_PID"
-
 # Make default programs
 # set -gx XDG_CURRENT_DESKTOP sway
 set -gx BROWSER /usr/bin/google-chrome-stable
 set -gx EDITOR "zed --wait"
 set -gx FILE nnn
 set -gx PAGER "bat --plain"
-set -gx TERMINAL kitty
+set -gx TERMINAL ghostty
 set -gx VISUAL zed
 
 # nnn settings
@@ -96,3 +94,6 @@ if not string match -q -- $PNPM_HOME $PATH
   set -gx PATH "$PNPM_HOME" $PATH
 end
 # pnpm end
+
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '/opt/homebrew/share/google-cloud-sdk/path.fish.inc' ]; . '/opt/homebrew/share/google-cloud-sdk/path.fish.inc'; end

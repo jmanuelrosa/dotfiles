@@ -1,0 +1,22 @@
+{
+  "contextFileName": "AGENTS.md",
+  "general": {
+    "enablePromptCompletion": true
+  },
+  "hideBanner": true,
+  "hideTips": true,
+  "selectedAuthType": "oauth-personal",
+  "showLineNumbers": true,
+  "theme": "GitHub",
+  "useRipgrep": true,
+  "useSmartEdit": true,
+  "vimMode": false,
+  "mcpServers": {
+    "linear": {
+      "httpUrl": "https://mcp.linear.app/api/mcp",
+      "headers": {
+        "Authorization": "Bearer"
+      }
+    }
+  }
+}

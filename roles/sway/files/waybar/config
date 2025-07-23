@@ -131,7 +131,7 @@
     "format": "  {max_frequency}GHz <span color=\"darkgray\">| {usage}%</span>",
     "max-length": 13,
     "min-length": 13,
-    "on-click": "kitty -e htop --sort-key PERCENT_CPU",
+    "on-click": "ghostty -e htop --sort-key PERCENT_CPU",
     "tooltip": false
   },
   "temperature": {
@@ -150,7 +150,7 @@
     "interval": 3600,
     "exec": "checkupdates | wc -l",
     "exec-if": "exit 0",
-    "on-click": "kitty -e 'yay'; pkill -SIGRTMIN+8 waybar",
+    "on-click": "ghostty -e 'yay'; pkill -SIGRTMIN+8 waybar",
     "signal": 8,
     "max-length": 5,
     "min-length": 3

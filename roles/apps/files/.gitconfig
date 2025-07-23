@@ -66,7 +66,7 @@
   apf = "!git amend --no-verify --no-edit && git push --force"
 
   # clean
-  bclean = branch --list --no-color --merged | grep -v 'main|master' | xargs -n 1 git branch -d
+  bclean = !git branch -vv --list --no-color | grep ': gone]' | awk '{print $1}' | xargs -r git branch -D
 
 [init]
 	defaultBranch = main
@@ -150,8 +150,8 @@
 	email = josemanuel.rosamoncayo+github@gmail.com
 
 # Include other gitconfig files depending on the directory (case non-sensitive)
-[includeIf "gitdir/i:~/developer/didomi/"]
-  path = ~/developer/didomi/.gitconfig.didomi
+[includeIf "gitdir/i:~/developer/work/didomi/"]
+  path = ~/developer/work/didomi/.gitconfig.didomi
 
 [push]
 	default = current

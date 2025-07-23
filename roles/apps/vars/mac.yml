@@ -4,27 +4,32 @@
 
 BROWSERS_APPS:
   - --cask google-chrome
-  - --cask zen-browser
-  - --cask arc
+  - --cask zen
+  - --cask thebrowsercompany-dia
   - --cask brave-browser
-
 
 CHAT_APPS:
   - --cask slack
   - --cask discord
+  - --cask whatsapp
 
 DEVELOPMENT_APPS:
   - httpie
   - git
   - git-delta
   - lazygit
+  - gh
   - fnm
+  - oven-sh/bun/bun
   - scc
   - hyperfine
 
 AI_APPS:
   - --cask chatgpt
   - --cask cursor
+  - --cask claude
+  - gemini-cli
+  - ollama
 
 DATABASE_APPS:
   - libpq
@@ -38,6 +43,7 @@ EDITORS_APPS:
 INFRASTRUCTURE_APPS:
   # - ansible
   - awscli
+  - --cask gcloud-cli
   - docker
   - docker-compose
   - docker-buildx
@@ -49,7 +55,13 @@ MULTIMEDIA_APPS:
 SYSTEM_APPS:
   - --cask nikitabobko/tap/aerospace
   - --cask font-fira-code-nerd-font
+  - --cask logi-options+
   # - noto-fonts-emoji
+
+NPM_PACKAGES:
+  - @anthropic-ai/claude-code
+  - @github/copilot
 
 OTHER_TOOLS:
   - nnn
+  - --cask tradingview

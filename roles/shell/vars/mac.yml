@@ -7,5 +7,5 @@ FISH_PATH: /opt/homebrew/bin/fish
 TERMINAL_APPS:
   - fish
   - fisher
-  - --cask kitty
+  - --cask ghostty
   - starship

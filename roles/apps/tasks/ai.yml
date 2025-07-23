@@ -24,4 +24,16 @@
       ansible.builtin.shell: brew install --force {{ item }}
       loop: "{{ AI_APPS }}"
 
+    - name: Creating gemini config directory
+      ansible.builtin.file:
+        path: "{{ HOME }}/.gemini"
+        state: directory
+
+    - name: Configuring gemini
+      ansible.builtin.file:
+        src: "{{ role_path }}/files/gemini/settings.json"
+        dest: "{{ HOME }}/.gemini/settings.json"
+        state: link
+        force: true
+
   when: ansible_os_family == 'Darwin'

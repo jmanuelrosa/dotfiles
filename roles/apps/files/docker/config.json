@@ -1,8 +1,7 @@
 {
-  "auths": {},
-  "credsStore": "osxkeychain",
-  "currentContext": "colima",
-  "cliPluginsExtraDirs": [
-    "/opt/homebrew/lib/docker/cli-plugins"
-  ]
+	"auths": {},
+	"credsStore": "osxkeychain",
+	"cliPluginsExtraDirs": [
+		"/opt/homebrew/lib/docker/cli-plugins"
+	]
 }

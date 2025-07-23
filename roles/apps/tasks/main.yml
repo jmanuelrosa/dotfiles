@@ -10,4 +10,5 @@
 - ansible.builtin.include_tasks: infrastructure.yml
 - ansible.builtin.include_tasks: multimedia.yml
 - ansible.builtin.include_tasks: system.yml
+- ansible.builtin.include_tasks: npm-packages.yml
 - ansible.builtin.include_tasks: other.yml
