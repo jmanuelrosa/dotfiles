@@ -77,7 +77,7 @@ customCommands:
     context: "files"
     description: "Open git mergetool"
     loadingText: "Opening git mergetool"
-    subprocess: true
+    output: terminal
   # - key: "<c-c>"
   #   command: "gitmoji -c"
   #   context: "files"

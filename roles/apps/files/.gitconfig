@@ -66,7 +66,8 @@
   apf = "!git amend --no-verify --no-edit && git push --force"
 
   # clean
-  bclean = branch --list --no-color --merged | grep -v 'main|master' | xargs -n 1 git branch -d
+  # bclean = branch --list --no-color --merged | grep -v 'main|master' | xargs -n 1 git branch -d
+  bclean = "!git branch --list --no-color --merged | grep -Ev '^\\*|main|master' | sed 's/^  //' | while read branch; do if ! git show-ref --verify --quiet refs/remotes/origin/$branch; then echo Deleting local branch: $branch; git branch -d $branch; fi; done"
 
 [init]
 	defaultBranch = main
@@ -150,8 +151,8 @@
 	email = josemanuel.rosamoncayo+github@gmail.com
 
 # Include other gitconfig files depending on the directory (case non-sensitive)
-[includeIf "gitdir/i:~/developer/didomi/"]
-  path = ~/developer/didomi/.gitconfig.didomi
+[includeIf "gitdir/i:~/developer/work/didomi/"]
+  path = ~/developer/work/didomi/.gitconfig.didomi
 
 [push]
 	default = current

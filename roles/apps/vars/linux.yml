@@ -4,7 +4,7 @@
 
 BROWSERS_APPS:
   - google-chrome
-  - zen-browser-avx2-bin
+  - zen-avx2-bin
   - brave-bin
 
 CHAT_APPS:
@@ -42,3 +42,4 @@ SYSTEM_APPS:
 
 OTHER_TOOLS:
   - nnn
+  - tradingview

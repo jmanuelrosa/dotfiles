@@ -1,0 +1,8 @@
+Include /Users/jmanuelrosa/.colima/ssh_config
+
+Host gitlab.com
+  Hostname altssh.gitlab.com
+  User git
+  Port 443
+  PreferredAuthentications publickey
+  IdentityFile ~/.ssh/gitlab

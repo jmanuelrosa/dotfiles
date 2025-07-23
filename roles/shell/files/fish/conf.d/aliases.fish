@@ -35,20 +35,52 @@ alias lg='lazygit'
 
 # Set a global env var with the current OS
 # TODO: It doesn't work very well :(
-if test "$CURRENT_OS" = "Linux"
-  alias update='sudo pacman-mirrors -f 10 --method rank && yay -Sc --noconfirm && yay -Syu --noconfirm && yay -RYc'
+# if test "$CURRENT_OS" = "Linux"
+#   alias update='sudo pacman-mirrors -f 10 --method rank && yay -Sc --noconfirm && yay -Syu --noconfirm && yay -RYc'
 
-  # apps
-  alias lock="i3lock"
-elseif test "$CURRENT_OS" = "Darwin"
-  alias update='brew update --greedy && brew upgrade --greedy && brew autoremove && brew cleanup --prune=all && brew cleanup'
-end
+#   # apps
+#   alias lock="i3lock"
+# elseif test "$CURRENT_OS" = "Darwin"
+#   alias update='brew update --force && brew upgrade --greedy && brew autoremove && brew cleanup --prune=all && brew cleanup'
+# end
+alias update='brew update --force && brew upgrade --greedy && brew autoremove && brew cleanup --prune=all && brew cleanup'
 
 # docker
-function docker:start
-  systemctl start docker
+alias docker:start='systemctl start docker'
+alias docker:stop='systemctl stop docker'
+
+# kitty
+alias term:theme='kitten themes'
+alias term:light='kitten theme "Solarized Light"'
+alias term:dark='kitten theme "Solarized Dark - Patched"'
+
+# Clean scripts
+alias clean:docker='docker system prune -a --volumes'
+function clean:node
+  echo '⏰ Deleting node_modules ...'
+  find node_modules --type dir --no-ignore --absolute-path --prune | while read dir
+    echo "📦 Removing: $dir";
+    rm -rf "$dir"
+  end
+
+  echo "📦 Removing npm cache ..."
+  npm cache clean --force
+
+  echo "✨ Cleanup complete!"
 end
 
-function docker:stop
-  systemctl stop docker
-end
+# cleanup_node() {
+#     echo "🧹 Starting cleanup of Node.js projects..."
+
+#     # Remove node_modules directories and show paths
+#     find . -name "node_modules" -type d -prune | while read dir; do
+#         echo "📦 Removing: $dir"
+#         rm -rf "$dir"
+#     done
+
+#     # Clear npm cache
+#     echo "📦 Removing npm cache ..."
+#     npm cache clean --force
+
+#     echo "✨ Cleanup complete!"
+# }
