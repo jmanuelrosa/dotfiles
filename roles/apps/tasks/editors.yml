@@ -6,8 +6,9 @@
   include_vars: vars/main.yml
 
 - name: Install editors apps
-  ansible.builtin.shell: brew install --force {{ item }}
-  loop: "{{ EDITORS_APPS }}"
+  community.general.homebrew_cask:
+    name: "{{ EDITORS_CASKS }}"
+    state: present
 
 - name: Configuring Visual Studio Code
   ansible.builtin.shell: code --sync on

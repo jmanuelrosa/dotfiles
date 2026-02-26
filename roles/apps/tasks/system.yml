@@ -5,9 +5,15 @@
 - name: Load system variables
   include_vars: vars/main.yml
 
-- name: Install system apps
-  ansible.builtin.shell: brew install --force {{ item }}
-  loop: "{{ SYSTEM_APPS }}"
+- name: Install system formulas
+  community.general.homebrew:
+    name: "{{ SYSTEM_FORMULAS }}"
+    state: present
+
+- name: Install system casks
+  community.general.homebrew_cask:
+    name: "{{ SYSTEM_CASKS }}"
+    state: present
 
 - name: Configuring aerospace
   ansible.builtin.file:

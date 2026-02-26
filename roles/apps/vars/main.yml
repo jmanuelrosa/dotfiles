@@ -2,17 +2,17 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-BROWSERS_APPS:
-  - --cask google-chrome
-  - --cask zen
-  - --cask brave-browser
+BROWSERS_CASKS:
+  - google-chrome
+  - zen
+  - brave-browser
 
-CHAT_APPS:
-  - --cask slack
-  - --cask discord
-  - --cask whatsapp
+CHAT_CASKS:
+  - slack
+  - discord
+  - whatsapp
 
-DEVELOPMENT_APPS:
+DEVELOPMENT_FORMULAS:
   - httpie
   - git
   - git-delta
@@ -23,47 +23,58 @@ DEVELOPMENT_APPS:
   - scc
   - hyperfine
 
-AI_APPS:
-  - --cask chatgpt
-  - --cask cursor
-  - --cask claude
-  - --cask claude-code
+AI_FORMULAS:
   - gemini-cli
-  - --cask steipete/tap/codexbar
   - ollama
 
-DATABASE_APPS:
+AI_CASKS:
+  - chatgpt
+  - cursor
+  - claude
+  - claude-code
+  - steipete/tap/codexbar
+
+DATABASE_FORMULAS:
   - libpq
   - pgcli
-  - --cask dbeaver-community
 
-EDITORS_APPS:
-  - --cask visual-studio-code
-  - --cask zed
+DATABASE_CASKS:
+  - dbeaver-community
 
-INFRASTRUCTURE_APPS:
+EDITORS_CASKS:
+  - visual-studio-code
+  - zed
+
+INFRASTRUCTURE_FORMULAS:
   # - ansible
   - awscli
-  - --cask gcloud-cli
   - docker
   - docker-compose
   - docker-buildx
 
-MULTIMEDIA_APPS:
-  - mpv
-  - --cask spotify
+INFRASTRUCTURE_CASKS:
+  - gcloud-cli
 
-SYSTEM_APPS:
-  - --cask nikitabobko/tap/aerospace
-  - --cask font-fira-code-nerd-font
-  - --cask logi-options+
+MULTIMEDIA_FORMULAS:
+  - mpv
+
+MULTIMEDIA_CASKS:
+  - spotify
+
+SYSTEM_FORMULAS:
   - tw93/tap/mole
-  # - noto-fonts-emoji
+
+SYSTEM_CASKS:
+  - nikitabobko/tap/aerospace
+  - font-fira-code-nerd-font
+  - logi-options+
 
 NPM_PACKAGES:
-  - @github/copilot
+  - "@github/copilot"
 
-OTHER_TOOLS:
+OTHER_FORMULAS:
   - nnn
-  - --cask tradingview
-  - --cask bitwarden
+
+OTHER_CASKS:
+  - tradingview
+  - bitwarden

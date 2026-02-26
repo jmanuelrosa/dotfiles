@@ -10,4 +10,4 @@
 - name: Restart the computer
   become: true
   ansible.builtin.command: shutdown -r now
-  when: user_input.user_input == "yes"
+  when: user_input.user_input | lower == "yes"

@@ -5,11 +5,12 @@
 - name: Load system variables
   include_vars: vars/main.yml
 
-- name: Install other tools
-  ansible.builtin.shell: brew install --force {{ item }}
-  loop: "{{ OTHER_TOOLS }}"
+- name: Install other formulas
+  community.general.homebrew:
+    name: "{{ OTHER_FORMULAS }}"
+    state: present
 
-  # - name: Install nnn plugins
-  #   ansible.builtin.shell: 'sh -c "$(curl -Ls https://raw.githubusercontent.com/jarun/nnn/master/plugins/getplugs)"'
-  #   args:
-  #     warn: false
+- name: Install other casks
+  community.general.homebrew_cask:
+    name: "{{ OTHER_CASKS }}"
+    state: present

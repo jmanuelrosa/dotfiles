@@ -6,8 +6,9 @@
   include_vars: vars/main.yml
 
 - name: Install browsers
-  ansible.builtin.shell: brew install --force {{ item }}
-  loop: "{{ BROWSERS_APPS }}"
+  community.general.homebrew_cask:
+    name: "{{ BROWSERS_CASKS }}"
+    state: present
 
 - name: Setting Harper (Grammar Checking That Respects Your Privacy|)
   ansible.builtin.file:

@@ -5,9 +5,15 @@
 - name: Load system variables
   include_vars: vars/main.yml
 
-- name: Install infrastructure apps
-  ansible.builtin.shell: brew install --force {{ item }}
-  loop: "{{ INFRASTRUCTURE_APPS }}"
+- name: Install infrastructure formulas
+  community.general.homebrew:
+    name: "{{ INFRASTRUCTURE_FORMULAS }}"
+    state: present
+
+- name: Install infrastructure casks
+  community.general.homebrew_cask:
+    name: "{{ INFRASTRUCTURE_CASKS }}"
+    state: present
 
 - name: Configuring docker
   ansible.builtin.shell: brew link docker

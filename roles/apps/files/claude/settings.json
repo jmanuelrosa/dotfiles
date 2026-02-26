@@ -22,6 +22,8 @@
         "**/.ssh/**"
       ],
       "allow": [
+        "Bash(find:*)",
+        "Bash(git rm:*)",
         "Bash(grep:*)",
         "Bash(ls:*)",
         "Bash(xargs:*)"

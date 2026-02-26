@@ -6,12 +6,19 @@
   include_vars: vars/main.yml
 
 - name: Install development apps
-  ansible.builtin.shell: brew install --force {{ item }}
-  loop: "{{ DEVELOPMENT_APPS }}"
+  community.general.homebrew:
+    name: "{{ DEVELOPMENT_FORMULAS }}"
+    state: present
 
-- name: Install databases apps
-  ansible.builtin.shell: brew install --force {{ item }}
-  loop: "{{ DATABASE_APPS }}"
+- name: Install databases formulas
+  community.general.homebrew:
+    name: "{{ DATABASE_FORMULAS }}"
+    state: present
+
+- name: Install databases casks
+  community.general.homebrew_cask:
+    name: "{{ DATABASE_CASKS }}"
+    state: present
 
 - name: Configuring git
   ansible.builtin.file:
@@ -26,7 +33,7 @@
 - name: Configuring lazygit
   ansible.builtin.file:
     src: "{{ role_path }}/files/{{ item }}"
-    dest: "{{ HOME }}/Library/Application\ Support/{{ item }}"
+    dest: "{{ HOME }}/Library/Application Support/{{ item }}"
     state: link
     force: true
   with_items:

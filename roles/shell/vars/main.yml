@@ -14,9 +14,11 @@ FISH_PLUGINS:
   - nickeb96/puffer-fish
   - PatrickF1/fzf.fish
 
-TERMINAL_APPS:
+TERMINAL_FORMULAS:
   - fish
   - fisher
-  - --cask ghostty
   - starship
   - gnupg
+
+TERMINAL_CASKS:
+  - ghostty

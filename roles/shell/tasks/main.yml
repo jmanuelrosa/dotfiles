@@ -5,20 +5,26 @@
 - name: Load variables
   include_vars: vars/main.yml
 
-- name: Install packages related to the shell
-  ansible.builtin.shell: brew install {{ item }}
-  loop: "{{ TERMINAL_APPS }}"
-  register: result
-  changed_when:
-    - result.failed
+- name: Install shell formulas
+  community.general.homebrew:
+    name: "{{ TERMINAL_FORMULAS }}"
+    state: present
 
-- name: Add fish as a know shell
+- name: Install shell casks
+  community.general.homebrew_cask:
+    name: "{{ TERMINAL_CASKS }}"
+    state: present
+
+- name: Add fish as a known shell
   become: true
-  ansible.builtin.shell: sh -c 'echo {{ FISH_PATH }} >> /etc/shells'
+  ansible.builtin.lineinfile:
+    path: /etc/shells
+    line: "{{ FISH_PATH }}"
+    state: present
 
 - name: Make fish as our default shell
   become: true
-  user:
+  ansible.builtin.user:
     name: "{{ USER }}"
     shell: "{{ FISH_PATH }}"
     state: present
@@ -30,8 +36,6 @@
   loop: "{{ FISH_PLUGINS }}"
   register: result
   ignore_errors: true
-  changed_when:
-    - result.failed
 
 - name: Creating settings config directory
   ansible.builtin.file:
@@ -43,7 +47,7 @@
 
 - name: Creating backup directory for shell
   ansible.builtin.file:
-    path: "backups/{{ item }}"
+    path: "{{ CURRENT_DIR }}/backups/{{ item }}"
     state: directory
     recurse: true
   with_items:
@@ -103,3 +107,4 @@
   ansible.builtin.template:
     src: secrets.fish.j2
     dest: "{{ HOME }}/.config/fish/conf.d/secrets.fish"
+    mode: "0600"

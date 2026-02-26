@@ -18,6 +18,6 @@
     update_homebrew: true
 
 - name: Install Mac App Store command-line interface (mas)
-  ansible.builtin.shell: brew install --force mas
-
-
+  community.general.homebrew:
+    name: mas
+    state: present

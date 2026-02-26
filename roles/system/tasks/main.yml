@@ -11,12 +11,9 @@
     state: directory
 
 - name: Install all packages related to the system
-  ansible.builtin.shell: brew install {{ item }}
-  loop: "{{ SYSTEM_APPS }}"
-  register: result
-  ignore_errors: true
-  changed_when:
-    - result.failed
+  community.general.homebrew:
+    name: "{{ SYSTEM_APPS }}"
+    state: present
 
 - name: Setting the system preferences
   community.general.osx_defaults:

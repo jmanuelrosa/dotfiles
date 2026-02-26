@@ -9,12 +9,22 @@
 
   roles:
     - role: brew
+      tags: [brew]
     - role: system
+      tags: [system]
     - role: shell
+      tags: [shell]
     - role: ssh
+      tags: [ssh]
     - role: user
+      tags: [user]
     - role: apps
+      tags: [apps]
     - role: security
+      tags: [security]
     - role: work
+      tags: [work]
     - role: cleanup
+      tags: [cleanup]
     - role: reboot
+      tags: [reboot]

@@ -6,6 +6,7 @@
   ansible.builtin.template:
     src: exports.fish.j2
     dest: "{{ HOME }}/.config/fish/conf.d/exports.fish"
+    mode: "0600"
 
 - name: Ensure scripts directory exists
   ansible.builtin.file:
@@ -26,6 +27,7 @@
   ansible.builtin.file:
     path: "{{ HOME }}/.ssh"
     state: directory
+    mode: "0700"
 
 - name: Loading SSH private key
   ansible.builtin.copy:

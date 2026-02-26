@@ -24,7 +24,6 @@ fish_add_path /opt/homebrew/opt/libpq/bin
 
 # Make default programs
 set -gx BROWSER open
-set -gx EDITOR "zed --wait"
 set -gx FILE nnn
 set -gx PAGER "bat --plain"
 set -gx TERMINAL ghostty
@@ -74,7 +73,7 @@ set fzf_directory_opts --prompt "Files&Directories> " --bind "ctrl-o:execute($ED
 fzf_configure_bindings --git_status=\e\cs --git_log=\e\cl --directory=\cp --history=\e\cr --processes=\e\cp --variables=\e\ce
 
 # pnpm
-set -gx PNPM_HOME "/Users/jmanuelrosa/Library/pnpm"
+set -gx PNPM_HOME "$HOME/Library/pnpm"
 if not string match -q -- $PNPM_HOME $PATH
   set -gx PATH "$PNPM_HOME" $PATH
 end

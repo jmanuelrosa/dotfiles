@@ -1,4 +1,5 @@
-name: Pull Request Verification
+name: CI
+
 on:
   pull_request:
   push:
@@ -12,7 +13,6 @@ permissions:
   contents: read
   pull-requests: read
   checks: write
-
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -33,3 +33,25 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  lint:
+    name: Ansible Lint & Syntax Check
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          brew install ansible
+          pip3 install ansible-lint --break-system-packages
+          ansible-galaxy collection install community.general
+
+      - name: Run ansible-lint
+        run: ansible-lint
+
+      - name: Run syntax check
+        run: |
+          echo "dummy" > /tmp/vault_pass
+          ansible-playbook --syntax-check --inventory inventory.yml --vault-password-file /tmp/vault_pass dotfiles.yml
+          rm -f /tmp/vault_pass

@@ -6,7 +6,7 @@
   include_vars: vars/main.yml
 
 - name: Install npm packages
-  ansible.builtin.shell: bun install -g {{ item }}
+  ansible.builtin.shell: "bun install -g {{ item }}"
   loop: "{{ NPM_PACKAGES }}"
 
 - name: Configuring claude

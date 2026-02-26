@@ -1,5 +1,5 @@
-.vagrant
 *.log
+.DS_Store
 
 backups
 vault_pass

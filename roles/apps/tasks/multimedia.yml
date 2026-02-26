@@ -5,6 +5,12 @@
 - name: Load system variables
   include_vars: vars/main.yml
 
-- name: Install multimedia apps
-  ansible.builtin.shell: brew install --force {{ item }}
-  loop: "{{ MULTIMEDIA_APPS }}"
+- name: Install multimedia formulas
+  community.general.homebrew:
+    name: "{{ MULTIMEDIA_FORMULAS }}"
+    state: present
+
+- name: Install multimedia casks
+  community.general.homebrew_cask:
+    name: "{{ MULTIMEDIA_CASKS }}"
+    state: present
