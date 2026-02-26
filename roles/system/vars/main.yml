@@ -1,9 +1,19 @@
-# Ansible mac vars to use with the system role
+# Ansible vars to use with the system role
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 
 ---
 
 SYSTEM_APPS:
+  - bat
+  - duf
+  - eza
+  - fd
+  - fzf
+  - glances
+  - neofetch
+  - ripgrep
+  - wget
+  - zoxide
   - unar
 
 OSX_DEFAULTS:
@@ -37,7 +47,7 @@ OSX_DEFAULTS:
     type: bool
     value: false
     state: present
-  # Reverses the “natural” scrolling direction
+  # Reverses the "natural" scrolling direction
   - domain: NSGlobalDomain
     key: com.apple.swipescrolldirection
     type: bool
@@ -105,7 +115,7 @@ OSX_DEFAULTS:
     type: bool
     value: true
     state: present
-  # Sets the default search scope to “Current Folder.”
+  # Sets the default search scope to "Current Folder."
   - domain: com.apple.finder
     key: FXDefaultSearchScope
     type: string
@@ -123,7 +133,7 @@ OSX_DEFAULTS:
     type: bool
     value: true
     state: present
-  # Sets Finder’s default view style to “List View.”
+  # Sets Finder's default view style to "List View."
   - domain: com.apple.finder
     key: FXPreferredViewStyle
     type: string
@@ -178,13 +188,13 @@ OSX_DEFAULTS:
     type: int
     value: 36
     state: present
-  # Minimize windows into their application’s icon
+  # Minimize windows into their application's icon
   - domain: com.apple.dock
     key: minimize-to-application
     type: bool
     value: true
     state: present
-  # Minimize windows into their application’s icon
+  # Minimize windows into their application's icon
   - domain: com.apple.dock
     key: show-process-indicators
     type: bool

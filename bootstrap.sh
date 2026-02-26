@@ -6,12 +6,8 @@ printf "\e[1;34m  [i]\e[0m Downloading jmanuelrosa's dotfiles ...\e[0m\n"
 git clone https://github.com/jmanuelrosa/dotfiles.git . &> /dev/null
 
 printf "\e[1;34m  [⬇️]\e[0m Downloading and installing dependencies ...\e[0m\n"
-if [ "$(uname)" == "Darwin" ]; then
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  brew install git ansible
-elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-  sudo pacman -Sy --noconfirm git ansible
-fi
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew install git ansible
 
 printf "\e[1;34m  [⬇️]\e[0m Updating ansible ...\e[0m\n"
 ansible-galaxy collection install community.general

@@ -2,40 +2,19 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Load global variables
-  include_vars: vars/global.yml
+- name: Load variables
+  include_vars: vars/main.yml
 
-# Install packages related to linux
-- block:
-    - name: Load system variables
-      include_vars: vars/linux.yml
+- name: Install packages related to the shell
+  ansible.builtin.shell: brew install {{ item }}
+  loop: "{{ TERMINAL_APPS }}"
+  register: result
+  changed_when:
+    - result.failed
 
-    - name: Install packages related to the shell
-      ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
-      loop: "{{ TERMINAL_APPS }}"
-      register: result
-      changed_when:
-        - result.failed
-  when:
-    - ansible_os_family != 'Windows'
-    - ansible_os_family != 'Darwin'
-
-# Install packages related to mac
-- block:
-    - name: Load system variables
-      include_vars: vars/mac.yml
-
-    - name: Install packages related to the shell
-      ansible.builtin.shell: brew install {{ item }}
-      loop: "{{ TERMINAL_APPS }}"
-      register: result
-      changed_when:
-        - result.failed
-
-    - name: Add fish as a know shell
-      become: true
-      ansible.builtin.shell: sh -c 'echo {{ FISH_PATH }} >> /etc/shells'
-  when: ansible_os_family == 'Darwin'
+- name: Add fish as a know shell
+  become: true
+  ansible.builtin.shell: sh -c 'echo {{ FISH_PATH }} >> /etc/shells'
 
 - name: Make fish as our default shell
   become: true
@@ -81,7 +60,6 @@
     - .config/fish/config.fish
     - .config/fish/conf.d/aliases.fish
     - .config/fish/conf.d/exports.fish
-    - .config/fish/functions/blue.fish
     - .config/fish/functions/functions.fish
     - .config/fish/functions/create_gitconfig.fish
     - .config/starship.toml
@@ -112,7 +90,6 @@
     - fish/conf.d/aliases.fish
     - fish/conf.d/exports.fish
     - fish/functions/functions.fish
-    - fish/functions/blue.fish
     - fish/functions/create_gitconfig.fish
 
 - name: Configuring starship plugin

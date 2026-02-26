@@ -2,27 +2,11 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-# Remove all unnecessary dependencies and clear cache for Linux
-- block:
-    - name: Removing unnecessary dependencie s...
-      ansible.builtin.shell: yay --yay --clean --noconfirm
+- name: Removing unnecessary dependencies ...
+  ansible.builtin.shell: brew autoremove
 
-    - name: Clearing cache ...
-      ansible.builtin.shell: yay --sync --clean --noconfirm
+- name: Clearing cache ...
+  ansible.builtin.shell: brew cleanup --prune=all
 
-  when:
-    - ansible_os_family != 'Windows'
-    - ansible_os_family != 'Darwin'
-
-# Remove all unnecessary dependencies and clear cache for mac
-- block:
-    - name: Removing unnecessary dependencies ...
-      ansible.builtin.shell: brew autoremove
-
-    - name: Clearing cache ...
-      ansible.builtin.shell: brew cleanup --prune=all
-
-    - name: Removing unused versions ...
-      ansible.builtin.shell: brew cleanup
-
-  when: ansible_os_family == 'Darwin'
+- name: Removing unused versions ...
+  ansible.builtin.shell: brew cleanup

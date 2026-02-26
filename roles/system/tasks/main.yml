@@ -1,122 +1,60 @@
-# Ansible role to install all packages related to arch system
+# Ansible role to install all packages related to the system
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Load global variables
-  include_vars: vars/global.yml
+- name: Load variables
+  include_vars: vars/main.yml
 
 - name: Creating user config directory
   ansible.builtin.file:
     path: "{{ HOME }}/.config"
     state: directory
 
-# Install global packages depending on the platform
-- block:
-    - name: Install all global packages
-      ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
-      loop: "{{ SYSTEM_APPS }}"
-      register: result
-      ignore_errors: true
-      changed_when:
-        - result.failed
-  when:
-    - ansible_os_family != 'Windows'
-    - ansible_os_family != 'Darwin'
+- name: Install all packages related to the system
+  ansible.builtin.shell: brew install {{ item }}
+  loop: "{{ SYSTEM_APPS }}"
+  register: result
+  ignore_errors: true
+  changed_when:
+    - result.failed
 
-- block:
-    - name: Install all global packages
-      ansible.builtin.shell: brew install {{ item }}
-      loop: "{{ SYSTEM_APPS }}"
-      register: result
-      ignore_errors: true
-      changed_when:
-        - result.failed
-  when: ansible_os_family == 'Darwin'
+- name: Setting the system preferences
+  community.general.osx_defaults:
+    domain: "{{ item.domain }}"
+    key: "{{ item.key }}"
+    type: "{{ item.type }}"
+    value: "{{ item.value }}"
+    state: "{{ item.state }}"
+  loop: "{{ OSX_DEFAULTS }}"
 
-# Install local packages depending on the platform
-- block:
-    - name: Load system variables
-      include_vars: vars/linux.yml
+- name: Removing sound effect on boot
+  become: true
+  ansible.builtin.shell: nvram SystemAudioVolume=" "
 
-    - name: Install all packages related to the system
-      ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
-      loop: "{{ SYSTEM_APPS }}"
-      register: result
-      ignore_errors: true
-      changed_when:
-        - result.failed
+# - name: Disable local Time Machine snapshots
+#   become: true
+#   ansible.builtin.shell: tmutil disablelocal
 
-    - name: Install bluetooth packages
-      ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
-      loop: "{{ BLUETOOTH_APPS }}"
-      register: result
-      ignore_errors: true
-      changed_when:
-        - result.failed
+- name: Disable hibernation (speeds up entering sleep mode)
+  become: true
+  ansible.builtin.shell: pmset -a hibernatemode 0
 
-    - name: Install pipewire audio system
-      ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
-      loop: "{{ AUDIO_LIBS }}"
-      register: result
-      ignore_errors: true
-      changed_when:
-        - result.failed
+- name: Remove the sleep image file and prevent recreation
+  become: true
+  ansible.builtin.shell: |
+    rm -f /Private/var/vm/sleepimage
+    touch /Private/var/vm/sleepimage
+    chflags uchg /Private/var/vm/sleepimage
 
-  when:
-    - ansible_os_family != 'Windows'
-    - ansible_os_family != 'Darwin'
+- name: Disable the sudden motion sensor as it's not useful for SSDs
+  become: true
+  ansible.builtin.shell: pmset -a sms 0
 
-- block:
-    - name: Load system variables
-      include_vars: vars/mac.yml
+# - name: Show the ~/Library folder
+#   ansible.builtin.shell: |
+#     xattr -d com.apple.FinderInfo ~/Library 2>/dev/null
+#     chflags nohidden ~/Library
 
-    - name: Install all packages related to the system
-      ansible.builtin.shell: brew install {{ item }}
-      loop: "{{ SYSTEM_APPS }}"
-      register: result
-      ignore_errors: true
-      changed_when:
-        - result.failed
-
-    - name: Setting the system preferences
-      community.general.osx_defaults:
-        domain: "{{ item.domain }}"
-        key: "{{ item.key }}"
-        type: "{{ item.type }}"
-        value: "{{ item.value }}"
-        state: "{{ item.state }}"
-      loop: "{{ OSX_DEFAULTS }}"
-
-    - name: Removing sound effect on boot
-      become: true
-      ansible.builtin.shell: nvram SystemAudioVolume=" "
-
-    # - name: Disable local Time Machine snapshots
-    #   become: true
-    #   ansible.builtin.shell: tmutil disablelocal
-
-    - name: Disable hibernation (speeds up entering sleep mode)
-      become: true
-      ansible.builtin.shell: pmset -a hibernatemode 0
-
-    - name: Remove the sleep image file and prevent recreation
-      become: true
-      ansible.builtin.shell: |
-        rm -f /Private/var/vm/sleepimage
-        touch /Private/var/vm/sleepimage
-        chflags uchg /Private/var/vm/sleepimage
-
-    - name: Disable the sudden motion sensor as it’s not useful for SSDs
-      become: true
-      ansible.builtin.shell: pmset -a sms 0
-
-    # - name: Show the ~/Library folder
-    #   ansible.builtin.shell: |
-    #     xattr -d com.apple.FinderInfo ~/Library 2>/dev/null
-    #     chflags nohidden ~/Library
-
-    # - name: Enable TRIM
-    #   become: true
-    #   ansible.builtin.shell: trimforce enable
-
-  when: ansible_os_family == 'Darwin'
+# - name: Enable TRIM
+#   become: true
+#   ansible.builtin.shell: trimforce enable

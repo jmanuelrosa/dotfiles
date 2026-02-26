@@ -3,6 +3,8 @@
 
 ---
 
+FISH_PATH: /opt/homebrew/bin/fish
+
 FISH_PLUGINS:
   - danhper/fish-ssh-agent
   - franciscolourenco/done
@@ -11,3 +13,10 @@ FISH_PLUGINS:
   - meaningful-ooo/sponge
   - nickeb96/puffer-fish
   - PatrickF1/fzf.fish
+
+TERMINAL_APPS:
+  - fish
+  - fisher
+  - --cask ghostty
+  - starship
+  - gnupg

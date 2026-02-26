@@ -22,12 +22,8 @@ fish_add_path /opt/homebrew/bin
 # PSQL specific path
 fish_add_path /opt/homebrew/opt/libpq/bin
 
-# Set a global env var with the current OS
-set -l CURRENT_OS (uname)
-
 # Make default programs
-# set -gx XDG_CURRENT_DESKTOP sway
-set -gx BROWSER /usr/bin/google-chrome-stable
+set -gx BROWSER open
 set -gx EDITOR "zed --wait"
 set -gx FILE nnn
 set -gx PAGER "bat --plain"
@@ -50,17 +46,6 @@ set -gx NNN_PLUG "c:fzcd;d:diffs;h:fzhist;k:pskill;m:nmount;o:fzopen;p:fzplug;p:
 set -gx NNN_BMS "d:$HOME/downloads/"
 set -gx NNN_BATSTYLE "changes,numbers"
 set -gx NNN_BATTHEME base16
-
-set -gx XDG_CURRENT_DESKTOP sway
-
-if test "$CURRENT_OS" = "Linux"
-  and status is-login
-  and test -z "$DISPLAY"
-  and test "$XDG_VTNR" = "1"
-  and test (tty) = "/dev/tty1"
-  and pgrep sway > /dev/null
-    sway
-end
 
 # FZF options
 set -gx FD_DEFAULT_COMMAND 'fd --hidden --follow'

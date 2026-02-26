@@ -1,34 +1,10 @@
 # Ansible role to install and configure all security apps
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
-# Install local packages depending on the platform
-- block:
-  - name: Load system variables
-    include_vars: vars/linux.yml
 
-  - name: Install security apps
-    ansible.builtin.shell: yay --quiet --sync --noconfirm --removemake {{ item }}
-    loop: "{{ SECURITY_APPS }}"
-    register: result
-    ignore_errors: true
-    changed_when:
-      - result.failed
+- name: Load system variables
+  include_vars: vars/main.yml
 
-  - name: Loading all firejail profiles
-    become: true
-    ansible.builtin.shell: firecfg
-
-  when:
-    - ansible_os_family != 'Windows'
-    - ansible_os_family != 'Darwin'
-
-# Install local packages depending on the platform
-- block:
-  - name: Load system variables
-    include_vars: vars/mac.yml
-
-  - name: Install security apps
-    ansible.builtin.shell: "{{ item }}"
-    loop: "{{ SECURITY_APPS }}"
-
-  when: ansible_os_family == 'Darwin'
+- name: Install security apps
+  ansible.builtin.shell: "{{ item }}"
+  loop: "{{ SECURITY_APPS }}"
