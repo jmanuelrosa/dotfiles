@@ -23,17 +23,6 @@ DEVELOPMENT_FORMULAS:
   - scc
   - hyperfine
 
-AI_FORMULAS:
-  - gemini-cli
-  - ollama
-
-AI_CASKS:
-  - chatgpt
-  - cursor
-  - claude
-  - claude-code
-  - steipete/tap/codexbar
-
 DATABASE_FORMULAS:
   - libpq
   - pgcli

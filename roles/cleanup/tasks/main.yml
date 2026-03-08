@@ -3,10 +3,10 @@
 ---
 
 - name: Removing unnecessary dependencies ...
-  ansible.builtin.shell: brew autoremove
+  ansible.builtin.command: brew autoremove
 
 - name: Clearing cache ...
-  ansible.builtin.shell: brew cleanup --prune=all
+  ansible.builtin.command: brew cleanup --prune=all
 
 - name: Removing unused versions ...
-  ansible.builtin.shell: brew cleanup
+  ansible.builtin.command: brew cleanup

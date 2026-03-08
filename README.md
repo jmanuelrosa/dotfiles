@@ -46,7 +46,8 @@ Roles execute in order. Each role can be run individually using its tag.
 | shell | `shell` | Sets up Fish shell, Ghostty terminal, Starship prompt, Fish plugins |
 | ssh | `ssh` | Loads SSH keys into `~/.ssh` |
 | user | `user` | Creates user directories (`~/developer`, `~/pictures`, `~/downloads`) and links wallpapers |
-| apps | `apps` | Installs browsers, dev tools, editors, AI tools, databases, infrastructure, and more |
+| apps | `apps` | Installs browsers, dev tools, editors, databases, infrastructure, and more |
+| ai | `ai` | Installs and configures AI tools (Claude, Gemini, Ollama, ChatGPT, Cursor, etc.) |
 | security | `security` | Installs security tools (NextDNS via Mac App Store) |
 | work | `work` | Work-specific SSH keys, credentials, and utility scripts |
 | cleanup | `cleanup` | Removes unused Homebrew dependencies and clears cache |
@@ -108,6 +109,14 @@ HTTPie, Git, git-delta, LazyGit, GitHub CLI, fnm (Node version manager), Bun, sc
 ### AI
 
 Gemini CLI, Ollama, ChatGPT, Cursor, Claude, Claude Code, CodexBar
+
+Claude Code skills are managed per-project using the `claude-skill` function:
+
+```bash
+claude-skill list                            # Show available skills
+claude-skill add vercel-react-best-practices # Link a skill into current project
+claude-skill remove vercel-react-best-practices # Remove it
+```
 
 ### Editors
 

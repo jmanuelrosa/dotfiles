@@ -3,7 +3,7 @@
 ---
 
 - name: Load system variables
-  include_vars: vars/main.yml
+  ansible.builtin.include_vars: vars/main.yml
 
 - name: Install editors apps
   community.general.homebrew_cask:
@@ -11,4 +11,4 @@
     state: present
 
 - name: Configuring Visual Studio Code
-  ansible.builtin.shell: code --sync on
+  ansible.builtin.command: code --sync on

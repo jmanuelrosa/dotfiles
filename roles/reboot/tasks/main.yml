@@ -3,7 +3,7 @@
 ---
 
 - name: Ask the user if they want to restart
-  pause:
+  ansible.builtin.pause:
     prompt: "Do you want to restart the computer? (yes/no)"
   register: user_input
 

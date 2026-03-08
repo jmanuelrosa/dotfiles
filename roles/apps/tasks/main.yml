@@ -2,13 +2,21 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- ansible.builtin.include_tasks: browsers.yml
-- ansible.builtin.include_tasks: chat.yml
-- ansible.builtin.include_tasks: development.yml
-- ansible.builtin.include_tasks: ai.yml
-- ansible.builtin.include_tasks: editors.yml
-- ansible.builtin.include_tasks: infrastructure.yml
-- ansible.builtin.include_tasks: multimedia.yml
-- ansible.builtin.include_tasks: system.yml
-- ansible.builtin.include_tasks: npm-packages.yml
-- ansible.builtin.include_tasks: other.yml
+- name: Install browser apps
+  ansible.builtin.include_tasks: browsers.yml
+- name: Install chat apps
+  ansible.builtin.include_tasks: chat.yml
+- name: Install development apps
+  ansible.builtin.include_tasks: development.yml
+- name: Install editor apps
+  ansible.builtin.include_tasks: editors.yml
+- name: Install infrastructure apps
+  ansible.builtin.include_tasks: infrastructure.yml
+- name: Install multimedia apps
+  ansible.builtin.include_tasks: multimedia.yml
+- name: Install system apps
+  ansible.builtin.include_tasks: system.yml
+- name: Install npm packages
+  ansible.builtin.include_tasks: npm-packages.yml
+- name: Install other apps
+  ansible.builtin.include_tasks: other.yml

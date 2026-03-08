@@ -1,0 +1,14 @@
+# Ansible vars for the AI role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+AI_FORMULAS:
+  - gemini-cli
+  - ollama
+
+AI_CASKS:
+  - chatgpt
+  - cursor
+  - claude
+  - claude-code
+  - steipete/tap/codexbar

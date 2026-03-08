@@ -7,7 +7,8 @@
     "DISABLE_ERROR_REPORTING": "1",
     "DISABLE_NON_ESSENTIAL_MODEL_CALLS": "1",
     "DISABLE_TELEMETRY": "1",
-    "USE_BUILTIN_RIPGREP": "0"
+    "USE_BUILTIN_RIPGREP": "0",
+    "ENABLE_TOOL_SEARCH": "auto:5"
   },
   "includeCoAuthoredBy": false,
   "permissions": {

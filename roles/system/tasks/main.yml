@@ -3,12 +3,13 @@
 ---
 
 - name: Load variables
-  include_vars: vars/main.yml
+  ansible.builtin.include_vars: vars/main.yml
 
 - name: Creating user config directory
   ansible.builtin.file:
     path: "{{ HOME }}/.config"
     state: directory
+    mode: "0755"
 
 - name: Install all packages related to the system
   community.general.homebrew:
@@ -24,7 +25,7 @@
     state: "{{ item.state }}"
   loop: "{{ OSX_DEFAULTS }}"
 
-- name: Removing sound effect on boot
+- name: Removing sound effect on boot # noqa: command-instead-of-shell
   become: true
   ansible.builtin.shell: nvram SystemAudioVolume=" "
 
@@ -34,7 +35,7 @@
 
 - name: Disable hibernation (speeds up entering sleep mode)
   become: true
-  ansible.builtin.shell: pmset -a hibernatemode 0
+  ansible.builtin.command: pmset -a hibernatemode 0
 
 - name: Remove the sleep image file and prevent recreation
   become: true
@@ -45,7 +46,7 @@
 
 - name: Disable the sudden motion sensor as it's not useful for SSDs
   become: true
-  ansible.builtin.shell: pmset -a sms 0
+  ansible.builtin.command: pmset -a sms 0
 
 # - name: Show the ~/Library folder
 #   ansible.builtin.shell: |

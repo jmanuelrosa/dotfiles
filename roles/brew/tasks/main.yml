@@ -9,9 +9,9 @@
 - name: Install Homebrew
   become: true
   become_user: "{{ USER }}"
-  become_method: sudo
-  shell: NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  when: homebrew_check.stat.exists == False
+  become_method: ansible.builtin.sudo
+  ansible.builtin.shell: NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  when: not homebrew_check.stat.exists
 
 - name: Update Homebrew
   community.general.homebrew:

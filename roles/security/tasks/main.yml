@@ -3,8 +3,8 @@
 ---
 
 - name: Load system variables
-  include_vars: vars/main.yml
+  ansible.builtin.include_vars: vars/main.yml
 
 - name: Install security apps
-  ansible.builtin.shell: "{{ item }}"
+  ansible.builtin.command: "{{ item }}"
   loop: "{{ SECURITY_APPS }}"

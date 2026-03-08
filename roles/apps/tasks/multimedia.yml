@@ -3,7 +3,7 @@
 ---
 
 - name: Load system variables
-  include_vars: vars/main.yml
+  ansible.builtin.include_vars: vars/main.yml
 
 - name: Install multimedia formulas
   community.general.homebrew:

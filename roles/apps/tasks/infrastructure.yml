@@ -3,7 +3,7 @@
 ---
 
 - name: Load system variables
-  include_vars: vars/main.yml
+  ansible.builtin.include_vars: vars/main.yml
 
 - name: Install infrastructure formulas
   community.general.homebrew:
@@ -16,7 +16,7 @@
     state: present
 
 - name: Configuring docker
-  ansible.builtin.shell: brew link docker
+  ansible.builtin.command: brew link docker
 
 - name: Configuring docker plugins
   ansible.builtin.file:

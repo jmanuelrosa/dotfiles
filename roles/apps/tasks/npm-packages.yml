@@ -3,15 +3,8 @@
 ---
 
 - name: Load system variables
-  include_vars: vars/main.yml
+  ansible.builtin.include_vars: vars/main.yml
 
 - name: Install npm packages
-  ansible.builtin.shell: "bun install -g {{ item }}"
+  ansible.builtin.command: "bun install -g {{ item }}"
   loop: "{{ NPM_PACKAGES }}"
-
-- name: Configuring claude
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/claude/settings.json"
-    dest: "{{ HOME }}/.claude/settings.json"
-    state: link
-    force: true

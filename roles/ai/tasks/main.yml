@@ -1,9 +1,9 @@
-# Ansible role to install and configure all AI apps
+# Ansible role to install and configure AI tools
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Load system variables
-  include_vars: vars/main.yml
+- name: Load AI variables
+  ansible.builtin.include_vars: vars/main.yml
 
 - name: Install AI formulas
   community.general.homebrew:
@@ -19,10 +19,18 @@
   ansible.builtin.file:
     path: "{{ HOME }}/.gemini"
     state: directory
+    mode: "0755"
 
 - name: Configuring gemini
   ansible.builtin.file:
     src: "{{ role_path }}/files/gemini/settings.json"
     dest: "{{ HOME }}/.gemini/settings.json"
+    state: link
+    force: true
+
+- name: Configuring claude
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/claude/settings.json"
+    dest: "{{ HOME }}/.claude/settings.json"
     state: link
     force: true

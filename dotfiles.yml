@@ -20,6 +20,8 @@
       tags: [user]
     - role: apps
       tags: [apps]
+    - role: ai
+      tags: [ai]
     - role: security
       tags: [security]
     - role: work

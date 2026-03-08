@@ -3,7 +3,7 @@
 ---
 
 - name: Load variables
-  include_vars: vars/main.yml
+  ansible.builtin.include_vars: vars/main.yml
 
 - name: Install shell formulas
   community.general.homebrew:
@@ -41,6 +41,7 @@
   ansible.builtin.file:
     path: "{{ HOME }}/{{ item }}"
     state: directory
+    mode: "0755"
   with_items:
     - .config/fish
     - .config/ghostty
@@ -57,15 +58,16 @@
     - .config/ghostty
 
 - name: Check if files to backup exists
-  stat:
+  ansible.builtin.stat:
     path: "{{ HOME }}/{{ item }}"
   with_items:
     - .config/ghostty/config
     - .config/fish/config.fish
     - .config/fish/conf.d/aliases.fish
     - .config/fish/conf.d/exports.fish
-    - .config/fish/functions/functions.fish
+    - .config/fish/functions/clean.fish
     - .config/fish/functions/create_gitconfig.fish
+    - .config/fish/functions/claude-skill.fish
     - .config/starship.toml
   register: results
 
@@ -73,7 +75,8 @@
   ansible.builtin.copy:
     src: "{{ item.stat.path }}"
     dest: "{{ CURRENT_DIR }}/backups/{{ item.item }}"
-  when: item.stat.exists == True
+    mode: "0644"
+  when: item.stat.exists
   with_items: "{{ results.results }}"
 
 - name: Configuring Ghostty
@@ -93,8 +96,9 @@
     - fish/config.fish
     - fish/conf.d/aliases.fish
     - fish/conf.d/exports.fish
-    - fish/functions/functions.fish
+    - fish/functions/clean.fish
     - fish/functions/create_gitconfig.fish
+    - fish/functions/claude-skill.fish
 
 - name: Configuring starship plugin
   ansible.builtin.file:
