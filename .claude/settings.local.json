@@ -4,7 +4,10 @@
       "Bash(make lint:*)",
       "Bash(make syntax:*)",
       "Bash(done)",
-      "Bash(wc -l /Users/jmanuelrosa/Developer/dotfiles/roles/ai/dirty_skills/react/*/SKILL.md /Users/jmanuelrosa/Developer/dotfiles/roles/ai/dirty_skills/react/*/AGENTS.md 2>/dev/null)"
+      "Bash(wc -l /Users/jmanuelrosa/Developer/dotfiles/roles/ai/dirty_skills/react/*/SKILL.md /Users/jmanuelrosa/Developer/dotfiles/roles/ai/dirty_skills/react/*/AGENTS.md 2>/dev/null)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(mkdir -p /Users/jmanuelrosa/Developer/dotfiles/roles/ai/files/claude/skill-groups/apollo-graphql && cd /Users/jmanuelrosa/Developer/dotfiles/roles/ai/files/claude/skill-groups/apollo-graphql && ln -s ../../skills/apollo-client apollo-client && ln -s ../../skills/graphql-operations graphql-operations && ls -la)",
+      "Bash(cd /Users/jmanuelrosa/Developer/dotfiles/roles/ai/files/claude && rm skill-groups/apollo-graphql/apollo-client skill-groups/apollo-graphql/graphql-operations && mv skills/apollo-client skill-groups/apollo-graphql/ && mv skills/graphql-operations skill-groups/apollo-graphql/)"
     ]
   }
 }
