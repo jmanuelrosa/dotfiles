@@ -1,10 +1,10 @@
-function claude-skill --description "Manage Claude Code skills for the current project"
+function claude:skill --description "Manage Claude Code skills for the current project"
     set -l skills_source "$DOTFILES_DIR/roles/ai/files/claude/skills"
     set -l groups_source "$DOTFILES_DIR/roles/ai/files/claude/skill-groups"
     set -l skills_target ".claude/skills"
 
     if test (count $argv) -lt 1
-        echo "Usage: claude-skill <list|add|remove> [--group] [name]"
+        echo "Usage: claude:skill <list|add|remove> [--group] [name]"
         return 1
     end
 
@@ -51,12 +51,12 @@ function claude-skill --description "Manage Claude Code skills for the current p
 
         case add
             if test -z "$name"
-                echo "Usage: claude-skill add [--group] <name>"
+                echo "Usage: claude:skill add [--group] <name>"
                 return 1
             end
             if test "$use_group" = true
                 if not test -d "$groups_source/$name"
-                    echo "Group '$name' not found. Run 'claude-skill list --group' to see available groups."
+                    echo "Group '$name' not found. Run 'claude:skill list --group' to see available groups."
                     return 1
                 end
                 mkdir -p $skills_target
@@ -69,7 +69,7 @@ function claude-skill --description "Manage Claude Code skills for the current p
                 echo "Linked $count skills from group '$name' into $skills_target/"
             else
                 if not test -d "$skills_source/$name"
-                    echo "Skill '$name' not found. Run 'claude-skill list' to see available skills."
+                    echo "Skill '$name' not found. Run 'claude:skill list' to see available skills."
                     return 1
                 end
                 mkdir -p $skills_target
@@ -79,12 +79,12 @@ function claude-skill --description "Manage Claude Code skills for the current p
 
         case remove
             if test -z "$name"
-                echo "Usage: claude-skill remove [--group] <name>"
+                echo "Usage: claude:skill remove [--group] <name>"
                 return 1
             end
             if test "$use_group" = true
                 if not test -d "$groups_source/$name"
-                    echo "Group '$name' not found. Run 'claude-skill list --group' to see available groups."
+                    echo "Group '$name' not found. Run 'claude:skill list --group' to see available groups."
                     return 1
                 end
                 set -l count 0
@@ -106,7 +106,7 @@ function claude-skill --description "Manage Claude Code skills for the current p
             end
 
         case '*'
-            echo "Usage: claude-skill <list|add|remove> [--group] [name]"
+            echo "Usage: claude:skill <list|add|remove> [--group] [name]"
             return 1
     end
 end

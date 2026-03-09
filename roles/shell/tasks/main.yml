@@ -68,6 +68,7 @@
     - .config/fish/functions/clean.fish
     - .config/fish/functions/create_gitconfig.fish
     - .config/fish/functions/claude-skill.fish
+    - .config/fish/functions/claude-mcp.fish
     - .config/starship.toml
   register: results
 
@@ -99,6 +100,7 @@
     - fish/functions/clean.fish
     - fish/functions/create_gitconfig.fish
     - fish/functions/claude-skill.fish
+    - fish/functions/claude-mcp.fish
 
 - name: Configuring starship plugin
   ansible.builtin.file:
