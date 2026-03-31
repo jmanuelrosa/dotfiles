@@ -11,7 +11,7 @@ license: MIT
 compatibility: React 18+, React 19 (Suspense/RSC). Works with Next.js, Vite, CRA, and other React frameworks.
 metadata:
   url: https://github.com/apollographql/skills/tree/main/skills/apollo-client
-  date: 07-March-2026
+  date: 31-March-2026
   author: apollographql
   version: "1.0.0"
 allowed-tools: Bash(npm:*) Bash(npx:*) Bash(node:*) Read Write Edit Glob Grep
