@@ -1,6 +1,6 @@
 # Refinement & Evaluation Criteria
 
-Use this rubric during Phase 2 (Evaluate & Converge) to stress-test idea directions. Not every criterion applies to every idea — use judgment about which dimensions matter most for the specific context.
+Use this rubric during Phase 2 (Evaluate & Converge) to stress-test idea directions. Not every criterion applies to every idea - use judgment about which dimensions matter most for the specific context.
 
 ## Core Evaluation Dimensions
 
@@ -20,9 +20,9 @@ The most important dimension. If the value isn't clear, nothing else matters.
 - Is this a "pull" problem (users are asking for this) or a "push" problem (you think they should want this)?
 
 **Red flags:**
-- "Everyone could use this" — if you can't name a specific user, the value isn't clear
-- "It's like X but better" — marginal improvements rarely drive adoption
-- The problem is real but rare — high intensity but low frequency rarely justifies a product
+- "Everyone could use this" - if you can't name a specific user, the value isn't clear
+- "It's like X but better" - marginal improvements rarely drive adoption
+- The problem is real but rare - high intensity but low frequency rarely justifies a product
 
 ### 2. Feasibility
 
@@ -47,11 +47,11 @@ Can you actually build this? Not just technically, but practically.
 **Red flags:**
 - "We just need to solve [very hard research problem] first"
 - Multiple dependencies that all need to work simultaneously
-- MVP still requires months of work — likely not minimal enough
+- MVP still requires months of work - likely not minimal enough
 
 ### 3. Differentiation
 
-What makes this genuinely different? Not better — *different*.
+What makes this genuinely different? Not better - *different*.
 
 **Questions to ask:**
 - If a user described this to a friend, what would they say? Is that description compelling?
@@ -65,7 +65,7 @@ What makes this genuinely different? Not better — *different*.
 3. **New audience:** Brings an existing capability to people who were excluded
 4. **New context:** Works in a situation where existing solutions fail
 5. **Better UX:** Same capability, dramatically simpler experience
-6. **Cheaper:** Same thing, lower cost (weakest — easily competed away)
+6. **Cheaper:** Same thing, lower cost (weakest - easily competed away)
 
 **Red flags:**
 - Differentiation is entirely about technology, not user experience
@@ -79,17 +79,17 @@ For every idea direction, explicitly list assumptions in three categories:
 ### Must Be True (Dealbreakers)
 Assumptions that, if wrong, kill the idea entirely. These need validation before building.
 
-Example: "Users will share their data with us" — if they won't, the entire product doesn't work.
+Example: "Users will share their data with us" - if they won't, the entire product doesn't work.
 
 ### Should Be True (Important)
 Assumptions that significantly impact success but don't kill the idea. You can adjust the approach if these are wrong.
 
-Example: "Users prefer self-serve over talking to a person" — if wrong, you need a different go-to-market, but the core product can still work.
+Example: "Users prefer self-serve over talking to a person" - if wrong, you need a different go-to-market, but the core product can still work.
 
 ### Might Be True (Nice to Have)
 Assumptions about secondary features or optimizations. Don't validate these until the core is proven.
 
-Example: "Users will want to share their results with teammates" — a growth feature, not a core value proposition.
+Example: "Users will want to share their results with teammates" - a growth feature, not a core value proposition.
 
 ## Decision Framework
 

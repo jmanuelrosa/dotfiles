@@ -27,11 +27,11 @@ Creative design direction + technical UI rules for building and reviewing web in
 
 Before coding, commit to a **bold aesthetic direction**:
 
-- **Purpose** — what problem does this solve? Who uses it?
-- **Tone** — pick a clear direction: brutally minimal, maximalist, retro-futuristic, organic, luxury, playful, editorial, brutalist, art deco, soft/pastel, industrial. Execute with precision.
-- **Differentiation** — what makes this unforgettable?
+- **Purpose** - what problem does this solve? Who uses it?
+- **Tone** - pick a clear direction: brutally minimal, maximalist, retro-futuristic, organic, luxury, playful, editorial, brutalist, art deco, soft/pastel, industrial. Execute with precision.
+- **Differentiation** - what makes this unforgettable?
 
-Bold maximalism and refined minimalism both work — the key is **intentionality**, not intensity. Match implementation complexity to the vision.
+Bold maximalism and refined minimalism both work - the key is **intentionality**, not intensity. Match implementation complexity to the vision.
 
 **NEVER** use generic AI aesthetics: overused fonts (Inter, Roboto, Arial, system fonts), cliched purple gradients on white, predictable layouts, cookie-cutter design. Every design must feel context-specific.
 
@@ -40,12 +40,12 @@ Bold maximalism and refined minimalism both work — the key is **intentionality
 <!-- via: frontend-design + web-design-guidelines -->
 
 **Creative choices:**
-- Choose distinctive, characterful fonts — avoid Inter, Roboto, Arial, system defaults
+- Choose distinctive, characterful fonts - avoid Inter, Roboto, Arial, system defaults
 - Pair a display font with a refined body font
-- Vary choices between generations — never converge on common picks
+- Vary choices between generations - never converge on common picks
 
 **Technical rules:**
-- Use `…` not `...` — real ellipsis character
+- Use `…` not `...` - real ellipsis character
 - Use curly quotes `""` `''`, not straight `"` `'`
 - Non-breaking spaces (`&nbsp;`) in measurements (`100 kg`) and brand names
 - `font-variant-numeric: tabular-nums` for number columns/tables
@@ -76,7 +76,7 @@ Bold maximalism and refined minimalism both work — the key is **intentionality
 - Prefer CSS-only for HTML; use Motion library for React when available
 
 **Technical constraints:**
-- Honor `prefers-reduced-motion` — always
+- Honor `prefers-reduced-motion` - always
 - Animate only `transform` and `opacity` (composited properties)
 - Never use `transition: all`
 - Set correct `transform-origin` before animating
@@ -89,13 +89,13 @@ Bold maximalism and refined minimalism both work — the key is **intentionality
 
 **Creative choices:**
 - Unexpected layouts: asymmetry, overlap, diagonal flow, grid-breaking elements
-- Generous negative space OR controlled density — commit to one
+- Generous negative space OR controlled density - commit to one
 
 **Technical rules:**
 - Full-bleed layouts need `env(safe-area-inset-*)` for notched devices
 - Avoid unwanted scrollbars
 - Prefer flex/grid over JS measurement
-- Backgrounds & textures: gradient meshes, noise, geometric patterns, layered transparencies, dramatic shadows, grain overlays — create atmosphere, not flat color
+- Backgrounds & textures: gradient meshes, noise, geometric patterns, layered transparencies, dramatic shadows, grain overlays - create atmosphere, not flat color
 
 ## Accessibility
 
@@ -104,7 +104,7 @@ Bold maximalism and refined minimalism both work — the key is **intentionality
 - Icon-only buttons need `aria-label`
 - Form controls need `<label>` or `aria-label`
 - Interactive elements need keyboard handlers (`onKeyDown`/`onKeyUp`)
-- `<button>` for actions, `<a>`/`<Link>` for navigation — never `<div onClick>`
+- `<button>` for actions, `<a>`/`<Link>` for navigation - never `<div onClick>`
 - Images need `alt` (or `alt=""` if decorative)
 - Decorative icons need `aria-hidden="true"`
 - Async updates (toasts, validation) need `aria-live="polite"`
@@ -201,7 +201,7 @@ See `references/forms.md` for detailed form rules.
 
 <!-- via: web-design-guidelines -->
 
-- Dates/times: use `Intl.DateTimeFormat` — never hardcode formats
+- Dates/times: use `Intl.DateTimeFormat` - never hardcode formats
 - Numbers/currency: use `Intl.NumberFormat`
 - Detect language via `Accept-Language` header or `navigator.languages`
 
@@ -212,7 +212,7 @@ See `references/forms.md` for detailed form rules.
 - Active voice preferred
 - Title Case for headings and buttons
 - Use numerals for counts
-- Specific button labels (not "Submit" — say what happens)
+- Specific button labels (not "Submit" - say what happens)
 - Error messages include fix or next step
 - Second person (`you`); avoid first person
 - `&` over "and" when space-constrained

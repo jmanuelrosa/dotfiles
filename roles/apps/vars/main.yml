@@ -18,6 +18,7 @@ DEVELOPMENT_FORMULAS:
   - git-delta
   - lazygit
   - gh
+  - glab
   - fnm
   - oven-sh/bun/bun
   - scc

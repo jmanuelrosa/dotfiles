@@ -14,9 +14,20 @@
   "permissions": {
     "read": {
       "deny": [
+        "~/.ssh/**",
+        "~/.gnupg/**",
+        "~/.npmrc",
+        "~/.config/gcloud/**",
+        "~/.terraform.d/credentials.tfrc.json",
+        "~/.config/gh/hosts.yml",
         "**/.env*",
         "**/*.pem",
         "**/*.key",
+        "**/.secret*",
+        "**/*.p12",
+        "**/*.pfx",
+        "**/.npmrc",
+        "**/.netrc",
         "**/secrets/**",
         "**/credentials/**",
         "**/.aws/**",
@@ -31,5 +42,6 @@
       ]
     }
   },
+  "voiceEnabled": false,
   "alwaysThinkingEnabled": true
 }

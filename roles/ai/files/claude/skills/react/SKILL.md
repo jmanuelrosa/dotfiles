@@ -75,7 +75,7 @@ const Composer = { Provider: ComposerProvider, Frame: ComposerFrame, Input: Comp
 
 ### Generic Context Interface
 
-Define `{ state, actions, meta }` interface. Any provider can implement it — same UI works with different state backends.
+Define `{ state, actions, meta }` interface. Any provider can implement it - same UI works with different state backends.
 
 ```tsx
 interface ComposerContextValue {
@@ -103,7 +103,7 @@ function ForwardButton() {
 }
 ```
 
-Provider boundary is what matters — not visual nesting.
+Provider boundary is what matters - not visual nesting.
 
 ### Children Over Render Props
 
@@ -113,8 +113,8 @@ Use `children` for composition. Use render props only when parent needs to pass 
 
 > React 19+ only. Skip on React 18.
 
-- `ref` is a regular prop — drop `forwardRef`
-- `use(Context)` replaces `useContext(Context)` — can be called conditionally
+- `ref` is a regular prop - drop `forwardRef`
+- `use(Context)` replaces `useContext(Context)` - can be called conditionally
 
 ## 2. Eliminating Waterfalls (CRITICAL)
 
@@ -122,11 +122,11 @@ Use `children` for composition. Use render props only when parent needs to pass 
 
 See `references/performance.md` for detailed patterns.
 
-- **Defer await** — move `await` into branches where actually used
-- **Promise.all()** — parallelize independent operations
-- **Dependency-based parallelization** — use `better-all` or promise chaining for partial deps
-- **Start promises early** — in API routes, start independent fetches immediately, await late
-- **Suspense boundaries** — wrap async components to stream content; layout renders instantly
+- **Defer await** - move `await` into branches where actually used
+- **Promise.all()** - parallelize independent operations
+- **Dependency-based parallelization** - use `better-all` or promise chaining for partial deps
+- **Start promises early** - in API routes, start independent fetches immediately, await late
+- **Suspense boundaries** - wrap async components to stream content; layout renders instantly
 
 ```tsx
 // BAD: sequential
@@ -143,12 +143,12 @@ const [user, posts] = await Promise.all([fetchUser(), fetchPosts()])
 
 See `references/performance.md` for detailed patterns.
 
-- **Avoid barrel imports** — import directly: `import Check from 'lucide-react/dist/esm/icons/check'`
+- **Avoid barrel imports** - import directly: `import Check from 'lucide-react/dist/esm/icons/check'`
   - Or use `optimizePackageImports` in next.config.js
-- **Dynamic imports** — `next/dynamic` for heavy components (Monaco, charts, maps)
-- **Defer third-party** — load analytics/logging after hydration with `{ ssr: false }`
-- **Conditional loading** — `import()` only when feature is activated
-- **Preload on intent** — `onMouseEnter`/`onFocus` to preload heavy bundles
+- **Dynamic imports** - `next/dynamic` for heavy components (Monaco, charts, maps)
+- **Defer third-party** - load analytics/logging after hydration with `{ ssr: false }`
+- **Conditional loading** - `import()` only when feature is activated
+- **Preload on intent** - `onMouseEnter`/`onFocus` to preload heavy bundles
 
 ## 4. Server-Side Performance (HIGH)
 
@@ -156,23 +156,23 @@ See `references/performance.md` for detailed patterns.
 
 See `references/performance.md` for detailed patterns.
 
-- **Auth server actions** — always verify auth inside `"use server"` functions; they're public endpoints
-- **React.cache()** — per-request deduplication (auth, DB queries). Use primitive args (not inline objects)
-- **LRU cache** — cross-request caching with `lru-cache` for sequential user actions
-- **Minimize RSC serialization** — only pass fields client actually uses
-- **Avoid duplicate serialization** — don't transform arrays in RSC; do `.filter()`/`.toSorted()` in client
-- **Parallel RSC fetching** — restructure component tree so async components are siblings, not nested
-- **Hoist static I/O** — fonts, logos, config at module level (runs once, not per request)
-- **after()** — schedule logging/analytics after response is sent
+- **Auth server actions** - always verify auth inside `"use server"` functions; they're public endpoints
+- **React.cache()** - per-request deduplication (auth, DB queries). Use primitive args (not inline objects)
+- **LRU cache** - cross-request caching with `lru-cache` for sequential user actions
+- **Minimize RSC serialization** - only pass fields client actually uses
+- **Avoid duplicate serialization** - don't transform arrays in RSC; do `.filter()`/`.toSorted()` in client
+- **Parallel RSC fetching** - restructure component tree so async components are siblings, not nested
+- **Hoist static I/O** - fonts, logos, config at module level (runs once, not per request)
+- **after()** - schedule logging/analytics after response is sent
 
 ## 5. Client-Side Patterns (MEDIUM-HIGH)
 
 <!-- via: react-best-practices -->
 
-- **SWR** — automatic request dedup, caching, revalidation across component instances
-- **Deduplicate event listeners** — `useSWRSubscription` to share global listeners
-- **Passive listeners** — `{ passive: true }` for touch/wheel (unless you need `preventDefault`)
-- **localStorage versioning** — version prefix on keys, store minimal fields, wrap in try-catch
+- **SWR** - automatic request dedup, caching, revalidation across component instances
+- **Deduplicate event listeners** - `useSWRSubscription` to share global listeners
+- **Passive listeners** - `{ passive: true }` for touch/wheel (unless you need `preventDefault`)
+- **localStorage versioning** - version prefix on keys, store minimal fields, wrap in try-catch
 
 ## 6. Re-render Optimization (MEDIUM)
 
@@ -180,18 +180,18 @@ See `references/performance.md` for detailed patterns.
 
 See `references/rendering.md` for detailed patterns.
 
-- **Derive state during render** — don't store computed values in state or sync via effects
-- **Defer state reads** — read `searchParams`/localStorage in callbacks, not at render time
-- **Extract to memo components** — isolate expensive work behind `memo()` for early returns
-- **Hoist default props** — extract non-primitive defaults to constants (`const NOOP = () => {}`)
-- **Don't memo simple primitives** — `useMemo` for `a || b` wastes more than it saves
-- **Narrow effect deps** — use `user.id` not `user`; derive `isMobile` boolean from `width`
-- **Event handlers for side effects** — don't model user actions as state + effect
-- **Subscribe to derived state** — `useMediaQuery('(max-width: 767px)')` not `useWindowWidth()`
-- **Functional setState** — `setItems(curr => [...curr, item])` prevents stale closures
-- **Lazy state init** — `useState(() => expensiveComputation())` runs only once
-- **Transitions** — `startTransition` for non-urgent updates (scroll tracking, search)
-- **useRef for transient values** — mouse position, intervals, flags that don't need re-render
+- **Derive state during render** - don't store computed values in state or sync via effects
+- **Defer state reads** - read `searchParams`/localStorage in callbacks, not at render time
+- **Extract to memo components** - isolate expensive work behind `memo()` for early returns
+- **Hoist default props** - extract non-primitive defaults to constants (`const NOOP = () => {}`)
+- **Don't memo simple primitives** - `useMemo` for `a || b` wastes more than it saves
+- **Narrow effect deps** - use `user.id` not `user`; derive `isMobile` boolean from `width`
+- **Event handlers for side effects** - don't model user actions as state + effect
+- **Subscribe to derived state** - `useMediaQuery('(max-width: 767px)')` not `useWindowWidth()`
+- **Functional setState** - `setItems(curr => [...curr, item])` prevents stale closures
+- **Lazy state init** - `useState(() => expensiveComputation())` runs only once
+- **Transitions** - `startTransition` for non-urgent updates (scroll tracking, search)
+- **useRef for transient values** - mouse position, intervals, flags that don't need re-render
 
 ## 7. Rendering Performance (MEDIUM)
 
@@ -199,37 +199,37 @@ See `references/rendering.md` for detailed patterns.
 
 See `references/rendering.md` for detailed patterns.
 
-- **Animate SVG wrapper** — wrap SVG in `<div>`, animate the div (GPU acceleration)
-- **content-visibility: auto** — skip layout/paint for off-screen list items
-- **Hoist static JSX** — extract constant JSX outside components
-- **SVG precision** — reduce to 1 decimal: `npx svgo --precision=1`
-- **Hydration no-flicker** — inline `<script>` to set theme/prefs before React hydrates
-- **suppressHydrationWarning** — for expected mismatches (dates, random IDs)
-- **Activity component** — `<Activity mode="hidden">` preserves state/DOM
-- **Ternary over &&** — `count > 0 ? <Badge /> : null` avoids rendering `0`
-- **useTransition** — replace manual `isLoading` state with `isPending` from `useTransition`
+- **Animate SVG wrapper** - wrap SVG in `<div>`, animate the div (GPU acceleration)
+- **content-visibility: auto** - skip layout/paint for off-screen list items
+- **Hoist static JSX** - extract constant JSX outside components
+- **SVG precision** - reduce to 1 decimal: `npx svgo --precision=1`
+- **Hydration no-flicker** - inline `<script>` to set theme/prefs before React hydrates
+- **suppressHydrationWarning** - for expected mismatches (dates, random IDs)
+- **Activity component** - `<Activity mode="hidden">` preserves state/DOM
+- **Ternary over &&** - `count > 0 ? <Badge /> : null` avoids rendering `0`
+- **useTransition** - replace manual `isLoading` state with `isPending` from `useTransition`
 
 ## 8. JavaScript Performance (LOW-MEDIUM)
 
 <!-- via: react-best-practices -->
 
-- **Avoid layout thrashing** — batch writes then read, or use CSS classes
-- **Map for lookups** — `new Map(users.map(u => [u.id, u]))` for repeated `.find()`
-- **Cache in loops** — hoist `obj.config.settings.value` outside loop
-- **Cache function results** — module-level Map for repeated calls (slugify, etc.)
-- **Cache storage reads** — Map wrapper for localStorage/sessionStorage/cookie
-- **Combine iterations** — single `for` loop instead of multiple `.filter()` chains
-- **Length check first** — before expensive array comparisons
-- **Early return** — exit functions as soon as result is determined
-- **Hoist RegExp** — to module scope; memoize dynamic patterns with `useMemo`
-- **Loop for min/max** — O(n) loop, not O(n log n) sort
-- **Set/Map for lookups** — `Set.has()` over `Array.includes()` for repeated checks
-- **toSorted()** — immutable sort; never `.sort()` on props/state
+- **Avoid layout thrashing** - batch writes then read, or use CSS classes
+- **Map for lookups** - `new Map(users.map(u => [u.id, u]))` for repeated `.find()`
+- **Cache in loops** - hoist `obj.config.settings.value` outside loop
+- **Cache function results** - module-level Map for repeated calls (slugify, etc.)
+- **Cache storage reads** - Map wrapper for localStorage/sessionStorage/cookie
+- **Combine iterations** - single `for` loop instead of multiple `.filter()` chains
+- **Length check first** - before expensive array comparisons
+- **Early return** - exit functions as soon as result is determined
+- **Hoist RegExp** - to module scope; memoize dynamic patterns with `useMemo`
+- **Loop for min/max** - O(n) loop, not O(n log n) sort
+- **Set/Map for lookups** - `Set.has()` over `Array.includes()` for repeated checks
+- **toSorted()** - immutable sort; never `.sort()` on props/state
 
 ## 9. Advanced Patterns (LOW)
 
 <!-- via: react-best-practices -->
 
-- **Init once** — module-level guard (`let didInit = false`) instead of `useEffect([], ...)`
-- **Event handler refs** — store callbacks in refs for stable effect subscriptions
-- **useEffectEvent** — stable callback that always calls latest handler version
+- **Init once** - module-level guard (`let didInit = false`) instead of `useEffect([], ...)`
+- **Event handler refs** - store callbacks in refs for stable effect subscriptions
+- **useEffectEvent** - stable callback that always calls latest handler version

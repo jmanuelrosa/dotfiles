@@ -1,6 +1,6 @@
 # Ideation Frameworks Reference
 
-Use these frameworks selectively. Pick the lens that fits the idea — don't mechanically run every framework. The goal is to unlock thinking, not to follow a checklist.
+Use these frameworks selectively. Pick the lens that fits the idea - don't mechanically run every framework. The goal is to unlock thinking, not to follow a checklist.
 
 ## SCAMPER
 
@@ -22,7 +22,7 @@ Reframe problems as opportunities using the "How Might We..." format:
 
 - Start with an observation or pain point
 - Reframe it as "How might we [desired outcome] for [specific user] without [key constraint]?"
-- Generate multiple HMW framings of the same problem — different framings unlock different solutions
+- Generate multiple HMW framings of the same problem - different framings unlock different solutions
 
 **Good HMW qualities:**
 - Narrow enough to be actionable ("...help new users find relevant content in their first 5 minutes")
@@ -40,7 +40,7 @@ Reframe problems as opportunities using the "How Might We..." format:
 
 Break the idea down to its fundamental truths, then rebuild from there:
 
-1. **What do we know is true?** (not assumed, not conventional — actually true)
+1. **What do we know is true?** (not assumed, not conventional - actually true)
 2. **What are we assuming?** List every assumption, even the ones that feel obvious
 3. **Which assumptions can we challenge?** For each, ask: "Is this actually a law of physics, or just how it's been done?"
 4. **Rebuild from the truths.** If you only had the fundamental truths, what would you build?
@@ -57,7 +57,7 @@ Focus on what the user is trying to accomplish, not what they say they want:
 
 Format: "When I [situation], I want to [motivation], so I can [expected outcome]."
 
-**Key insight:** People don't buy products — they hire them to do a job. The competing product isn't always in the same category. (Netflix competes with sleep, not just other streaming services.)
+**Key insight:** People don't buy products - they hire them to do a job. The competing product isn't always in the same category. (Netflix competes with sleep, not just other streaming services.)
 
 **Best for:** Understanding the real problem. When you're not sure if you're solving the right thing.
 
@@ -79,7 +79,7 @@ Deliberately impose constraints to force creative solutions:
 Imagine the idea has already failed. Work backwards:
 
 1. It's 12 months from now. The project shipped and flopped. What went wrong?
-2. List every plausible reason for failure — technical, market, team, timing
+2. List every plausible reason for failure - technical, market, team, timing
 3. For each failure mode: Is this preventable? Is this a signal the idea needs to change?
 4. Which failure modes are you willing to accept? Which ones would kill the project?
 

@@ -9,6 +9,7 @@ font-size = 11.0
 
 # List themes
 # ghostty +list-themes
+# theme = dark:Solarized Dark Patched,light:Catppuccin Latte
 theme = Solarized Dark Patched
 
 # Settings
@@ -37,6 +38,8 @@ shell-integration-features = no-cursor,sudo,title,ssh-env,ssh-terminfo
 
 # Keybindings
 ## Window Management
+keybind = resize/catch_all=ignore
+
 ### Window Fullscreen
 keybind = super+shift+enter=toggle_split_zoom
 
@@ -48,6 +51,12 @@ keybind = super+shift+l=goto_split:right
 
 keybind = super+f=goto_split:next
 keybind = super+b=goto_split:previous
+
+keybind = super+grave_accent=goto_window:next
+keybind = super+shift+grave_accent=goto_window:previous
+
+### Resize
+keybind = super+shift+r=activate_key_table:resize
 
 ### New window
 keybind = super+d=new_split:auto

@@ -254,6 +254,10 @@ if.app-id = 'com.openai.chat'
 run= ["layout tiling", 'move-node-to-workspace AI']
 
 [[on-window-detected]]
+if.app-id = 'com.anthropic.claudefordesktop'
+run= ["layout tiling", 'move-node-to-workspace AI']
+
+[[on-window-detected]]
 if.app-id = 'org.jkiss.dbeaver.core.product'
 run= ["layout tiling", 'move-node-to-workspace Database']
 

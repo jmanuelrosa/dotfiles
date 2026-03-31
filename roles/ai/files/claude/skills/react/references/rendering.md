@@ -120,7 +120,7 @@ For 1000 messages: browser skips layout/paint for ~990 off-screen items.
 ### Hydration No-Flicker
 
 ```tsx
-// Inline script sets theme before React hydrates — no flash
+// Inline script sets theme before React hydrates - no flash
 <div id="theme-wrapper">{children}</div>
 <script dangerouslySetInnerHTML={{ __html: `
   (function() {

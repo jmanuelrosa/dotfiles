@@ -170,7 +170,7 @@ export const getCurrentUser = cache(async () => {
 })
 ```
 
-Uses `Object.is` for args — inline objects always miss. Pass same reference or primitives.
+Uses `Object.is` for args - inline objects always miss. Pass same reference or primitives.
 Next.js auto-deduplicates `fetch`; use `React.cache()` for DB queries, auth checks, computations.
 
 ### LRU Cache
@@ -200,18 +200,18 @@ Especially effective with Vercel Fluid Compute (shared function instances).
 <Profile name={user.name} />
 ```
 
-Don't transform arrays in RSC — `.toSorted()`, `.filter()`, `.map()` create new refs that duplicate serialization. Do transforms in client.
+Don't transform arrays in RSC - `.toSorted()`, `.filter()`, `.map()` create new refs that duplicate serialization. Do transforms in client.
 
 ### Parallel RSC Fetching
 
 ```tsx
-// BAD: sequential — Sidebar waits for Header fetch
+// BAD: sequential - Sidebar waits for Header fetch
 async function Page() {
   const header = await fetchHeader()
   return <div><div>{header}</div><Sidebar /></div>
 }
 
-// GOOD: parallel — siblings fetch simultaneously
+// GOOD: parallel - siblings fetch simultaneously
 function Page() {
   return <div><Header /><Sidebar /></div>
 }
