@@ -10,5 +10,24 @@
     name: "{{ EDITORS_CASKS }}"
     state: present
 
-- name: Configuring Visual Studio Code
-  ansible.builtin.command: code --sync on
+- name: Creating VSCode User directory
+  ansible.builtin.file:
+    path: "{{ HOME }}/Library/Application Support/Code/User"
+    state: directory
+    mode: "0755"
+
+- name: Configuring VSCode
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/vscode/{{ item }}"
+    dest: "{{ HOME }}/Library/Application Support/Code/User/{{ item }}"
+    state: link
+    force: true
+  with_items:
+    - settings.json
+    - keybindings.json
+
+- name: Install VSCode extensions
+  ansible.builtin.command: "code --install-extension {{ item }}"
+  loop: "{{ VSCODE_EXTENSIONS }}"
+  register: result
+  changed_when: "'already installed' not in result.stdout"

@@ -226,10 +226,6 @@ if.app-id = 'app.zen-browser.zen'
 run= ["layout tiling", 'move-node-to-workspace Browsers']
 
 [[on-window-detected]]
-if.app-id="com.todesktop.230313mzl4w4u92"
-run= ["layout tiling", 'move-node-to-workspace Editors']
-
-[[on-window-detected]]
 if.app-id="com.microsoft.VSCode"
 run= ["layout tiling", 'move-node-to-workspace Editors']
 

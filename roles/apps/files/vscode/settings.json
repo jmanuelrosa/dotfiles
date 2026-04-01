@@ -1,0 +1,58 @@
+{
+  // Breadcrumbs
+  "breadcrumbs.enabled": true,
+
+  // Style
+  "workbench.colorTheme": "GitHub Dark Dimmed",
+
+  "editor.fontFamily": "FiraCode Nerd Font",
+  "editor.fontLigatures": true,
+  "editor.fontSize": 12,
+
+  "editor.rulers": [80],
+  "editor.stickyScroll.enabled": true,
+  "editor.tabSize": 2,
+  "editor.autoIndent": "keep",
+
+  // Hide minimap
+  "editor.minimap.enabled": false,
+
+  // Bracket colors
+  "editor.bracketPairColorization.enabled": true,
+  "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
+
+  // Security
+  "security.workspace.trust.untrustedFiles": "open",
+
+  // -------------------------------- Extensions
+  "extensions.allowed": {
+    "biomejs.biome": false,
+    "EditorConfig.EditorConfig": false,
+    "usernamehw.errorlens": false,
+    "GitHub.github-vscode-theme": true,
+    "YoavBls.pretty-ts-errors": false,
+    "astro-build.astro-vscode": false,
+    "Anthropic.claude-code": false,
+    "Prisma.prisma": false,
+    "bradlc.vscode-tailwindcss": false
+  },
+
+  "biome.enabled": true,
+
+  // Prisma
+  "prisma.fileWatcher": false,
+  "prisma.enableDiagnostics": false,
+  "prisma.enableCodeLens": false,
+
+  // Tailwinds
+  "tailwindcss-intellisense.trace.server": "messages",
+  "tailwindCSS.classAttributes": [
+    "class",
+    "className",
+    "class:list"
+  ],
+  "tailwindCSS.codeActions": false,
+  "tailwindCSS.codeLens": false,
+  "tailwindCSS.suggestions": false,
+  "tailwindCSS.validate": false
+}

@@ -40,3 +40,6 @@ alias brew:clean='brew autoremove && brew cleanup --prune=all --scrub'
 # docker
 alias docker:start='systemctl start docker'
 alias docker:stop='systemctl stop docker'
+
+alias claude:skill='claude-skill'
+alias claude:mcp='claude-mcp'

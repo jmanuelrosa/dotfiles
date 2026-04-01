@@ -33,7 +33,17 @@ DATABASE_CASKS:
 
 EDITORS_CASKS:
   - visual-studio-code
-  - zed
+
+VSCODE_EXTENSIONS:
+  - biomejs.biome
+  - EditorConfig.EditorConfig
+  - usernamehw.errorlens
+  - GitHub.github-vscode-theme
+  - YoavBls.pretty-ts-errors
+  - astro-build.astro-vscode
+  - Anthropic.claude-code
+  - Prisma.prisma
+  - bradlc.vscode-tailwindcss
 
 INFRASTRUCTURE_FORMULAS:
   # - ansible

@@ -10,7 +10,6 @@ zoxide init fish | source
 fnm env --use-on-cd | source
 
 fish_add_path $HOME/.local/bin
-fish_add_path $HOME/.yarn/bin
 fish_add_path $HOME/.node/bin
 fish_add_path $HOME/.bun/bin
 fish_add_path $HOME/.claude

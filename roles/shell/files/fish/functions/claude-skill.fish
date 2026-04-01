@@ -1,10 +1,11 @@
-function claude:skill --description "Manage Claude Code skills for the current project"
+function claude-skill --description "Manage Claude Code skills for the current project"
     set -l skills_source "$DOTFILES_DIR/roles/ai/files/claude/skills"
     set -l groups_source "$DOTFILES_DIR/roles/ai/files/claude/skill-groups"
     set -l skills_target ".claude/skills"
+    set -l registry "$DOTFILES_DIR/roles/ai/files/claude/skill-registry.json"
 
     if test (count $argv) -lt 1
-        echo "Usage: claude:skill <list|add|remove> [--group] [name]"
+        echo "Usage: claude:skill <list|add|remove|update> [--group] [name]"
         return 1
     end
 
@@ -105,8 +106,158 @@ function claude:skill --description "Manage Claude Code skills for the current p
                 echo "Removed '$name' from $skills_target/"
             end
 
+        case update
+            _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" $name
+
         case '*'
-            echo "Usage: claude:skill <list|add|remove> [--group] [name]"
+            echo "Usage: claude:skill <list|add|remove|update> [--group] [name]"
             return 1
     end
+end
+
+function _claude_skill_update --description "Sync skills from upstream GitHub repos"
+    set -l registry $argv[1]
+    set -l base_dir $argv[2]
+    set -l target_skill $argv[3]
+
+    if not command -q jq
+        echo "Error: jq is required. Install with: brew install jq"
+        return 1
+    end
+
+    if not test -f "$registry"
+        echo "Error: Registry not found at $registry"
+        return 1
+    end
+
+    # Determine which repos to process
+    set -l repos
+    if test -n "$target_skill"
+        set repos (jq -r --arg skill "$target_skill" '
+            .repos | to_entries[] |
+            select(.value.skills[] | .name == $skill) |
+            .key
+        ' $registry)
+
+        if test -z "$repos"
+            echo "Skill '$target_skill' not found in registry."
+            echo "Tracked skills:"
+            jq -r '.repos[].skills[].name' $registry | sort | sed 's/^/  /'
+            return 1
+        end
+    else
+        set repos (jq -r '.repos | keys[]' $registry)
+    end
+
+    set -l tmpdir (mktemp -d)
+    set -l updated 0
+    set -l skipped 0
+    set -l failed 0
+
+    echo "Syncing from "(count $repos)" repo(s)..."
+    echo ""
+
+    for repo in $repos
+        set -l branch (jq -r --arg r "$repo" '.repos[$r].branch' $registry)
+        set -l clone_dir "$tmpdir/"(string replace "/" "_" $repo)
+
+        # Get all upstream paths needed from this repo
+        set -l skill_entries
+        if test -n "$target_skill"
+            set skill_entries (jq -r --arg r "$repo" --arg skill "$target_skill" '
+                .repos[$r].skills[] | select(.name == $skill) |
+                "\(.upstream_path)|\(.local_path)|\(.name)"
+            ' $registry)
+        else
+            set skill_entries (jq -r --arg r "$repo" '
+                .repos[$r].skills[] |
+                "\(.upstream_path)|\(.local_path)|\(.name)"
+            ' $registry)
+        end
+
+        # Collect upstream paths for sparse checkout
+        set -l upstream_paths
+        set -l has_root false
+        for entry in $skill_entries
+            set -l upath (string split "|" $entry)[1]
+            if test "$upath" = "."
+                set has_root true
+            end
+            set -a upstream_paths $upath
+        end
+
+        echo "--- $repo ($branch) ---"
+
+        # Clone: sparse checkout for subdirs, full clone for root repos
+        if test "$has_root" = true
+            git clone --depth 1 --branch $branch "https://github.com/$repo.git" "$clone_dir" 2>/dev/null
+        else
+            git clone --depth 1 --branch $branch --no-checkout "https://github.com/$repo.git" "$clone_dir" 2>/dev/null
+            and begin
+                git -C "$clone_dir" sparse-checkout init --cone 2>/dev/null
+                git -C "$clone_dir" sparse-checkout set $upstream_paths 2>/dev/null
+                git -C "$clone_dir" checkout $branch 2>/dev/null
+            end
+        end
+
+        if test $status -ne 0
+            echo "  FAILED to clone"
+            set failed (math $failed + 1)
+            continue
+        end
+
+        for entry in $skill_entries
+            set -l parts (string split "|" $entry)
+            set -l upstream_path $parts[1]
+            set -l local_path $parts[2]
+            set -l skill_name $parts[3]
+
+            set -l src "$clone_dir/$upstream_path"
+            set -l dst "$base_dir/$local_path"
+
+            # Handle root repos — use clone dir directly
+            if test "$upstream_path" = "."
+                set src "$clone_dir"
+            end
+
+            if not test -d "$src"
+                echo "  $skill_name: upstream path '$upstream_path' not found"
+                set failed (math $failed + 1)
+                continue
+            end
+
+            # Check for changes
+            set -l diff_output (diff -rq --exclude='.git' "$src" "$dst" 2>/dev/null)
+            if test -z "$diff_output"
+                echo "  $skill_name: up to date"
+                set skipped (math $skipped + 1)
+                continue
+            end
+
+            echo "  $skill_name:"
+            for line in $diff_output
+                if string match -q "Only in $src*" $line
+                    set -l file (echo $line | string replace -r "Only in .+: " "")
+                    echo "    + $file (new upstream)"
+                else if string match -q "Only in $dst*" $line
+                    set -l file (echo $line | string replace -r "Only in .+: " "")
+                    echo "    ~ $file (local only, kept)"
+                else if string match -q "Files * differ" $line
+                    set -l file (echo $line | string replace -r "Files .+/(.+) and .+ differ" '$1')
+                    echo "    * $file (changed)"
+                end
+            end
+
+            # Sync: additive (no --delete), exclude .git
+            rsync -a --exclude='.git' "$src/" "$dst/"
+            set updated (math $updated + 1)
+            echo "    synced."
+        end
+
+        echo ""
+    end
+
+    rm -rf "$tmpdir"
+
+    echo "Done: $updated updated, $skipped up-to-date, $failed failed"
 end

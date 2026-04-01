@@ -1,20 +1,15 @@
 {
+  "sandbox": {
+    "enabled": true,
+    "allowUnsandboxedCommands": false,
+    "filesystem": {
+      "allowRead": [".", ".env.*.example"],
+      "allowWrite": ["."],
+      "denyRead": ["~/", ".env", ".env.*"],
+      "denyWrite": ["/"]
+    }
+  },
   "permissions": {
-    "allow": [
-      "Bash(make lint:*)",
-      "Bash(make syntax:*)",
-      "Bash(done)",
-      "Bash(wc -l /Users/jmanuelrosa/Developer/dotfiles/roles/ai/dirty_skills/react/*/SKILL.md /Users/jmanuelrosa/Developer/dotfiles/roles/ai/dirty_skills/react/*/AGENTS.md 2>/dev/null)",
-      "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(mkdir -p /Users/jmanuelrosa/Developer/dotfiles/roles/ai/files/claude/skill-groups/apollo-graphql && cd /Users/jmanuelrosa/Developer/dotfiles/roles/ai/files/claude/skill-groups/apollo-graphql && ln -s ../../skills/apollo-client apollo-client && ln -s ../../skills/graphql-operations graphql-operations && ls -la)",
-      "Bash(cd /Users/jmanuelrosa/Developer/dotfiles/roles/ai/files/claude && rm skill-groups/apollo-graphql/apollo-client skill-groups/apollo-graphql/graphql-operations && mv skills/apollo-client skill-groups/apollo-graphql/ && mv skills/graphql-operations skill-groups/apollo-graphql/)",
-      "Bash(find /Users/jmanuelrosa/Developer/dotfiles -type f \\\\\\( -name \"*.mcp*\" -o -name \"*mcp*\" \\\\\\) 2>/dev/null | head -20)",
-      "Bash(git -C /Users/jmanuelrosa/Developer/dotfiles status --porcelain)",
-      "Bash(git -C /Users/jmanuelrosa/Developer/dotfiles show HEAD:roles/ai/files/claude/skills/documentation/SKILL.md 2>/dev/null | head -50)",
-      "Bash(git -C /Users/jmanuelrosa/Developer/dotfiles log --oneline -10)",
-      "Bash(git -C /Users/jmanuelrosa/Developer/dotfiles diff roles/shell/files/fish/functions/claude-skill.fish | head -100)",
-      "Bash(git -C /Users/jmanuelrosa/Developer/dotfiles show HEAD:roles/shell/files/fish/functions/claude-skill.fish 2>/dev/null | head -50)",
-      "Bash(which jq 2>&1 && jq --version 2>&1)"
-    ]
+    "deny": ["Edit(.env*)", "Bash(*\\.env*)"]
   }
 }

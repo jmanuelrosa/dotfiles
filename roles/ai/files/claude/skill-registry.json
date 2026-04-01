@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "repos": {
+    "addyosmani/agent-skills": {
+      "branch": "main",
+      "skills": [
+        { "upstream_path": "skills/idea-refine", "local_path": "skills/brainstorming", "name": "brainstorming" },
+        { "upstream_path": "skills/documentation-and-adrs", "local_path": "skills/dev-documentation", "name": "dev-documentation" },
+        { "upstream_path": "skills/test-driven-development", "local_path": "skills/tdd", "name": "tdd" },
+        { "upstream_path": "skills/spec-driven-development", "local_path": "skill-groups/product-manager/spec-driven-development", "name": "spec-driven-development" },
+        { "upstream_path": "skills/planning-and-task-breakdown", "local_path": "skill-groups/product-manager/planning-and-task-breakdown", "name": "planning-and-task-breakdown" }
+      ]
+    },
+    "mcollina/skills": {
+      "branch": "main",
+      "skills": [
+        { "upstream_path": "skills/fastify", "local_path": "skills/fastify", "name": "fastify" },
+        { "upstream_path": "skills/node", "local_path": "skills/node", "name": "node" },
+        { "upstream_path": "skills/typescript-magician", "local_path": "skills/typescript", "name": "typescript" }
+      ]
+    },
+    "apollographql/skills": {
+      "branch": "main",
+      "skills": [
+        { "upstream_path": "skills/apollo-client", "local_path": "skill-groups/graphql/apollo-client", "name": "apollo-client" },
+        { "upstream_path": "skills/graphql-operations", "local_path": "skill-groups/graphql/graphql-operations", "name": "graphql-operations" }
+      ]
+    },
+    "coreyhaines31/marketingskills": {
+      "branch": "main",
+      "skills": [
+        { "upstream_path": "skills/copywriting", "local_path": "skill-groups/marketing/copywriting", "name": "copywriting" },
+        { "upstream_path": "skills/page-cro", "local_path": "skill-groups/marketing/page-conversion", "name": "page-conversion" },
+        { "upstream_path": "skills/seo-audit", "local_path": "skill-groups/seo/seo", "name": "seo" },
+        { "upstream_path": "skills/ai-seo", "local_path": "skill-groups/seo/ai-seo", "name": "ai-seo" }
+      ]
+    },
+    "vercel-labs/agent-skills": {
+      "branch": "main",
+      "skills": [
+        { "upstream_path": "skills/react-native-skills", "local_path": "skills/react-native", "name": "react-native" }
+      ]
+    },
+    "astrolicious/agent-skills": {
+      "branch": "main",
+      "skills": [
+        { "upstream_path": ".", "local_path": "skills/astro", "name": "astro" }
+      ]
+    },
+    "yusukebe/hono-skill": {
+      "branch": "main",
+      "skills": [
+        { "upstream_path": "skills/hono", "local_path": "skills/hono", "name": "hono" }
+      ]
+    },
+    "kadajett/agent-nestjs-skills": {
+      "branch": "main",
+      "skills": [
+        { "upstream_path": ".", "local_path": "skills/nestjs", "name": "nestjs" }
+      ]
+    },
+    "sickn33/antigravity-awesome-skills": {
+      "branch": "main",
+      "skills": [
+        { "upstream_path": "skills/prisma-expert", "local_path": "skills/prisma", "name": "prisma" }
+      ]
+    },
+    "wshobson/agents": {
+      "branch": "main",
+      "skills": [
+        { "upstream_path": "plugins/frontend-mobile-development/skills/tailwind-design-system", "local_path": "skills/tailwind", "name": "tailwind" }
+      ]
+    },
+    "Microck/ordinary-claude-skills": {
+      "branch": "main",
+      "skills": [
+        { "upstream_path": "skills_all/claude-code-analyzer", "local_path": "skills/code-analyzer", "name": "code-analyzer" }
+      ]
+    }
+  },
+  "excluded": [
+    { "name": "react", "reason": "Consolidated from multiple sources" },
+    { "name": "better-auth", "reason": "Consolidated from multiple sources" },
+    { "name": "frontend-design", "reason": "Consolidated from multiple sources" },
+    { "name": "humanizer", "reason": "No external source" }
+  ]
+}
