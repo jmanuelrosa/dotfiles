@@ -24,14 +24,21 @@
   // Security
   "security.workspace.trust.untrustedFiles": "open",
 
+  // Search
+  "search.exclude": {
+    "**/.git": true,
+    "**/.astro": true
+  },
+
   // -------------------------------- Extensions
   "extensions.allowed": {
+    "eamodio.gitlens": true,
     "biomejs.biome": false,
-    "EditorConfig.EditorConfig": false,
+    "EditorConfig.EditorConfig": true,
     "usernamehw.errorlens": false,
     "GitHub.github-vscode-theme": true,
     "YoavBls.pretty-ts-errors": false,
-    "astro-build.astro-vscode": false,
+    "astro-build.astro-vscode": true,
     "Anthropic.claude-code": false,
     "Prisma.prisma": false,
     "bradlc.vscode-tailwindcss": false
@@ -54,5 +61,6 @@
   "tailwindCSS.codeActions": false,
   "tailwindCSS.codeLens": false,
   "tailwindCSS.suggestions": false,
-  "tailwindCSS.validate": false
+  "tailwindCSS.validate": false,
+  "workbench.startupEditor": "none"
 }

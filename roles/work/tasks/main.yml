@@ -5,7 +5,7 @@
 - name: Generating exports with secrets
   ansible.builtin.template:
     src: exports.fish.j2
-    dest: "{{ HOME }}/.config/fish/conf.d/exports.fish"
+    dest: "{{ HOME }}/.config/fish/conf.d/work-secrets.fish"
     mode: "0600"
 
 - name: Ensure scripts directory exists

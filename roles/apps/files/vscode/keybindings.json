@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "key": "shift+cmd+f",
+    "command": "search.action.openNewEditor"
+  },
+  {
+    "key": "shift+cmd+i",
+    "command": "workbench.panel.chat",
+    "when": "workbench.panel.chat.view.copilot.active"
+  },
+  {
+    "key": "ctrl+cmd+i",
+    "command": "-workbench.panel.chat",
+    "when": "workbench.panel.chat.view.copilot.active"
+  }
+]

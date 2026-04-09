@@ -35,13 +35,49 @@
       ],
       "allow": [
         "Bash(find:*)",
-        "Bash(git rm:*)",
         "Bash(grep:*)",
         "Bash(ls:*)",
         "Bash(xargs:*)"
       ]
     }
   },
+
   "voiceEnabled": false,
-  "alwaysThinkingEnabled": true
+  "alwaysThinkingEnabled": true,
+  "sandbox": {
+    "enabled": true,
+    "allowUnsandboxedCommands": false,
+    "autoAllowBashIfSandboxed": true,
+    "enableWeakerNetworkIsolation": true,
+    "excludedCommands": ["gh", "glab"],
+    "failIfUnavailable": false,
+    "filesystem": {
+      "denyRead": [
+        "~/.ssh",
+        "~/.gnupg",
+        "~/.aws",
+        "~/.npmrc",
+        "~/.netrc",
+        "~/.config/gcloud",
+        "~/.terraform.d/credentials.tfrc.json"
+      ],
+      "allowRead": [
+        "~/.config/gh"
+      ],
+      "allowWrite": [
+        ".",
+        "/tmp"
+      ]
+    },
+    "network": {
+      "allowLocalBinding": true,
+      "allowedDomains": [
+        "registry.npmjs.org",
+        "registry.yarnpkg.com",
+        "github.com",
+        "api.github.com",
+        "*.githubusercontent.com"
+      ]
+    }
+  }
 }
