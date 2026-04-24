@@ -11,3 +11,9 @@ AI_CASKS:
   - claude
   - claude-code
   - steipete/tap/codexbar
+
+AI_NPM_PACKAGES:
+  - "@mariozechner/pi-coding-agent"
+
+OLLAMA_MODELS:
+  - qwen3:latest

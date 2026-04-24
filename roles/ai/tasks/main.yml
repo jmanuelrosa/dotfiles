@@ -34,3 +34,47 @@
     dest: "{{ HOME }}/.claude/settings.json"
     state: link
     force: true
+
+- name: Install AI npm packages
+  ansible.builtin.command: "bun install -g {{ item }}"
+  loop: "{{ AI_NPM_PACKAGES }}"
+  changed_when: false
+
+- name: Pulling Ollama models
+  ansible.builtin.command: "ollama pull {{ item }}"
+  loop: "{{ OLLAMA_MODELS }}"
+  changed_when: false
+
+- name: Creating pi agent config directory
+  ansible.builtin.file:
+    path: "{{ HOME }}/.pi/agent"
+    state: directory
+    mode: "0755"
+
+- name: Configuring pi settings
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/pi/settings.json"
+    dest: "{{ HOME }}/.pi/agent/settings.json"
+    state: link
+    force: true
+
+- name: Configuring pi models
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/pi/models.json"
+    dest: "{{ HOME }}/.pi/agent/models.json"
+    state: link
+    force: true
+
+- name: Configuring pi system prompt
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/pi/SYSTEM.md"
+    dest: "{{ HOME }}/.pi/agent/SYSTEM.md"
+    state: link
+    force: true
+
+- name: Sharing claude skills with pi
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/claude/skills"
+    dest: "{{ HOME }}/.pi/agent/skills"
+    state: link
+    force: true
