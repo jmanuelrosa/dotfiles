@@ -6,6 +6,7 @@ BROWSERS_CASKS:
   - google-chrome
   - zen
   - brave-browser
+  - helium-browser
 
 CHAT_CASKS:
   - slack
