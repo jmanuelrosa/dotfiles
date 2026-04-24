@@ -2,6 +2,24 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
+- name: Load work variables
+  ansible.builtin.include_vars: vars/main.yml
+
+- name: Tap Atlassian Homebrew repository
+  community.general.homebrew_tap:
+    name: atlassian/homebrew-acli
+    state: present
+
+- name: Install work formulas
+  community.general.homebrew:
+    name: "{{ WORK_FORMULAS }}"
+    state: present
+
+- name: Install work casks
+  community.general.homebrew_cask:
+    name: "{{ WORK_CASKS }}"
+    state: present
+
 - name: Generating exports with secrets
   ansible.builtin.template:
     src: exports.fish.j2

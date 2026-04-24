@@ -9,3 +9,6 @@ DID_NPM_TOKEN: "your-npm-token-here"
 # Jira credentials for s-task script
 DID_JIRA_EMAIL: "your-email@example.com"
 DID_JIRA_API_TOKEN: "your-jira-api-token-here"
+
+# Fossa Api Key
+FOSSA_API_KEY: your_actual_fossa_api_key

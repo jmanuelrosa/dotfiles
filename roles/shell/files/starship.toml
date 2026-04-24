@@ -1,12 +1,19 @@
+"$schema" = 'https://starship.rs/config-schema.json'
 
 # Inserts a blank line between shell prompts
-add_newline = false
+add_newline = true
 
 # Timeout for commands executed by starship (in milliseconds).
-command_timeout = 3600000
+command_timeout = 200
 
-[git_metrics]
-disabled = false
+# Theme
+format = """
+$directory\
+$git_branch\
+$git_status\
+$cmd_duration\
+$line_break\
+$character"""
 
 [cmd_duration]
 disabled = false
@@ -17,7 +24,19 @@ disabled = true
 [mise]
 disabled = false
 
+[directory]
+style = "bold cyan"
+truncate_to_repo = false
+
 [sudo]
 style = 'bold yellow'
 symbol = '🧙'
 disabled = false
+
+[git_metrics]
+disabled = false
+
+[git_branch]
+symbol = " "
+format = "[$branch(:$remote_branch)]($style) "
+style = "bold purple"

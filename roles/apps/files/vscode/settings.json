@@ -1,4 +1,9 @@
 {
+  // Startup edit
+  "workbench.startupEditor": "none",
+  // Force open files in new tabs
+  "workbench.editor.enablePreview": false,
+
   // Breadcrumbs
   "breadcrumbs.enabled": true,
 
@@ -29,19 +34,30 @@
     "**/.git": true,
     "**/.astro": true
   },
+  "search.sortOrder": "modified",
+
+  // Suggestions
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+
+  // File associations
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
 
   // -------------------------------- Extensions
   "extensions.allowed": {
     "eamodio.gitlens": true,
-    "biomejs.biome": false,
+    "biomejs.biome": true,
     "EditorConfig.EditorConfig": true,
     "usernamehw.errorlens": false,
     "GitHub.github-vscode-theme": true,
     "YoavBls.pretty-ts-errors": false,
     "astro-build.astro-vscode": true,
-    "Anthropic.claude-code": false,
+    "Anthropic.claude-code": true,
     "Prisma.prisma": false,
-    "bradlc.vscode-tailwindcss": false
+    "bradlc.vscode-tailwindcss": true
   },
 
   "biome.enabled": true,
@@ -58,9 +74,17 @@
     "className",
     "class:list"
   ],
+  "tailwindCSS.includeLanguages": {
+    "plaintext": "html"
+  },
   "tailwindCSS.codeActions": false,
   "tailwindCSS.codeLens": false,
   "tailwindCSS.suggestions": false,
   "tailwindCSS.validate": false,
-  "workbench.startupEditor": "none"
+
+  // Claude
+  "claudeCode.preferredLocation": "sidebar",
+  "chat.hookFilesLocations": {
+    "~/.copilot/hooks": false
+  },
 }

@@ -1,6 +1,11 @@
-import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer, IncomingMessage, ServerResponse, Server } from 'node:http';
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from 'node:http';
+import { after, before, describe, it } from 'node:test';
 
 describe('graceful server shutdown', () => {
   let server: Server;

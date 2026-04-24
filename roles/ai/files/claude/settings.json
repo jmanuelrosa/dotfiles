@@ -49,7 +49,7 @@
     "allowUnsandboxedCommands": false,
     "autoAllowBashIfSandboxed": true,
     "enableWeakerNetworkIsolation": true,
-    "excludedCommands": ["gh", "glab"],
+    "excludedCommands": ["gh", "glab", "acli"],
     "failIfUnavailable": false,
     "filesystem": {
       "denyRead": [
@@ -76,7 +76,10 @@
         "registry.yarnpkg.com",
         "github.com",
         "api.github.com",
-        "*.githubusercontent.com"
+        "*.githubusercontent.com",
+        "auth.atlassian.com",
+        "as.atlassian.com",
+        "api.atlassian.com"
       ]
     }
   }

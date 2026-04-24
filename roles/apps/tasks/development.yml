@@ -45,3 +45,10 @@
     dest: "{{ HOME }}/.npmrc"
     state: link
     force: true
+
+- name: Configuring gh (GitHub CLI)
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/gh/config.yml"
+    dest: "{{ HOME }}/.config/gh/config.yml"
+    state: link
+    force: true

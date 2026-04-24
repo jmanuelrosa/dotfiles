@@ -8,7 +8,10 @@
         { "upstream_path": "skills/documentation-and-adrs", "local_path": "skills/dev-documentation", "name": "dev-documentation" },
         { "upstream_path": "skills/test-driven-development", "local_path": "skills/tdd", "name": "tdd" },
         { "upstream_path": "skills/spec-driven-development", "local_path": "skill-groups/product-manager/spec-driven-development", "name": "spec-driven-development" },
-        { "upstream_path": "skills/planning-and-task-breakdown", "local_path": "skill-groups/product-manager/planning-and-task-breakdown", "name": "planning-and-task-breakdown" }
+        { "upstream_path": "skills/planning-and-task-breakdown", "local_path": "skill-groups/product-manager/planning-and-task-breakdown", "name": "planning-and-task-breakdown" },
+        { "upstream_path": "skills/code-simplification", "local_path": "skill-groups/review/code-simplification", "name": "code-simplification" },
+        { "upstream_path": "skills/code-review-and-quality", "local_path": "skill-groups/review/code-review-and-quality", "name": "code-review-and-quality" },
+        { "upstream_path": "skills/performance-optimization", "local_path": "skill-groups/review/performance-optimization", "name": "performance-optimization" }
       ]
     },
     "mcollina/skills": {
@@ -82,6 +85,7 @@
     { "name": "react", "reason": "Consolidated from multiple sources" },
     { "name": "better-auth", "reason": "Consolidated from multiple sources" },
     { "name": "frontend-design", "reason": "Consolidated from multiple sources" },
-    { "name": "humanizer", "reason": "No external source" }
+    { "name": "humanizer", "reason": "No external source" },
+    { "name": "pr", "reason": "Locally authored" }
   ]
 }

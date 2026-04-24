@@ -9,10 +9,7 @@ set -g GREEN (set_color green)
 set -g YELLOW (set_color yellow)
 set -g NC (set_color normal)
 
-# Configuration
-set -g JIRA_URL "https://didomi.atlassian.net"
-set -g DID_JIRA_EMAIL "$DID_JIRA_EMAIL"
-set -g DID_JIRA_API_TOKEN "$DID_JIRA_API_TOKEN"
+# Configuration - authentication handled by acli (run `acli auth login` for initial setup)
 
 # Function to display error and exit
 function die
@@ -25,11 +22,8 @@ function usage
     echo "Usage: s-task <JIRA_ID>"
     echo "Example: s-task JIRA-123"
     echo ""
-    echo "Required environment variables:"
-    echo "  DID_JIRA_EMAIL      - Your Jira email address"
-    echo "  DID_JIRA_API_TOKEN  - Your Jira API token"
-    echo ""
-    echo "Get your API token at: https://id.atlassian.com/manage-profile/security/api-tokens"
+    echo "Prerequisites:"
+    echo "  Run 'acli auth login' to authenticate with Atlassian"
     exit 1
 end
 
@@ -60,6 +54,10 @@ if not command -v jq >/dev/null 2>&1
     die "jq is required but not installed. Install it with: brew install jq"
 end
 
+if not command -v acli >/dev/null 2>&1
+    die "acli is required but not installed. Install it with: brew tap atlassian/homebrew-acli && brew install acli"
+end
+
 # Check if Jira ID is provided
 if test (count $argv) -eq 0
     usage
@@ -72,30 +70,15 @@ if not git rev-parse --is-inside-work-tree >/dev/null 2>&1
     die "Current directory is not a git repository"
 end
 
-# Check for required environment variables
-if test -z "$DID_JIRA_EMAIL" -o -z "$DID_JIRA_API_TOKEN"
-    die "DID_JIRA_EMAIL and DID_JIRA_API_TOKEN environment variables must be set"
-end
-
-echo -e "$YELLOW🔍 Fetching Jira Cloud ID...$NC"
-
-# Fetch Cloud ID using jq for reliable JSON parsing
-set -g CLOUD_ID (curl -s "$JIRA_URL/_edge/tenant_info" | jq -r '.cloudId // empty')
-if test -z "$CLOUD_ID"
-    die "Could not fetch Cloud ID"
-end
-
 echo -e "$YELLOW📥 Fetching issue details from Jira...$NC"
 
-# Fetch issue details from Jira API using Cloud ID
-set -g RESPONSE (curl -s -u "$DID_JIRA_EMAIL:$DID_JIRA_API_TOKEN" \
-    -H "Accept: application/json" \
-    "https://api.atlassian.com/ex/jira/$CLOUD_ID/rest/api/3/issue/$JIRA_ID?fields=summary,issuetype")
-
-# Check for errors and parse using jq
-if echo "$RESPONSE" | jq -e '.errorMessages' >/dev/null 2>&1
-    set ERROR_MSG (echo "$RESPONSE" | jq -r '.errorMessages[]' 2>/dev/null; or echo "Unknown error")
-    die "Failed to fetch issue from Jira: $ERROR_MSG"
+# Fetch issue details using acli
+set -g RESPONSE (acli jira workitem view $JIRA_ID --fields summary,issuetype --json 2>&1)
+if test $status -ne 0
+    if string match -q "*auth*" -- "$RESPONSE"; or string match -q "*unauthorized*" -- "$RESPONSE"; or string match -q "*login*" -- "$RESPONSE"
+        die "Not authenticated with Atlassian. Run 'acli auth login' first."
+    end
+    die "Failed to fetch issue from Jira: $RESPONSE"
 end
 
 # Parse issue type and summary with jq

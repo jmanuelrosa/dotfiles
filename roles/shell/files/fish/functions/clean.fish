@@ -1,5 +1,5 @@
 # Clean scripts
-function clean:docker
+function clean_docker
   echo '⏰ Deleting docker ...'
   begin;
     set containers (docker ps -aq)
@@ -13,7 +13,7 @@ function clean:docker
 end
 
 # Clean node_modules
-function clean:node
+function clean_node
   echo '⏰ Deleting node_modules ...'
   find node_modules --type dir --no-ignore --absolute-path --prune | while read dir
     echo "📦 Removing: $dir";

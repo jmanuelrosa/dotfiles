@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "repos": {
+    "addyosmani/agent-skills": {
+      "branch": "main",
+      "agents": [
+        {
+          "upstream_path": "agents/code-reviewer.md",
+          "name": "code-reviewer"
+        }
+      ]
+    }
+  },
+  "excluded": []
+}

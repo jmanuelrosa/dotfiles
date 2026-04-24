@@ -35,7 +35,11 @@ alias g='git'
 alias lg='lazygit'
 
 alias brew:update='brew update --force && brew upgrade --greedy --force && brew autoremove && brew cleanup --prune=all --scrub'
-alias brew:clean='brew autoremove && brew cleanup --prune=all --scrub'
+
+# Clean
+alias clean:brew='brew autoremove && brew cleanup --prune=all --scrub'
+alias clean:docker=clean_docker
+alias clean:node=clean_node
 
 # docker
 alias docker:start='systemctl start docker'
@@ -43,3 +47,4 @@ alias docker:stop='systemctl stop docker'
 
 alias claude:skill='claude-skill'
 alias claude:mcp='claude-mcp'
+alias claude:agent='claude-agent'

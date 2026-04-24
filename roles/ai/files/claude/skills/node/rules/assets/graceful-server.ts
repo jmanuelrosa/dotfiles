@@ -1,4 +1,10 @@
-import { createServer, IncomingMessage, ServerResponse, Server } from 'node:http';
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from 'node:http';
+
 import closeWithGrace from 'close-with-grace';
 
 /**
