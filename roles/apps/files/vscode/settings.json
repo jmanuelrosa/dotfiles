@@ -75,10 +75,17 @@
     "class:list"
   ],
   "tailwindCSS.includeLanguages": {
-    "plaintext": "html"
+    "astro": "html",
+    "html": "html",
+    "javascript": "javascript",
+    "javascriptreact": "javascript",
+    "typescript": "typescript",
+    "typescriptreact": "typescript",
+    "css": "css"
   },
   "tailwindCSS.codeActions": false,
   "tailwindCSS.codeLens": false,
+  "tailwindCSS.emmetCompletions": false,
   "tailwindCSS.suggestions": false,
   "tailwindCSS.validate": false,
 
@@ -87,4 +94,6 @@
   "chat.hookFilesLocations": {
     "~/.copilot/hooks": false
   },
+  "git.detectWorktrees": true,
+  "git.detectWorktreesLimit": 10,
 }
