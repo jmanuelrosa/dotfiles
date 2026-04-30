@@ -1,4 +1,4 @@
-function claude:mcp --description "Manage Claude Code MCP servers for the current project"
+function claude-mcp --description "Manage Claude Code MCP servers for the current project"
     set -l mcp_source "$DOTFILES_DIR/roles/ai/files/claude/mcp-servers"
     set -l mcp_target ".mcp.json"
 

@@ -1,18 +1,3 @@
-# Clean scripts
-function clean_docker
-  echo '⏰ Deleting docker ...'
-  begin;
-    set containers (docker ps -aq)
-    if test -n "$containers"
-      docker stop $containers
-    end
-    docker system prune -a --volumes
-    docker volume prune --all --force
-  end
-  echo '✨ Cleanup complete!'
-end
-
-# Clean node_modules
 function clean_node
   echo '⏰ Deleting node_modules ...'
   find node_modules --type dir --no-ignore --absolute-path --prune | while read dir
