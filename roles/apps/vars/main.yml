@@ -24,6 +24,7 @@ DEVELOPMENT_FORMULAS:
   - oven-sh/bun/bun
   - scc
   - hyperfine
+  - getsentry/tools/sentry
 
 DATABASE_FORMULAS:
   - libpq
