@@ -11,11 +11,9 @@
   "defaultThinkingLevel": "high",
   "hideThinkingBlock": true,
   "collapseChangelog": false,
-  "defaultProvider": "anthropic",
-  "defaultModel": "claude-opus-4-7",
+  "defaultProvider": "ollama",
+  "defaultModel": "qwen3:latest",
   "enabledModels": [
-    "anthropic/claude-opus-4-7",
-    "anthropic/claude-sonnet-4-6",
     "ollama/qwen3:latest"
   ],
   "extensions": [],
