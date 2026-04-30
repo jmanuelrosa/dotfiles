@@ -15,5 +15,7 @@ AI_CASKS:
 AI_NPM_PACKAGES:
   - "@mariozechner/pi-coding-agent"
 
+# Models to pull manually with `ollama pull <name>` when needed.
+# Not pulled by the playbook so Ollama stays fully on-demand.
 OLLAMA_MODELS:
   - qwen3:latest

@@ -1,21 +1,16 @@
 {
   "enableInstallTelemetry": false,
-  "lastChangelogVersion": "0.69.0",
-
+  "lastChangelogVersion": "0.70.2",
   "theme": "tokyo-night",
   "showHardwareCursor": true,
   "editorPaddingX": 2,
   "terminal": {
     "showTerminalProgress": true
   },
-
   "quietStartup": true,
-
   "defaultThinkingLevel": "high",
   "hideThinkingBlock": true,
-
   "collapseChangelog": false,
-
   "defaultProvider": "anthropic",
   "defaultModel": "claude-opus-4-7",
   "enabledModels": [
@@ -23,15 +18,12 @@
     "anthropic/claude-sonnet-4-6",
     "ollama/qwen3:latest"
   ],
-
   "extensions": [],
   "packages": [
     "npm:@plannotator/pi-extension",
     "git:github.com/earendil-works/pi-review"
   ],
-
   "transport": "auto",
-
   "steeringMode": "all",
   "doubleEscapeAction": "tree",
   "treeFilterMode": "default",
