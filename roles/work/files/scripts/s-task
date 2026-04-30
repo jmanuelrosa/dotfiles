@@ -19,8 +19,12 @@ end
 
 # Function to display usage
 function usage
-    echo "Usage: s-task <JIRA_ID>"
+    echo "Usage: s-task [--dry] <JIRA_ID>"
     echo "Example: s-task JIRA-123"
+    echo "         s-task --dry JIRA-123"
+    echo ""
+    echo "Options:"
+    echo "  -d, --dry   Print the branch name that would be created and exit"
     echo ""
     echo "Prerequisites:"
     echo "  Run 'acli auth login' to authenticate with Atlassian"
@@ -58,8 +62,11 @@ if not command -v acli >/dev/null 2>&1
     die "acli is required but not installed. Install it with: brew tap atlassian/homebrew-acli && brew install acli"
 end
 
-# Check if Jira ID is provided
-if test (count $argv) -eq 0
+# Parse arguments
+argparse 'd/dry' -- $argv 2>/dev/null
+or usage
+
+if test (count $argv) -ne 1
     usage
 end
 
@@ -97,6 +104,12 @@ echo "  📝 Summary: $ISSUE_SUMMARY"
 set -g BRANCH_PREFIX (get_branch_prefix "$ISSUE_TYPE")
 set -g TITLE_SLUG (create_slug "$ISSUE_SUMMARY")
 set -g BRANCH_NAME "$BRANCH_PREFIX/$JIRA_ID-$TITLE_SLUG"
+
+if set -q _flag_dry
+    echo ""
+    echo -e "$YELLOW🧪 Dry run — would create branch: $GREEN$BRANCH_NAME$NC"
+    exit 0
+end
 
 echo ""
 echo -e "$YELLOW🌿 Creating branch: $GREEN$BRANCH_NAME$NC"
