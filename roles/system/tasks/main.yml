@@ -42,6 +42,19 @@
     state: link
     force: true
 
+- name: Ensure eza config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/eza"
+    state: directory
+    mode: "0755"
+
+- name: Configuring eza
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/eza/theme.yml"
+    dest: "{{ HOME }}/.config/eza/theme.yml"
+    state: link
+    force: true
+
 - name: Setting the system preferences
   community.general.osx_defaults:
     domain: "{{ item.domain }}"
