@@ -52,3 +52,16 @@
     dest: "{{ HOME }}/.config/gh/config.yml"
     state: link
     force: true
+
+- name: Ensure pgcli config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/pgcli"
+    state: directory
+    mode: "0755"
+
+- name: Configuring pgcli
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/pgcli/config"
+    dest: "{{ HOME }}/.config/pgcli/config"
+    state: link
+    force: true
