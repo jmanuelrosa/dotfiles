@@ -93,7 +93,7 @@ OSX_DEFAULTS:
     state: present
   # Hides internal hard drives from the desktop
   - domain: com.apple.finder
-    key: ShowExternalHardDrivesOnDesktop
+    key: ShowHardDrivesOnDesktop
     type: bool
     value: false
     state: present
