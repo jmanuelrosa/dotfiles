@@ -15,28 +15,39 @@ $cmd_duration\
 $line_break\
 $character"""
 
-[cmd_duration]
-disabled = false
-
-[gcloud]
-disabled = true
-
-[mise]
-disabled = false
-
-[directory]
-style = "bold cyan"
-truncate_to_repo = false
-
 [sudo]
 style = 'bold yellow'
 symbol = '🧙'
 disabled = false
 
-[git_metrics]
+[aws]
+disabled = true
+
+[cmd_duration]
 disabled = false
+
+[directory]
+style = "bold cyan"
+truncate_to_repo = false
+truncation_length = 0
+
+[docker_context]
+disabled = true
+
+[gcloud]
+disabled = true
 
 [git_branch]
 symbol = " "
 format = "[$branch(:$remote_branch)]($style) "
 style = "bold purple"
+
+[git_metrics]
+disabled = false
+
+[line_break]
+disabled = false
+
+[mise]
+disabled = true
+
