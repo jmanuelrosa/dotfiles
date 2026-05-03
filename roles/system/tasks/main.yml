@@ -29,6 +29,19 @@
     state: link
     force: true
 
+- name: Ensure ripgrep config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/ripgrep"
+    state: directory
+    mode: "0755"
+
+- name: Configuring ripgrep
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/ripgrep/config"
+    dest: "{{ HOME }}/.config/ripgrep/config"
+    state: link
+    force: true
+
 - name: Setting the system preferences
   community.general.osx_defaults:
     domain: "{{ item.domain }}"

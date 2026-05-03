@@ -27,6 +27,7 @@ set -gx FILE nnn
 set -gx PAGER "bat --plain"
 set -gx TERMINAL ghostty
 set -gx VISUAL zed
+set -gx RIPGREP_CONFIG_PATH "$HOME/.config/ripgrep/config"
 
 # nnn settings
 set -gx NNN_FIFO /tmp/nnn.fifo # breaks NnnExplorer feature
