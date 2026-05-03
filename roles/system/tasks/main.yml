@@ -16,6 +16,19 @@
     name: "{{ SYSTEM_APPS }}"
     state: present
 
+- name: Ensure bat config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/bat"
+    state: directory
+    mode: "0755"
+
+- name: Configuring bat
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/bat/config"
+    dest: "{{ HOME }}/.config/bat/config"
+    state: link
+    force: true
+
 - name: Setting the system preferences
   community.general.osx_defaults:
     domain: "{{ item.domain }}"
