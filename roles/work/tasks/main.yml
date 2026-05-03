@@ -41,6 +41,19 @@
   with_fileglob:
     - "{{ role_path }}/files/scripts/*"
 
+- name: Ensure glab-cli config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/Library/Application Support/glab-cli"
+    state: directory
+    mode: "0755"
+
+- name: Configuring glab
+  ansible.builtin.copy:
+    src: "{{ role_path }}/files/glab/config.yml"
+    dest: "{{ HOME }}/Library/Application Support/glab-cli/config.yml"
+    mode: "0644"
+    force: true
+
 - name: Creating SSH config directory
   ansible.builtin.file:
     path: "{{ HOME }}/.ssh"
