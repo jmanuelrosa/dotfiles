@@ -8,3 +8,5 @@ warn_list:
 
 exclude_paths:
   - inventory.yml  # INI format, not YAML — linter misdetects it
+  - vars/secrets.yml
+  - vars/work.yml
