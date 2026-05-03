@@ -2,9 +2,7 @@
 
 # Static analysis
 lint:
-	@echo "dummy" > /tmp/vault_pass
-	ANSIBLE_VAULT_PASSWORD_FILE=/tmp/vault_pass ansible-lint
-	@rm -f /tmp/vault_pass
+	ansible-lint
 
 syntax:
 	ansible-playbook --syntax-check --inventory inventory.yml --ask-vault-password dotfiles.yml
