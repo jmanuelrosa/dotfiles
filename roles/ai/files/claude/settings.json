@@ -1,56 +1,194 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "autoUpdatesChannel": "stable",
+  "availableModels": ["sonnet", "opus"],
   "cleanupPeriodDays": 180,
+  "effortLevel": "xhigh",
   "env": {
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "opusplan",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
+    "DISABLE_AUTOUPDATER": "1",
     "DISABLE_ERROR_REPORTING": "1",
-    "DISABLE_NON_ESSENTIAL_MODEL_CALLS": "1",
-    "DISABLE_TELEMETRY": "1",
-    "USE_BUILTIN_RIPGREP": "0",
-    "ENABLE_TOOL_SEARCH": "auto:5"
+    "ENABLE_TOOL_SEARCH": "auto:5",
+    "USE_BUILTIN_RIPGREP": "0"
   },
-  "includeCoAuthoredBy": false,
+  "feedbackSurveyRate": 0,
+  "fileCheckpointingEnabled": true,
   "permissions": {
-    "read": {
-      "deny": [
-        "~/.ssh/**",
-        "~/.gnupg/**",
-        "~/.npmrc",
-        "~/.config/gcloud/**",
-        "~/.terraform.d/credentials.tfrc.json",
-        "~/.config/gh/hosts.yml",
-        "**/.env*",
-        "**/*.pem",
-        "**/*.key",
-        "**/.secret*",
-        "**/*.p12",
-        "**/*.pfx",
-        "**/.npmrc",
-        "**/.netrc",
-        "**/secrets/**",
-        "**/credentials/**",
-        "**/.aws/**",
-        "**/.ssh/**"
-      ],
-      "allow": [
-        "Bash(find:*)",
-        "Bash(grep:*)",
-        "Bash(ls:*)",
-        "Bash(xargs:*)"
-      ]
-    }
-  },
+    "deny": [
+      "Read(~/.ssh/**)",
+      "Edit(~/.ssh/**)",
+      "Write(~/.ssh/**)",
 
+      "Read(~/.gnupg/**)",
+      "Edit(~/.gnupg/**)",
+      "Write(~/.gnupg/**)",
+
+      "Read(~/.npmrc)",
+      "Edit(~/.npmrc)",
+      "Write(~/.npmrc)",
+
+      "Read(~/.config/npm/**)",
+
+      "Read(~/.pnpmrc)",
+      "Edit(~/.pnpmrc)",
+      "Write(~/.pnpmrc)",
+
+      "Read(~/.yarnrc)",
+      "Edit(~/.yarnrc)",
+      "Write(~/.yarnrc)",
+
+      "Read(~/.yarnrc.yml)",
+      "Edit(~/.yarnrc.yml)",
+      "Write(~/.yarnrc.yml)",
+
+      "Edit(**/package-lock.json)",
+      "Write(**/package-lock.json)",
+
+      "Edit(**/pnpm-lock.yaml)",
+      "Write(**/pnpm-lock.yaml)",
+
+      "Edit(**/yarn.lock)",
+      "Write(**/yarn.lock)",
+
+      "Read(**/.env)",
+      "Edit(**/.env)",
+      "Write(**/.env)",
+      "Read(**/.env.*)",
+      "Edit(**/.env.*)",
+      "Write(**/.env.*)",
+
+      "Read(**/*.pem)",
+      "Edit(**/*.pem)",
+      "Write(**/*.pem)",
+
+      "Read(**/*.key)",
+      "Edit(**/*.key)",
+      "Write(**/*.key)",
+
+      "Read(**/*-key.json)",
+      "Edit(**/*-key.json)",
+
+      "Read(**/secrets/**)",
+      "Edit(**/secrets/**)",
+      "Write(**/secrets/**)",
+
+      "Read(**/*.p12)",
+      "Read(**/*.pfx)",
+      "Read(**/*.jks)",
+
+      "Read(~/.netrc)",
+      "Edit(~/.netrc)",
+      "Write(~/.netrc)",
+
+
+      "Read(**/credentials/**)",
+      "Read(**/credentials.json)",
+      "Edit(**/credentials.json)",
+      "Write(**/credentials.json)",
+
+      "Read(~/.git-credentials)",
+
+      "Read(~/.gitconfig)",
+
+      "Read(~/.config/gh/hosts.yml)",
+
+      "Read(~/.aws/**)",
+      "Edit(~/.aws/**)",
+      "Write(~/.aws/**)",
+
+      "Read(~/.config/gcloud/**)",
+      "Edit(~/.config/gcloud/**)",
+      "Write(~/.config/gcloud/**)",
+
+      "Read(~/.config/terraform/**)",
+      "Read(~/.terraform.d/**)",
+      "Read(**/.terraform.tfstate*)",
+      "Read(~/.terraformrc)",
+
+      "Read(~/.docker/config.json)",
+      "Edit(~/.docker/config.json)",
+      "Write(~/.docker/config.json)",
+
+      "Read(~/.config/Code/User/globalStorage/**)",
+
+      "Read(~/.zsh_history)",
+
+      "Read(**/service-account*.json)",
+
+      "Bash(dd *)",
+      "Bash(diskutil apfs changePassphrase)",
+      "Bash(diskutil apfs decryptVolume)",
+      "Bash(diskutil apfs deleteContainer)",
+      "Bash(diskutil apfs deleteSnapshot)",
+      "Bash(diskutil apfs deleteVolume)",
+      "Bash(diskutil apfs deleteVolumeGroup)",
+      "Bash(diskutil apfs eraseVolume)",
+      "Bash(diskutil appleRAID)",
+      "Bash(diskutil coreStorage)",
+      "Bash(diskutil cs)",
+      "Bash(diskutil disableJournal)",
+      "Bash(diskutil disableOwnership)",
+      "Bash(diskutil eraseDisk)",
+      "Bash(diskutil eraseVolume)",
+      "Bash(diskutil partitionDisk)",
+      "Bash(diskutil randomDisk)",
+      "Bash(diskutil reformat)",
+      "Bash(diskutil resetFusion)",
+      "Bash(diskutil zeroDisk)",
+      "Bash(gh pr merge *)",
+      "Bash(git clean -f *)",
+      "Bash(git clean -fd *)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git push origin main)",
+      "Bash(git push origin master)",
+      "Bash(git reset --hard *)",
+      "Bash(mkfs *)",
+      "Bash(rm -rf *)",
+      "Bash(shred *)",
+      "Bash(sudo *)"
+    ],
+    "allow": [
+      "WebFetch",
+      "WebSearch",
+
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(head:*)",
+      "Bash(ls:*)",
+      "Bash(make:*)",
+      "Bash(mkdir:*)",
+      "Bash(rg:*)",
+      "Bash(tail:*)",
+      "Bash(tree:*)",
+      "Bash(wc:*)",
+      "Bash(which:*)",
+      "Bash(xargs:*)",
+
+      "Bash(gh:*)",
+      "Bash(glab:*)",
+      "Bash(acli:*)",
+      "Bash(pgcli:*)",
+      "Bash(sentry:*)"
+    ]
+  },
+  "preferredNotifChannel": "ghostty",
+  "showThinkingSummaries": true,
+  "skipDangerousModePermissionPrompt": true,
   "voiceEnabled": false,
-  "alwaysThinkingEnabled": true,
+  "theme": "dark-ansi",
+
   "sandbox": {
     "enabled": true,
     "allowUnsandboxedCommands": false,
     "autoAllowBashIfSandboxed": true,
     "enableWeakerNetworkIsolation": true,
-    "excludedCommands": ["gh", "glab", "acli"],
-    "failIfUnavailable": false,
+    "excludedCommands": ["pgcli", "gh", "glab", "acli", "sentry"],
     "filesystem": {
       "denyRead": [
         "~/.ssh",
@@ -62,7 +200,8 @@
         "~/.terraform.d/credentials.tfrc.json"
       ],
       "allowRead": [
-        "~/.config/gh"
+        "~/.config/gh",
+        "~/.lima"
       ],
       "allowWrite": [
         ".",
@@ -74,6 +213,7 @@
       "allowedDomains": [
         "registry.npmjs.org",
         "registry.yarnpkg.com",
+        "*.sentry.io",
         "github.com",
         "api.github.com",
         "*.githubusercontent.com",
