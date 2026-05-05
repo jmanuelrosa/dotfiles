@@ -78,6 +78,10 @@ set -gx LC_COLLATE C
 # zoxide configuration
 set -gx _ZO_ECHO 1
 
+# franciscolourenco/done config
+set -g __done_min_cmd_duration 10000
+set -g __done_exclude '^(nano|less|more|man|ssh|claude|lazygit|btop|htop|ctop|nnn|fzf|fish|bash)'
+
 # pnpm
 set -gx PNPM_HOME "$HOME/Library/pnpm"
 if not string match -q -- $PNPM_HOME $PATH
