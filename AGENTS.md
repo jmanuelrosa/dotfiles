@@ -16,7 +16,7 @@ roles/<name>/
 Roles of note:
 
 - `roles/ai/` — AI tooling (Claude Code, Gemini, Pi). Skills under `files/claude/skills/` are shared with Pi via symlink.
-- `roles/apps/` — general developer apps; sub-tasks under `tasks/*.yml` handle config symlinks. Brew installs are driven by `BREW_PACKAGES` in `defaults/main.yml`. NPM globals in `tasks/npm-packages.yml`.
+- `roles/apps/` — general developer apps; sub-tasks under `tasks/*.yml` handle config symlinks. Brew installs are driven by `BREW_PACKAGES` in `defaults/main.yml`.
 - `roles/coreutils/` — modern Unix-replacement utilities (bat, eza, fd, fzf, ripgrep, btop, etc.). Configs symlinked from `files/`. Note: this is *not* the GNU `coreutils` package — these are individual modern alternatives. Domain-specific CLIs (awscli, gh, docker, lazygit, etc.) live in the `apps` role next to their configs.
 - `roles/macos/` — `osx_defaults` plus nvram/pmset firmware tweaks.
 - `roles/shell/` — fish config, functions, and helpers (e.g. `claude-skill`, `claude-agent`).

@@ -1,9 +1,0 @@
-# Ansible role to install and configure all development apps
-# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
----
-
-- name: Install npm packages
-  ansible.builtin.command: "bun install -g {{ item }}"
-  loop: "{{ NPM_PACKAGES }}"
-  register: bun_install
-  changed_when: "'installed' in bun_install.stdout"

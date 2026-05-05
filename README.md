@@ -150,7 +150,7 @@ Google Chrome, Zen, Brave, Helium
 
 ### Development
 
-Git, git-delta, LazyGit, GitHub CLI, GitLab CLI (glab), fnm (Node version manager), Bun, Sentry CLI, Bruno (API client)
+Git, git-delta, LazyGit, GitHub CLI, GitLab CLI (glab), fnm (Node version manager), Bun, Sentry CLI, Bruno (API client) + Bruno CLI
 
 ### AI
 
@@ -192,9 +192,6 @@ Slack, Discord, WhatsApp
 
 TradingView, Bitwarden, Notion, Figma, SF Symbols, NextDNS
 
-### NPM Packages
-
-GitHub Copilot, Pi Coding Agent
 
 ## License
 

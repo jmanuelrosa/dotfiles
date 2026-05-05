@@ -13,6 +13,7 @@ BREW_PACKAGES:
   formulas:
     - gemini-cli
     - ollama
+    - pi-coding-agent
   casks:
     - chatgpt
     - claude

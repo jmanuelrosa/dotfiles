@@ -1,13 +1,9 @@
 # Ansible defaults for the apps role
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 #
-# Versions are intentionally NOT pinned for VSCODE_EXTENSIONS and NPM_PACKAGES:
-#   VSCODE_EXTENSIONS — VSCode's built-in extension auto-update runs in the
-#       background regardless of what the playbook installed, so pinning at
-#       install time is bypassed within hours.
-#   NPM_PACKAGES      — these are dev tools where the user wants `latest`
-#       on every fresh install. Pin a specific entry by appending `@x.y.z`
-#       (e.g. `"@github/copilot@1.2.3"`) if a specific version is required.
+# Versions are intentionally NOT pinned for VSCODE_EXTENSIONS — VSCode's
+# built-in extension auto-update runs in the background regardless of what
+# the playbook installed, so pinning at install time is bypassed within hours.
 ---
 
 VSCODE_EXTENSIONS:
@@ -21,10 +17,6 @@ VSCODE_EXTENSIONS:
   - Prisma.prisma
   - bradlc.vscode-tailwindcss
 
-NPM_PACKAGES:
-  - "@github/copilot"
-  - "@mariozechner/pi-coding-agent"
-
 BREW_PACKAGES:
   taps:
     - oven-sh/bun
@@ -33,6 +25,7 @@ BREW_PACKAGES:
     - nikitabobko/tap
   formulas:
     # Development
+    - bruno-cli
     - git
     - git-delta
     - lazygit

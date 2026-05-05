@@ -30,5 +30,3 @@
   ansible.builtin.include_tasks: infrastructure.yml
 - name: Configure system apps
   ansible.builtin.include_tasks: system.yml
-- name: Install npm packages
-  ansible.builtin.include_tasks: npm-packages.yml
