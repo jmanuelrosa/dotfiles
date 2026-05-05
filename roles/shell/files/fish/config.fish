@@ -65,14 +65,8 @@ set -gx FZF_DEFAULT_OPTS '
   --bind "ctrl-y:execute(echo {+} | pbcopy)"
   --bind \'ctrl-r:transform:if not string match -q "Hidden*" $FZF_PROMPT; echo "change-prompt(Hidden files> )+reload:fd --type f --hidden --follow --no-ignore --color always"; else; echo "change-prompt(Files&Directories> )+reload:fd --hidden --follow --color always --exclude .git --exclude node_modules --exclude .venv"; end\'
 '
-set fzf_history_opts --sort --exact --history-size=30000
-set fzf_fd_opts --hidden --follow --exclude=.git
-set fzf_preview_dir_cmd eza -T -la --git --group-directories-first --icons --color=always
-set fzf_directory_opts --prompt "Files&Directories> " --bind "ctrl-o:execute($EDITOR {+} &> /dev/tty)"
 
-fzf_configure_bindings --git_status=\e\cs --git_log=\e\cl --directory=\cp --history=\e\cr --processes=\e\cp --variables=\e\ce
-
-# ripgrep settings
+# ripgrep options
 set -gx RIPGREP_CONFIG_PATH $HOME/.config/ripgrep/config
 
 # SSH environment file
@@ -80,6 +74,9 @@ set -gx SSH_ENV $HOME/.ssh/environment
 
 # set custom collation rule - sort dotfiles first, followed by uppercase and lowercase filenames
 set -gx LC_COLLATE C
+
+# zoxide configuration
+set -gx _ZO_ECHO 1
 
 # pnpm
 set -gx PNPM_HOME "$HOME/Library/pnpm"
