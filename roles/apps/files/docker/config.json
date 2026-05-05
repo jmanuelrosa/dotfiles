@@ -4,5 +4,8 @@
 	"currentContext": "colima",
 	"cliPluginsExtraDirs": [
 		"/opt/homebrew/lib/docker/cli-plugins"
-	]
+	],
+	"credHelpers": {
+		"europe-docker.pkg.dev": "gcloud"
+	}
 }

@@ -44,6 +44,7 @@ BREW_PACKAGES:
     - docker
     - docker-compose
     - docker-buildx
+    - docker-credential-helper
     # Multimedia
     - mpv
     # System / window management
