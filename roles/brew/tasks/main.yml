@@ -18,7 +18,8 @@
   community.general.homebrew:
     update_homebrew: true
 
-- name: Install Mac App Store command-line interface (mas)
+- name: Install brew-role formulas (mas, ansible, ansible-lint)
   community.general.homebrew:
-    name: mas
+    name: "{{ BREW_PACKAGES.formulas | default([]) }}"
     state: present
+  when: BREW_PACKAGES.formulas | default([]) | length > 0

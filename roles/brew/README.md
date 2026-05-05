@@ -1,16 +1,16 @@
 # brew
 
-Bootstraps Homebrew itself, plus the `mas` CLI for Mac App Store automation.
+Bootstraps Homebrew itself, plus the tooling that other roles assume is already on PATH (`mas`, `ansible`, `ansible-lint`).
 
 ## What it does
 
 - Installs Homebrew if missing (via the official `install.sh`).
 - Runs `brew update`.
-- Installs the `mas` formula (used by the `security` role).
+- Installs `BREW_PACKAGES.formulas`: `mas` (used by `security` role), `ansible` and `ansible-lint` (used by `make lint` and CI).
 
 ## Vars
 
-None.
+- `BREW_PACKAGES` (defaults/main.yml) — formulas: `mas`, `ansible`, `ansible-lint`.
 
 ## Side effects
 

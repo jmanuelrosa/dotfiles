@@ -17,4 +17,5 @@ BREW_PACKAGES:
     - chatgpt
     - claude
     - claude-code
+    - cursor
     - steipete/tap/codexbar

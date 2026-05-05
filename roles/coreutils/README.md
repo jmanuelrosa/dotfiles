@@ -11,7 +11,7 @@ Installs modern replacements for traditional Unix utilities, plus the configs th
 
 ## Vars
 
-- `BREW_PACKAGES` (defaults/main.yml) — formulas only: bat, btop, duf, eza, fastfetch, fd, fzf, httpie, hyperfine, nnn, ripgrep, scc, wget, zoxide, unar.
+- `BREW_PACKAGES` (defaults/main.yml) — formulas only: bat, btop, duf, eza, fastfetch, fd, fzf, httpie, hyperfine, nnn, ripgrep, scc, vnstat, wget, zoxide, unar.
 
 ## Files
 

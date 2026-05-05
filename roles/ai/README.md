@@ -4,14 +4,14 @@ Installs and configures AI tooling: Claude Code, Gemini CLI, Pi (mariozechner), 
 
 ## What it does
 
-- Installs gemini-cli, ollama, and casks for ChatGPT/Claude/Claude Code/CodexBar via `BREW_PACKAGES`.
+- Installs gemini-cli, ollama, and casks for ChatGPT/Claude/Claude Code/Cursor/CodexBar via `BREW_PACKAGES`.
 - Symlinks per-tool configs into `~/.claude/`, `~/.gemini/`, `~/.pi/agent/`.
 - Symlinks `files/claude/skills/` into `~/.pi/agent/skills/` so Claude skills are reusable from the Pi agent.
 - Kills any running `ollama serve` so it stays on-demand.
 
 ## Vars
 
-- `BREW_PACKAGES` (defaults/main.yml) — taps (`steipete/tap`), formulas (gemini-cli, ollama), casks (chatgpt, claude, claude-code, codexbar).
+- `BREW_PACKAGES` (defaults/main.yml) — taps (`steipete/tap`), formulas (gemini-cli, ollama), casks (chatgpt, claude, claude-code, cursor, codexbar).
 - `OLLAMA_MODELS` (defaults/main.yml) — list of models to pull manually with `ollama pull`. Not pulled by the playbook.
 
 ## Why npm install isn't here

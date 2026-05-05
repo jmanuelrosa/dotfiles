@@ -1,6 +1,6 @@
 CURRENT_DIR: "{{ playbook_dir }}"
-USER: "{{ ansible_user_id }}"
-HOME: "{{ ansible_env.HOME }}"
+USER: "{{ ansible_facts['user_id'] }}"
+HOME: "{{ ansible_facts['env']['HOME'] }}"
 
 # Active profile. Override at the CLI: `ansible-playbook -e profile=work`.
 # `make run PROFILE=work` does this for you.

@@ -67,16 +67,24 @@ BREW_PACKAGES:
     - whatsapp
     # Databases
     - dbeaver-community
+    # Development
+    - bruno
     # Editors
     - visual-studio-code
     # Infrastructure
     - gcloud-cli
     # Multimedia
+    - blackhole-16ch
     - spotify
+    - vlc
     # System / window management
+    - maccy
     - nikitabobko/tap/aerospace
     - font-fira-code-nerd-font
     - logi-options+
     # Other
     - bitwarden
+    - figma
+    - notion
+    - sf-symbols
     - tradingview

@@ -1,0 +1,15 @@
+# Ansible defaults for the brew role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+#
+# Tooling installed alongside Homebrew itself:
+#   mas          — Mac App Store CLI, required by the security role
+#   ansible      — bootstrap.sh installs this manually on a fresh machine,
+#                  but declaring it here keeps re-runs honest
+#   ansible-lint — used by `make lint` and CI
+---
+
+BREW_PACKAGES:
+  formulas:
+    - mas
+    - ansible
+    - ansible-lint

@@ -169,10 +169,10 @@ OSX_DEFAULTS:
     type: bool
     value: false
     state: present
-  # Set the icon size of Dock items to 36 pixels
+  # Set the icon size of Dock items to 36 pixels (Dock stores this as a float)
   - domain: com.apple.dock
     key: tilesize
-    type: int
+    type: float
     value: 36
     state: present
   # Minimize windows into their application's icon

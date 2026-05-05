@@ -142,7 +142,7 @@ See [`AGENTS.md`](AGENTS.md) for layout conventions, commit style, and role anat
 
 ### CLI Utilities
 
-bat, btop, duf, eza, fastfetch, fd, fzf, httpie, hyperfine, nnn, ripgrep, scc, wget, zoxide, unar (modern Unix replacements; configs managed under `roles/coreutils/files/`)
+bat, btop, duf, eza, fastfetch, fd, fzf, httpie, hyperfine, nnn, ripgrep, scc, vnstat, wget, zoxide, unar (modern Unix replacements; configs managed under `roles/coreutils/files/`)
 
 ### Browsers
 
@@ -150,11 +150,11 @@ Google Chrome, Zen, Brave, Helium
 
 ### Development
 
-HTTPie, Git, git-delta, LazyGit, GitHub CLI, GitLab CLI (glab), fnm (Node version manager), Bun, scc, hyperfine, Sentry CLI
+Git, git-delta, LazyGit, GitHub CLI, GitLab CLI (glab), fnm (Node version manager), Bun, Sentry CLI, Bruno (API client)
 
 ### AI
 
-Gemini CLI, Ollama, ChatGPT, Claude, Claude Code, CodexBar
+Gemini CLI, Ollama, ChatGPT, Claude, Claude Code, Cursor, CodexBar
 
 Claude Code skills are managed per-project using the `claude-skill` function:
 
@@ -178,11 +178,11 @@ AWS CLI, Colima, Docker, Docker Compose, Docker Buildx, ctop, Google Cloud CLI
 
 ### Multimedia
 
-mpv, Spotify
+mpv, Spotify, VLC, BlackHole (16ch virtual audio)
 
 ### System & Window Management
 
-Aerospace (tiling window manager), FiraCode Nerd Font, Logi Options+, Mole
+Aerospace (tiling window manager), FiraCode Nerd Font, Logi Options+, Mole, Maccy (clipboard manager)
 
 ### Communication
 
@@ -190,7 +190,7 @@ Slack, Discord, WhatsApp
 
 ### Other
 
-nnn (file manager), TradingView, Bitwarden, NextDNS
+TradingView, Bitwarden, Notion, Figma, SF Symbols, NextDNS
 
 ### NPM Packages
 

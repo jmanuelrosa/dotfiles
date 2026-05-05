@@ -2,11 +2,15 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
+# `recurse: true` would chmod everything inside the directory, which on a
+# case-insensitive macOS volume means `~/developer` resolves to `~/Developer`
+# — including the dotfiles repo itself. Just ensure the dirs exist; don't
+# touch their contents.
 - name: Ensure user directories exist
   ansible.builtin.file:
     path: "{{ HOME }}/{{ item }}"
     state: directory
-    recurse: true
+    mode: "0755"
   with_items:
     - pictures
     - downloads
