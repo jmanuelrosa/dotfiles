@@ -1,0 +1,12 @@
+# Overrides applied when `profile=work`.
+# Loaded explicitly by dotfiles.yml's pre_tasks based on the active profile,
+# not by Ansible's host_vars auto-loading (the inventory hostname is
+# `localhost`, not the profile name).
+---
+
+# Extra SSH keys deployed in addition to the base SSH_KEYS list.
+# Vars referenced here come from vars/work.yml (vault-encrypted).
+SSH_KEYS_EXTRA:
+  - name: id_didomi
+    content: "{{ SSH_DIDOMI_KEY }}"
+    public: "{{ SSH_DIDOMI_PUBLIC }}"

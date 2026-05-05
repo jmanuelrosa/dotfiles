@@ -2,72 +2,72 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Load AI variables
-  ansible.builtin.include_vars: vars/main.yml
+- name: Add Homebrew taps for AI tooling
+  community.general.homebrew_tap:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ BREW_PACKAGES.taps | default([]) }}"
 
 - name: Install AI formulas
   community.general.homebrew:
-    name: "{{ AI_FORMULAS }}"
+    name: "{{ BREW_PACKAGES.formulas | default([]) }}"
     state: present
+  when: BREW_PACKAGES.formulas | default([]) | length > 0
 
 - name: Install AI casks
   community.general.homebrew_cask:
-    name: "{{ AI_CASKS }}"
+    name: "{{ BREW_PACKAGES.casks | default([]) }}"
     state: present
+  when: BREW_PACKAGES.casks | default([]) | length > 0
 
-- name: Creating gemini config directory
+- name: Ensure gemini config directory exists
   ansible.builtin.file:
     path: "{{ HOME }}/.gemini"
     state: directory
     mode: "0755"
 
-- name: Configuring gemini
+- name: Symlink gemini config
   ansible.builtin.file:
     src: "{{ role_path }}/files/gemini/settings.json"
     dest: "{{ HOME }}/.gemini/settings.json"
     state: link
     force: true
 
-- name: Configuring claude
+- name: Symlink claude config
   ansible.builtin.file:
     src: "{{ role_path }}/files/claude/settings.json"
     dest: "{{ HOME }}/.claude/settings.json"
     state: link
     force: true
 
-- name: Install AI npm packages
-  ansible.builtin.command: "bun install -g {{ item }}"
-  loop: "{{ AI_NPM_PACKAGES }}"
-  changed_when: false
-
-- name: Creating pi agent config directory
+- name: Ensure pi agent config directory exists
   ansible.builtin.file:
     path: "{{ HOME }}/.pi/agent"
     state: directory
     mode: "0755"
 
-- name: Configuring pi settings
+- name: Symlink pi settings
   ansible.builtin.file:
     src: "{{ role_path }}/files/pi/settings.json"
     dest: "{{ HOME }}/.pi/agent/settings.json"
     state: link
     force: true
 
-- name: Configuring pi models
+- name: Symlink pi models
   ansible.builtin.file:
     src: "{{ role_path }}/files/pi/models.json"
     dest: "{{ HOME }}/.pi/agent/models.json"
     state: link
     force: true
 
-- name: Configuring pi system prompt
+- name: Symlink pi system prompt
   ansible.builtin.file:
     src: "{{ role_path }}/files/pi/SYSTEM.md"
     dest: "{{ HOME }}/.pi/agent/SYSTEM.md"
     state: link
     force: true
 
-- name: Sharing claude skills with pi
+- name: Symlink claude skills into pi agent
   ansible.builtin.file:
     src: "{{ role_path }}/files/claude/skills"
     dest: "{{ HOME }}/.pi/agent/skills"

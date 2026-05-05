@@ -1,0 +1,80 @@
+# Ansible role for command-line utilities (bat, eza, fd, fzf, ripgrep, etc.)
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Ensure user config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config"
+    state: directory
+    mode: "0755"
+
+- name: Install CLI formulas
+  community.general.homebrew:
+    name: "{{ BREW_PACKAGES.formulas | default([]) }}"
+    state: present
+  when: BREW_PACKAGES.formulas | default([]) | length > 0
+
+- name: Ensure bat config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/bat"
+    state: directory
+    mode: "0755"
+
+- name: Symlink bat config
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/bat/config"
+    dest: "{{ HOME }}/.config/bat/config"
+    state: link
+    force: true
+
+- name: Ensure ripgrep config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/ripgrep"
+    state: directory
+    mode: "0755"
+
+- name: Symlink ripgrep config
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/ripgrep/config"
+    dest: "{{ HOME }}/.config/ripgrep/config"
+    state: link
+    force: true
+
+- name: Ensure eza config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/eza"
+    state: directory
+    mode: "0755"
+
+- name: Symlink eza theme
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/eza/theme.yml"
+    dest: "{{ HOME }}/.config/eza/theme.yml"
+    state: link
+    force: true
+
+- name: Ensure btop config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/btop"
+    state: directory
+    mode: "0755"
+
+- name: Symlink btop config
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/btop/btop.conf"
+    dest: "{{ HOME }}/.config/btop/btop.conf"
+    state: link
+    force: true
+
+- name: Ensure fastfetch config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/fastfetch"
+    state: directory
+    mode: "0755"
+
+- name: Symlink fastfetch config
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/fastfetch/config.jsonc"
+    dest: "{{ HOME }}/.config/fastfetch/config.jsonc"
+    state: link
+    force: true

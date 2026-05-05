@@ -1,6 +1,5 @@
 skip_list:
   - yaml[truthy]
-  - no-changed-when
   - var-naming
 
 warn_list:
@@ -10,3 +9,4 @@ exclude_paths:
   - inventory.yml  # INI format, not YAML — linter misdetects it
   - vars/secrets.yml
   - vars/work.yml
+  - roles/work/files/  # static config files, not Ansible YAML

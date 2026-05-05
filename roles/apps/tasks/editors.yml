@@ -2,21 +2,13 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Load system variables
-  ansible.builtin.include_vars: vars/main.yml
-
-- name: Install editors apps
-  community.general.homebrew_cask:
-    name: "{{ EDITORS_CASKS }}"
-    state: present
-
-- name: Creating VSCode User directory
+- name: Ensure VSCode User directory exists
   ansible.builtin.file:
     path: "{{ HOME }}/Library/Application Support/Code/User"
     state: directory
     mode: "0755"
 
-- name: Configuring VSCode
+- name: Symlink VSCode settings and keybindings
   ansible.builtin.file:
     src: "{{ role_path }}/files/vscode/{{ item }}"
     dest: "{{ HOME }}/Library/Application Support/Code/User/{{ item }}"
@@ -26,8 +18,13 @@
     - settings.json
     - keybindings.json
 
+- name: List installed VSCode extensions
+  ansible.builtin.command: code --list-extensions
+  register: vscode_installed
+  changed_when: false
+
 - name: Install VSCode extensions
   ansible.builtin.command: "code --install-extension {{ item }}"
   loop: "{{ VSCODE_EXTENSIONS }}"
-  register: result
-  changed_when: "'already installed' not in result.stdout"
+  when: item not in vscode_installed.stdout_lines
+  changed_when: true

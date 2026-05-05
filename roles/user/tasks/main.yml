@@ -2,7 +2,7 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Creating user directories
+- name: Ensure user directories exist
   ansible.builtin.file:
     path: "{{ HOME }}/{{ item }}"
     state: directory
@@ -12,7 +12,7 @@
     - downloads
     - developer
 
-- name: Linking all wallpapers
+- name: Symlink wallpapers
   ansible.builtin.file:
     src: "{{ role_path }}/files/wallpapers"
     dest: "{{ HOME }}/pictures/wallpapers"

@@ -1,0 +1,13 @@
+# Ansible Galaxy dependencies for this playbook.
+#
+# Install with:
+#     ansible-galaxy collection install -r requirements.yml
+#
+# Bump versions deliberately. Floating to "latest" defeats the point of
+# pinning, and Homebrew/Galaxy can land breaking changes between minors.
+
+---
+
+collections:
+  - name: community.general
+    version: 12.6.0

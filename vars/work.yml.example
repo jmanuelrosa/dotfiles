@@ -1,14 +1,43 @@
-# Example secrets file - Copy values to secrets.yml and encrypt with ansible-vault
+# Example vars file for the `work` role.
 #
-# To decrypt and edit: ansible-vault edit vars/secrets.yml
-# To encrypt: ansible-vault encrypt vars/secrets.yml
+# Copy this file to `vars/work.yml`, fill in real values, then encrypt it with
+# Ansible Vault so it can be committed safely:
+#
+#     cp vars/work.yml.example vars/work.yml
+#     # edit vars/work.yml with real values
+#     ansible-vault encrypt vars/work.yml
+#
+# To edit later:    ansible-vault edit vars/work.yml
+# To re-encrypt:    ansible-vault rekey vars/work.yml
+#
+# All keys below are required by the `work` role. If you do not use a given
+# integration, set the value to an empty string ("") rather than removing the
+# key, so the templates in roles/work/templates/exports.fish.j2 still render.
 
-# NPM Token for private package access
+---
+
+# --- Tokens ---------------------------------------------------------------
+
+# NPM token for private package registry access.
+# Consumed by: roles/work/templates/exports.fish.j2 (DID_NPM_TOKEN)
+#              roles/shell/templates/secrets.fish.j2 (re-exported as NPM_TOKEN)
 DID_NPM_TOKEN: "your-npm-token-here"
 
-# Jira credentials for s-task script
-DID_JIRA_EMAIL: "your-email@example.com"
-DID_JIRA_API_TOKEN: "your-jira-api-token-here"
+# FOSSA API key for license/security scanning.
+# Consumed by: roles/work/templates/exports.fish.j2
+FOSSA_API_KEY: "your-fossa-api-key-here"
 
-# Fossa Api Key
-FOSSA_API_KEY: your_actual_fossa_api_key
+# --- Work SSH key ---------------------------------------------------------
+# Used to authenticate against work git remotes. Generated with:
+#     ssh-keygen -t ed25519 -C "your-work-email@example.com" -f ~/.ssh/id_didomi
+#
+# Paste the full file contents (including header/footer lines) as a YAML
+# block scalar. Mode 0600 / 0644 is set automatically by the role.
+# Consumed by: roles/work/tasks/main.yml
+
+SSH_DIDOMI_KEY: |
+  -----BEGIN OPENSSH PRIVATE KEY-----
+  ...replace with the contents of ~/.ssh/id_didomi...
+  -----END OPENSSH PRIVATE KEY-----
+
+SSH_DIDOMI_PUBLIC: "ssh-ed25519 AAAA...replace with id_didomi.pub contents... your-work-email@example.com"

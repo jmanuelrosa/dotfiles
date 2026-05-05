@@ -1,0 +1,9 @@
+# Ansible vars for the security role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+# Mac App Store apps to install via `mas`. App IDs can be found with
+# `mas search <name>`.
+MAS_APPS:
+  - name: NextDNS
+    id: 1464122853

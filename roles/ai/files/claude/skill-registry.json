@@ -79,6 +79,12 @@
       "skills": [
         { "upstream_path": "skills_all/claude-code-analyzer", "local_path": "skills/code-analyzer", "name": "code-analyzer" }
       ]
+    },
+    "sndrgrdn/skills": {
+      "branch": "main",
+      "skills": [
+        { "upstream_path": "skills/grill-me", "local_path": "skills/grill-me", "name": "grill-me" }
+      ]
     }
   },
   "excluded": [
@@ -86,6 +92,7 @@
     { "name": "better-auth", "reason": "Consolidated from multiple sources" },
     { "name": "frontend-design", "reason": "Consolidated from multiple sources" },
     { "name": "humanizer", "reason": "No external source" },
-    { "name": "pr", "reason": "Locally authored" }
+    { "name": "pr", "reason": "Locally authored" },
+    { "name": "jira", "reason": "Locally authored" }
   ]
 }

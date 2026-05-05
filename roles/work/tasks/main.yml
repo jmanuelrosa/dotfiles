@@ -2,25 +2,25 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Load work variables
-  ansible.builtin.include_vars: vars/main.yml
-
-- name: Tap Atlassian Homebrew repository
+- name: Add Homebrew taps for work tooling
   community.general.homebrew_tap:
-    name: atlassian/homebrew-acli
+    name: "{{ item }}"
     state: present
+  loop: "{{ BREW_PACKAGES.taps | default([]) }}"
 
 - name: Install work formulas
   community.general.homebrew:
-    name: "{{ WORK_FORMULAS }}"
+    name: "{{ BREW_PACKAGES.formulas | default([]) }}"
     state: present
+  when: BREW_PACKAGES.formulas | default([]) | length > 0
 
 - name: Install work casks
   community.general.homebrew_cask:
-    name: "{{ WORK_CASKS }}"
+    name: "{{ BREW_PACKAGES.casks | default([]) }}"
     state: present
+  when: BREW_PACKAGES.casks | default([]) | length > 0
 
-- name: Generating exports with secrets
+- name: Render work secrets file from vault
   ansible.builtin.template:
     src: exports.fish.j2
     dest: "{{ HOME }}/.config/fish/conf.d/work-secrets.fish"
@@ -47,29 +47,12 @@
     state: directory
     mode: "0755"
 
-- name: Configuring glab
+- name: Copy glab config
   ansible.builtin.copy:
     src: "{{ role_path }}/files/glab/config.yml"
     dest: "{{ HOME }}/Library/Application Support/glab-cli/config.yml"
     mode: "0644"
     force: true
 
-- name: Creating SSH config directory
-  ansible.builtin.file:
-    path: "{{ HOME }}/.ssh"
-    state: directory
-    mode: "0700"
-
-- name: Loading SSH private key
-  ansible.builtin.copy:
-    content: "{{ SSH_DIDOMI_KEY }}"
-    dest: "{{ HOME }}/.ssh/id_didomi"
-    owner: "{{ USER }}"
-    mode: "0600"
-
-- name: Loading SSH public key
-  ansible.builtin.copy:
-    content: "{{ SSH_DIDOMI_PUBLIC }}"
-    dest: "{{ HOME }}/.ssh/id_didomi.pub"
-    owner: "{{ USER }}"
-    mode: "0644"
+# SSH keys (work and personal) are deployed by the `ssh` role from
+# SSH_KEYS + SSH_KEYS_EXTRA. host_vars/work.yml supplies the work key.

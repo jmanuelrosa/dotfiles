@@ -1,20 +1,7 @@
-# Ansible vars to use with the system role
+# Ansible defaults for the macos role
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 
 ---
-
-SYSTEM_APPS:
-  - bat
-  - duf
-  - eza
-  - fd
-  - fzf
-  - glances
-  - neofetch
-  - ripgrep
-  - wget
-  - zoxide
-  - unar
 
 OSX_DEFAULTS:
   # Keyboard: Set 15 ms key repeat

@@ -11,3 +11,4 @@
   become: true
   ansible.builtin.command: shutdown -r now
   when: user_input.user_input | lower == "yes"
+  changed_when: true

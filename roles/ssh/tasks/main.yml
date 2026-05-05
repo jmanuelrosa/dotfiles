@@ -1,23 +1,31 @@
-# Ansible role to configure all related to ssh keys and agent
+# Ansible role to deploy SSH keys.
+# Driven by SSH_KEYS (group_vars/all.yml) + SSH_KEYS_EXTRA (host_vars/<profile>.yml).
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Creating settings config directory
+- name: Ensure ~/.ssh exists
   ansible.builtin.file:
     path: "{{ HOME }}/.ssh"
     state: directory
     mode: "0700"
 
-- name: Loading SSH private key
+- name: Install SSH private keys
   ansible.builtin.copy:
-    content: "{{ SSH_KEY }}"
-    dest: "{{ HOME }}/.ssh/id_ed25519"
+    content: "{{ item.content }}"
+    dest: "{{ HOME }}/.ssh/{{ item.name }}"
     owner: "{{ USER }}"
     mode: "0600"
+  loop: "{{ SSH_KEYS + SSH_KEYS_EXTRA }}"
+  loop_control:
+    label: "{{ item.name }}"
+  no_log: true
 
-- name: Loading SSH public key
+- name: Install SSH public keys
   ansible.builtin.copy:
-    content: "{{ SSH_PUBLIC }}"
-    dest: "{{ HOME }}/.ssh/id_ed25519.pub"
+    content: "{{ item.public }}"
+    dest: "{{ HOME }}/.ssh/{{ item.name }}.pub"
     owner: "{{ USER }}"
     mode: "0644"
+  loop: "{{ SSH_KEYS + SSH_KEYS_EXTRA }}"
+  loop_control:
+    label: "{{ item.name }}"

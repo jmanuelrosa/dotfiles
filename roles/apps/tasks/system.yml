@@ -2,20 +2,7 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Load system variables
-  ansible.builtin.include_vars: vars/main.yml
-
-- name: Install system formulas
-  community.general.homebrew:
-    name: "{{ SYSTEM_FORMULAS }}"
-    state: present
-
-- name: Install system casks
-  community.general.homebrew_cask:
-    name: "{{ SYSTEM_CASKS }}"
-    state: present
-
-- name: Configuring aerospace
+- name: Symlink aerospace config
   ansible.builtin.file:
     src: "{{ role_path }}/files/.aerospace.toml"
     dest: "{{ HOME }}/.aerospace.toml"

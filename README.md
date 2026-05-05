@@ -25,7 +25,7 @@ This clones the repo, installs Homebrew, Ansible, and runs the full playbook.
 git clone https://github.com/jmanuelrosa/dotfiles.git
 cd dotfiles
 brew install ansible
-ansible-galaxy collection install community.general
+ansible-galaxy collection install -r requirements.yml
 ansible-playbook --inventory inventory.yml --ask-vault-password --ask-become-pass dotfiles.yml
 ```
 
@@ -35,6 +35,21 @@ ansible-playbook --inventory inventory.yml --ask-vault-password --ask-become-pas
 make run-role ROLE=shell
 ```
 
+### Multi-Mac profiles
+
+Two profiles ship out of the box: `personal` (default) and `work`. The active
+profile selects which roles run.
+
+```bash
+make run                     # personal profile (default)
+make run PROFILE=work        # adds the work role + extra SSH key
+make check PROFILE=work      # dry-run with work profile
+```
+
+Per-profile overrides live in [`host_vars/personal.yml`](host_vars/personal.yml)
+and [`host_vars/work.yml`](host_vars/work.yml). The role-to-profile mapping is
+in [`group_vars/all.yml`](group_vars/all.yml) under `profile_roles`.
+
 ## Roles
 
 Roles execute in order. Each role can be run individually using its tag.
@@ -42,7 +57,8 @@ Roles execute in order. Each role can be run individually using its tag.
 | Role | Tag | Description |
 |------|-----|-------------|
 | brew | `brew` | Installs and updates Homebrew, installs `mas` (Mac App Store CLI) |
-| system | `system` | Installs CLI utilities, configures macOS system preferences (keyboard, Finder, Dock, etc.) |
+| macos | `macos` | Configures macOS system preferences (keyboard, Finder, Dock) and firmware tweaks (boot sound, hibernation) |
+| coreutils | `coreutils` | Installs modern Unix-replacement utilities (bat, eza, fd, fzf, ripgrep, etc.) and links their configs. Domain-specific CLIs (awscli, gh, docker, etc.) live in `apps`. |
 | shell | `shell` | Sets up Fish shell, Ghostty terminal, Starship prompt, Fish plugins |
 | ssh | `ssh` | Loads SSH keys into `~/.ssh` |
 | user | `user` | Creates user directories (`~/developer`, `~/pictures`, `~/downloads`) and links wallpapers |
@@ -72,10 +88,24 @@ All commands are available through the Makefile.
 |---------|-------------|
 | `make run` | Execute the full playbook |
 | `make run-role ROLE=shell` | Execute a specific role |
+| `make verify` | Smoke-test that core tools and config symlinks are in place |
+| `make deps` | Install / refresh pinned Ansible collections from `requirements.yml` |
 
 ### VM Testing
 
-Requires [Tart](https://github.com/cirruslabs/tart) (`brew install cirruslabs/cli/tart`).
+Use a clean macOS VM via [Tart](https://github.com/cirruslabs/tart) to exercise a fresh-machine bootstrap without polluting your real Mac.
+
+```bash
+brew install cirruslabs/cli/tart    # one-time
+make vm-create                       # clones a clean macOS Sequoia base image
+make vm-start                        # boots the VM (leave running)
+make vm-ssh                          # opens a shell into the VM
+# inside the VM:
+bash <(curl -s https://raw.githubusercontent.com/jmanuelrosa/dotfiles/main/bootstrap.sh)
+make verify                          # confirm tools and configs landed
+exit                                  # back to host
+make vm-destroy                      # tear it down when finished
+```
 
 | Command | Description |
 |---------|-------------|
@@ -83,6 +113,22 @@ Requires [Tart](https://github.com/cirruslabs/tart) (`brew install cirruslabs/cl
 | `make vm-start` | Start the test VM |
 | `make vm-ssh` | SSH into the test VM |
 | `make vm-destroy` | Delete the test VM |
+
+## Customize
+
+This repo is set up for the author's machines, but is intended to be forkable.
+
+### For your own machine
+
+1. Fork the repo and clone it.
+2. Replace `vars/secrets.yml` with your own vault-encrypted file. Start from the keys listed in [`vars/work.yml.example`](vars/work.yml.example) and the secrets referenced under [`roles/shell/templates/secrets.fish.j2`](roles/shell/templates/secrets.fish.j2).
+3. Drop or replace the `work` role if you don't need work-specific tooling.
+4. Adjust `BREW_PACKAGES` (and other overridable values like `VSCODE_EXTENSIONS`, `FISH_PLUGINS`, `OSX_DEFAULTS`) in each role's `defaults/main.yml`. Per-profile overrides go in `host_vars/<profile>.yml`.
+5. Run `make check` first to preview, then `make run`.
+
+### Conventions and contributing
+
+See [`AGENTS.md`](AGENTS.md) for layout conventions, commit style, and role anatomy.
 
 ## What's Included
 
@@ -96,19 +142,19 @@ Requires [Tart](https://github.com/cirruslabs/tart) (`brew install cirruslabs/cl
 
 ### CLI Utilities
 
-bat, duf, eza, fd, fzf, glances, neofetch, ripgrep, wget, zoxide, unar
+bat, btop, duf, eza, fastfetch, fd, fzf, httpie, hyperfine, nnn, ripgrep, scc, wget, zoxide, unar (modern Unix replacements; configs managed under `roles/coreutils/files/`)
 
 ### Browsers
 
-Google Chrome, Zen, Brave
+Google Chrome, Zen, Brave, Helium
 
 ### Development
 
-HTTPie, Git, git-delta, LazyGit, GitHub CLI, fnm (Node version manager), Bun, scc, hyperfine
+HTTPie, Git, git-delta, LazyGit, GitHub CLI, GitLab CLI (glab), fnm (Node version manager), Bun, scc, hyperfine, Sentry CLI
 
 ### AI
 
-Gemini CLI, Ollama, ChatGPT, Cursor, Claude, Claude Code, CodexBar
+Gemini CLI, Ollama, ChatGPT, Claude, Claude Code, CodexBar
 
 Claude Code skills are managed per-project using the `claude-skill` function:
 
@@ -120,7 +166,7 @@ claude-skill remove vercel-react-best-practices # Remove it
 
 ### Editors
 
-VS Code, Zed
+VS Code
 
 ### Databases
 
@@ -128,7 +174,7 @@ libpq, pgcli, DBeaver
 
 ### Infrastructure
 
-AWS CLI, Docker, Docker Compose, Docker Buildx, Google Cloud CLI
+AWS CLI, Colima, Docker, Docker Compose, Docker Buildx, ctop, Google Cloud CLI
 
 ### Multimedia
 
@@ -148,7 +194,7 @@ nnn (file manager), TradingView, Bitwarden, NextDNS
 
 ### NPM Packages
 
-GitHub Copilot
+GitHub Copilot, Pi Coding Agent
 
 ## License
 

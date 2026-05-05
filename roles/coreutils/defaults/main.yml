@@ -1,0 +1,22 @@
+# Ansible defaults for the coreutils role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+
+---
+
+BREW_PACKAGES:
+  formulas:
+    - bat
+    - btop
+    - duf
+    - eza
+    - fastfetch
+    - fd
+    - fzf
+    - httpie
+    - hyperfine
+    - nnn
+    - ripgrep
+    - scc
+    - wget
+    - zoxide
+    - unar

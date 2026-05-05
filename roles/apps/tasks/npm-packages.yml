@@ -2,9 +2,8 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Load system variables
-  ansible.builtin.include_vars: vars/main.yml
-
 - name: Install npm packages
   ansible.builtin.command: "bun install -g {{ item }}"
   loop: "{{ NPM_PACKAGES }}"
+  register: bun_install
+  changed_when: "'installed' in bun_install.stdout"

@@ -12,6 +12,7 @@
   become_method: ansible.builtin.sudo
   ansible.builtin.shell: NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   when: not homebrew_check.stat.exists
+  changed_when: not homebrew_check.stat.exists
 
 - name: Update Homebrew
   community.general.homebrew:

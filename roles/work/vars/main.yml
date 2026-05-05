@@ -1,9 +1,0 @@
-# Ansible vars to use with the work role
-# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
----
-
-WORK_FORMULAS:
-  - acli
-
-WORK_CASKS:
-  - fossa

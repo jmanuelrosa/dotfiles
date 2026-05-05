@@ -127,6 +127,7 @@
       "Read(**/service-account*.json)",
 
       "Bash(dd *)",
+
       "Bash(diskutil apfs changePassphrase)",
       "Bash(diskutil apfs decryptVolume)",
       "Bash(diskutil apfs deleteContainer)",
@@ -146,6 +147,7 @@
       "Bash(diskutil reformat)",
       "Bash(diskutil resetFusion)",
       "Bash(diskutil zeroDisk)",
+
       "Bash(gh pr merge *)",
       "Bash(git clean -f *)",
       "Bash(git clean -fd *)",
@@ -154,10 +156,23 @@
       "Bash(git push origin main)",
       "Bash(git push origin master)",
       "Bash(git reset --hard *)",
+
       "Bash(mkfs *)",
+
       "Bash(rm -rf *)",
+
       "Bash(shred *)",
-      "Bash(sudo *)"
+
+      "Bash(sudo *)",
+
+      "Bash(find / *)",
+      "Bash(find /*)",
+      "Bash(find ~ *)",
+      "Bash(find ~/*)",
+      "Bash(find ..)",
+      "Bash(find .. *)",
+      "Bash(find ../*)"
+
     ],
     "allow": [
       "WebFetch",

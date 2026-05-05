@@ -2,18 +2,17 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Load variables
-  ansible.builtin.include_vars: vars/main.yml
-
 - name: Install shell formulas
   community.general.homebrew:
-    name: "{{ TERMINAL_FORMULAS }}"
+    name: "{{ BREW_PACKAGES.formulas | default([]) }}"
     state: present
+  when: BREW_PACKAGES.formulas | default([]) | length > 0
 
 - name: Install shell casks
   community.general.homebrew_cask:
-    name: "{{ TERMINAL_CASKS }}"
+    name: "{{ BREW_PACKAGES.casks | default([]) }}"
     state: present
+  when: BREW_PACKAGES.casks | default([]) | length > 0
 
 - name: Add fish as a known shell
   become: true
@@ -34,10 +33,10 @@
   args:
     executable: "{{ FISH_PATH }}"
   loop: "{{ FISH_PLUGINS }}"
-  register: result
-  ignore_errors: true
+  register: fisher_result
+  changed_when: "'Installing' in fisher_result.stdout or 'Updating' in fisher_result.stdout"
 
-- name: Creating settings config directory
+- name: Ensure shell config directories exist
   ansible.builtin.file:
     path: "{{ HOME }}/{{ item }}"
     state: directory
@@ -46,7 +45,7 @@
     - .config/fish
     - .config/ghostty
 
-- name: Creating backup directory for shell
+- name: Ensure backup directories exist
   ansible.builtin.file:
     path: "{{ CURRENT_DIR }}/backups/{{ item }}"
     state: directory
@@ -82,14 +81,14 @@
   when: item.stat.exists
   with_items: "{{ results.results }}"
 
-- name: Configuring Ghostty
+- name: Symlink Ghostty config
   ansible.builtin.file:
     src: "{{ role_path }}/files/ghostty/config"
     dest: "{{ HOME }}/.config/ghostty/config"
     state: link
     force: true
 
-- name: Configuring fish
+- name: Symlink fish config
   ansible.builtin.file:
     src: "{{ role_path }}/files/{{ item }}"
     dest: "{{ HOME }}/.config/{{ item }}"
@@ -106,14 +105,14 @@
     - fish/functions/claude-mcp.fish
     - fish/functions/claude-agent.fish
 
-- name: Configuring starship plugin
+- name: Symlink starship config
   ansible.builtin.file:
     src: "{{ role_path }}/files/starship.toml"
     dest: "{{ HOME }}/.config/starship.toml"
     state: link
     force: true
 
-- name: Generating exports with secrets
+- name: Render fish secrets file from vault
   ansible.builtin.template:
     src: secrets.fish.j2
     dest: "{{ HOME }}/.config/fish/conf.d/secrets.fish"

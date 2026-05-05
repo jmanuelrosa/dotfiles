@@ -16,5 +16,20 @@
   {
     "key": "cmd+i",
     "command": "workbench.view.extension.claude-sidebar-secondary"
+  },
+  {
+    "key": "shift+cmd+enter",
+    "command": "-notebook.cell.insertCodeCellAbove",
+    "when": "notebookCellListFocused && !inputFocus"
+  },
+  {
+    "key": "shift+cmd+enter",
+    "command": "workbench.action.toggleMaximizeEditorGroup",
+    "when": "editorPartMaximizedEditorGroup || editorPartMultipleEditorGroups"
+  },
+  {
+    "key": "cmd+k cmd+m",
+    "command": "-workbench.action.toggleMaximizeEditorGroup",
+    "when": "editorPartMaximizedEditorGroup || editorPartMultipleEditorGroups"
   }
 ]

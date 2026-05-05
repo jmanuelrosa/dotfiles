@@ -2,25 +2,7 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Load system variables
-  ansible.builtin.include_vars: vars/main.yml
-
-- name: Install development apps
-  community.general.homebrew:
-    name: "{{ DEVELOPMENT_FORMULAS }}"
-    state: present
-
-- name: Install databases formulas
-  community.general.homebrew:
-    name: "{{ DATABASE_FORMULAS }}"
-    state: present
-
-- name: Install databases casks
-  community.general.homebrew_cask:
-    name: "{{ DATABASE_CASKS }}"
-    state: present
-
-- name: Configuring git
+- name: Symlink git config and ignore
   ansible.builtin.file:
     src: "{{ role_path }}/files/{{ item }}"
     dest: "{{ HOME }}/{{ item }}"
@@ -30,7 +12,7 @@
     - .gitconfig
     - .gitignore
 
-- name: Configuring lazygit
+- name: Symlink lazygit config
   ansible.builtin.file:
     src: "{{ role_path }}/files/{{ item }}"
     dest: "{{ HOME }}/Library/Application Support/{{ item }}"
@@ -39,14 +21,14 @@
   with_items:
     - lazygit/config.yml
 
-- name: Configuring npmrc
+- name: Symlink npmrc
   ansible.builtin.file:
     src: "{{ role_path }}/files/.npmrc"
     dest: "{{ HOME }}/.npmrc"
     state: link
     force: true
 
-- name: Configuring gh (GitHub CLI)
+- name: Symlink gh (GitHub CLI) config
   ansible.builtin.file:
     src: "{{ role_path }}/files/gh/config.yml"
     dest: "{{ HOME }}/.config/gh/config.yml"
@@ -59,7 +41,7 @@
     state: directory
     mode: "0755"
 
-- name: Configuring pgcli
+- name: Symlink pgcli config
   ansible.builtin.file:
     src: "{{ role_path }}/files/pgcli/config"
     dest: "{{ HOME }}/.config/pgcli/config"

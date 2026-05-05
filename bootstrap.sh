@@ -9,8 +9,8 @@ printf "\e[1;34m  [⬇️]\e[0m Downloading and installing dependencies ...\e[0m
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 brew install git ansible
 
-printf "\e[1;34m  [⬇️]\e[0m Updating ansible ...\e[0m\n"
-ansible-galaxy collection install community.general
+printf "\e[1;34m  [⬇️]\e[0m Installing pinned ansible collections ...\e[0m\n"
+ansible-galaxy collection install -r requirements.yml
 
 printf "\e[1;33m  [⬇️]\e[0m Installing dotfiles ...\e[0m\n"
 ansible-playbook --inventory inventory.yml --ask-vault-password --ask-become-pass dotfiles.yml

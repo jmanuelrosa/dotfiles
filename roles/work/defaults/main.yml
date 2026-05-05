@@ -1,0 +1,12 @@
+# Ansible defaults for the work role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+# Secrets live in vars/work.yml (vault-encrypted) — see vars/work.yml.example.
+---
+
+BREW_PACKAGES:
+  taps:
+    - atlassian/homebrew-acli
+  formulas:
+    - acli
+  casks:
+    - fossa

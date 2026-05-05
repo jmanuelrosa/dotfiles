@@ -1,4 +1,4 @@
-# Ansible vars to use with the shell role
+# Ansible defaults for the shell role
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 
 ---
@@ -14,11 +14,11 @@ FISH_PLUGINS:
   - nickeb96/puffer-fish
   - PatrickF1/fzf.fish
 
-TERMINAL_FORMULAS:
-  - fish
-  - fisher
-  - starship
-  - gnupg
-
-TERMINAL_CASKS:
-  - ghostty
+BREW_PACKAGES:
+  formulas:
+    - fish
+    - fisher
+    - starship
+    - gnupg
+  casks:
+    - ghostty

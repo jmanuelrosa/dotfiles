@@ -72,6 +72,15 @@ set fzf_directory_opts --prompt "Files&Directories> " --bind "ctrl-o:execute($ED
 
 fzf_configure_bindings --git_status=\e\cs --git_log=\e\cl --directory=\cp --history=\e\cr --processes=\e\cp --variables=\e\ce
 
+# ripgrep settings
+set -gx RIPGREP_CONFIG_PATH $HOME/.config/ripgrep/config
+
+# SSH environment file
+set -gx SSH_ENV $HOME/.ssh/environment
+
+# set custom collation rule - sort dotfiles first, followed by uppercase and lowercase filenames
+set -gx LC_COLLATE C
+
 # pnpm
 set -gx PNPM_HOME "$HOME/Library/pnpm"
 if not string match -q -- $PNPM_HOME $PATH

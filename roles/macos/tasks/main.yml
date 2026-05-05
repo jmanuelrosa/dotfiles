@@ -1,0 +1,35 @@
+# Ansible role for macOS system preferences and firmware tweaks.
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+- name: Apply macOS user defaults
+  community.general.osx_defaults:
+    domain: "{{ item.domain }}"
+    key: "{{ item.key }}"
+    type: "{{ item.type }}"
+    value: "{{ item.value }}"
+    state: "{{ item.state }}"
+  loop: "{{ OSX_DEFAULTS }}"
+
+- name: Mute boot sound  # noqa: command-instead-of-shell
+  become: true
+  ansible.builtin.shell: nvram SystemAudioVolume=" "
+  changed_when: false  # nvram set is idempotent at the firmware level
+
+- name: Disable hibernation (speeds up entering sleep mode)
+  become: true
+  ansible.builtin.command: pmset -a hibernatemode 0
+  changed_when: false  # pmset re-applies same value as no-op
+
+- name: Remove the sleep image file and prevent recreation
+  become: true
+  ansible.builtin.shell: |
+    rm -f /Private/var/vm/sleepimage
+    touch /Private/var/vm/sleepimage
+    chflags uchg /Private/var/vm/sleepimage
+  changed_when: false  # uchg-locked file is effectively immutable; rerun is a no-op
+
+- name: Disable the sudden motion sensor (not useful for SSDs)
+  become: true
+  ansible.builtin.command: pmset -a sms 0
+  changed_when: false  # pmset re-applies same value as no-op

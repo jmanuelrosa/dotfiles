@@ -1,0 +1,7 @@
+# ctop config — managed via dotfiles
+# Format: TOML. See: https://github.com/bcicen/ctop
+
+[options]
+sortField = "state"
+columnsList = "name,cid,cpu,mem,net,io"
+refreshRate = 1000

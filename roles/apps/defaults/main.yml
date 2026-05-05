@@ -1,0 +1,82 @@
+# Ansible defaults for the apps role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+#
+# Versions are intentionally NOT pinned for VSCODE_EXTENSIONS and NPM_PACKAGES:
+#   VSCODE_EXTENSIONS — VSCode's built-in extension auto-update runs in the
+#       background regardless of what the playbook installed, so pinning at
+#       install time is bypassed within hours.
+#   NPM_PACKAGES      — these are dev tools where the user wants `latest`
+#       on every fresh install. Pin a specific entry by appending `@x.y.z`
+#       (e.g. `"@github/copilot@1.2.3"`) if a specific version is required.
+---
+
+VSCODE_EXTENSIONS:
+  - biomejs.biome
+  - EditorConfig.EditorConfig
+  - usernamehw.errorlens
+  - GitHub.github-vscode-theme
+  - YoavBls.pretty-ts-errors
+  - astro-build.astro-vscode
+  - Anthropic.claude-code
+  - Prisma.prisma
+  - bradlc.vscode-tailwindcss
+
+NPM_PACKAGES:
+  - "@github/copilot"
+  - "@mariozechner/pi-coding-agent"
+
+BREW_PACKAGES:
+  taps:
+    - oven-sh/bun
+    - getsentry/tools
+    - tw93/tap
+    - nikitabobko/tap
+  formulas:
+    # Development
+    - git
+    - git-delta
+    - lazygit
+    - gh
+    - glab
+    - fnm
+    - oven-sh/bun/bun
+    - getsentry/tools/sentry
+    # Databases
+    - libpq
+    - pgcli
+    # Infrastructure
+    - awscli
+    - colima
+    - ctop
+    - docker
+    - docker-compose
+    - docker-buildx
+    # Multimedia
+    - mpv
+    # System / window management
+    - tw93/tap/mole
+  casks:
+    # Browsers
+    - google-chrome
+    - zen
+    - brave-browser
+    - helium-browser
+    # Communication
+    - slack
+    - discord
+    - whatsapp
+    # Databases
+    - dbeaver-community
+    # Editors
+    - visual-studio-code
+    # Infrastructure
+    - gcloud-cli
+    # Multimedia
+    - spotify
+    # System / window management
+    - nikitabobko/tap/aerospace
+    - font-fira-code-nerd-font
+    - logi-options+
+    # Other
+    - bitwarden
+    - tradingview

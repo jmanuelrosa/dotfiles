@@ -7,26 +7,45 @@
     - vars/secrets.yml
     - vars/work.yml
 
+  pre_tasks:
+    - name: Load profile-specific overrides
+      ansible.builtin.include_vars: "host_vars/{{ profile }}.yml"
+
   roles:
     - role: brew
       tags: [brew]
-    - role: system
-      tags: [system]
+      when: "'brew' in profile_roles[profile]"
+    - role: macos
+      tags: [macos]
+      when: "'macos' in profile_roles[profile]"
+    - role: coreutils
+      tags: [coreutils]
+      when: "'coreutils' in profile_roles[profile]"
     - role: shell
       tags: [shell]
+      when: "'shell' in profile_roles[profile]"
     - role: ssh
       tags: [ssh]
+      when: "'ssh' in profile_roles[profile]"
     - role: user
       tags: [user]
+      when: "'user' in profile_roles[profile]"
     - role: apps
       tags: [apps]
+      when: "'apps' in profile_roles[profile]"
     - role: ai
       tags: [ai]
+      when: "'ai' in profile_roles[profile]"
     - role: security
       tags: [security]
+      when: "'security' in profile_roles[profile]"
     - role: work
       tags: [work]
+      when: "'work' in profile_roles[profile]"
     - role: cleanup
       tags: [cleanup]
+      when: "'cleanup' in profile_roles[profile]"
+    # Reboot is intentionally not profile-gated — the role itself prompts
+    # the user for yes/no, which serves as the opt-in mechanism.
     - role: reboot
       tags: [reboot]

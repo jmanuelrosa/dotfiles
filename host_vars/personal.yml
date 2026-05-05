@@ -1,0 +1,9 @@
+# Overrides applied when `profile=personal` (default).
+# Loaded explicitly by dotfiles.yml's pre_tasks based on the active profile,
+# not by Ansible's host_vars auto-loading (the inventory hostname is
+# `localhost`, not the profile name).
+---
+
+# No personal-only overrides yet. Add fields here to override anything
+# defined in group_vars/all.yml or in role defaults.
+{}

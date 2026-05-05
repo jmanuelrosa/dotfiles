@@ -1,3 +1,43 @@
 CURRENT_DIR: "{{ playbook_dir }}"
 USER: "{{ ansible_user_id }}"
 HOME: "{{ ansible_env.HOME }}"
+
+# Active profile. Override at the CLI: `ansible-playbook -e profile=work`.
+# `make run PROFILE=work` does this for you.
+profile: personal
+
+# Which roles each profile runs. The dotfiles.yml playbook gates each role
+# with `when: <name> in profile_roles[profile]`.
+profile_roles:
+  personal:
+    - brew
+    - macos
+    - coreutils
+    - shell
+    - ssh
+    - user
+    - apps
+    - ai
+    - security
+    - cleanup
+  work:
+    - brew
+    - macos
+    - coreutils
+    - shell
+    - ssh
+    - user
+    - apps
+    - ai
+    - security
+    - work
+    - cleanup
+
+# Personal SSH keys deployed by the `ssh` role on every profile.
+# Per-profile additions go in host_vars/<profile>.yml as SSH_KEYS_EXTRA.
+SSH_KEYS:
+  - name: id_ed25519
+    content: "{{ SSH_KEY }}"
+    public: "{{ SSH_PUBLIC }}"
+
+SSH_KEYS_EXTRA: []

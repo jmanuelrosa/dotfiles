@@ -2,21 +2,33 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Install browser apps
+- name: Add Homebrew taps for apps
+  community.general.homebrew_tap:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ BREW_PACKAGES.taps | default([]) }}"
+
+- name: Install app formulas
+  community.general.homebrew:
+    name: "{{ BREW_PACKAGES.formulas | default([]) }}"
+    state: present
+  when: BREW_PACKAGES.formulas | default([]) | length > 0
+
+- name: Install app casks
+  community.general.homebrew_cask:
+    name: "{{ BREW_PACKAGES.casks | default([]) }}"
+    state: present
+  when: BREW_PACKAGES.casks | default([]) | length > 0
+
+- name: Configure browser apps
   ansible.builtin.include_tasks: browsers.yml
-- name: Install chat apps
-  ansible.builtin.include_tasks: chat.yml
-- name: Install development apps
+- name: Configure development apps
   ansible.builtin.include_tasks: development.yml
-- name: Install editor apps
+- name: Configure editor apps
   ansible.builtin.include_tasks: editors.yml
-- name: Install infrastructure apps
+- name: Configure infrastructure apps
   ansible.builtin.include_tasks: infrastructure.yml
-- name: Install multimedia apps
-  ansible.builtin.include_tasks: multimedia.yml
-- name: Install system apps
+- name: Configure system apps
   ansible.builtin.include_tasks: system.yml
 - name: Install npm packages
   ansible.builtin.include_tasks: npm-packages.yml
-- name: Install other apps
-  ansible.builtin.include_tasks: other.yml

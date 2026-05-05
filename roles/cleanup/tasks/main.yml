@@ -2,11 +2,17 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Removing unnecessary dependencies ...
+- name: Remove unused Homebrew dependencies
   ansible.builtin.command: brew autoremove
+  register: brew_autoremove
+  changed_when: brew_autoremove.stdout != ""
 
-- name: Clearing cache ...
+- name: Prune Homebrew cache
   ansible.builtin.command: brew cleanup --prune=all
+  register: brew_prune
+  changed_when: brew_prune.stdout != ""
 
-- name: Removing unused versions ...
+- name: Remove old Homebrew versions
   ansible.builtin.command: brew cleanup
+  register: brew_cleanup
+  changed_when: brew_cleanup.stdout != ""

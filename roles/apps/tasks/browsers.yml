@@ -2,22 +2,14 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Load system variables
-  ansible.builtin.include_vars: vars/main.yml
-
-- name: Install browsers
-  community.general.homebrew_cask:
-    name: "{{ BROWSERS_CASKS }}"
-    state: present
-
-- name: Setting Harper (Grammar Checking That Respects Your Privacy|)
+- name: Symlink Harper config
   ansible.builtin.file:
     src: "{{ role_path }}/files/harper/config.toml"
     dest: "{{ HOME }}/.config/harper/config.toml"
     state: link
     force: true
 
-- name: Setting Harper dictionary
+- name: Symlink Harper dictionary
   ansible.builtin.file:
     src: "{{ role_path }}/files/harper/dictionary.txt"
     dest: "{{ HOME }}/Library/Application Support/harper-ls/dictionary.txt"

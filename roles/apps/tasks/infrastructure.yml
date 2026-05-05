@@ -2,25 +2,28 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Load system variables
-  ansible.builtin.include_vars: vars/main.yml
-
-- name: Install infrastructure formulas
-  community.general.homebrew:
-    name: "{{ INFRASTRUCTURE_FORMULAS }}"
-    state: present
-
-- name: Install infrastructure casks
-  community.general.homebrew_cask:
-    name: "{{ INFRASTRUCTURE_CASKS }}"
-    state: present
-
-- name: Configuring docker
+- name: Link docker formula
   ansible.builtin.command: brew link docker
+  register: docker_link
+  changed_when: "'Linking' in docker_link.stdout"
+  failed_when: docker_link.rc != 0 and 'Already linked' not in docker_link.stderr
 
-- name: Configuring docker plugins
+- name: Symlink docker config
   ansible.builtin.file:
     src: "{{ role_path }}/files/docker/config.json"
     dest: "{{ HOME }}/.docker/config.json"
+    state: link
+    force: true
+
+- name: Ensure ctop config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/ctop"
+    state: directory
+    mode: "0755"
+
+- name: Symlink ctop config
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/ctop/config"
+    dest: "{{ HOME }}/.config/ctop/config"
     state: link
     force: true

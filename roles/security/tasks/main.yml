@@ -1,10 +1,16 @@
-# Ansible role to install and configure all security apps
+# Ansible role to install Mac App Store security apps.
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Load system variables
-  ansible.builtin.include_vars: vars/main.yml
+- name: List installed Mac App Store apps
+  ansible.builtin.command: mas list
+  register: mas_installed
+  changed_when: false
 
-- name: Install security apps
-  ansible.builtin.command: "{{ item }}"
-  loop: "{{ SECURITY_APPS }}"
+- name: Install Mac App Store apps
+  ansible.builtin.command: "mas install {{ item.id }}"
+  loop: "{{ MAS_APPS }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.id | string not in mas_installed.stdout
+  changed_when: true

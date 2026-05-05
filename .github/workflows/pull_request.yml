@@ -45,7 +45,7 @@ jobs:
         run: |
           brew install ansible
           pip3 install ansible-lint --break-system-packages
-          ansible-galaxy collection install community.general
+          ansible-galaxy collection install -r requirements.yml
 
       - name: Run ansible-lint
         env:
@@ -55,10 +55,18 @@ jobs:
           ANSIBLE_VAULT_PASSWORD_FILE=/tmp/vault_pass ansible-lint
           rm -f /tmp/vault_pass
 
-      - name: Run syntax check
+      - name: Run syntax check (personal profile)
         env:
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
         run: |
           echo "$ANSIBLE_VAULT_PASSWORD" > /tmp/vault_pass
-          ansible-playbook --syntax-check --inventory inventory.yml --vault-password-file /tmp/vault_pass dotfiles.yml
+          ansible-playbook --syntax-check --inventory inventory.yml --vault-password-file /tmp/vault_pass --extra-vars "profile=personal" dotfiles.yml
+          rm -f /tmp/vault_pass
+
+      - name: Run syntax check (work profile)
+        env:
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+        run: |
+          echo "$ANSIBLE_VAULT_PASSWORD" > /tmp/vault_pass
+          ansible-playbook --syntax-check --inventory inventory.yml --vault-password-file /tmp/vault_pass --extra-vars "profile=work" dotfiles.yml
           rm -f /tmp/vault_pass

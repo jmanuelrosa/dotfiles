@@ -1,21 +1,20 @@
-# Ansible vars for the AI role
+# Ansible defaults for the ai role
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
-
-AI_FORMULAS:
-  - gemini-cli
-  - ollama
-
-AI_CASKS:
-  - chatgpt
-  - claude
-  - claude-code
-  - steipete/tap/codexbar
-
-AI_NPM_PACKAGES:
-  - "@mariozechner/pi-coding-agent"
 
 # Models to pull manually with `ollama pull <name>` when needed.
 # Not pulled by the playbook so Ollama stays fully on-demand.
 OLLAMA_MODELS:
   - qwen3:latest
+
+BREW_PACKAGES:
+  taps:
+    - steipete/tap
+  formulas:
+    - gemini-cli
+    - ollama
+  casks:
+    - chatgpt
+    - claude
+    - claude-code
+    - steipete/tap/codexbar
