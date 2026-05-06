@@ -14,10 +14,6 @@
     "when": "workbench.panel.chat.view.copilot.active"
   },
   {
-    "key": "cmd+i",
-    "command": "workbench.view.extension.claude-sidebar-secondary"
-  },
-  {
     "key": "shift+cmd+enter",
     "command": "-notebook.cell.insertCodeCellAbove",
     "when": "notebookCellListFocused && !inputFocus"
@@ -31,5 +27,13 @@
     "key": "cmd+k cmd+m",
     "command": "-workbench.action.toggleMaximizeEditorGroup",
     "when": "editorPartMaximizedEditorGroup || editorPartMultipleEditorGroups"
+  },
+  {
+    "key": "cmd+i",
+    "command": "workbench.action.toggleAuxiliaryBar"
+  },
+  {
+    "key": "alt+cmd+b",
+    "command": "-workbench.action.toggleAuxiliaryBar"
   }
 ]
