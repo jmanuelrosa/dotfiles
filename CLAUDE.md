@@ -8,7 +8,7 @@ Ansible-based macOS dotfiles for Darwin/arm64 (Apple Silicon). The playbook in [
 
 ## Common commands
 
-All workflows go through the [Makefile](Makefile). Vault password is prompted on every play (`--ask-vault-password`); `vars/secrets.yml` and `vars/work.yml` are encrypted.
+All workflows go through the [Makefile](Makefile). Every play prompts for two passwords: the vault password (`--ask-vault-password`, decrypts `vars/secrets.yml` / `vars/work.yml`) and the become password (`--ask-become-pass`, your macOS password, streamed to each `become: true` task via `sudo -S`). Touch ID isn't used for the become flow because Ansible's local connection plugin spawns sudo in a new session, which can't see tty-bound timestamps on macOS — the password prompt is the reliable path.
 
 | Command | Purpose |
 |---|---|
@@ -23,8 +23,6 @@ All workflows go through the [Makefile](Makefile). Vault password is prompted on
 | `make deps` | Install pinned collections from [requirements.yml](requirements.yml) |
 
 VM-based fresh-install testing uses [Tart](https://github.com/cirruslabs/tart): `make vm-create`, `make vm-start`, `make vm-ssh`, `make vm-destroy`.
-
-The Makefile wraps every `ansible-playbook` invocation in a sudo-keepalive loop because macOS sudo expires every 5 min and would kill long runs at the next `become: true` task. Don't strip it.
 
 ## Architecture
 
