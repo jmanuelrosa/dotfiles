@@ -223,7 +223,9 @@
       ],
       "allowRead": [
         "~/.config/gh",
-        "~/.lima"
+        "~/.lima",
+        "~/.gitconfig",
+        "~/.ssh/known_hosts"
       ],
       "allowWrite": [
         ".",
