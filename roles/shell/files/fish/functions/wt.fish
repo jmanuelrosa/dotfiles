@@ -26,8 +26,8 @@ function _wt_help
   echo "Subcommands:"
   echo "  add [-b <branch>] <dir>  Create worktree at sibling dir <dir>. Branch defaults"
   echo "                           to <dir>; pass -b/--branch to override (created from"
-  echo "                           develop > main > master). Copies env/.vscode, installs"
-  echo "                           deps if a lockfile is present, and cds into it."
+  echo "                           develop > main > master). Copies env/.vscode/.claude,"
+  echo "                           installs deps if a lockfile is present, and cds into it."
   echo "  list                     List all worktrees"
   echo "  remove <name>            Remove a worktree (by branch name or path)"
   echo "  prune                    Prune stale worktree metadata"
@@ -95,6 +95,11 @@ function _wt_add
   if test -d $main_wt/.vscode
     echo "→ Copying .vscode/"
     cp -R $main_wt/.vscode $target/
+  end
+
+  if test -d $main_wt/.claude
+    echo "→ Copying .claude/"
+    cp -R $main_wt/.claude $target/
   end
 
   cd $target
