@@ -72,13 +72,6 @@
   wip = "!git add --all; git c -m WIP"
   apf = "!git amend --no-verify --no-edit && git push --force"
 
-  # Worktree
-  wt = worktree
-  wt-l = worktree list
-  wt-a = worktree add
-  wt-r = worktree remove
-  wt-p = worktree prune
-
 [init]
 	defaultBranch = main
 
