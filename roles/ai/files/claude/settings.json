@@ -149,13 +149,30 @@
       "Bash(diskutil zeroDisk)",
 
       "Bash(gh pr merge *)",
+
+      "Bash(git branch -D *)",
+      "Bash(git checkout .)",
+      "Bash(git checkout -- *)",
       "Bash(git clean -f *)",
       "Bash(git clean -fd *)",
+      "Bash(git filter-branch *)",
+      "Bash(git filter-repo *)",
+      "Bash(git push --delete *)",
       "Bash(git push --force *)",
+      "Bash(git push --force-with-lease *)",
       "Bash(git push -f *)",
       "Bash(git push origin main)",
       "Bash(git push origin master)",
+      "Bash(git reflog expire *)",
       "Bash(git reset --hard *)",
+      "Bash(git restore .)",
+      "Bash(git restore --worktree *)",
+      "Bash(git stash clear)",
+      "Bash(git stash drop *)",
+      "Bash(git switch --discard-changes *)",
+      "Bash(git update-ref -d *)",
+      "Bash(git worktree remove --force *)",
+      "Bash(git worktree remove -f *)",
 
       "Bash(mkfs *)",
 
@@ -210,7 +227,7 @@
     "allowUnsandboxedCommands": false,
     "autoAllowBashIfSandboxed": true,
     "enableWeakerNetworkIsolation": true,
-    "excludedCommands": ["pgcli", "gh", "glab", "acli", "sentry", "bru-cli"],
+    "excludedCommands": ["pgcli", "git", "gh", "glab", "acli", "sentry", "bru-cli"],
     "filesystem": {
       "denyRead": [
         "~/.ssh",
