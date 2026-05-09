@@ -85,6 +85,12 @@
       "skills": [
         { "upstream_path": "skills/grill-me", "local_path": "skills/grill-me", "name": "grill-me" }
       ]
+    },
+    "currents-dev/playwright-best-practices-skill": {
+      "branch": "main",
+      "skills": [
+        { "upstream_path": "/", "local_path": "skills/playwright", "name": "playwright" }
+      ]
     }
   },
   "excluded": [
