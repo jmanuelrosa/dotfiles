@@ -1,17 +1,21 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "alwaysThinkingEnabled": true,
   "attribution": {
     "commit": "",
     "pr": ""
   },
-  "alwaysThinkingEnabled": true,
   "autoUpdatesChannel": "stable",
-  "availableModels": ["sonnet", "opus"],
+  "availableModels": [
+    "sonnet",
+    "opus"
+  ],
   "cleanupPeriodDays": 365,
   "effortLevel": "xhigh",
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true,
-    "code-simplifier@claude-plugins-official": true
+    "code-simplifier@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": true
   },
   "env": {
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
@@ -24,110 +28,103 @@
   "feedbackSurveyRate": 0,
   "fileCheckpointingEnabled": true,
   "minimumVersion": "2.1.92",
+
   "permissions": {
+    "allow": [
+      "WebFetch",
+      "WebSearch",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(head:*)",
+      "Bash(ls:*)",
+      "Bash(make:*)",
+      "Bash(mkdir:*)",
+      "Bash(rg:*)",
+      "Bash(tail:*)",
+      "Bash(tree:*)",
+      "Bash(wc:*)",
+      "Bash(which:*)",
+      "Bash(xargs:*)",
+      "Bash(gh:*)",
+      "Bash(glab:*)",
+      "Bash(acli:*)",
+      "Bash(pgcli:*)",
+      "Bash(sentry:*)",
+      "Bash(bru-cli:*)"
+    ],
     "deny": [
       "Read(~/.ssh/**)",
       "Edit(~/.ssh/**)",
       "Write(~/.ssh/**)",
-
       "Read(~/.gnupg/**)",
       "Edit(~/.gnupg/**)",
       "Write(~/.gnupg/**)",
-
       "Read(~/.npmrc)",
       "Edit(~/.npmrc)",
       "Write(~/.npmrc)",
-
       "Read(~/.config/npm/**)",
-
       "Read(~/.pnpmrc)",
       "Edit(~/.pnpmrc)",
       "Write(~/.pnpmrc)",
-
       "Read(~/.yarnrc)",
       "Edit(~/.yarnrc)",
       "Write(~/.yarnrc)",
-
       "Read(~/.yarnrc.yml)",
       "Edit(~/.yarnrc.yml)",
       "Write(~/.yarnrc.yml)",
-
       "Edit(**/package-lock.json)",
       "Write(**/package-lock.json)",
-
       "Edit(**/pnpm-lock.yaml)",
       "Write(**/pnpm-lock.yaml)",
-
       "Edit(**/yarn.lock)",
       "Write(**/yarn.lock)",
-
       "Read(**/.env)",
       "Edit(**/.env)",
       "Write(**/.env)",
       "Read(**/.env.*)",
       "Edit(**/.env.*)",
       "Write(**/.env.*)",
-
       "Read(**/*.pem)",
       "Edit(**/*.pem)",
       "Write(**/*.pem)",
-
       "Read(**/*.key)",
       "Edit(**/*.key)",
       "Write(**/*.key)",
-
       "Read(**/*-key.json)",
       "Edit(**/*-key.json)",
-
       "Read(**/secrets/**)",
       "Edit(**/secrets/**)",
       "Write(**/secrets/**)",
-
       "Read(**/*.p12)",
       "Read(**/*.pfx)",
       "Read(**/*.jks)",
-
       "Read(~/.netrc)",
       "Edit(~/.netrc)",
       "Write(~/.netrc)",
-
-
       "Read(**/credentials/**)",
       "Read(**/credentials.json)",
       "Edit(**/credentials.json)",
       "Write(**/credentials.json)",
-
       "Read(~/.git-credentials)",
-
       "Read(~/.gitconfig)",
-
       "Read(~/.config/gh/hosts.yml)",
-
       "Read(~/.aws/**)",
       "Edit(~/.aws/**)",
       "Write(~/.aws/**)",
-
       "Read(~/.config/gcloud/**)",
       "Edit(~/.config/gcloud/**)",
       "Write(~/.config/gcloud/**)",
-
       "Read(~/.config/terraform/**)",
       "Read(~/.terraform.d/**)",
       "Read(**/.terraform.tfstate*)",
       "Read(~/.terraformrc)",
-
       "Read(~/.docker/config.json)",
       "Edit(~/.docker/config.json)",
       "Write(~/.docker/config.json)",
-
       "Read(~/.config/Code/User/globalStorage/**)",
-
       "Read(~/.zsh_history)",
-
       "Read(**/service-account*.json)",
-
       "Bash(dd *)",
-
       "Bash(diskutil apfs changePassphrase)",
       "Bash(diskutil apfs decryptVolume)",
       "Bash(diskutil apfs deleteContainer)",
@@ -147,9 +144,7 @@
       "Bash(diskutil reformat)",
       "Bash(diskutil resetFusion)",
       "Bash(diskutil zeroDisk)",
-
       "Bash(gh pr merge *)",
-
       "Bash(git branch -D *)",
       "Bash(git checkout .)",
       "Bash(git checkout -- *)",
@@ -173,15 +168,10 @@
       "Bash(git update-ref -d *)",
       "Bash(git worktree remove --force *)",
       "Bash(git worktree remove -f *)",
-
       "Bash(mkfs *)",
-
       "Bash(rm -rf *)",
-
       "Bash(shred *)",
-
       "Bash(sudo *)",
-
       "Bash(find / *)",
       "Bash(find /*)",
       "Bash(find ~ *)",
@@ -189,46 +179,33 @@
       "Bash(find ..)",
       "Bash(find .. *)",
       "Bash(find ../*)"
-
-    ],
-    "allow": [
-      "WebFetch",
-      "WebSearch",
-
-      "Bash(find:*)",
-      "Bash(grep:*)",
-      "Bash(head:*)",
-      "Bash(ls:*)",
-      "Bash(make:*)",
-      "Bash(mkdir:*)",
-      "Bash(rg:*)",
-      "Bash(tail:*)",
-      "Bash(tree:*)",
-      "Bash(wc:*)",
-      "Bash(which:*)",
-      "Bash(xargs:*)",
-
-      "Bash(gh:*)",
-      "Bash(glab:*)",
-      "Bash(acli:*)",
-      "Bash(pgcli:*)",
-      "Bash(sentry:*)",
-      "Bash(bru-cli:*)"
     ]
   },
   "preferredNotifChannel": "ghostty",
-  "showThinkingSummaries": true,
-  "skipDangerousModePermissionPrompt": true,
-  "voiceEnabled": false,
-  "theme": "dark-ansi",
 
   "sandbox": {
     "enabled": true,
-    "allowUnsandboxedCommands": false,
     "autoAllowBashIfSandboxed": true,
-    "enableWeakerNetworkIsolation": true,
-    "excludedCommands": ["pgcli", "git", "gh", "glab", "acli", "sentry", "bru-cli"],
+    "allowUnsandboxedCommands": false,
+    "network": {
+      "allowedDomains": [
+        "registry.npmjs.org",
+        "registry.yarnpkg.com",
+        "*.sentry.io",
+        "github.com",
+        "api.github.com",
+        "*.githubusercontent.com",
+        "auth.atlassian.com",
+        "as.atlassian.com",
+        "api.atlassian.com"
+      ],
+      "allowLocalBinding": true
+    },
     "filesystem": {
+      "allowWrite": [
+        ".",
+        "/tmp"
+      ],
       "denyRead": [
         "~/.ssh",
         "~/.gnupg",
@@ -243,25 +220,22 @@
         "~/.lima",
         "~/.gitconfig",
         "~/.ssh/known_hosts"
-      ],
-      "allowWrite": [
-        ".",
-        "/tmp"
       ]
     },
-    "network": {
-      "allowLocalBinding": true,
-      "allowedDomains": [
-        "registry.npmjs.org",
-        "registry.yarnpkg.com",
-        "*.sentry.io",
-        "github.com",
-        "api.github.com",
-        "*.githubusercontent.com",
-        "auth.atlassian.com",
-        "as.atlassian.com",
-        "api.atlassian.com"
-      ]
-    }
-  }
+    "enableWeakerNetworkIsolation": true,
+    "excludedCommands": [
+      "pgcli",
+      "git",
+      "gh",
+      "glab",
+      "acli",
+      "sentry",
+      "bru-cli"
+    ]
+  },
+
+  "showThinkingSummaries": true,
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark-ansi",
+  "voiceEnabled": false
 }
