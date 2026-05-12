@@ -115,6 +115,9 @@
       "Read(~/.config/gcloud/**)",
       "Edit(~/.config/gcloud/**)",
       "Write(~/.config/gcloud/**)",
+      "Read(~/.config/acli/**)",
+      "Edit(~/.config/acli/**)",
+      "Write(~/.config/acli/**)",
       "Read(~/.config/terraform/**)",
       "Read(~/.terraform.d/**)",
       "Read(**/.terraform.tfstate*)",
@@ -214,6 +217,7 @@
         "~/.npmrc",
         "~/.netrc",
         "~/.config/gcloud",
+        "~/.config/acli",
         "~/.terraform.d/credentials.tfrc.json"
       ],
       "allowRead": [
