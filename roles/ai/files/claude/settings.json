@@ -50,8 +50,7 @@
       "Bash(acli:*)",
       "Bash(pgcli:*)",
       "Bash(sentry:*)",
-      "Bash(bru-cli:*)",
-      "Bash(mktemp:*)"
+      "Bash(bru-cli:*)"
     ],
     "deny": [
       "Read(~/.ssh/**)",
