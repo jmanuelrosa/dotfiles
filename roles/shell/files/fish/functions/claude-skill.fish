@@ -6,6 +6,8 @@ function claude-skill --description "Manage Claude Code skills for the current p
     set -l c_green (set_color green)
     set -l c_yellow (set_color yellow)
     set -l c_red (set_color red)
+    set -l c_blue (set_color blue)
+    set -l c_magenta (set_color magenta)
     set -l c_cyan (set_color cyan)
     set -l c_dim (set_color brblack)
     set -l c_bold (set_color --bold)
@@ -29,12 +31,12 @@ function claude-skill --description "Manage Claude Code skills for the current p
     end
 
     if not command -q jq
-        echo "$c_red✗$c_reset Error: jq is required. Install with: brew install jq"
+        echo "$c_magenta✗$c_reset Error: jq is required. Install with: brew install jq"
         return 1
     end
 
     if not test -f "$registry"
-        echo "$c_red✗$c_reset Error: Registry not found at $registry"
+        echo "$c_magenta✗$c_reset Error: Registry not found at $registry"
         return 1
     end
 
@@ -104,7 +106,7 @@ function claude-skill --description "Manage Claude Code skills for the current p
                 ' $registry | sort -u)
 
                 if test (count $group_skills) -eq 0
-                    echo "$c_red✗$c_reset Group '$name' not found. Run 'claude:skill list --group' to see available groups."
+                    echo "$c_magenta✗$c_reset Group '$name' not found. Run 'claude:skill list --group' to see available groups."
                     return 1
                 end
 
@@ -116,7 +118,7 @@ function claude-skill --description "Manage Claude Code skills for the current p
                             echo "$c_cyan↓$c_reset Downloading '$sname' from registry..."
                             _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" $sname
                         else
-                            echo "$c_red✗$c_reset Local skill '$sname' missing on disk; cannot install."
+                            echo "$c_magenta✗$c_reset Local skill '$sname' missing on disk; cannot install."
                             continue
                         end
                     end
@@ -140,11 +142,11 @@ function claude-skill --description "Manage Claude Code skills for the current p
                         echo "$c_cyan↓$c_reset Skill '$name' not downloaded. Pulling from registry..."
                         _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" $name
                         if not test -d "$skills_source/$name"
-                            echo "$c_red✗$c_reset Failed to download '$name'."
+                            echo "$c_magenta✗$c_reset Failed to download '$name'."
                             return 1
                         end
                     else
-                        echo "$c_red✗$c_reset Skill '$name' not found. Run 'claude:skill list' to see available skills."
+                        echo "$c_magenta✗$c_reset Skill '$name' not found. Run 'claude:skill list' to see available skills."
                         return 1
                     end
                 end
@@ -167,7 +169,7 @@ function claude-skill --description "Manage Claude Code skills for the current p
                 ' $registry | sort -u)
 
                 if test (count $group_skills) -eq 0
-                    echo "$c_red✗$c_reset Group '$name' not found. Run 'claude:skill list --group' to see available groups."
+                    echo "$c_magenta✗$c_reset Group '$name' not found. Run 'claude:skill list --group' to see available groups."
                     return 1
                 end
 
@@ -212,6 +214,8 @@ function _claude_skill_update --description "Sync (or check) skills against upst
     set -l c_green (set_color green)
     set -l c_yellow (set_color yellow)
     set -l c_red (set_color red)
+    set -l c_blue (set_color blue)
+    set -l c_magenta (set_color magenta)
     set -l c_cyan (set_color cyan)
     set -l c_dim (set_color brblack)
     set -l c_bold (set_color --bold)
@@ -220,12 +224,12 @@ function _claude_skill_update --description "Sync (or check) skills against upst
     set -l exclude_args --exclude=.git --exclude=.github --exclude=node_modules
 
     if not command -q jq
-        echo "$c_red✗$c_reset Error: jq is required. Install with: brew install jq"
+        echo "$c_magenta✗$c_reset Error: jq is required. Install with: brew install jq"
         return 1
     end
 
     if not test -f "$registry"
-        echo "$c_red✗$c_reset Error: Registry not found at $registry"
+        echo "$c_magenta✗$c_reset Error: Registry not found at $registry"
         return 1
     end
 
@@ -245,7 +249,7 @@ function _claude_skill_update --description "Sync (or check) skills against upst
                 echo "$c_yellow⚠$c_reset '$target_skill' is a local skill; no upstream to sync."
                 return 0
             end
-            echo "$c_red✗$c_reset Skill '$target_skill' not found in registry."
+            echo "$c_magenta✗$c_reset Skill '$target_skill' not found in registry."
             echo "Tracked skills:"
             jq -r '.repos[].skills[].name' $registry | sort | sed 's/^/  /'
             return 1
@@ -290,7 +294,7 @@ function _claude_skill_update --description "Sync (or check) skills against upst
         mkdir -p "$clone_dir"
         curl -sfL "https://github.com/$repo/archive/$branch.tar.gz" | tar -xz -C "$clone_dir" --strip-components=1
         if test $pipestatus[1] -ne 0 -o $pipestatus[2] -ne 0
-            echo "  $c_red✗ FAILED to fetch$c_reset"
+            echo "  $c_magenta✗ FAILED to fetch$c_reset"
             set failed (math $failed + 1)
             continue
         end
@@ -308,7 +312,7 @@ function _claude_skill_update --description "Sync (or check) skills against upst
             end
 
             if not test -d "$src"
-                echo "  $c_red✗$c_reset $skill_name: upstream path '$upstream_path' not found"
+                echo "  $c_magenta✗$c_reset $skill_name: upstream path '$upstream_path' not found"
                 set failed (math $failed + 1)
                 continue
             end
@@ -319,12 +323,12 @@ function _claude_skill_update --description "Sync (or check) skills against upst
 
             if not test -d "$dst"
                 if test "$mode" = check
-                    echo "  $c_dim↓$c_reset $skill_name: $c_dim"not downloaded"$c_reset"
+                    echo "  $c_yellow↓$c_reset $skill_name: "$c_yellow"not downloaded"$c_reset
                     set missing (math $missing + 1)
                 else
                     mkdir -p (dirname "$dst")
                     rsync -a $exclude_args "$src/" "$dst/"
-                    echo "  $c_green✓$c_reset $skill_name: "$c_green"installed (new)"$c_reset
+                    echo "  $c_blue✓$c_reset $skill_name: "$c_blue"installed (new)"$c_reset
                     set updated (math $updated + 1)
                     _claude_registry_stamp $registry $repo $skill_name skills
                 end
@@ -333,7 +337,7 @@ function _claude_skill_update --description "Sync (or check) skills against upst
 
             set -l diff_output (diff -rq $exclude_args "$src" "$dst" 2>/dev/null)
             if test -z "$diff_output"
-                echo "  $c_dim·$c_reset $skill_name: "$c_dim"up to date (last synced $last_synced)"$c_reset
+                echo "  $c_green✓$c_reset $skill_name: "$c_green"up to date"$c_reset" $c_dim(last synced $last_synced)$c_reset"
                 set skipped (math $skipped + 1)
                 if test "$mode" = sync
                     _claude_registry_stamp $registry $repo $skill_name skills
@@ -342,13 +346,13 @@ function _claude_skill_update --description "Sync (or check) skills against upst
             end
 
             if test "$mode" = check
-                echo "  $c_yellow⟳$c_reset $skill_name: "$c_yellow"behind"$c_reset" $c_dim(last synced $last_synced)$c_reset"
+                echo "  $c_red⟳$c_reset $skill_name: "$c_red"behind"$c_reset" $c_dim(last synced $last_synced)$c_reset"
                 set updated (math $updated + 1)
             else
                 command rm -rf "$dst"
                 rsync -a $exclude_args "$src/" "$dst/"
                 set updated (math $updated + 1)
-                echo "  $c_yellow⟳$c_reset $skill_name: $c_green✓ synced.$c_reset"
+                echo "  $c_blue⟳$c_reset $skill_name: $c_blue✓ synced.$c_reset"
                 _claude_registry_stamp $registry $repo $skill_name skills
             end
         end
@@ -361,16 +365,16 @@ function _claude_skill_update --description "Sync (or check) skills against upst
     if test "$mode" = check
         printf '%sDone:%s %s%d%s behind, %s%d%s up-to-date, %s%d%s not downloaded, %s%d%s failed\n' \
             $c_bold $c_reset \
-            $c_yellow $updated $c_reset \
-            $c_dim $skipped $c_reset \
-            $c_dim $missing $c_reset \
-            $c_red $failed $c_reset
+            $c_red $updated $c_reset \
+            $c_green $skipped $c_reset \
+            $c_yellow $missing $c_reset \
+            $c_magenta $failed $c_reset
     else
         printf '%sDone:%s %s%d%s updated, %s%d%s up-to-date, %s%d%s failed\n' \
             $c_bold $c_reset \
-            $c_green $updated $c_reset \
-            $c_dim $skipped $c_reset \
-            $c_red $failed $c_reset
+            $c_blue $updated $c_reset \
+            $c_green $skipped $c_reset \
+            $c_magenta $failed $c_reset
     end
 end
 

@@ -6,6 +6,8 @@ function claude-agent --description "Manage Claude Code agents for the current p
     set -l c_green (set_color green)
     set -l c_yellow (set_color yellow)
     set -l c_red (set_color red)
+    set -l c_blue (set_color blue)
+    set -l c_magenta (set_color magenta)
     set -l c_cyan (set_color cyan)
     set -l c_dim (set_color brblack)
     set -l c_bold (set_color --bold)
@@ -65,7 +67,7 @@ function claude-agent --description "Manage Claude Code agents for the current p
                 end
 
                 if test "$in_registry" = false
-                    echo "$c_red✗$c_reset Agent '$name' not found. Run 'claude:agent list' to see available agents."
+                    echo "$c_magenta✗$c_reset Agent '$name' not found. Run 'claude:agent list' to see available agents."
                     return 1
                 end
 
@@ -73,7 +75,7 @@ function claude-agent --description "Manage Claude Code agents for the current p
                 _claude_agent_update $registry "$agents_source" $name
 
                 if not test -f "$agents_source/$name.md"
-                    echo "$c_red✗$c_reset Failed to download '$name'."
+                    echo "$c_magenta✗$c_reset Failed to download '$name'."
                     return 1
                 end
             end
@@ -117,18 +119,20 @@ function _claude_agent_update --description "Sync (or check) agents against upst
     set -l c_green (set_color green)
     set -l c_yellow (set_color yellow)
     set -l c_red (set_color red)
+    set -l c_blue (set_color blue)
+    set -l c_magenta (set_color magenta)
     set -l c_cyan (set_color cyan)
     set -l c_dim (set_color brblack)
     set -l c_bold (set_color --bold)
     set -l c_reset (set_color normal)
 
     if not command -q jq
-        echo "$c_red✗$c_reset Error: jq is required. Install with: brew install jq"
+        echo "$c_magenta✗$c_reset Error: jq is required. Install with: brew install jq"
         return 1
     end
 
     if not test -f "$registry"
-        echo "$c_red✗$c_reset Error: Registry not found at $registry"
+        echo "$c_magenta✗$c_reset Error: Registry not found at $registry"
         return 1
     end
 
@@ -141,7 +145,7 @@ function _claude_agent_update --description "Sync (or check) agents against upst
         ' $registry)
 
         if test -z "$repos"
-            echo "$c_red✗$c_reset Agent '$target_agent' not found in registry."
+            echo "$c_magenta✗$c_reset Agent '$target_agent' not found in registry."
             echo "Tracked agents:"
             jq -r '.repos[].agents[].name' $registry | sort | sed 's/^/  /'
             return 1
@@ -191,7 +195,7 @@ function _claude_agent_update --description "Sync (or check) agents against upst
         mkdir -p "$clone_dir"
         curl -sfL "https://github.com/$repo/archive/$branch.tar.gz" | tar -xz -C "$clone_dir" --strip-components=1
         if test $pipestatus[1] -ne 0 -o $pipestatus[2] -ne 0
-            echo "  $c_red✗ FAILED to fetch$c_reset"
+            echo "  $c_magenta✗ FAILED to fetch$c_reset"
             set failed (math $failed + 1)
             continue
         end
@@ -205,7 +209,7 @@ function _claude_agent_update --description "Sync (or check) agents against upst
             set -l dst "$agents_dir/$name.md"
 
             if not test -f "$src"
-                echo "  $c_red✗$c_reset $name: upstream path '$upstream_path' not found"
+                echo "  $c_magenta✗$c_reset $name: upstream path '$upstream_path' not found"
                 set failed (math $failed + 1)
                 continue
             end
@@ -216,12 +220,12 @@ function _claude_agent_update --description "Sync (or check) agents against upst
 
             if not test -f "$dst"
                 if test "$mode" = check
-                    echo "  $c_dim↓$c_reset $name: $c_dim"not downloaded"$c_reset"
+                    echo "  $c_yellow↓$c_reset $name: "$c_yellow"not downloaded"$c_reset
                     set missing (math $missing + 1)
                 else
                     mkdir -p (dirname "$dst")
                     cp "$src" "$dst"
-                    echo "  $c_green✓$c_reset $name: "$c_green"installed (new)"$c_reset
+                    echo "  $c_blue✓$c_reset $name: "$c_blue"installed (new)"$c_reset
                     set updated (math $updated + 1)
                     _claude_registry_stamp $registry $repo $name agents
                 end
@@ -230,7 +234,7 @@ function _claude_agent_update --description "Sync (or check) agents against upst
 
             diff -u "$dst" "$src" >/dev/null 2>&1
             if test $status -eq 0
-                echo "  $c_dim·$c_reset $name: "$c_dim"up to date (last synced $last_synced)"$c_reset
+                echo "  $c_green✓$c_reset $name: "$c_green"up to date"$c_reset" $c_dim(last synced $last_synced)$c_reset"
                 set skipped (math $skipped + 1)
                 if test "$mode" = sync
                     _claude_registry_stamp $registry $repo $name agents
@@ -239,10 +243,10 @@ function _claude_agent_update --description "Sync (or check) agents against upst
             end
 
             if test "$mode" = check
-                echo "  $c_yellow⟳$c_reset $name: "$c_yellow"behind"$c_reset" $c_dim(last synced $last_synced)$c_reset"
+                echo "  $c_red⟳$c_reset $name: "$c_red"behind"$c_reset" $c_dim(last synced $last_synced)$c_reset"
                 set updated (math $updated + 1)
             else
-                echo "  $c_yellow⟳$c_reset $name: "$c_yellow"updated"$c_reset
+                echo "  $c_blue⟳$c_reset $name: "$c_blue"updated"$c_reset
                 cp "$src" "$dst"
                 set updated (math $updated + 1)
                 _claude_registry_stamp $registry $repo $name agents
@@ -257,16 +261,16 @@ function _claude_agent_update --description "Sync (or check) agents against upst
     if test "$mode" = check
         printf '%sDone:%s %s%d%s behind, %s%d%s up-to-date, %s%d%s not downloaded, %s%d%s failed\n' \
             $c_bold $c_reset \
-            $c_yellow $updated $c_reset \
-            $c_dim $skipped $c_reset \
-            $c_dim $missing $c_reset \
-            $c_red $failed $c_reset
+            $c_red $updated $c_reset \
+            $c_green $skipped $c_reset \
+            $c_yellow $missing $c_reset \
+            $c_magenta $failed $c_reset
     else
         printf '%sDone:%s %s%d%s updated, %s%d%s up-to-date, %s%d%s failed\n' \
             $c_bold $c_reset \
-            $c_green $updated $c_reset \
-            $c_dim $skipped $c_reset \
-            $c_red $failed $c_reset
+            $c_blue $updated $c_reset \
+            $c_green $skipped $c_reset \
+            $c_magenta $failed $c_reset
     end
 end
 
