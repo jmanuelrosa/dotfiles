@@ -1,8 +1,45 @@
 # Claude
 
-Management system for Claude Code skills, agents, and MCP servers. Skills and agents live in this directory and are linked into projects via the `claude:skill` and `claude:agent` fish functions (`add`/`remove` subcommands).
+Management system for Claude Code skills, agents, and MCP servers. Skills and agents live in this directory and are linked into projects via the `claude-skill` and `claude-agent` fish functions.
 
-This document covers how to **add new skills and agents to the dotfiles repo** itself, so they become available for linking.
+This document covers how to **use those functions in a project** and how to **add new skills and agents to the dotfiles repo** itself.
+
+## Commands
+
+Both functions are run from the root of a project — they operate on `./.claude/skills/` or `./.claude/agents/` relative to the current directory. They require `jq` (`brew install jq`).
+
+### `claude-skill`
+
+```
+claude-skill <list|add|remove|update> [--group] [name]
+```
+
+| Subcommand | What it does |
+|---|---|
+| `list` | List all skills with status: `✓ linked`, `·` available on disk, `↓ not downloaded`. |
+| `list --group` | Same listing, but grouped by the `groups` tags from the registry. |
+| `add <name>` | Symlink the skill into `./.claude/skills/`. If it's a tracked skill not yet on disk, fetches it from upstream first. |
+| `add --group <group>` | Link every skill belonging to `<group>`, downloading any tracked ones that aren't on disk yet. |
+| `remove <name>` | Remove the symlink from `./.claude/skills/`. |
+| `remove --group <group>` | Remove all symlinks for skills in `<group>`. |
+| `update` | Pull every tracked skill from its upstream repo. Shows per-file diffs (added / changed / local-only kept). |
+| `update <name>` | Same, scoped to one skill. Local skills are skipped with a warning — there's no upstream to sync. |
+
+### `claude-agent`
+
+```
+claude-agent <list|add|remove|update> [name]
+```
+
+No `--group` flag — agents aren't grouped.
+
+| Subcommand | What it does |
+|---|---|
+| `list` | List all agents with status: `✓ linked`, `·` available on disk, `↓ not downloaded`. |
+| `add <name>` | Symlink the agent into `./.claude/agents/`. Fetches from upstream first if not on disk. |
+| `remove <name>` | Remove the symlink from `./.claude/agents/`. |
+| `update` | Pull every tracked agent from upstream. |
+| `update <name>` | Same, scoped to one agent. |
 
 ## The Tracked/Local Rule (Skills)
 
@@ -44,7 +81,7 @@ Every skill in this repo is either:
    }
    ```
 
-2. Run `claude:skill update <name>` to pull it down.
+2. Run `claude-skill update <name>` to pull it down.
 
 ## Adding Agents
 
@@ -69,7 +106,7 @@ The agent registry is currently empty, so no `excluded` declaration is required 
    }
    ```
 
-2. Run `claude:agent update <name>` to pull it down.
+2. Run `claude-agent update <name>` to pull it down.
 
 ## Registry Format
 
@@ -96,7 +133,7 @@ The agent registry is currently empty, so no `excluded` declaration is required 
 }
 ```
 
-- **`repos`** — keyed by `owner/repo`. Each repo has a `branch` and a `skills` array. Each skill maps `upstream_path` (path in the upstream repo) to a `name` used by `claude:skill` commands, plus a `groups` tag array consumed by `claude:skill add --group <name>`.
+- **`repos`** — keyed by `owner/repo`. Each repo has a `branch` and a `skills` array. Each skill maps `upstream_path` (path in the upstream repo) to a `name` used by `claude-skill` commands, plus a `groups` tag array consumed by `claude-skill add --group <name>`.
 - **`local_skills`** — **authoritative inventory of local skills.** Every local skill directory under `skills/` must appear here, with its `groups` tags and a `note` documenting why it's local (locally authored, consolidated, etc.).
 
 ### agent-registry.json
