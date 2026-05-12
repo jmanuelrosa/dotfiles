@@ -311,6 +311,20 @@
           "updated_at": "2026-05-12T10:27:30Z"
         }
       ]
+    },
+    "brianlovin/agent-config": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/knip",
+          "name": "knip",
+          "groups": [
+            "quality",
+            "review"
+          ],
+          "updated_at": "2026-05-12T10:27:30Z"
+        }
+      ]
     }
   },
   "local_skills": [
