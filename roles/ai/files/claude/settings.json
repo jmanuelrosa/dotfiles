@@ -114,7 +114,6 @@
       "Read(~/.config/gcloud/**)",
       "Edit(~/.config/gcloud/**)",
       "Write(~/.config/gcloud/**)",
-      "Read(~/.config/acli/**)",
       "Edit(~/.config/acli/**)",
       "Write(~/.config/acli/**)",
       "Read(~/.config/terraform/**)",
@@ -216,14 +215,14 @@
         "~/.npmrc",
         "~/.netrc",
         "~/.config/gcloud",
-        "~/.config/acli",
         "~/.terraform.d/credentials.tfrc.json"
       ],
       "allowRead": [
         "~/.config/gh",
         "~/.lima",
         "~/.gitconfig",
-        "~/.ssh/known_hosts"
+        "~/.ssh/known_hosts",
+        "~/.config/acli"
       ]
     },
     "enableWeakerNetworkIsolation": true,
