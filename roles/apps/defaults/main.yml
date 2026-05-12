@@ -72,6 +72,7 @@ BREW_PACKAGES:
     - spotify
     - vlc
     # System / window management
+    - cleanshot
     - maccy
     - nikitabobko/tap/aerospace
     - font-fira-code-nerd-font
