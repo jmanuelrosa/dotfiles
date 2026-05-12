@@ -325,6 +325,20 @@
           "updated_at": "2026-05-12T10:27:30Z"
         }
       ]
+    },
+    "remix-run/agent-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/react-router-data-mode",
+          "name": "react-router",
+          "groups": [
+            "engineering",
+            "frontend"
+          ],
+          "updated_at": "2026-05-12T17:17:31Z"
+        }
+      ]
     }
   },
   "local_skills": [
