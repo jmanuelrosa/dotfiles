@@ -97,4 +97,6 @@
   },
   "git.detectWorktrees": true,
   "git.detectWorktreesLimit": 10,
+  "security.workspace.trust.banner": "never",
+  "security.workspace.trust.startupPrompt": "never",
 }
