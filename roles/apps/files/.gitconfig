@@ -25,7 +25,8 @@
   # Diff
   d  = diff --color --color-words --abbrev
   dc = diff --cached
-  dt = difftool
+  df = diff | diffnav
+  ds = -c delta.side-by-side=true diff
 
   # Fetch
   f = fetch --prune
@@ -170,6 +171,9 @@
 
 [gpg]
 	program =
+
+[pager]
+  diff = diffnav
 
 [interactive]
   diffFilter = delta --color-only
