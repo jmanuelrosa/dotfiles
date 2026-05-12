@@ -12,7 +12,7 @@ function claude-skill --description "Manage Claude Code skills for the current p
     set -l c_reset (set_color normal)
 
     if test (count $argv) -lt 1
-        echo "Usage: claude:skill <list|add|remove|update> [--group] [name]"
+        echo "Usage: claude-skill <list|add|remove|update|outdated> [--group] [name]"
         return 1
     end
 
@@ -189,18 +189,25 @@ function claude-skill --description "Manage Claude Code skills for the current p
             end
 
         case update
-            _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" $name
+            _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" "$name" sync
+
+        case outdated
+            _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" "$name" check
 
         case '*'
-            echo "Usage: claude:skill <list|add|remove|update> [--group] [name]"
+            echo "Usage: claude-skill <list|add|remove|update|outdated> [--group] [name]"
             return 1
     end
 end
 
-function _claude_skill_update --description "Sync skills from upstream GitHub repos"
+function _claude_skill_update --description "Sync (or check) skills against upstream GitHub repos"
     set -l registry $argv[1]
     set -l base_dir $argv[2]
     set -l target_skill $argv[3]
+    set -l mode $argv[4]
+    if test -z "$mode"
+        set mode sync
+    end
 
     set -l c_green (set_color green)
     set -l c_yellow (set_color yellow)
@@ -209,6 +216,8 @@ function _claude_skill_update --description "Sync skills from upstream GitHub re
     set -l c_dim (set_color brblack)
     set -l c_bold (set_color --bold)
     set -l c_reset (set_color normal)
+
+    set -l exclude_args --exclude=.git --exclude=.github --exclude=node_modules
 
     if not command -q jq
         echo "$c_red✗$c_reset Error: jq is required. Install with: brew install jq"
@@ -249,9 +258,14 @@ function _claude_skill_update --description "Sync skills from upstream GitHub re
     set -l updated 0
     set -l skipped 0
     set -l failed 0
+    set -l missing 0
     set -l n_repos (count $repos)
 
-    echo $c_bold"Syncing from $n_repos repo(s)..."$c_reset
+    if test "$mode" = check
+        echo $c_bold"Checking $n_repos repo(s) for updates..."$c_reset
+    else
+        echo $c_bold"Syncing from $n_repos repo(s)..."$c_reset
+    end
     echo ""
 
     for repo in $repos
@@ -299,38 +313,44 @@ function _claude_skill_update --description "Sync skills from upstream GitHub re
                 continue
             end
 
+            set -l last_synced (jq -r --arg repo "$repo" --arg name "$skill_name" '
+                .repos[$repo].skills[] | select(.name == $name) | .updated_at // "never"
+            ' $registry | string sub --length 10)
+
             if not test -d "$dst"
-                mkdir -p (dirname "$dst")
-                rsync -a --exclude='.git' "$src/" "$dst/"
-                echo "  $c_green✓$c_reset $skill_name: "$c_green"installed (new)"$c_reset
-                set updated (math $updated + 1)
-                continue
-            end
-
-            set -l diff_output (diff -rq --exclude='.git' "$src" "$dst" 2>/dev/null)
-            if test -z "$diff_output"
-                echo "  $c_dim·$c_reset $skill_name: "$c_dim"up to date"$c_reset
-                set skipped (math $skipped + 1)
-                continue
-            end
-
-            echo "  $c_yellow⟳$c_reset $skill_name:"
-            for line in $diff_output
-                if string match -q "Only in $src*" $line
-                    set -l file (echo $line | string replace -r "Only in .+: " "")
-                    echo "    $c_green+$c_reset $file $c_dim(new upstream)$c_reset"
-                else if string match -q "Only in $dst*" $line
-                    set -l file (echo $line | string replace -r "Only in .+: " "")
-                    echo "    $c_dim~ $file (local only, kept)$c_reset"
-                else if string match -q "Files * differ" $line
-                    set -l file (echo $line | string replace -r "Files .+/(.+) and .+ differ" '$1')
-                    echo "    $c_yellow*$c_reset $file $c_dim(changed)$c_reset"
+                if test "$mode" = check
+                    echo "  $c_dim↓$c_reset $skill_name: $c_dim"not downloaded"$c_reset"
+                    set missing (math $missing + 1)
+                else
+                    mkdir -p (dirname "$dst")
+                    rsync -a $exclude_args "$src/" "$dst/"
+                    echo "  $c_green✓$c_reset $skill_name: "$c_green"installed (new)"$c_reset
+                    set updated (math $updated + 1)
+                    _claude_registry_stamp $registry $repo $skill_name skills
                 end
+                continue
             end
 
-            rsync -a --exclude='.git' "$src/" "$dst/"
-            set updated (math $updated + 1)
-            echo "    $c_green✓ synced.$c_reset"
+            set -l diff_output (diff -rq $exclude_args "$src" "$dst" 2>/dev/null)
+            if test -z "$diff_output"
+                echo "  $c_dim·$c_reset $skill_name: "$c_dim"up to date (last synced $last_synced)"$c_reset
+                set skipped (math $skipped + 1)
+                if test "$mode" = sync
+                    _claude_registry_stamp $registry $repo $skill_name skills
+                end
+                continue
+            end
+
+            if test "$mode" = check
+                echo "  $c_yellow⟳$c_reset $skill_name: "$c_yellow"behind"$c_reset" $c_dim(last synced $last_synced)$c_reset"
+                set updated (math $updated + 1)
+            else
+                command rm -rf "$dst"
+                rsync -a $exclude_args "$src/" "$dst/"
+                set updated (math $updated + 1)
+                echo "  $c_yellow⟳$c_reset $skill_name: $c_green✓ synced.$c_reset"
+                _claude_registry_stamp $registry $repo $skill_name skills
+            end
         end
 
         echo ""
@@ -338,9 +358,35 @@ function _claude_skill_update --description "Sync skills from upstream GitHub re
 
     rm -rf "$tmpdir"
 
-    printf '%sDone:%s %s%d%s updated, %s%d%s up-to-date, %s%d%s failed\n' \
-        $c_bold $c_reset \
-        $c_green $updated $c_reset \
-        $c_dim $skipped $c_reset \
-        $c_red $failed $c_reset
+    if test "$mode" = check
+        printf '%sDone:%s %s%d%s behind, %s%d%s up-to-date, %s%d%s not downloaded, %s%d%s failed\n' \
+            $c_bold $c_reset \
+            $c_yellow $updated $c_reset \
+            $c_dim $skipped $c_reset \
+            $c_dim $missing $c_reset \
+            $c_red $failed $c_reset
+    else
+        printf '%sDone:%s %s%d%s updated, %s%d%s up-to-date, %s%d%s failed\n' \
+            $c_bold $c_reset \
+            $c_green $updated $c_reset \
+            $c_dim $skipped $c_reset \
+            $c_red $failed $c_reset
+    end
+end
+
+function _claude_registry_stamp --description "Record updated_at on a tracked registry entry"
+    set -l registry $argv[1]
+    set -l repo $argv[2]
+    set -l name $argv[3]
+    set -l array_key $argv[4]
+
+    set -l now (date -u +%Y-%m-%dT%H:%M:%SZ)
+    set -l tmp (mktemp)
+    if jq --arg repo "$repo" --arg name "$name" --arg ts "$now" --arg key "$array_key" '
+        .repos[$repo][$key] |= map(if .name == $name then .updated_at = $ts else . end)
+    ' $registry > $tmp
+        mv $tmp $registry
+    else
+        rm -f $tmp
+    end
 end

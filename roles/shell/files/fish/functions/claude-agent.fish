@@ -12,7 +12,7 @@ function claude-agent --description "Manage Claude Code agents for the current p
     set -l c_reset (set_color normal)
 
     if test (count $argv) -lt 1
-        echo "Usage: claude:agent <list|add|remove|update> [name]"
+        echo "Usage: claude-agent <list|add|remove|update|outdated> [name]"
         return 1
     end
 
@@ -94,18 +94,25 @@ function claude-agent --description "Manage Claude Code agents for the current p
             echo "$c_green✓$c_reset Removed '$name' from $agents_target/"
 
         case update
-            _claude_agent_update $registry "$DOTFILES_DIR/roles/ai/files/claude/agents" $name
+            _claude_agent_update $registry "$DOTFILES_DIR/roles/ai/files/claude/agents" "$name" sync
+
+        case outdated
+            _claude_agent_update $registry "$DOTFILES_DIR/roles/ai/files/claude/agents" "$name" check
 
         case '*'
-            echo "Usage: claude:agent <list|add|remove|update> [name]"
+            echo "Usage: claude-agent <list|add|remove|update|outdated> [name]"
             return 1
     end
 end
 
-function _claude_agent_update --description "Sync agents from upstream GitHub repos"
+function _claude_agent_update --description "Sync (or check) agents against upstream GitHub repos"
     set -l registry $argv[1]
     set -l agents_dir $argv[2]
     set -l target_agent $argv[3]
+    set -l mode $argv[4]
+    if test -z "$mode"
+        set mode sync
+    end
 
     set -l c_green (set_color green)
     set -l c_yellow (set_color yellow)
@@ -152,9 +159,14 @@ function _claude_agent_update --description "Sync agents from upstream GitHub re
     set -l updated 0
     set -l skipped 0
     set -l failed 0
+    set -l missing 0
     set -l n_repos (count $repos)
 
-    echo $c_bold"Syncing from $n_repos repo(s)..."$c_reset
+    if test "$mode" = check
+        echo $c_bold"Checking $n_repos repo(s) for updates..."$c_reset
+    else
+        echo $c_bold"Syncing from $n_repos repo(s)..."$c_reset
+    end
     echo ""
 
     for repo in $repos
@@ -198,24 +210,43 @@ function _claude_agent_update --description "Sync agents from upstream GitHub re
                 continue
             end
 
+            set -l last_synced (jq -r --arg repo "$repo" --arg name "$name" '
+                .repos[$repo].agents[] | select(.name == $name) | .updated_at // "never"
+            ' $registry | string sub --length 10)
+
             if not test -f "$dst"
-                mkdir -p (dirname "$dst")
-                cp "$src" "$dst"
-                echo "  $c_green✓$c_reset $name: "$c_green"installed (new)"$c_reset
-                set updated (math $updated + 1)
+                if test "$mode" = check
+                    echo "  $c_dim↓$c_reset $name: $c_dim"not downloaded"$c_reset"
+                    set missing (math $missing + 1)
+                else
+                    mkdir -p (dirname "$dst")
+                    cp "$src" "$dst"
+                    echo "  $c_green✓$c_reset $name: "$c_green"installed (new)"$c_reset
+                    set updated (math $updated + 1)
+                    _claude_registry_stamp $registry $repo $name agents
+                end
                 continue
             end
 
             diff -u "$dst" "$src" >/dev/null 2>&1
             if test $status -eq 0
-                echo "  $c_dim·$c_reset $name: "$c_dim"up to date"$c_reset
+                echo "  $c_dim·$c_reset $name: "$c_dim"up to date (last synced $last_synced)"$c_reset
                 set skipped (math $skipped + 1)
+                if test "$mode" = sync
+                    _claude_registry_stamp $registry $repo $name agents
+                end
                 continue
             end
 
-            echo "  $c_yellow⟳$c_reset $name: "$c_yellow"updated"$c_reset
-            cp "$src" "$dst"
-            set updated (math $updated + 1)
+            if test "$mode" = check
+                echo "  $c_yellow⟳$c_reset $name: "$c_yellow"behind"$c_reset" $c_dim(last synced $last_synced)$c_reset"
+                set updated (math $updated + 1)
+            else
+                echo "  $c_yellow⟳$c_reset $name: "$c_yellow"updated"$c_reset
+                cp "$src" "$dst"
+                set updated (math $updated + 1)
+                _claude_registry_stamp $registry $repo $name agents
+            end
         end
 
         echo ""
@@ -223,9 +254,35 @@ function _claude_agent_update --description "Sync agents from upstream GitHub re
 
     rm -rf "$tmpdir"
 
-    printf '%sDone:%s %s%d%s updated, %s%d%s up-to-date, %s%d%s failed\n' \
-        $c_bold $c_reset \
-        $c_green $updated $c_reset \
-        $c_dim $skipped $c_reset \
-        $c_red $failed $c_reset
+    if test "$mode" = check
+        printf '%sDone:%s %s%d%s behind, %s%d%s up-to-date, %s%d%s not downloaded, %s%d%s failed\n' \
+            $c_bold $c_reset \
+            $c_yellow $updated $c_reset \
+            $c_dim $skipped $c_reset \
+            $c_dim $missing $c_reset \
+            $c_red $failed $c_reset
+    else
+        printf '%sDone:%s %s%d%s updated, %s%d%s up-to-date, %s%d%s failed\n' \
+            $c_bold $c_reset \
+            $c_green $updated $c_reset \
+            $c_dim $skipped $c_reset \
+            $c_red $failed $c_reset
+    end
+end
+
+function _claude_registry_stamp --description "Record updated_at on a tracked registry entry"
+    set -l registry $argv[1]
+    set -l repo $argv[2]
+    set -l name $argv[3]
+    set -l array_key $argv[4]
+
+    set -l now (date -u +%Y-%m-%dT%H:%M:%SZ)
+    set -l tmp (mktemp)
+    if jq --arg repo "$repo" --arg name "$name" --arg ts "$now" --arg key "$array_key" '
+        .repos[$repo][$key] |= map(if .name == $name then .updated_at = $ts else . end)
+    ' $registry > $tmp
+        mv $tmp $registry
+    else
+        rm -f $tmp
+    end
 end

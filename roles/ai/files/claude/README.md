@@ -11,7 +11,7 @@ Both functions are run from the root of a project — they operate on `./.claude
 ### `claude-skill`
 
 ```
-claude-skill <list|add|remove|update> [--group] [name]
+claude-skill <list|add|remove|update|outdated> [--group] [name]
 ```
 
 | Subcommand | What it does |
@@ -22,13 +22,15 @@ claude-skill <list|add|remove|update> [--group] [name]
 | `add --group <group>` | Link every skill belonging to `<group>`, downloading any tracked ones that aren't on disk yet. |
 | `remove <name>` | Remove the symlink from `./.claude/skills/`. |
 | `remove --group <group>` | Remove all symlinks for skills in `<group>`. |
-| `update` | Pull every tracked skill from its upstream repo. Shows per-file diffs (added / changed / local-only kept). |
+| `update` | Pull every tracked skill from its upstream repo. Treats upstream as canonical — the local skill dir is wiped and re-extracted, so any file no longer present upstream is removed. One line per skill. Records `updated_at` for each entry it confirmed. |
 | `update <name>` | Same, scoped to one skill. Local skills are skipped with a warning — there's no upstream to sync. |
+| `outdated` | Fetch upstream for every tracked skill and report what's behind — without writing anything. One line per skill (repo header + name + status + last synced). No file-level detail. |
+| `outdated <name>` | Same, scoped to one skill. Local skills emit the same "no upstream" warning. |
 
 ### `claude-agent`
 
 ```
-claude-agent <list|add|remove|update> [name]
+claude-agent <list|add|remove|update|outdated> [name]
 ```
 
 No `--group` flag — agents aren't grouped.
@@ -38,8 +40,10 @@ No `--group` flag — agents aren't grouped.
 | `list` | List all agents with status: `✓ linked`, `·` available on disk, `↓ not downloaded`. |
 | `add <name>` | Symlink the agent into `./.claude/agents/`. Fetches from upstream first if not on disk. |
 | `remove <name>` | Remove the symlink from `./.claude/agents/`. |
-| `update` | Pull every tracked agent from upstream. |
+| `update` | Pull every tracked agent from upstream. Records `updated_at` in the registry for each entry it confirmed. |
 | `update <name>` | Same, scoped to one agent. |
+| `outdated` | Fetch upstream for every tracked agent and report what's behind — without writing anything. Shows `last synced` from the registry. |
+| `outdated <name>` | Same, scoped to one agent. |
 
 ## The Tracked/Local Rule (Skills)
 
@@ -122,7 +126,8 @@ The agent registry is currently empty, so no `excluded` declaration is required 
         {
           "upstream_path": "skills/some-skill",
           "name": "local-name",
-          "groups": ["engineering", "backend"]
+          "groups": ["engineering", "backend"],
+          "updated_at": "2026-05-12T10:23:45Z"
         }
       ]
     }
@@ -134,6 +139,7 @@ The agent registry is currently empty, so no `excluded` declaration is required 
 ```
 
 - **`repos`** — keyed by `owner/repo`. Each repo has a `branch` and a `skills` array. Each skill maps `upstream_path` (path in the upstream repo) to a `name` used by `claude-skill` commands, plus a `groups` tag array consumed by `claude-skill add --group <name>`.
+- **`updated_at`** — ISO 8601 UTC timestamp, automatically maintained by `update`. Records the last time `update` confirmed this entry against upstream — whether or not files changed. `outdated` reads it to show "last synced" alongside the diff. Missing on tracked entries that have never been synced after this field was introduced.
 - **`local_skills`** — **authoritative inventory of local skills.** Every local skill directory under `skills/` must appear here, with its `groups` tags and a `note` documenting why it's local (locally authored, consolidated, etc.).
 
 ### agent-registry.json
@@ -147,7 +153,8 @@ The agent registry is currently empty, so no `excluded` declaration is required 
       "agents": [
         {
           "upstream_path": "agents/some-agent.md",
-          "name": "my-agent"
+          "name": "my-agent",
+          "updated_at": "2026-05-12T10:23:45Z"
         }
       ]
     }
@@ -156,7 +163,7 @@ The agent registry is currently empty, so no `excluded` declaration is required 
 }
 ```
 
-- **`agents` array** — maps `upstream_path` → `name` (the `.md` filename without extension in `agents/`).
+- **`agents` array** — maps `upstream_path` → `name` (the `.md` filename without extension in `agents/`). An optional `updated_at` is maintained by `update` (same semantics as for skills).
 - **`excluded`** — reserved for local agents. Same role as `local_skills` for skills, but not in use yet.
 
 ## Directory Structure
