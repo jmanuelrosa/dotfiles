@@ -1,10 +1,4 @@
-import {
-  createServer,
-  type IncomingMessage,
-  type Server,
-  type ServerResponse,
-} from 'node:http';
-
+import { createServer, IncomingMessage, ServerResponse, Server } from 'node:http';
 import closeWithGrace from 'close-with-grace';
 
 /**
@@ -80,7 +74,7 @@ export async function main(): Promise<void> {
 }
 
 // Run if executed directly
-const isMain = import.meta.url === `file://${process.argv[1]}`;
+const isMain = process.argv[1]?.endsWith('graceful-server.ts') ?? false;
 if (isMain) {
   main().catch(console.error);
 }

@@ -2,8 +2,6 @@
 name: typescript-magician
 description: Designs complex generic types, refactors `any` types to strict alternatives, creates type guards and utility types, and resolves TypeScript compiler errors. Use when the user asks about TypeScript (TS) types, generics, type inference, type guards, removing `any` types, strict typing, type errors, `infer`, `extends`, conditional types, mapped types, template literal types, branded/opaque types, or utility types like `Partial`, `Record`, `ReturnType`, and `Awaited`.
 metadata:
-  url: https://github.com/mcollina/skills/tree/main/skills/typescript-magician
-  date: 31-March-2026
   tags: typescript, types, generics, type-safety, advanced-typescript
 ---
 

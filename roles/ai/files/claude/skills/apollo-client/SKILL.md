@@ -10,8 +10,6 @@ description: >
 license: MIT
 compatibility: React 18+, React 19 (Suspense/RSC). Works with Next.js, Vite, CRA, and other React frameworks.
 metadata:
-  url: https://github.com/apollographql/skills/tree/main/skills/apollo-client
-  date: 31-March-2026
   author: apollographql
   version: "1.0.0"
 allowed-tools: Bash(npm:*) Bash(npx:*) Bash(node:*) Read Write Edit Glob Grep
@@ -57,8 +55,8 @@ function UserProfile({ userId }: { userId: string }) {
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error: {error.message}</p>;
 
-  // TypeScript: dataState === "ready" provides better type narrowing than just checking data
-  return <div>{data.user.name}</div>;
+  // TypeScript note: for stricter type narrowing, you can also check `dataState === "complete"` before accessing data
+  return <div>{data?.user.name}</div>;
 }
 ```
 

@@ -1,9 +1,6 @@
 ---
-name: code-analyzer
+name: claude-code-analyzer
 description: Analyzes Claude Code usage patterns and provides comprehensive recommendations. Runs usage analysis, discovers GitHub community resources, suggests CLAUDE.md improvements, and fetches latest docs on-demand. Use when user wants to optimize their Claude Code workflow, create configurations (agents/skills/commands), or set up project documentation.
-metadata:
-  url: https://github.com/Microck/ordinary-claude-skills/tree/main/skills_all/claude-code-analyzer
-  date: 07-March-2026
 ---
 
 # Claude Code History Analyzer

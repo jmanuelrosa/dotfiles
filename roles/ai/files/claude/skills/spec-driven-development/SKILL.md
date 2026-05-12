@@ -1,16 +1,13 @@
 ---
 name: spec-driven-development
-description: Use when starting a new project, feature, or significant change and no specification exists yet. Use when requirements are unclear, ambiguous, or only exist as a vague idea.
-metadata:
-  url: https://github.com/addyosmani/agent-skills/tree/main/skills/spec-driven-development
-  date: 07-March-2026
+description: Creates specs before coding. Use when starting a new project, feature, or significant change and no specification exists yet. Use when requirements are unclear, ambiguous, or only exist as a vague idea.
 ---
 
 # Spec-Driven Development
 
 ## Overview
 
-Write a structured specification before writing any code. The spec is the shared source of truth between you and the human engineer - it defines what we're building, why, and how we'll know it's done. Code without a spec is guessing.
+Write a structured specification before writing any code. The spec is the shared source of truth between you and the human engineer — it defines what we're building, why, and how we'll know it's done. Code without a spec is guessing.
 
 ## When to Use
 
@@ -49,13 +46,13 @@ ASSUMPTIONS I'M MAKING:
 → Correct me now or I'll proceed with these.
 ```
 
-Never silently fill in ambiguous requirements. The spec's entire purpose is to surface misunderstandings *before* code gets written - assumptions are the most dangerous form of misunderstanding.
+Don't silently fill in ambiguous requirements. The spec's entire purpose is to surface misunderstandings *before* code gets written — assumptions are the most dangerous form of misunderstanding.
 
 **Write a spec document covering these six core areas:**
 
-1. **Objective** - What are we building and why? Who is the user? What does success look like?
+1. **Objective** — What are we building and why? Who is the user? What does success look like?
 
-2. **Commands** - Full executable commands with flags, not just tool names.
+2. **Commands** — Full executable commands with flags, not just tool names.
    ```
    Build: npm run build
    Test: npm test -- --coverage
@@ -63,7 +60,7 @@ Never silently fill in ambiguous requirements. The spec's entire purpose is to s
    Dev: npm run dev
    ```
 
-3. **Project Structure** - Where source code lives, where tests go, where docs belong.
+3. **Project Structure** — Where source code lives, where tests go, where docs belong.
    ```
    src/           → Application source code
    src/components → React components
@@ -73,11 +70,11 @@ Never silently fill in ambiguous requirements. The spec's entire purpose is to s
    docs/          → Documentation
    ```
 
-4. **Code Style** - One real code snippet showing your style beats three paragraphs describing it. Include naming conventions, formatting rules, and examples of good output.
+4. **Code Style** — One real code snippet showing your style beats three paragraphs describing it. Include naming conventions, formatting rules, and examples of good output.
 
-5. **Testing Strategy** - What framework, where tests live, coverage expectations, which test levels for which concerns.
+5. **Testing Strategy** — What framework, where tests live, coverage expectations, which test levels for which concerns.
 
-6. **Boundaries** - Three-tier system:
+6. **Boundaries** — Three-tier system:
    - **Always do:** Run tests before commits, follow naming conventions, validate inputs
    - **Ask first:** Database schema changes, adding dependencies, changing CI config
    - **Never do:** Commit secrets, edit vendor directories, remove failing tests without approval
@@ -94,7 +91,7 @@ Never silently fill in ambiguous requirements. The spec's entire purpose is to s
 [Framework, language, key dependencies with versions]
 
 ## Commands
-[Build, test, lint, dev - full commands]
+[Build, test, lint, dev — full commands]
 
 ## Project Structure
 [Directory layout with descriptions]
@@ -111,7 +108,7 @@ Never silently fill in ambiguous requirements. The spec's entire purpose is to s
 - Never: [...]
 
 ## Success Criteria
-[How we'll know this is done - specific, testable conditions]
+[How we'll know this is done — specific, testable conditions]
 
 ## Open Questions
 [Anything unresolved that needs human input]
@@ -157,22 +154,22 @@ Break the plan into discrete, implementable tasks:
 ```markdown
 - [ ] Task: [Description]
   - Acceptance: [What must be true when done]
-  - Verify: [How to confirm - test command, build, manual check]
+  - Verify: [How to confirm — test command, build, manual check]
   - Files: [Which files will be touched]
 ```
 
 ### Phase 4: Implement
 
-Execute tasks one at a time following `incremental-implementation` and `test-driven-development` skills.
+Execute tasks one at a time following `incremental-implementation` and `test-driven-development` skills. Use `context-engineering` to load the right spec sections and source files at each step rather than flooding the agent with the entire spec.
 
 ## Keeping the Spec Alive
 
 The spec is a living document, not a one-time artifact:
 
-- **Update when decisions change** - If you discover the data model needs to change, update the spec first, then implement.
-- **Update when scope changes** - Features added or cut should be reflected in the spec.
-- **Commit the spec** - The spec belongs in version control alongside the code.
-- **Reference the spec in PRs** - Link back to the spec section that each PR implements.
+- **Update when decisions change** — If you discover the data model needs to change, update the spec first, then implement.
+- **Update when scope changes** — Features added or cut should be reflected in the spec.
+- **Commit the spec** — The spec belongs in version control alongside the code.
+- **Reference the spec in PRs** — Link back to the spec section that each PR implements.
 
 ## Common Rationalizations
 

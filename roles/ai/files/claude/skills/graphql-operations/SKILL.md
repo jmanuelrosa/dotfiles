@@ -10,8 +10,6 @@ description: >
 license: MIT
 compatibility: Any GraphQL client (Apollo Client, urql, Relay, etc.)
 metadata:
-  url: https://github.com/apollographql/skills/tree/main/skills/graphql-operations
-  date: 31-March-2026
   author: apollographql
   version: "1.0.0"
 allowed-tools: Bash(npm:*) Bash(npx:*) Read Write Edit Glob Grep
