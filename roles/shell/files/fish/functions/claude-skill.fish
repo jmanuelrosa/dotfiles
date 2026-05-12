@@ -1,6 +1,5 @@
 function claude-skill --description "Manage Claude Code skills for the current project"
     set -l skills_source "$DOTFILES_DIR/roles/ai/files/claude/skills"
-    set -l groups_source "$DOTFILES_DIR/roles/ai/files/claude/skill-groups"
     set -l skills_target ".claude/skills"
     set -l registry "$DOTFILES_DIR/roles/ai/files/claude/skill-registry.json"
 
@@ -29,61 +28,41 @@ function claude-skill --description "Manage Claude Code skills for the current p
         end
     end
 
+    if not command -q jq
+        echo "$c_red✗$c_reset Error: jq is required. Install with: brew install jq"
+        return 1
+    end
+
+    if not test -f "$registry"
+        echo "$c_red✗$c_reset Error: Registry not found at $registry"
+        return 1
+    end
+
     switch $cmd
         case list
             if test "$use_group" = true
                 echo $c_bold"Available groups:"$c_reset
-                set -l seen_groups
 
-                if test -d "$groups_source"
-                    for group in $groups_source/*/
-                        set -l gname (basename $group)
-                        set -a seen_groups $gname
-                        echo "  $c_cyan$gname:$c_reset"
+                set -l groups (jq -r '
+                    [.repos[].skills[].groups[], .local_skills[].groups[]]
+                    | unique | .[]
+                ' $registry)
 
-                        set -l seen_skills
-                        for skill in $group/*/
-                            set -l sname (basename $skill)
-                            set -a seen_skills $sname
-                            if test -L "$skills_target/$sname"
-                                echo "    $c_green✓$c_reset $sname $c_green(linked)$c_reset"
-                            else
-                                echo "    $c_dim·$c_reset $sname"
-                            end
-                        end
-
-                        if command -q jq; and test -f "$registry"
-                            set -l reg_names (jq -r --arg g "$gname" '
-                                .repos[].skills[] |
-                                select(.local_path | startswith("skill-groups/" + $g + "/")) |
-                                .name
-                            ' $registry)
-                            for sname in $reg_names
-                                if not contains -- $sname $seen_skills
-                                    echo "    $c_dim↓ $sname (not downloaded)$c_reset"
-                                end
-                            end
-                        end
-                    end
-                end
-
-                if command -q jq; and test -f "$registry"
-                    set -l reg_groups (jq -r '
-                        .repos[].skills[] |
-                        select(.local_path | startswith("skill-groups/")) |
-                        .local_path | split("/")[1]
+                for g in $groups
+                    echo "  $c_cyan$g:$c_reset"
+                    set -l names (jq -r --arg g "$g" '
+                        [
+                            (.repos[].skills[] | select(.groups | index($g))),
+                            (.local_skills[]    | select(.groups | index($g)))
+                        ] | .[] | .name
                     ' $registry | sort -u)
-                    for g in $reg_groups
-                        if not contains -- $g $seen_groups
-                            echo "  $c_cyan$g:$c_reset"
-                            set -l reg_names (jq -r --arg g "$g" '
-                                .repos[].skills[] |
-                                select(.local_path | startswith("skill-groups/" + $g + "/")) |
-                                .name
-                            ' $registry)
-                            for sname in $reg_names
-                                echo "    $c_dim↓ $sname (not downloaded)$c_reset"
-                            end
+                    for sname in $names
+                        if test -L "$skills_target/$sname"
+                            echo "    $c_green✓$c_reset $sname $c_green(linked)$c_reset"
+                        else if test -d "$skills_source/$sname"
+                            echo "    $c_dim·$c_reset $sname"
+                        else
+                            echo "    $c_dim↓ $sname (not downloaded)$c_reset"
                         end
                     end
                 end
@@ -103,16 +82,10 @@ function claude-skill --description "Manage Claude Code skills for the current p
                     end
                 end
 
-                if command -q jq; and test -f "$registry"
-                    set -l reg_names (jq -r '
-                        .repos[].skills[] |
-                        select((.local_path | startswith("skills/")) and ((.local_path | split("/") | length) == 2)) |
-                        .name
-                    ' $registry)
-                    for sname in $reg_names
-                        if not contains -- $sname $seen_skills
-                            echo "  $c_dim↓ $sname (not downloaded)$c_reset"
-                        end
+                set -l reg_names (jq -r '.repos[].skills[].name' $registry)
+                for sname in $reg_names
+                    if not contains -- $sname $seen_skills
+                        echo "  $c_dim↓ $sname (not downloaded)$c_reset"
                     end
                 end
             end
@@ -123,69 +96,53 @@ function claude-skill --description "Manage Claude Code skills for the current p
                 return 1
             end
             if test "$use_group" = true
-                set -l group_dir "$groups_source/$name"
+                set -l group_skills (jq -r --arg g "$name" '
+                    [
+                        (.repos[].skills[] | select(.groups | index($g))),
+                        (.local_skills[]    | select(.groups | index($g)))
+                    ] | .[] | .name
+                ' $registry | sort -u)
 
-                set -l reg_skill_names
-                if command -q jq; and test -f "$registry"
-                    set reg_skill_names (jq -r --arg g "$name" '
-                        .repos[].skills[] |
-                        select(.local_path | startswith("skill-groups/" + $g + "/")) |
-                        .name
-                    ' $registry)
-                end
-
-                if not test -d "$group_dir"; and test (count $reg_skill_names) -eq 0
+                if test (count $group_skills) -eq 0
                     echo "$c_red✗$c_reset Group '$name' not found. Run 'claude:skill list --group' to see available groups."
                     return 1
                 end
 
-                for sname in $reg_skill_names
-                    if not test -d "$group_dir/$sname"
-                        echo "$c_cyan↓$c_reset Downloading '$sname' from registry..."
-                        _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" $sname
-                    end
-                end
+                set -l tracked_names (jq -r '.repos[].skills[].name' $registry)
 
-                if not test -d "$group_dir"
-                    echo "$c_red✗$c_reset Group '$name' not available after download. Check registry and retry."
-                    return 1
+                for sname in $group_skills
+                    if not test -d "$skills_source/$sname"
+                        if contains -- $sname $tracked_names
+                            echo "$c_cyan↓$c_reset Downloading '$sname' from registry..."
+                            _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" $sname
+                        else
+                            echo "$c_red✗$c_reset Local skill '$sname' missing on disk; cannot install."
+                            continue
+                        end
+                    end
                 end
 
                 mkdir -p $skills_target
                 set -l count 0
-                for skill in $group_dir/*/
-                    set -l sname (basename $skill)
-                    ln -sf "$group_dir/$sname" "$skills_target/$sname"
-                    set count (math $count + 1)
+                for sname in $group_skills
+                    if test -d "$skills_source/$sname"
+                        ln -sf "$skills_source/$sname" "$skills_target/$sname"
+                        set count (math $count + 1)
+                    end
                 end
                 echo "$c_green✓$c_reset Linked $count skills from group '$name' into $skills_target/"
             else
                 if not test -d "$skills_source/$name"
-                    set -l match_flat
-                    set -l match_group
-                    if command -q jq; and test -f "$registry"
-                        set match_flat (jq -r --arg n "$name" '
-                            .repos[].skills[] |
-                            select(.name == $n and ((.local_path | startswith("skills/")) and ((.local_path | split("/") | length) == 2))) |
-                            .name
-                        ' $registry)
-                        set match_group (jq -r --arg n "$name" '
-                            .repos[].skills[] |
-                            select(.name == $n and (.local_path | startswith("skill-groups/"))) |
-                            .local_path | split("/")[1]
-                        ' $registry)
-                    end
-
-                    if test -n "$match_flat"
+                    set -l in_registry (jq -r --arg n "$name" '
+                        [.repos[].skills[] | select(.name == $n) | .name] | .[0] // empty
+                    ' $registry)
+                    if test -n "$in_registry"
                         echo "$c_cyan↓$c_reset Skill '$name' not downloaded. Pulling from registry..."
                         _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" $name
                         if not test -d "$skills_source/$name"
                             echo "$c_red✗$c_reset Failed to download '$name'."
                             return 1
                         end
-                    else if test -n "$match_group"
-                        echo "$c_yellow⚠$c_reset Skill '$name' is a grouped skill. Try: claude:skill add --group $match_group"
-                        return 1
                     else
                         echo "$c_red✗$c_reset Skill '$name' not found. Run 'claude:skill list' to see available skills."
                         return 1
@@ -202,15 +159,22 @@ function claude-skill --description "Manage Claude Code skills for the current p
                 return 1
             end
             if test "$use_group" = true
-                if not test -d "$groups_source/$name"
+                set -l group_skills (jq -r --arg g "$name" '
+                    [
+                        (.repos[].skills[] | select(.groups | index($g))),
+                        (.local_skills[]    | select(.groups | index($g)))
+                    ] | .[] | .name
+                ' $registry | sort -u)
+
+                if test (count $group_skills) -eq 0
                     echo "$c_red✗$c_reset Group '$name' not found. Run 'claude:skill list --group' to see available groups."
                     return 1
                 end
+
                 set -l count 0
-                for skill in $groups_source/$name/*/
-                    set -l sname (basename $skill)
+                for sname in $group_skills
                     if test -L "$skills_target/$sname"
-                        rm "$skills_target/$sname"
+                        command rm "$skills_target/$sname"
                         set count (math $count + 1)
                     end
                 end
@@ -220,7 +184,7 @@ function claude-skill --description "Manage Claude Code skills for the current p
                     echo "$c_yellow⚠$c_reset Skill '$name' is not linked in this project."
                     return 1
                 end
-                rm "$skills_target/$name"
+                command rm "$skills_target/$name"
                 echo "$c_green✓$c_reset Removed '$name' from $skills_target/"
             end
 
@@ -265,6 +229,13 @@ function _claude_skill_update --description "Sync skills from upstream GitHub re
         ' $registry)
 
         if test -z "$repos"
+            set -l is_local (jq -r --arg skill "$target_skill" '
+                [.local_skills[]? | select(.name == $skill)] | length
+            ' $registry)
+            if test "$is_local" != "0"
+                echo "$c_yellow⚠$c_reset '$target_skill' is a local skill; no upstream to sync."
+                return 0
+            end
             echo "$c_red✗$c_reset Skill '$target_skill' not found in registry."
             echo "Tracked skills:"
             jq -r '.repos[].skills[].name' $registry | sort | sed 's/^/  /'
@@ -291,12 +262,12 @@ function _claude_skill_update --description "Sync skills from upstream GitHub re
         if test -n "$target_skill"
             set skill_entries (jq -r --arg r "$repo" --arg skill "$target_skill" '
                 .repos[$r].skills[] | select(.name == $skill) |
-                "\(.upstream_path)|\(.local_path)|\(.name)"
+                "\(.upstream_path)|\(.name)"
             ' $registry)
         else
             set skill_entries (jq -r --arg r "$repo" '
                 .repos[$r].skills[] |
-                "\(.upstream_path)|\(.local_path)|\(.name)"
+                "\(.upstream_path)|\(.name)"
             ' $registry)
         end
 
@@ -313,11 +284,10 @@ function _claude_skill_update --description "Sync skills from upstream GitHub re
         for entry in $skill_entries
             set -l parts (string split "|" $entry)
             set -l upstream_path $parts[1]
-            set -l local_path $parts[2]
-            set -l skill_name $parts[3]
+            set -l skill_name $parts[2]
 
             set -l src "$clone_dir/$upstream_path"
-            set -l dst "$base_dir/$local_path"
+            set -l dst "$base_dir/skills/$skill_name"
 
             if test "$upstream_path" = "."
                 set src "$clone_dir"

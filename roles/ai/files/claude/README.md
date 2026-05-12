@@ -9,9 +9,9 @@ This document covers how to **add new skills and agents to the dotfiles repo** i
 Every skill in this repo is either:
 
 - **Tracked** — synced from an upstream GitHub repo, declared under `repos` in [skill-registry.json](skill-registry.json), or
-- **Local** — authored (or consolidated) here, declared under `excluded` in [skill-registry.json](skill-registry.json).
+- **Local** — authored (or consolidated) here, declared under `local_skills` in [skill-registry.json](skill-registry.json).
 
-**Never both, never neither.** The `excluded` array is not just a "skipped" list — it's the authoritative inventory of local skills. If a skill exists on disk but doesn't appear in either place, that's a bug.
+**Never both, never neither.** The `local_skills` array is not just a "skipped" list — it's the authoritative inventory of local skills. If a skill exists on disk but doesn't appear in either place, that's a bug.
 
 ## Adding Skills
 
@@ -24,20 +24,13 @@ Every skill in this repo is either:
      SKILL.md
    ```
 
-   Or, for grouped skills:
-
-   ```
-   roles/ai/files/claude/skill-groups/<group>/my-skill/
-     SKILL.md
-   ```
-
-2. Declare it in `excluded` in [skill-registry.json](skill-registry.json) with a reason:
+2. Declare it in `local_skills` in [skill-registry.json](skill-registry.json) with its groups and a note:
 
    ```json
-   { "name": "my-skill", "reason": "Locally authored" }
+   { "name": "my-skill", "groups": ["productivity"], "note": "Locally authored" }
    ```
 
-   Common reasons: `"Locally authored"`, `"Consolidated from multiple sources"`, `"No external source"`.
+   Common notes: `"Locally authored"`, `"Consolidated from multiple sources"`, `"No external source"`.
 
 ### Option B — Track from an upstream repo
 
@@ -46,8 +39,8 @@ Every skill in this repo is either:
    ```json
    {
      "upstream_path": "skills/some-skill",
-     "local_path": "skills/my-local-name",
-     "name": "my-local-name"
+     "name": "my-local-name",
+     "groups": ["engineering", "backend"]
    }
    ```
 
@@ -84,27 +77,27 @@ The agent registry is currently empty, so no `excluded` declaration is required 
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "repos": {
     "owner/repo": {
       "branch": "main",
       "skills": [
         {
           "upstream_path": "skills/some-skill",
-          "local_path": "skills/local-name",
-          "name": "local-name"
+          "name": "local-name",
+          "groups": ["engineering", "backend"]
         }
       ]
     }
   },
-  "excluded": [
-    { "name": "skill-name", "reason": "Locally authored" }
+  "local_skills": [
+    { "name": "skill-name", "groups": ["productivity"], "note": "Locally authored" }
   ]
 }
 ```
 
-- **`repos`** — keyed by `owner/repo`. Each repo has a `branch` and a `skills` array. Each skill maps `upstream_path` (path in the upstream repo) → `local_path` (path under this directory) with a `name` used by `claude:skill` commands.
-- **`excluded`** — **authoritative inventory of local skills.** Every local skill directory under `skills/` or `skill-groups/` must appear here. Use `reason` to document why it's local (locally authored, consolidated, etc.).
+- **`repos`** — keyed by `owner/repo`. Each repo has a `branch` and a `skills` array. Each skill maps `upstream_path` (path in the upstream repo) to a `name` used by `claude:skill` commands, plus a `groups` tag array consumed by `claude:skill add --group <name>`.
+- **`local_skills`** — **authoritative inventory of local skills.** Every local skill directory under `skills/` must appear here, with its `groups` tags and a `note` documenting why it's local (locally authored, consolidated, etc.).
 
 ### agent-registry.json
 
@@ -127,16 +120,15 @@ The agent registry is currently empty, so no `excluded` declaration is required 
 ```
 
 - **`agents` array** — maps `upstream_path` → `name` (the `.md` filename without extension in `agents/`).
-- **`excluded`** — reserved for local agents when the registry starts being used.
+- **`excluded`** — reserved for local agents. Same role as `local_skills` for skills, but not in use yet.
 
 ## Directory Structure
 
 ```
 roles/ai/files/claude/
   skills/                 # Individual skills (directories with SKILL.md)
-  skill-groups/           # Grouped skills (group/skill-name/)
   agents/                 # Agent .md files
-  skill-registry.json     # Tracked upstream + local (excluded) inventory
+  skill-registry.json     # Tracked upstream + local_skills inventory
   agent-registry.json     # Tracked upstream agents
 ```
 
