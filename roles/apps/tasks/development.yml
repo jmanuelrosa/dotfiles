@@ -35,6 +35,19 @@
     state: link
     force: true
 
+- name: Ensure diffnav config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/diffnav"
+    state: directory
+    mode: "0755"
+
+- name: Symlink diffnav config
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/diffnav/config.yml"
+    dest: "{{ HOME }}/.config/diffnav/config.yml"
+    state: link
+    force: true
+
 - name: Ensure pgcli config directory exists
   ansible.builtin.file:
     path: "{{ HOME }}/.config/pgcli"

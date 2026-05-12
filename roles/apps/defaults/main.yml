@@ -28,7 +28,7 @@ BREW_PACKAGES:
     - bruno-cli
     - git
     - git-delta
-    - diffnav
+    - dlvhdr/formulae/diffnav
     - lazygit
     - gh
     - glab

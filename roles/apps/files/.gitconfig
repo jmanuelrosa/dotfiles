@@ -25,7 +25,7 @@
   # Diff
   d  = diff --color --color-words --abbrev
   dc = diff --cached
-  df = diff | diffnav
+  df = "!git diff | diffnav"
   ds = -c delta.side-by-side=true diff
 
   # Fetch
@@ -173,7 +173,10 @@
 	program =
 
 [pager]
-  diff = diffnav
+  diff = delta
+  log = delta
+  reflog = delta
+  show = delta
 
 [interactive]
   diffFilter = delta --color-only
