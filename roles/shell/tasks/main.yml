@@ -74,7 +74,6 @@
     - .config/fish/functions/claude-skill.fish
     - .config/fish/functions/claude-mcp.fish
     - .config/fish/functions/claude-agent.fish
-    - .config/television/shell/integration.fish
     - .config/fish/functions/_tv_claude_list.fish
     - .config/fish/functions/_tv_claude_toggle.fish
     - .config/television/config.toml
@@ -138,12 +137,10 @@
     - claude-skills.toml
     - claude-agents.toml
 
-- name: Symlink television shell integration
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/television/shell/integration.fish"
-    dest: "{{ HOME }}/.config/television/shell/integration.fish"
-    state: link
-    force: true
+- name: Generate television shell integration for fish
+  ansible.builtin.shell: tv init fish > {{ HOME }}/.config/television/shell/integration.fish
+  args:
+    creates: "{{ HOME }}/.config/television/shell/integration.fish"
 
 - name: Symlink starship config
   ansible.builtin.file:
