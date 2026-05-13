@@ -17,6 +17,7 @@ layout = "portrait"
 enter = "actions:toggle"
 ctrl-d = "actions:outdated"
 ctrl-u = "actions:update"
+ctrl-o = "actions:edit"
 
 [actions.toggle]
 description = "Toggle the skill link in this project"
@@ -31,4 +32,9 @@ mode = "execute"
 [actions.update]
 description = "Sync the skill from upstream"
 command = "claude-skill update {split: :0}"
+mode = "execute"
+
+[actions.edit]
+description = "Open SKILL.md in $EDITOR"
+command = "$EDITOR $DOTFILES_DIR/roles/ai/files/claude/skills/{split: :0}/SKILL.md"
 mode = "execute"

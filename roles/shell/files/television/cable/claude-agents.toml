@@ -17,6 +17,7 @@ layout = "portrait"
 enter = "actions:toggle"
 ctrl-d = "actions:outdated"
 ctrl-u = "actions:update"
+ctrl-o = "actions:edit"
 
 [actions.toggle]
 description = "Toggle the agent link in this project"
@@ -31,4 +32,9 @@ mode = "execute"
 [actions.update]
 description = "Sync the agent from upstream"
 command = "claude-agent update {split: :0}"
+mode = "execute"
+
+[actions.edit]
+description = "Open agent .md in $EDITOR"
+command = "$EDITOR $DOTFILES_DIR/roles/ai/files/claude/agents/{split: :0}.md"
 mode = "execute"
