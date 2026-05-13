@@ -58,7 +58,8 @@
     "astro-build.astro-vscode": true,
     "Anthropic.claude-code": true,
     "Prisma.prisma": false,
-    "bradlc.vscode-tailwindcss": true
+    "bradlc.vscode-tailwindcss": true,
+    "juggernautjp.less-toml": true
   },
 
   "biome.enabled": true,
