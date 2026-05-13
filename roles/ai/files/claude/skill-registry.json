@@ -339,6 +339,48 @@
           "updated_at": "2026-05-12T17:17:31Z"
         }
       ]
+    },
+    "avdlee/swiftui-agent-skill": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "swiftui-expert-skill",
+          "name": "swiftui-expert",
+          "groups": [
+            "engineering",
+            "swift"
+          ],
+          "updated_at": "2026-05-13T15:08:59Z"
+        }
+      ]
+    },
+    "avdlee/swift-concurrency-agent-skill": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "swift-concurrency",
+          "name": "swift-concurrency",
+          "groups": [
+            "engineering",
+            "swift"
+          ],
+          "updated_at": "2026-05-13T15:09:06Z"
+        }
+      ]
+    },
+    "avdlee/swift-testing-agent-skill": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "swift-testing-expert",
+          "name": "swift-testing",
+          "groups": [
+            "engineering",
+            "swift"
+          ],
+          "updated_at": "2026-05-13T15:09:11Z"
+        }
+      ]
     }
   },
   "local_skills": [
