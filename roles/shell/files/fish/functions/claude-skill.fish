@@ -128,7 +128,7 @@ function claude-skill --description "Manage Claude Code skills for the current p
                 set -l count 0
                 for sname in $group_skills
                     if test -d "$skills_source/$sname"
-                        ln -sf "$skills_source/$sname" "$skills_target/$sname"
+                        ln -sfn "$skills_source/$sname" "$skills_target/$sname"
                         set count (math $count + 1)
                     end
                 end
@@ -151,7 +151,7 @@ function claude-skill --description "Manage Claude Code skills for the current p
                     end
                 end
                 mkdir -p $skills_target
-                ln -sf "$skills_source/$name" "$skills_target/$name"
+                ln -sfn "$skills_source/$name" "$skills_target/$name"
                 echo "$c_green✓$c_reset Linked '$name' into $skills_target/"
             end
 
