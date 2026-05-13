@@ -164,6 +164,12 @@ claude-skill add vercel-react-best-practices # Link a skill into current project
 claude-skill remove vercel-react-best-practices # Remove it
 ```
 
+### Television (interactive fuzzy picker)
+
+[Television](https://github.com/alexpasmantier/television) is wired into fish via shell integration generated at provision time. `alt-c` opens the `dirs` channel for jump-to-directory; other channels surface from context-aware triggers (`gh pr`, `acli jira`, `sentry-cli issues`, …) defined in [roles/shell/files/television/config.toml](roles/shell/files/television/config.toml).
+
+Custom channels (cables) live in [roles/shell/files/television/cable/](roles/shell/files/television/cable/) and are symlinked at provision time. Drop a `.toml` in there to add a new channel — no playbook edits needed. The upstream `tv update-channels` catalog is filtered against `TV_CABLE_ALLOWLIST` in [roles/shell/defaults/main.yml](roles/shell/defaults/main.yml); anything outside the allowlist is pruned on every run.
+
 ### Editors
 
 VS Code

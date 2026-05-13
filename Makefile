@@ -47,7 +47,8 @@ verify:
 		$$HOME/.config/eza/theme.yml \
 		$$HOME/.config/fish/config.fish \
 		$$HOME/.config/starship.toml \
-		$$HOME/.config/ghostty/config; do \
+		$$HOME/.config/ghostty/config \
+		$$HOME/.config/television/config.toml; do \
 		if [ -L $$link ]; then \
 			echo "  [ok]   $$link"; \
 		else \
