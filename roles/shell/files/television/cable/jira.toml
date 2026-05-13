@@ -1,0 +1,28 @@
+[metadata]
+name = "jira"
+description = "Browse assigned Jira tickets via acli"
+requirements = ["acli", "jq"]
+
+[source]
+command = "acli jira workitem search --jql 'assignee=currentUser() AND statusCategory != Done' --json | jq -r '.[] | \"\\(.key)\t\\(.fields.summary)\"'"
+output = "{split: \t:0}"
+
+[preview]
+command = "acli jira workitem view {split: \t:0}"
+
+[ui]
+layout = "portrait"
+
+[keybindings]
+enter = "actions:open-browser"
+ctrl-y = "actions:copy-key"
+
+[actions.open-browser]
+description = "Open the ticket in the browser"
+command = "acli jira workitem open {split: \t:0}"
+mode = "execute"
+
+[actions.copy-key]
+description = "Copy ticket key to clipboard"
+command = "printf %s {split: \t:0} | pbcopy"
+mode = "execute"

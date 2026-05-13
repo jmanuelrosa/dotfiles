@@ -1,0 +1,28 @@
+[metadata]
+name = "sentry"
+description = "Browse recent Sentry issues for the current project"
+requirements = ["sentry-cli"]
+
+[source]
+command = "sentry-cli issues list 2>/dev/null"
+output = "{split: :0}"
+
+[preview]
+command = "sentry-cli issues info {split: :0} 2>/dev/null"
+
+[ui]
+layout = "portrait"
+
+[keybindings]
+enter = "actions:open-browser"
+ctrl-r = "actions:resolve"
+
+[actions.open-browser]
+description = "Open the issue in the browser"
+command = "open https://sentry.io/issues/{split: :0}"
+mode = "execute"
+
+[actions.resolve]
+description = "Resolve the issue"
+command = "sentry-cli issues resolve {split: :0}"
+mode = "execute"

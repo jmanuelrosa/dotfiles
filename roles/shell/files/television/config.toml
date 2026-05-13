@@ -214,6 +214,8 @@ fallback_channel = "files"
   "claude-skill outdated",
   "claude-skill update"
 ]
+"jira" = ["acli jira"]
+"sentry" = ["sentry-cli issues"]
 
 # [shell_integration.keybindings]
 # # controls which key binding should trigger tv

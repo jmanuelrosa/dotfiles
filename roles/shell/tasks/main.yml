@@ -78,8 +78,11 @@
     - .config/fish/functions/_tv_claude_toggle.fish
     - .config/fish/functions/tv_change_dir.fish
     - .config/television/config.toml
+    - .config/television/cable/aerospace.toml
     - .config/television/cable/claude-skills.toml
     - .config/television/cable/claude-agents.toml
+    - .config/television/cable/jira.toml
+    - .config/television/cable/sentry.toml
     - .config/starship.toml
   register: results
 
@@ -131,13 +134,12 @@
 
 - name: Symlink television custom channels
   ansible.builtin.file:
-    src: "{{ role_path }}/files/television/cable/{{ item }}"
-    dest: "{{ HOME }}/.config/television/cable/{{ item }}"
+    src: "{{ item }}"
+    dest: "{{ HOME }}/.config/television/cable/{{ item | basename }}"
     state: link
     force: true
-  with_items:
-    - claude-skills.toml
-    - claude-agents.toml
+  with_fileglob:
+    - "{{ role_path }}/files/television/cable/*.toml"
 
 - name: Generate television shell integration for fish
   ansible.builtin.shell: tv init fish > {{ HOME }}/.config/television/shell/integration.fish
