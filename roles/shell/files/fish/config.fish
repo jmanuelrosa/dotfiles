@@ -7,7 +7,6 @@ set -U fish_greeting
 starship init fish | source
 zoxide init fish | source
 fnm env --use-on-cd | source
-source $HOME/.config/television/shell/integration.fish
 
 fish_add_path $HOME/.local/bin
 fish_add_path $HOME/.node/bin
@@ -61,6 +60,13 @@ set -gx _ZO_ECHO 1
 # franciscolourenco/done config
 set -g __done_min_cmd_duration 10000
 set -g __done_exclude '^(nano|less|more|man|ssh|claude|lazygit|btop|htop|ctop|nnn|fish|bash)'
+
+# Television
+source $HOME/.config/television/shell/integration.fish
+
+for mode in default insert
+    bind --mode $mode alt-c tv_change_dir
+end
 
 # pnpm
 set -gx PNPM_HOME "$HOME/Library/pnpm"
