@@ -20,3 +20,15 @@ BREW_PACKAGES:
     - gnupg
   casks:
     - ghostty
+
+# Upstream television cables to keep after `tv update-channels`.
+# Any non-symlink .toml in ~/.config/television/cable/ whose basename
+# (minus .toml) is not in this list gets pruned each run. Symlinks
+# (i.e. cables vendored in roles/shell/files/television/cable/) are
+# always preserved regardless of this list.
+TV_CABLE_ALLOWLIST:
+  - brew-packages
+  - dirs
+  - files
+  - fish-history
+  - git-worktrees

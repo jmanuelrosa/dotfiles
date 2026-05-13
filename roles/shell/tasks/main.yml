@@ -105,6 +105,22 @@
   ansible.builtin.command: tv update-channels
   changed_when: false
 
+- name: Discover non-symlink television cables
+  ansible.builtin.find:
+    paths: "{{ HOME }}/.config/television/cable"
+    patterns: "*.toml"
+    file_type: file
+  register: tv_cable_files
+
+- name: Prune upstream cables not in TV_CABLE_ALLOWLIST
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ tv_cable_files.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  when: (item.path | basename | regex_replace('\.toml$', '')) not in TV_CABLE_ALLOWLIST
+
 - name: Symlink television config
   ansible.builtin.file:
     src: "{{ role_path }}/files/television/config.toml"
