@@ -44,6 +44,8 @@
   with_items:
     - .config/fish
     - .config/ghostty
+    - .config/television/cable
+    - .config/television/shell
 
 - name: Ensure backup directories exist
   ansible.builtin.file:
@@ -55,6 +57,8 @@
     - .config/fish/functions
     - .config/fish/completions
     - .config/ghostty
+    - .config/television/cable
+    - .config/television/shell
 
 - name: Check if files to backup exists
   ansible.builtin.stat:
@@ -70,6 +74,12 @@
     - .config/fish/functions/claude-skill.fish
     - .config/fish/functions/claude-mcp.fish
     - .config/fish/functions/claude-agent.fish
+    - .config/television/shell/integration.fish
+    - .config/fish/functions/_tv_claude_list.fish
+    - .config/fish/functions/_tv_claude_toggle.fish
+    - .config/television/config.toml
+    - .config/television/cable/claude-skills.toml
+    - .config/television/cable/claude-agents.toml
     - .config/starship.toml
   register: results
 
@@ -85,6 +95,17 @@
   ansible.builtin.file:
     src: "{{ role_path }}/files/ghostty/config"
     dest: "{{ HOME }}/.config/ghostty/config"
+    state: link
+    force: true
+
+- name: Sync upstream television channels
+  ansible.builtin.command: tv update-channels
+  changed_when: false
+
+- name: Symlink television config
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/television/config.toml"
+    dest: "{{ HOME }}/.config/television/config.toml"
     state: link
     force: true
 
@@ -104,6 +125,25 @@
     - fish/functions/claude-skill.fish
     - fish/functions/claude-mcp.fish
     - fish/functions/claude-agent.fish
+    - fish/functions/_tv_claude_list.fish
+    - fish/functions/_tv_claude_toggle.fish
+
+- name: Symlink television custom channels
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/television/cable/{{ item }}"
+    dest: "{{ HOME }}/.config/television/cable/{{ item }}"
+    state: link
+    force: true
+  with_items:
+    - claude-skills.toml
+    - claude-agents.toml
+
+- name: Symlink television shell integration
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/television/shell/integration.fish"
+    dest: "{{ HOME }}/.config/television/shell/integration.fish"
+    state: link
+    force: true
 
 - name: Symlink starship config
   ansible.builtin.file:

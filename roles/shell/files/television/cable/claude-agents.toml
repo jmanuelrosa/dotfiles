@@ -1,0 +1,34 @@
+[metadata]
+name = "claude-agents"
+description = "Manage Claude Code agents (toggle link, check outdated, update)"
+requirements = ["fish", "jq", "bat"]
+
+[source]
+command = "fish -c '_tv_claude_list agent'"
+output = "{split: :0}"
+
+[preview]
+command = "bat --color=always --plain --language=markdown $DOTFILES_DIR/roles/ai/files/claude/agents/{split: :0}.md 2>/dev/null; or echo 'Not downloaded — Enter to install via claude-agent add'"
+
+[ui]
+layout = "portrait"
+
+[keybindings]
+enter = "actions:toggle"
+ctrl-d = "actions:outdated"
+ctrl-u = "actions:update"
+
+[actions.toggle]
+description = "Toggle the agent link in this project"
+command = "fish -c '_tv_claude_toggle agent {split: :0}'"
+mode = "execute"
+
+[actions.outdated]
+description = "Check if the agent is up-to-date"
+command = "claude-agent outdated {split: :0}"
+mode = "execute"
+
+[actions.update]
+description = "Sync the agent from upstream"
+command = "claude-agent update {split: :0}"
+mode = "execute"

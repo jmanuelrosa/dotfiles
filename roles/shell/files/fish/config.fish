@@ -5,9 +5,9 @@ end
 set -U fish_greeting
 
 starship init fish | source
-fzf --fish | source
 zoxide init fish | source
 fnm env --use-on-cd | source
+source $HOME/.config/television/shell/integration.fish
 
 fish_add_path $HOME/.local/bin
 fish_add_path $HOME/.node/bin
@@ -46,26 +46,6 @@ set -gx NNN_BMS "d:$HOME/downloads/"
 set -gx NNN_BATSTYLE "changes,numbers"
 set -gx NNN_BATTHEME base16
 
-# FZF options
-set -gx FD_DEFAULT_COMMAND 'fd --hidden --follow'
-set -gx FZF_DEFAULT_COMMAND "$FD_DEFAULT_COMMAND --exclude .git --exclude node_modules"
-set -gx FZF_DEFAULT_OPTS '
-  --bind \'ctrl-t:transform:if not string match -q "Files*" $FZF_PROMPT; echo "change-prompt(Files> )+reload:fd --type f --color always"; else; echo "change-prompt(Directories> )+reload:fd --type d --color always"; end\'
-  --height 50%
-  --layout=reverse
-  --border
-  --info=inline
-  --marker="*"
-  --bind "?:toggle-preview"
-  --bind "alt-down:half-page-down"
-  --bind "alt-up:half-page-up"
-  --bind "ctrl-a:toggle-all"
-  --bind "ctrl-d:preview-half-page-down"
-  --bind "ctrl-u:preview-half-page-up"
-  --bind "ctrl-y:execute(echo {+} | pbcopy)"
-  --bind \'ctrl-r:transform:if not string match -q "Hidden*" $FZF_PROMPT; echo "change-prompt(Hidden files> )+reload:fd --type f --hidden --follow --no-ignore --color always"; else; echo "change-prompt(Files&Directories> )+reload:fd --hidden --follow --color always --exclude .git --exclude node_modules --exclude .venv"; end\'
-'
-
 # ripgrep options
 set -gx RIPGREP_CONFIG_PATH $HOME/.config/ripgrep/config
 
@@ -80,7 +60,7 @@ set -gx _ZO_ECHO 1
 
 # franciscolourenco/done config
 set -g __done_min_cmd_duration 10000
-set -g __done_exclude '^(nano|less|more|man|ssh|claude|lazygit|btop|htop|ctop|nnn|fzf|fish|bash)'
+set -g __done_exclude '^(nano|less|more|man|ssh|claude|lazygit|btop|htop|ctop|nnn|fish|bash)'
 
 # pnpm
 set -gx PNPM_HOME "$HOME/Library/pnpm"

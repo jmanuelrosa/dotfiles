@@ -58,7 +58,7 @@ Roles execute in order. Each role can be run individually using its tag.
 |------|-----|-------------|
 | brew | `brew` | Installs and updates Homebrew, installs `mas` (Mac App Store CLI) |
 | macos | `macos` | Configures macOS system preferences (keyboard, Finder, Dock) and firmware tweaks (boot sound, hibernation) |
-| coreutils | `coreutils` | Installs modern Unix-replacement utilities (bat, eza, fd, fzf, ripgrep, etc.) and links their configs. Domain-specific CLIs (awscli, gh, docker, etc.) live in `apps`. |
+| coreutils | `coreutils` | Installs modern Unix-replacement utilities (bat, eza, fd, ripgrep, television, etc.) and links their configs. Domain-specific CLIs (awscli, gh, docker, etc.) live in `apps`. |
 | shell | `shell` | Sets up Fish shell, Ghostty terminal, Starship prompt, Fish plugins |
 | ssh | `ssh` | Loads SSH keys into `~/.ssh` |
 | user | `user` | Creates user directories (`~/developer`, `~/pictures`, `~/downloads`) and links wallpapers |
@@ -138,11 +138,11 @@ See [`AGENTS.md`](AGENTS.md) for layout conventions, commit style, and role anat
 - [Ghostty](https://ghostty.org) terminal
 - [Starship](https://starship.rs) prompt
 - GnuPG
-- Fish plugins: ssh-agent, done, autopair, replay, sponge, puffer-fish, fzf
+- Fish plugins: ssh-agent, done, autopair, replay, puffer-fish
 
 ### CLI Utilities
 
-bat, btop, duf, eza, fastfetch, fd, fzf, httpie, hyperfine, nnn, ripgrep, scc, vnstat, wget, zoxide, unar (modern Unix replacements; configs managed under `roles/coreutils/files/`)
+bat, btop, duf, eza, fastfetch, fd, httpie, hyperfine, nnn, ripgrep, scc, television, vnstat, wget, zoxide, unar (modern Unix replacements; configs managed under `roles/coreutils/files/`)
 
 ### Browsers
 

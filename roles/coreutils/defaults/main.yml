@@ -11,12 +11,12 @@ BREW_PACKAGES:
     - eza
     - fastfetch
     - fd
-    - fzf
     - httpie
     - hyperfine
     - nnn
     - ripgrep
     - scc
+    - television
     - vnstat
     - wget
     - zoxide

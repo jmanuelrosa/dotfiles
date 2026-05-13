@@ -1,4 +1,4 @@
-# Ansible role for command-line utilities (bat, eza, fd, fzf, ripgrep, etc.)
+# Ansible role for command-line utilities (bat, eza, fd, ripgrep, television, etc.)
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 

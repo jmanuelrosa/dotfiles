@@ -1,0 +1,34 @@
+[metadata]
+name = "claude-skills"
+description = "Manage Claude Code skills (toggle link, check outdated, update)"
+requirements = ["fish", "jq", "bat"]
+
+[source]
+command = "fish -c '_tv_claude_list skill'"
+output = "{split: :0}"
+
+[preview]
+command = "bat --color=always --plain --language=markdown $DOTFILES_DIR/roles/ai/files/claude/skills/{split: :0}/SKILL.md 2>/dev/null; or echo 'Not downloaded — Enter to install via claude-skill add'"
+
+[ui]
+layout = "portrait"
+
+[keybindings]
+enter = "actions:toggle"
+ctrl-d = "actions:outdated"
+ctrl-u = "actions:update"
+
+[actions.toggle]
+description = "Toggle the skill link in this project"
+command = "fish -c '_tv_claude_toggle skill {split: :0}'"
+mode = "execute"
+
+[actions.outdated]
+description = "Check if the skill is up-to-date"
+command = "claude-skill outdated {split: :0}"
+mode = "execute"
+
+[actions.update]
+description = "Sync the skill from upstream"
+command = "claude-skill update {split: :0}"
+mode = "execute"
