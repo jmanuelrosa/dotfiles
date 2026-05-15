@@ -141,9 +141,9 @@
 [diff]
   colorMoved = default
   # Detect copies in addition to renames
-	renames = copies
-	# A la `git submodule summary`
-	submodule = log
+  renames = copies
+  # A la `git submodule summary`
+  submodule = log
 
 [difftool]
   prompt = false
@@ -152,15 +152,15 @@
   prompt = false
 
 [user]
-	name = Jose Manuel Rosa Moncayo
-	email = josemanuel.rosamoncayo+github@gmail.com
+  name = Jose Manuel Rosa Moncayo
+  email = josemanuel.rosamoncayo+github@gmail.com
 
 # Include other gitconfig files depending on the directory (case non-sensitive)
 [includeIf "gitdir/i:~/developer/work/didomi/"]
   path = ~/developer/work/.gitconfig.didomi
 
 [push]
-	default = current
+  default = current
   autoSetupRemote = true
 
 [pull]
