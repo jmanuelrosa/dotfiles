@@ -199,7 +199,8 @@
         "*.githubusercontent.com",
         "auth.atlassian.com",
         "as.atlassian.com",
-        "api.atlassian.com"
+        "api.atlassian.com",
+        "app.fossa.com"
       ],
       "allowLocalBinding": true
     },
