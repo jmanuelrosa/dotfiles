@@ -4,7 +4,11 @@ description = "Manage Claude Code agents (toggle link, check outdated, update)"
 requirements = ["fish", "jq", "bat"]
 
 [source]
-command = "fish -c '_tv_claude_list agent'"
+command = [
+  { name = "All",       run = "fish -c '_tv_claude_list agent'" },
+  { name = "Linked",    run = "fish -c '_tv_claude_list agent linked'" },
+  { name = "Available", run = "fish -c '_tv_claude_list agent available'" },
+]
 output = "{split: :0}"
 
 [preview]

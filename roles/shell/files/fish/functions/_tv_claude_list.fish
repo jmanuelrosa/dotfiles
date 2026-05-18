@@ -1,4 +1,4 @@
-function _tv_claude_list --description "Television source: list claude skills or agents with link status" --argument-names kind
+function _tv_claude_list --description "Television source: list claude skills or agents with link status" --argument-names kind filter
     set -l source
     set -l target
     set -l registry
@@ -19,6 +19,7 @@ function _tv_claude_list --description "Television source: list claude skills or
             return 1
     end
 
+    set -l lines
     set -l seen
 
     if test -d "$source"
@@ -27,9 +28,9 @@ function _tv_claude_list --description "Television source: list claude skills or
                 set -l name (basename $entry)
                 set -a seen $name
                 if test -L "$target/$name$ext"
-                    printf '%-30s  [linked]\n' $name
+                    set -a lines (printf '%-30s  [linked]' $name)
                 else
-                    printf '%-30s  [available]\n' $name
+                    set -a lines (printf '%-30s  [available]' $name)
                 end
             end
         else
@@ -38,9 +39,9 @@ function _tv_claude_list --description "Television source: list claude skills or
                 set -l name (basename $entry $ext)
                 set -a seen $name
                 if test -L "$target/$name$ext"
-                    printf '%-30s  [linked]\n' $name
+                    set -a lines (printf '%-30s  [linked]' $name)
                 else
-                    printf '%-30s  [available]\n' $name
+                    set -a lines (printf '%-30s  [available]' $name)
                 end
             end
         end
@@ -56,8 +57,20 @@ function _tv_claude_list --description "Television source: list claude skills or
         end
         for name in $reg_names
             if not contains -- $name $seen
-                printf '%-30s  [not downloaded]\n' $name
+                set -a lines (printf '%-30s  [not downloaded]' $name)
             end
         end
+    end
+
+    switch $filter
+        case linked
+            string match -e -- '[linked]' $lines | sort
+        case available
+            string match -er -- '\[(?:available|not downloaded)\]' $lines | sort
+        case '' all
+            printf '%s\n' $lines | sort
+        case '*'
+            echo "_tv_claude_list: filter must be 'linked', 'available', or empty" >&2
+            return 1
     end
 end
