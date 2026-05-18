@@ -9,6 +9,9 @@ set -g GREEN (set_color green)
 set -g YELLOW (set_color yellow)
 set -g NC (set_color normal)
 
+# Cap branch length to commitlint's header-max-length (default 72 in @commitlint/config-conventional)
+set -g MAX_BRANCH_LENGTH 50
+
 # Configuration - authentication handled by acli (run `acli auth login` for initial setup)
 
 # Function to display error and exit
@@ -100,10 +103,29 @@ echo -e "$GREEN✓ Issue found:$NC"
 echo "  📋 Type: $ISSUE_TYPE"
 echo "  📝 Summary: $ISSUE_SUMMARY"
 
-# Create branch name
+# Create branch name (cap total length at MAX_BRANCH_LENGTH — matches commitlint header-max-length)
 set -g BRANCH_PREFIX (get_branch_prefix "$ISSUE_TYPE")
 set -g TITLE_SLUG (create_slug "$ISSUE_SUMMARY")
-set -g BRANCH_NAME "$BRANCH_PREFIX/$JIRA_ID-$TITLE_SLUG"
+set -g BRANCH_BASE "$BRANCH_PREFIX/$JIRA_ID-"
+set -g MAX_SLUG_LENGTH (math $MAX_BRANCH_LENGTH - (string length -- $BRANCH_BASE))
+
+if test $MAX_SLUG_LENGTH -lt 1
+    die "JIRA_ID + prefix already exceeds $MAX_BRANCH_LENGTH characters"
+end
+
+if test (string length -- $TITLE_SLUG) -gt $MAX_SLUG_LENGTH
+    set -g ORIGINAL_SLUG $TITLE_SLUG
+    set TITLE_SLUG (string sub -l $MAX_SLUG_LENGTH -- $TITLE_SLUG)
+    # If we cut a word in half, walk back to the last hyphen boundary
+    set next_char (string sub -s (math $MAX_SLUG_LENGTH + 1) -l 1 -- $ORIGINAL_SLUG)
+    if test "$next_char" != "-"
+        set TITLE_SLUG (string replace -r -- '-[^-]*$' '' $TITLE_SLUG)
+    end
+    set TITLE_SLUG (string replace -r -- '-+$' '' $TITLE_SLUG)
+    echo -e "$YELLOW✂️  Slug truncated to fit $MAX_BRANCH_LENGTH-char limit (commitlint header-max-length)$NC"
+end
+
+set -g BRANCH_NAME "$BRANCH_BASE$TITLE_SLUG"
 
 if set -q _flag_dry
     echo ""
