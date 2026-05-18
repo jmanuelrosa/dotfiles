@@ -11,7 +11,7 @@
             "product",
             "product-manager"
           ],
-          "updated_at": "2026-05-12T10:28:47Z"
+          "updated_at": "2026-05-18T05:37:14Z"
         },
         {
           "upstream_path": "skills/documentation-and-adrs",
@@ -75,6 +75,24 @@
             "review"
           ],
           "updated_at": "2026-05-12T10:27:26Z"
+        },
+        {
+          "upstream_path": "skills/incremental-implementation",
+          "name": "incremental-implementation",
+          "groups": [
+            "engineering",
+            "workflow"
+          ],
+          "updated_at": "2026-05-18T05:29:34Z"
+        },
+        {
+          "upstream_path": "skills/ci-cd-and-automation",
+          "name": "ci-cd-and-automation",
+          "groups": [
+            "engineering",
+            "ci"
+          ],
+          "updated_at": "2026-05-18T05:29:47Z"
         }
       ]
     },
@@ -159,7 +177,7 @@
             "marketing",
             "seo"
           ],
-          "updated_at": "2026-05-12T10:27:28Z"
+          "updated_at": "2026-05-18T05:29:15Z"
         },
         {
           "upstream_path": "skills/ai-seo",
@@ -395,6 +413,20 @@
           "updated_at": "2026-05-13T15:09:11Z"
         }
       ]
+    },
+    "emilkowalski/skill": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/emil-design-eng",
+          "name": "design-engineer",
+          "groups": [
+            "engineering",
+            "design"
+          ],
+          "updated_at": "2026-05-18T13:40:54Z"
+        }
+      ]
     }
   },
   "local_skills": [
@@ -450,7 +482,7 @@
       "name": "frontend-design",
       "groups": [
         "engineering",
-        "frontend"
+        "design"
       ],
       "note": "Consolidated from multiple sources"
     }
