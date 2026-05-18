@@ -29,7 +29,7 @@ function _wt_help
   echo "                           develop > main > master). Copies env/.vscode/.claude,"
   echo "                           installs deps if a lockfile is present, and cds into it."
   echo "  list                     List all worktrees"
-  echo "  remove <name>            Remove a worktree (by branch name or path)"
+  echo "  remove <name> [--force]  Remove a worktree (by branch name or path)"
   echo "  prune                    Prune stale worktree metadata"
 end
 
@@ -119,14 +119,23 @@ function _wt_add
   end
 end
 
-function _wt_remove --argument-names target
+function _wt_remove
+  argparse 'f/force' -- $argv
+  or return 1
+
+  set -l target $argv[1]
   if test -z "$target"
     echo "wt remove: missing worktree name or path" >&2
     return 1
   end
 
+  set -l force_args
+  if set -q _flag_force
+    set force_args --force
+  end
+
   if test -d $target
-    git worktree remove $target
+    git worktree remove $force_args $target
     return $status
   end
 
@@ -142,8 +151,8 @@ function _wt_remove --argument-names target
   end
 
   if test -n "$found"
-    git worktree remove $found
+    git worktree remove $force_args $found
   else
-    git worktree remove $target
+    git worktree remove $force_args $target
   end
 end
