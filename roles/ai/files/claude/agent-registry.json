@@ -6,10 +6,11 @@
       "agents": [
         {
           "upstream_path": "agents/code-reviewer.md",
-          "name": "code-reviewer"
+          "name": "code-reviewer",
+          "groups": ["quality", "review"]
         }
       ]
     }
   },
-  "excluded": []
+  "local_agents": []
 }

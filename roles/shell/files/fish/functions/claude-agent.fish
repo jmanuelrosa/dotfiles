@@ -14,34 +14,79 @@ function claude-agent --description "Manage Claude Code agents for the current p
     set -l c_reset (set_color normal)
 
     if test (count $argv) -lt 1
-        echo "Usage: claude-agent <list|add|remove|update|outdated> [name]"
+        echo "Usage: claude-agent <list|add|remove|update|outdated> [--group] [name]"
         return 1
     end
 
     set -l cmd $argv[1]
-    set -l name $argv[2]
+    set -l use_group false
+    set -l name ""
+
+    for arg in $argv[2..]
+        if test "$arg" = "--group"
+            set use_group true
+        else
+            set name "$arg"
+        end
+    end
+
+    if not command -q jq
+        echo "$c_magenta✗$c_reset Error: jq is required. Install with: brew install jq"
+        return 1
+    end
+
+    if not test -f "$registry"
+        echo "$c_magenta✗$c_reset Error: Registry not found at $registry"
+        return 1
+    end
 
     switch $cmd
         case list
-            echo $c_bold"Available agents:"$c_reset
-            set -l seen
+            if test "$use_group" = true
+                echo $c_bold"Available groups:"$c_reset
 
-            if test -d "$agents_source"
-                for agent in $agents_source/*.md
-                    if not test -f "$agent"
-                        continue
-                    end
-                    set -l aname (basename $agent .md)
-                    set -a seen $aname
-                    if test -L "$agents_target/$aname.md"
-                        echo "  $c_green✓$c_reset $aname $c_green(linked)$c_reset"
-                    else
-                        echo "  $c_dim·$c_reset $aname"
+                set -l groups (jq -r '
+                    [.repos[].agents[].groups[]?, .local_agents[]?.groups[]?]
+                    | unique | .[]
+                ' $registry)
+
+                for g in $groups
+                    echo "  $c_cyan$g:$c_reset"
+                    set -l names (jq -r --arg g "$g" '
+                        [
+                            (.repos[].agents[] | select(.groups | index($g))),
+                            (.local_agents[]    | select(.groups | index($g)))
+                        ] | .[] | .name
+                    ' $registry | sort -u)
+                    for aname in $names
+                        if test -L "$agents_target/$aname.md"
+                            echo "    $c_green✓$c_reset $aname $c_green(linked)$c_reset"
+                        else if test -f "$agents_source/$aname.md"
+                            echo "    $c_dim·$c_reset $aname"
+                        else
+                            echo "    $c_dim↓ $aname (not downloaded)$c_reset"
+                        end
                     end
                 end
-            end
+            else
+                echo $c_bold"Available agents:"$c_reset
+                set -l seen
 
-            if command -q jq; and test -f "$registry"
+                if test -d "$agents_source"
+                    for agent in $agents_source/*.md
+                        if not test -f "$agent"
+                            continue
+                        end
+                        set -l aname (basename $agent .md)
+                        set -a seen $aname
+                        if test -L "$agents_target/$aname.md"
+                            echo "  $c_green✓$c_reset $aname $c_green(linked)$c_reset"
+                        else
+                            echo "  $c_dim·$c_reset $aname"
+                        end
+                    end
+                end
+
                 set -l reg_names (jq -r '.repos[].agents[].name' $registry)
                 for aname in $reg_names
                     if not contains -- $aname $seen
@@ -52,57 +97,116 @@ function claude-agent --description "Manage Claude Code agents for the current p
 
         case add
             if test -z "$name"
-                echo "Usage: claude:agent add <name>"
+                echo "Usage: claude-agent add [--group] <name>"
                 return 1
             end
-            if not test -f "$agents_source/$name.md"
-                set -l in_registry false
-                if command -q jq; and test -f "$registry"
-                    set -l match (jq -r --arg n "$name" '
-                        .repos[].agents[] | select(.name == $n) | .name
-                    ' $registry)
-                    if test -n "$match"
-                        set in_registry true
+            if test "$use_group" = true
+                set -l group_agents (jq -r --arg g "$name" '
+                    [
+                        (.repos[].agents[] | select(.groups | index($g))),
+                        (.local_agents[]    | select(.groups | index($g)))
+                    ] | .[] | .name
+                ' $registry | sort -u)
+
+                if test (count $group_agents) -eq 0
+                    echo "$c_magenta✗$c_reset Group '$name' not found. Run 'claude-agent list --group' to see available groups."
+                    return 1
+                end
+
+                set -l tracked_names (jq -r '.repos[].agents[].name' $registry)
+
+                for aname in $group_agents
+                    if not test -f "$agents_source/$aname.md"
+                        if contains -- $aname $tracked_names
+                            echo "$c_cyan↓$c_reset Downloading '$aname' from registry..."
+                            _claude_agent_update $registry "$agents_source" $aname
+                        else
+                            echo "$c_magenta✗$c_reset Local agent '$aname' missing on disk; cannot install."
+                            continue
+                        end
                     end
                 end
 
-                if test "$in_registry" = false
-                    echo "$c_magenta✗$c_reset Agent '$name' not found. Run 'claude:agent list' to see available agents."
-                    return 1
+                mkdir -p $agents_target
+                set -l count 0
+                for aname in $group_agents
+                    if test -f "$agents_source/$aname.md"
+                        ln -sfn "$agents_source/$aname.md" "$agents_target/$aname.md"
+                        set count (math $count + 1)
+                    end
                 end
-
-                echo "$c_cyan↓$c_reset Agent '$name' not downloaded. Pulling from registry..."
-                _claude_agent_update $registry "$agents_source" $name
-
+                echo "$c_green✓$c_reset Linked $count agents from group '$name' into $agents_target/"
+            else
                 if not test -f "$agents_source/$name.md"
-                    echo "$c_magenta✗$c_reset Failed to download '$name'."
-                    return 1
+                    set -l in_registry (jq -r --arg n "$name" '
+                        [.repos[].agents[] | select(.name == $n) | .name] | .[0] // empty
+                    ' $registry)
+                    set -l in_local (jq -r --arg n "$name" '
+                        [.local_agents[]? | select(.name == $n) | .name] | .[0] // empty
+                    ' $registry)
+                    if test -n "$in_local"
+                        echo "$c_magenta✗$c_reset Local agent '$name' missing on disk; cannot install."
+                        return 1
+                    else if test -n "$in_registry"
+                        echo "$c_cyan↓$c_reset Agent '$name' not downloaded. Pulling from registry..."
+                        _claude_agent_update $registry "$agents_source" $name
+                        if not test -f "$agents_source/$name.md"
+                            echo "$c_magenta✗$c_reset Failed to download '$name'."
+                            return 1
+                        end
+                    else
+                        echo "$c_magenta✗$c_reset Agent '$name' not found. Run 'claude-agent list' to see available agents."
+                        return 1
+                    end
                 end
+                mkdir -p $agents_target
+                ln -sfn "$agents_source/$name.md" "$agents_target/$name.md"
+                echo "$c_green✓$c_reset Linked '$name' into $agents_target/"
             end
-            mkdir -p $agents_target
-            ln -sf "$agents_source/$name.md" "$agents_target/$name.md"
-            echo "$c_green✓$c_reset Linked '$name' into $agents_target/"
 
         case remove
             if test -z "$name"
-                echo "Usage: claude:agent remove <name>"
+                echo "Usage: claude-agent remove [--group] <name>"
                 return 1
             end
-            if not test -L "$agents_target/$name.md"
-                echo "$c_yellow⚠$c_reset Agent '$name' is not linked in this project."
-                return 1
+            if test "$use_group" = true
+                set -l group_agents (jq -r --arg g "$name" '
+                    [
+                        (.repos[].agents[] | select(.groups | index($g))),
+                        (.local_agents[]    | select(.groups | index($g)))
+                    ] | .[] | .name
+                ' $registry | sort -u)
+
+                if test (count $group_agents) -eq 0
+                    echo "$c_magenta✗$c_reset Group '$name' not found. Run 'claude-agent list --group' to see available groups."
+                    return 1
+                end
+
+                set -l count 0
+                for aname in $group_agents
+                    if test -L "$agents_target/$aname.md"
+                        command rm "$agents_target/$aname.md"
+                        set count (math $count + 1)
+                    end
+                end
+                echo "$c_green✓$c_reset Removed $count agents from group '$name'"
+            else
+                if not test -L "$agents_target/$name.md"
+                    echo "$c_yellow⚠$c_reset Agent '$name' is not linked in this project."
+                    return 1
+                end
+                command rm "$agents_target/$name.md"
+                echo "$c_green✓$c_reset Removed '$name' from $agents_target/"
             end
-            rm "$agents_target/$name.md"
-            echo "$c_green✓$c_reset Removed '$name' from $agents_target/"
 
         case update
-            _claude_agent_update $registry "$DOTFILES_DIR/roles/ai/files/claude/agents" "$name" sync
+            _claude_agent_update $registry "$agents_source" "$name" sync
 
         case outdated
-            _claude_agent_update $registry "$DOTFILES_DIR/roles/ai/files/claude/agents" "$name" check
+            _claude_agent_update $registry "$agents_source" "$name" check
 
         case '*'
-            echo "Usage: claude-agent <list|add|remove|update|outdated> [name]"
+            echo "Usage: claude-agent <list|add|remove|update|outdated> [--group] [name]"
             return 1
     end
 end
@@ -145,6 +249,13 @@ function _claude_agent_update --description "Sync (or check) agents against upst
         ' $registry)
 
         if test -z "$repos"
+            set -l is_local (jq -r --arg agent "$target_agent" '
+                [.local_agents[]? | select(.name == $agent)] | length
+            ' $registry)
+            if test "$is_local" != "0"
+                echo "$c_yellow⚠$c_reset '$target_agent' is a local agent; no upstream to sync."
+                return 0
+            end
             echo "$c_magenta✗$c_reset Agent '$target_agent' not found in registry."
             echo "Tracked agents:"
             jq -r '.repos[].agents[].name' $registry | sort | sed 's/^/  /'
