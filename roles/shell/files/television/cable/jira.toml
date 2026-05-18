@@ -1,14 +1,21 @@
 [metadata]
 name = "jira"
-description = "Browse assigned Jira tickets via acli"
-requirements = ["acli", "jq"]
+description = "Browse Jira tickets via acli — Ctrl-S cycles JQL views, Ctrl-B branches, Ctrl-T transitions"
+requirements = ["acli", "jq", "fzf", "fish", "s-task"]
 
 [source]
-command = "acli jira workitem search --jql 'assignee=currentUser() AND statusCategory != Done' --json | jq -r '.[] | \"\\(.key)\t\\(.fields.summary)\"'"
-output = "{split: \t:0}"
+ansi = true
+command = [
+  "fish -c '_tv_jira list all'",
+  "fish -c '_tv_jira list backlog'",
+  "fish -c '_tv_jira list selected'",
+  "fish -c '_tv_jira list in-progress'",
+  "fish -c '_tv_jira list ready'",
+]
+output = "{split: :0}"
 
 [preview]
-command = "acli jira workitem view {split: \t:0}"
+command = "fish -c '_tv_jira preview {split: :0}'"
 
 [ui]
 layout = "portrait"
@@ -16,13 +23,27 @@ layout = "portrait"
 [keybindings]
 enter = "actions:open-browser"
 ctrl-y = "actions:copy-key"
+ctrl-b = "actions:branch"
+ctrl-t = "actions:transition"
+ctrl-s = "cycle_sources"
+ctrl-r = "reload_source"
 
 [actions.open-browser]
 description = "Open the ticket in the browser"
-command = "acli jira workitem open {split: \t:0}"
+command = "acli jira workitem open {split: :0}"
 mode = "execute"
 
 [actions.copy-key]
 description = "Copy ticket key to clipboard"
-command = "printf %s {split: \t:0} | pbcopy"
+command = "printf %s {split: :0} | pbcopy"
+mode = "execute"
+
+[actions.branch]
+description = "Create a git branch from this ticket via s-task"
+command = "s-task {split: :0}"
+mode = "execute"
+
+[actions.transition]
+description = "Transition ticket status (fzf picker)"
+command = "fish -c '_tv_jira transition {split: :0}'"
 mode = "execute"
