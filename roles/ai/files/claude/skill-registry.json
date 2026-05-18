@@ -340,6 +340,20 @@
         }
       ]
     },
+    "DeckardGer/tanstack-agent-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/tanstack-router",
+          "name": "tanstack-router",
+          "groups": [
+            "engineering",
+            "frontend"
+          ],
+          "updated_at": "2026-05-17T11:00:43Z"
+        }
+      ]
+    },
     "avdlee/swiftui-agent-skill": {
       "branch": "main",
       "skills": [
