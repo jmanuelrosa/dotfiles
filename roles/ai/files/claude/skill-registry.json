@@ -102,6 +102,15 @@
             "workflow"
           ],
           "updated_at": "2026-05-19T10:55:06Z"
+        },
+        {
+          "upstream_path": "skills/test-driven-development",
+          "name": "test-driven-development",
+          "groups": [
+            "engineering",
+            "workflow"
+          ],
+          "updated_at": "2026-05-19T10:54:56Z"
         }
       ]
     },
