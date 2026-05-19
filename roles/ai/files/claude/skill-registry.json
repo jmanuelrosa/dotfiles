@@ -93,6 +93,15 @@
             "ci"
           ],
           "updated_at": "2026-05-18T05:29:47Z"
+        },
+        {
+          "upstream_path": "skills/context-engineering",
+          "name": "context-engineering",
+          "groups": [
+            "engineering",
+            "workflow"
+          ],
+          "updated_at": "2026-05-19T10:55:06Z"
         }
       ]
     },
