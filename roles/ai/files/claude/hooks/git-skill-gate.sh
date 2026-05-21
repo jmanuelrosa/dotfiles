@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-WINDOW=150
+WINDOW_EVENTS=30
 ALLOWED_SKILLS_REGEX='^(commit|pr)$'
 GATED_CMD_REGEX='^[[:space:]]*git[[:space:]]+(commit|push)([[:space:]]|$)'
 
@@ -37,19 +37,20 @@ if [[ -z "$transcript" || ! -r "$transcript" ]]; then
   exit 0
 fi
 
-# Scan the recent tail for a Skill(commit|pr) tool_use. The query is
-# defensive against schema drift: anything missing → no match.
-found=$(tail -n "$WINDOW" "$transcript" \
-  | jq -rs '
-      [ .[]
-        | (.message.content // [])
-        | (if type == "array" then .[] else empty end)
-        | select(.type == "tool_use" and .name == "Skill")
-        | (.input.skill // empty)
-      ]
-      | map(select(test("'"$ALLOWED_SKILLS_REGEX"'")))
-      | length
-    ' 2>/dev/null || echo 0)
+# Scan the last N tool_use events for a Skill(commit|pr) invocation.
+# Event-based (not line-based) so a single noisy tool_result can't push
+# the Skill record out of range. Defensive against schema drift:
+# anything missing → no match.
+found=$(jq -rs --argjson n "$WINDOW_EVENTS" '
+  [ .[]
+    | (.message.content // [])
+    | (if type == "array" then .[] else empty end)
+    | select(.type == "tool_use")
+  ]
+  | .[-$n:]
+  | map(select(.name == "Skill" and ((.input.skill // "") | test("'"$ALLOWED_SKILLS_REGEX"'"))))
+  | length
+' "$transcript" 2>/dev/null || echo 0)
 
 if [[ "${found:-0}" -gt 0 ]]; then
   exit 0
