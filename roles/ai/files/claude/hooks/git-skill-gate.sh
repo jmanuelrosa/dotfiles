@@ -20,6 +20,17 @@ if ! [[ "$command" =~ $GATED_CMD_REGEX ]]; then
   exit 0
 fi
 
+# Hard block --no-verify regardless of skill context. Both skills forbid
+# it in prose; the gate enforces it so a slip can't reach git.
+if [[ "$command" =~ --no-verify ]]; then
+  cat >&2 <<'EOF'
+--no-verify is blocked. Pre-commit hooks exist for a reason.
+If a hook is failing, fix the underlying issue or disable the hook in
+its own config — don't skip it.
+EOF
+  exit 2
+fi
+
 # No transcript → fail open so harness replay / compaction can't lock the
 # user out. The user can still re-enable a hard block by editing settings.
 if [[ -z "$transcript" || ! -r "$transcript" ]]; then
