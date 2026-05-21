@@ -34,6 +34,7 @@ BREW_PACKAGES:
     - glab
     - fnm
     - oven-sh/bun/bun
+    - pnpm
     - getsentry/tools/sentry
     # Databases
     - libpq
