@@ -18,9 +18,9 @@
 
 # --- Tokens ---------------------------------------------------------------
 
-# NPM token for private package registry access.
-# Consumed by: roles/work/templates/exports.fish.j2 (DID_NPM_TOKEN)
-#              roles/shell/templates/secrets.fish.j2 (re-exported as NPM_TOKEN)
+# NPM token for the Didomi GitLab package registry.
+# Consumed by: roles/work/templates/exports.fish.j2 (exported as DID_NPM_TOKEN)
+#              roles/apps/files/.npmrc (expanded into the @didomi: registry lines)
 DID_NPM_TOKEN: "your-npm-token-here"
 
 # FOSSA API key for license/security scanning.
