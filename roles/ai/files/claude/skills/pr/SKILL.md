@@ -1,7 +1,6 @@
 ---
 name: pr
 description: Generate the PR description from the current branch and open the PR (GitHub) or MR (GitLab), returning the URL
-license: MIT
 ---
 
 # Create PR / MR
@@ -10,17 +9,25 @@ Fill the platform's PR template from the current branch's changes, push if neede
 
 ## Steps
 
-1. **Detect the base branch** from `origin/HEAD`:
+1. **Detect host and base branch**. Bootstrap host from the local remote URL, then ask the host CLI for the default branch:
    ```sh
-   git fetch origin --quiet
-   BASE=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
-   if [ -z "$BASE" ]; then
-     git remote set-head origin --auto >/dev/null 2>&1
-     BASE=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+   REMOTE=$(git remote get-url origin 2>/dev/null) || { echo "No origin remote"; exit 1; }
+   case "$REMOTE" in
+     *github*) HOST=gh ;;
+     *gitlab*) HOST=glab ;;
+     *) echo "Unsupported remote host: $REMOTE"; exit 1 ;;
+   esac
+
+   if [ "$HOST" = gh ]; then
+     BASE=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null)
+   else
+     BASE=$(glab repo view -F json 2>/dev/null | jq -r '.default_branch')
    fi
-   [ -z "$BASE" ] && { echo "Could not determine default branch"; exit 1; }
+   [ -z "$BASE" ] || [ "$BASE" = "null" ] && { echo "Could not determine default branch via $HOST"; exit 1; }
+
    BRANCH=$(git branch --show-current)
    ```
+   Rule: use `gh` / `glab` wherever they have an equivalent. Fall back to `git` only for operations they don't cover (push, diff, log, status).
 
 2. **Read the template** — first match wins, otherwise proceed with no template:
    - `.github/pull_request_template.md`
@@ -35,18 +42,13 @@ Fill the platform's PR template from the current branch's changes, push if neede
    - **Checkbox sections**: check `[x]` only when the diff clearly supports it; leave `[ ]` for items not verifiable from code (e.g. "tested locally").
    - **Type/category selections**: infer from commit prefixes (`feat:`, `fix:`, `chore:`, `ci:`, `refactor:`, …) and check all that apply.
 
-5. **Detect host** from `git remote get-url origin`:
-   - contains `github` → use `gh`
-   - contains `gitlab` → use `glab`
-   - anything else → stop with `Unsupported remote host: <url>`
-
-6. **Push branch if it has no upstream**:
+5. **Push branch if it has no upstream** (use `$HOST` from step 1):
    ```sh
    git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1 || \
      git push -u origin "$BRANCH"
    ```
 
-7. **Build the title from the branch name** (deterministic):
+6. **Build the title from the branch name** (deterministic):
    - If the first `/`-separated segment matches `feat|fix|chore|ci|refactor|docs|test|perf|build|style`, treat it as the type prefix.
    - Extract a Jira ticket (`[A-Z]+-[0-9]+`) from the rest and remove it.
    - Replace remaining `-`/`_` with spaces and trim.
@@ -57,17 +59,17 @@ Fill the platform's PR template from the current branch's changes, push if neede
    - `fix/login-redirect-loop` → `fix: login redirect loop`
    - `PROJ-456-cleanup-tests` → `cleanup tests (PROJ-456)`
 
-8. **Write the filled template to a temp body file**:
+7. **Write the filled template to a temp body file**:
    ```sh
    BODY=$(mktemp "${TMPDIR:-/tmp}/pr-body.XXXXXX.md")
    # write the filled template into "$BODY"
    ```
 
-9. **Create the PR/MR**:
-   - GitHub: `gh pr create --base "$BASE" --head "$BRANCH" --title "$TITLE" --body-file "$BODY"`
-   - GitLab: `glab mr create --target-branch "$BASE" --source-branch "$BRANCH" --title "$TITLE" --description "$(cat "$BODY")" --yes`
+8. **Create the PR/MR** (dispatch on `$HOST`):
+   - `gh`: `gh pr create --base "$BASE" --head "$BRANCH" --title "$TITLE" --body-file "$BODY"`
+   - `glab`: `glab mr create --target-branch "$BASE" --source-branch "$BRANCH" --title "$TITLE" --description "$(cat "$BODY")" --yes`
 
-10. **Print only the resulting URL**, prefixed with `Created: `. The URL is the last line of stdout from the create command.
+9. **Print only the resulting URL**, prefixed with `Created: `. The URL is the last line of stdout from the create command.
 
 ## Humanization (required)
 

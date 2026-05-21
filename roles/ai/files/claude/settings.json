@@ -185,6 +185,17 @@
   },
   "preferredNotifChannel": "ghostty",
 
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/git-skill-gate.sh" }
+        ]
+      }
+    ]
+  },
+
   "sandbox": {
     "enabled": true,
     "autoAllowBashIfSandboxed": true,

@@ -457,6 +457,14 @@
       "note": "No external source"
     },
     {
+      "name": "commit",
+      "groups": [
+        "productivity",
+        "workflow"
+      ],
+      "note": "Locally authored"
+    },
+    {
       "name": "pr",
       "groups": [
         "productivity",

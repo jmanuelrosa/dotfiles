@@ -47,6 +47,19 @@
     state: link
     force: true
 
+- name: Ensure claude hooks directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.claude/hooks"
+    state: directory
+    mode: "0755"
+
+- name: Symlink claude git-skill-gate hook
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/claude/hooks/git-skill-gate.sh"
+    dest: "{{ HOME }}/.claude/hooks/git-skill-gate.sh"
+    state: link
+    force: true
+
 - name: Ensure pi agent config directory exists
   ansible.builtin.file:
     path: "{{ HOME }}/.pi/agent"
