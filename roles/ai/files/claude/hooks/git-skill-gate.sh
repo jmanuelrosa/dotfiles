@@ -41,7 +41,7 @@ fi
 # Event-based (not line-based) so a single noisy tool_result can't push
 # the Skill record out of range. Defensive against schema drift:
 # anything missing → no match.
-found=$(jq -rs --argjson n "$WINDOW_EVENTS" '
+if ! found=$(jq -rs --argjson n "$WINDOW_EVENTS" '
   [ .[]
     | (.message.content // [])
     | (if type == "array" then .[] else empty end)
@@ -50,7 +50,10 @@ found=$(jq -rs --argjson n "$WINDOW_EVENTS" '
   | .[-$n:]
   | map(select(.name == "Skill" and ((.input.skill // "") | test("'"$ALLOWED_SKILLS_REGEX"'"))))
   | length
-' "$transcript" 2>/dev/null || echo 0)
+' "$transcript" 2>/dev/null); then
+  echo "git-skill-gate: transcript parse failed, allowing command" >&2
+  exit 0
+fi
 
 if [[ "${found:-0}" -gt 0 ]]; then
   exit 0
