@@ -23,11 +23,14 @@ BREW_PACKAGES:
     - getsentry/tools
     - tw93/tap
     - nikitabobko/tap
+    - dlvhdr/formulae
+    - jmanuelrosa/tap
   formulas:
     # Development
     - bruno-cli
     - git
     - git-delta
+    - git-filter-repo
     - dlvhdr/formulae/diffnav
     - lazygit
     - gh
@@ -49,6 +52,8 @@ BREW_PACKAGES:
     - docker-credential-helper
     # Multimedia
     - mpv
+    # Network
+    - nextdns
     # System / window management
     - tw93/tap/mole
   casks:
@@ -84,3 +89,4 @@ BREW_PACKAGES:
     - notion
     - sf-symbols
     - tradingview
+    - triage
