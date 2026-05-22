@@ -76,13 +76,11 @@
     - .config/fish/functions/claude-agent.fish
     - .config/fish/functions/_tv_claude_list.fish
     - .config/fish/functions/_tv_claude_toggle.fish
-    - .config/fish/functions/_tv_jira.fish
     - .config/fish/functions/tv_change_dir.fish
     - .config/television/config.toml
     - .config/television/cable/aerospace.toml
     - .config/television/cable/claude-skills.toml
     - .config/television/cable/claude-agents.toml
-    - .config/television/cable/jira.toml
     - .config/television/cable/sentry.toml
     - .config/starship.toml
   register: results
@@ -147,7 +145,6 @@
     - fish/functions/claude-agent.fish
     - fish/functions/_tv_claude_list.fish
     - fish/functions/_tv_claude_toggle.fish
-    - fish/functions/_tv_jira.fish
     - fish/functions/tv_change_dir.fish
 
 - name: Symlink television custom channels

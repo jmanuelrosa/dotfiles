@@ -4,10 +4,11 @@ Work-only role. Runs only when `profile=work`.
 
 ## What it does
 
-- Installs `acli` (Atlassian) and the `fossa` cask via `BREW_PACKAGES` (with the `atlassian/homebrew-acli` tap).
+- Installs `acli` (Atlassian) and the `fossa` cask via `BREW_PACKAGES` (with the `atlassian/homebrew-acli` tap). Relies on `shell` / `coreutils` (which run before `work` in `profile_roles[work]`) for `fish` and `television`.
 - Renders `~/.config/fish/conf.d/work-secrets.fish` from `templates/exports.fish.j2` (work tokens, mode 0600).
 - Symlinks every script under `files/scripts/` into `~/.local/bin/`.
 - Copies `files/glab/config.yml` to `~/Library/Application Support/glab-cli/config.yml`.
+- Symlinks the Jira Television cable (`files/television/cable/jira.toml`) and its helper fish function (`files/fish/functions/_tv_jira.fish`) into `~/.config/`. Both depend on `acli` so they live here rather than in `shell`.
 
 ## Vars
 

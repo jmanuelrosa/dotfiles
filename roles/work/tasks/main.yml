@@ -20,6 +20,20 @@
     state: present
   when: BREW_PACKAGES.casks | default([]) | length > 0
 
+- name: Symlink Jira television cable
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/television/cable/jira.toml"
+    dest: "{{ HOME }}/.config/television/cable/jira.toml"
+    state: link
+    force: true
+
+- name: Symlink Jira helper fish function
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/fish/functions/_tv_jira.fish"
+    dest: "{{ HOME }}/.config/fish/functions/_tv_jira.fish"
+    state: link
+    force: true
+
 - name: Render work secrets file from vault
   ansible.builtin.template:
     src: exports.fish.j2
