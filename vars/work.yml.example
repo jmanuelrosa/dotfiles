@@ -16,17 +16,6 @@
 
 ---
 
-# --- Tokens ---------------------------------------------------------------
-
-# NPM token for the Didomi GitLab package registry.
-# Consumed by: roles/work/templates/exports.fish.j2 (exported as DID_NPM_TOKEN)
-#              roles/apps/files/.npmrc (expanded into the @didomi: registry lines)
-DID_NPM_TOKEN: "your-npm-token-here"
-
-# FOSSA API key for license/security scanning.
-# Consumed by: roles/work/templates/exports.fish.j2
-FOSSA_API_KEY: "your-fossa-api-key-here"
-
 # --- Work SSH key ---------------------------------------------------------
 # Used to authenticate against work git remotes. Generated with:
 #     ssh-keygen -t ed25519 -C "your-work-email@example.com" -f ~/.ssh/id_didomi
@@ -41,3 +30,15 @@ SSH_DIDOMI_KEY: |
   -----END OPENSSH PRIVATE KEY-----
 
 SSH_DIDOMI_PUBLIC: "ssh-ed25519 AAAA...replace with id_didomi.pub contents... your-work-email@example.com"
+
+# --- Tokens ---------------------------------------------------------------
+
+# NPM token for the Didomi GitLab package registry.
+# Consumed by: roles/work/templates/exports.fish.j2 (exported as DID_NPM_TOKEN)
+#              roles/apps/files/.npmrc (expanded into the @didomi: registry lines)
+DID_NPM_TOKEN: "your-npm-token-here"
+
+# FOSSA API key for license/security scanning.
+# Consumed by: roles/work/templates/exports.fish.j2
+FOSSA_API_KEY: "your-fossa-api-key-here"
+
