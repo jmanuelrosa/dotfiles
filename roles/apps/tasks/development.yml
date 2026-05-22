@@ -53,6 +53,9 @@
   ansible.builtin.command: gh auth login --hostname github.com --git-protocol ssh --with-token
   args:
     stdin: "{{ GH_TOKEN }}"
+  environment:
+    GH_TOKEN: ""
+    GITHUB_TOKEN: ""
   when: gh_stored_token != GH_TOKEN
   no_log: true
   register: gh_auth_login
@@ -60,6 +63,9 @@
 
 - name: Verify gh authentication is currently valid
   ansible.builtin.command: gh auth status --hostname github.com
+  environment:
+    GH_TOKEN: ""
+    GITHUB_TOKEN: ""
   register: gh_auth_check
   changed_when: false
   failed_when: false
