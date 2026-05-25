@@ -12,6 +12,9 @@ set -g NC (set_color normal)
 # Cap branch length to commitlint's header-max-length (default 72 in @commitlint/config-conventional)
 set -g MAX_BRANCH_LENGTH 50
 
+# Allowed branch type set — must match the regex in roles/ai/files/claude/skills/commit/SKILL.md step 2
+set -g ALLOWED_BRANCH_TYPES feature fix chore docs refactor test perf ci build style revert
+
 # Configuration - authentication handled by acli (run `acli auth login` for initial setup)
 
 # Function to display error and exit
@@ -22,12 +25,14 @@ end
 
 # Function to display usage
 function usage
-    echo "Usage: s-task [--dry] <JIRA_ID>"
+    echo "Usage: s-task [--dry] [--type TYPE] <JIRA_ID>"
     echo "Example: s-task JIRA-123"
     echo "         s-task --dry JIRA-123"
+    echo "         s-task --type chore JIRA-123"
     echo ""
     echo "Options:"
-    echo "  -d, --dry   Print the branch name that would be created and exit"
+    echo "  -d, --dry         Print the branch name that would be created and exit"
+    echo "  -t, --type TYPE   Override the branch type (one of: $ALLOWED_BRANCH_TYPES)"
     echo ""
     echo "Prerequisites:"
     echo "  Run 'acli auth login' to authenticate with Atlassian"
@@ -66,8 +71,15 @@ if not command -v acli >/dev/null 2>&1
 end
 
 # Parse arguments
-argparse 'd/dry' -- $argv 2>/dev/null
+argparse 'd/dry' 't/type=' -- $argv 2>/dev/null
 or usage
+
+# Validate --type override against the allowed branch type set
+if set -q _flag_type
+    if not contains -- $_flag_type $ALLOWED_BRANCH_TYPES
+        die "Invalid --type '$_flag_type'. Allowed: $ALLOWED_BRANCH_TYPES"
+    end
+end
 
 if test (count $argv) -ne 1
     usage
@@ -104,7 +116,13 @@ echo "  📋 Type: $ISSUE_TYPE"
 echo "  📝 Summary: $ISSUE_SUMMARY"
 
 # Create branch name (cap total length at MAX_BRANCH_LENGTH — matches commitlint header-max-length)
-set -g BRANCH_PREFIX (get_branch_prefix "$ISSUE_TYPE")
+if set -q _flag_type
+    set -g BRANCH_PREFIX $_flag_type
+    echo "  🏷️  Branch type: $BRANCH_PREFIX (from --type override)"
+else
+    set -g BRANCH_PREFIX (get_branch_prefix "$ISSUE_TYPE")
+    echo "  🏷️  Branch type: $BRANCH_PREFIX (from issue type $ISSUE_TYPE)"
+end
 set -g TITLE_SLUG (create_slug "$ISSUE_SUMMARY")
 set -g BRANCH_BASE "$BRANCH_PREFIX/$JIRA_ID-"
 set -g MAX_SLUG_LENGTH (math $MAX_BRANCH_LENGTH - (string length -- $BRANCH_BASE))
