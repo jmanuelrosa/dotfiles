@@ -35,33 +35,7 @@
     state: link
     force: true
 
-- name: Read currently stored gh token (if any)
-  ansible.builtin.slurp:
-    src: "{{ HOME }}/.config/gh/hosts.yml"
-  register: gh_hosts_raw
-  failed_when: false
-  no_log: true
-
-- name: Extract stored github.com oauth token
-  ansible.builtin.set_fact:
-    gh_stored_token: >-
-      {{ (gh_hosts_raw.content | b64decode | from_yaml).get('github.com', {}).get('oauth_token', '')
-         if gh_hosts_raw.content is defined else '' }}
-  no_log: true
-
-- name: Authenticate gh CLI when stored token differs from vault
-  ansible.builtin.command: gh auth login --hostname github.com --git-protocol ssh --with-token
-  args:
-    stdin: "{{ GH_TOKEN }}"
-  environment:
-    GH_TOKEN: ""
-    GITHUB_TOKEN: ""
-  when: gh_stored_token != GH_TOKEN
-  no_log: true
-  register: gh_auth_login
-  changed_when: gh_auth_login.rc == 0
-
-- name: Verify gh authentication is currently valid
+- name: Verify gh is authenticated for github.com
   ansible.builtin.command: gh auth status --hostname github.com
   environment:
     GH_TOKEN: ""
@@ -71,14 +45,19 @@
   failed_when: false
   no_log: true
 
-- name: Fail loudly if gh auth still broken after configuration
+- name: Fail loudly if gh is not authenticated
   ansible.builtin.fail:
     msg: |
-      gh auth status failed for github.com after running `gh auth login`.
-      Most likely cause: the GH_TOKEN in vars/secrets.yml has expired or been revoked.
-      Rotate it at https://github.com/settings/tokens, then:
-        ansible-vault edit vars/secrets.yml   # update GH_TOKEN
-        make run-role ROLE=apps
+      gh is not authenticated for github.com.
+
+      From a normal terminal (outside this playbook), run:
+        gh auth login --hostname github.com --git-protocol ssh
+
+      Pick "Login with a web browser" and follow the prompts. The OAuth
+      token is stored only in the macOS keychain — this repo no longer
+      keeps any GitHub credential on disk.
+
+      Then re-run the playbook.
   when: gh_auth_check.rc != 0
 
 - name: Ensure diffnav config directory exists

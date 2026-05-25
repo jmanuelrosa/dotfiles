@@ -29,3 +29,12 @@
   loop: "{{ SSH_KEYS + SSH_KEYS_EXTRA }}"
   loop_control:
     label: "{{ item.name }}"
+
+- name: Deploy SSH config (multi-account routing on work profile)
+  ansible.builtin.copy:
+    src: config
+    dest: "{{ HOME }}/.ssh/config"
+    mode: "0600"
+    force: true
+    backup: true
+  when: profile == 'work'

@@ -61,12 +61,48 @@
     state: directory
     mode: "0755"
 
-- name: Copy glab config
-  ansible.builtin.copy:
-    src: "{{ role_path }}/files/glab/config.yml"
+- name: Render glab config with personal + work hosts
+  ansible.builtin.template:
+    src: glab/config.yml.j2
     dest: "{{ HOME }}/Library/Application Support/glab-cli/config.yml"
-    mode: "0644"
+    mode: "0600"
     force: true
+
+- name: Verify glab is authenticated for each gitlab host
+  ansible.builtin.command: glab auth status --hostname {{ item }}
+  environment:
+    GLAB_TOKEN: ""
+    GITLAB_TOKEN: ""
+    GITLAB_ACCESS_TOKEN: ""
+    OAUTH_TOKEN: ""
+  loop:
+    - gitlab.com
+    - gitlab.com-work
+  register: glab_auth_check
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: Fail loudly if any glab host is not authenticated
+  ansible.builtin.fail:
+    msg: |
+      glab is not authenticated for one or more configured hosts.
+
+      For each host that's missing, from a normal terminal:
+        1. Create a GitLab personal access token at
+           https://gitlab.com/-/user_settings/personal_access_tokens
+           Use the matching GitLab account (personal or work) when creating it.
+        2. Run, replacing <HOST> with the host that needs auth:
+             glab auth login --hostname <HOST> --git-protocol ssh --use-keyring
+           Paste the PAT when prompted.
+
+      For gitlab.com-work, when glab asks for the API host, answer gitlab.com.
+
+      The tokens are stored in the macOS keychain — this repo keeps no
+      GitLab credentials on disk.
+
+      Then re-run the playbook.
+  when: glab_auth_check.results | selectattr('rc', 'ne', 0) | list | length > 0
 
 # SSH keys (work and personal) are deployed by the `ssh` role from
 # SSH_KEYS + SSH_KEYS_EXTRA. host_vars/work.yml supplies the work key.

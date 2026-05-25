@@ -1,8 +1,15 @@
 Include ~/.colima/ssh_config
 
+# Personal GitLab — default for git@gitlab.com:*
 Host gitlab.com
-  Hostname altssh.gitlab.com
+  HostName gitlab.com
   User git
-  Port 443
-  PreferredAuthentications publickey
-  IdentityFile ~/.ssh/gitlab
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+
+# Work GitLab — real gitlab.com over SSH, work key
+Host gitlab.com-work
+  HostName gitlab.com
+  User git
+  IdentityFile ~/.ssh/id_didomi
+  IdentitiesOnly yes

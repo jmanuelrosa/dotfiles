@@ -44,8 +44,18 @@ Fill the platform's PR template from the current branch's changes, push if neede
 
 5. **Push branch if it has no upstream** (use `$HOST` from step 1):
    ```sh
-   git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1 || \
-     git push -u origin "$BRANCH"
+   if ! git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
+     case "$HOST" in
+       gh)
+         # Force HTTPS for this push so sandboxed sessions (where ~/.ssh is
+         # unreadable) can authenticate via the gh credential helper in
+         # ~/.gitconfig. Leaves no state in .git/config or ~/.gitconfig.
+         git -c "url.https://github.com/.pushInsteadOf=git@github.com:" \
+             push -u origin "$BRANCH"
+         ;;
+       *) git push -u origin "$BRANCH" ;;
+     esac
+   fi
    ```
 
 6. **Build the title from the branch name** (deterministic):

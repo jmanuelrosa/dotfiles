@@ -1,3 +1,4 @@
+# Rendered by Ansible from roles/work/templates/glab/config.yml.j2 — do not edit by hand.
 # What protocol to use when performing Git operations. Supported values: ssh, https.
 git_protocol: ssh
 # What editor glab should run when creating issues, merge requests, etc. This global config cannot be overridden by hostname.
@@ -21,14 +22,16 @@ telemetry: true
 # Configuration specific for GitLab instances.
 hosts:
     gitlab.com:
-        # What protocol to use to access the API endpoint. Supported values: http, https.
         api_protocol: https
-        # Configure host for API endpoint. Defaults to the host itself.
         api_host: gitlab.com
-        # The domains of associated container registries. These are used to configure the
-        # Docker credential helper.
         container_registry_domains: gitlab.com,gitlab.com:443,registry.gitlab.com
-        # Custom HTTP headers to add to all HTTP requests made by glab. Supports both direct values and environment variable loading.
         custom_headers: []
         git_protocol: ssh
         user: jose.moncayo
+    gitlab.com-work:
+        api_protocol: https
+        api_host: gitlab.com
+        container_registry_domains: gitlab.com,gitlab.com:443,registry.gitlab.com
+        custom_headers: []
+        git_protocol: ssh
+        user: {{ GLAB_WORK_USER }}

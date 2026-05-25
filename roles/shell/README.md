@@ -34,7 +34,7 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 
 ## Templates
 
-- `templates/secrets.fish.j2` — exports `NPM_TOKEN`, `GH_TOKEN`, `GLAB_TOKEN` from vault. Mode 0600.
+- `templates/secrets.fish.j2` — exports `NPM_TOKEN` from vault. Mode 0600.
 
 ## Custom fish commands worth knowing
 
