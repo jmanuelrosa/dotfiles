@@ -274,6 +274,16 @@ Same as B, but:
 - `**Scope**` heading reads `**Scope (investigation only)**`.
 - `**Out of scope**` explicitly lists implementation as a separate follow-up.
 
+## Branch / commit / PR naming
+
+Tickets created or referenced here flow into branches, commits, and PRs that follow shared conventions:
+
+- **Branch:** `<type>/<TICKET>-<slug>` (see commit skill, Step 2 regex). Use `s-task <TICKET>` to scaffold one from a Jira key; pass `--type` to override the inferred branch type when the issue type doesn't fit.
+- **Commit subject:** `<type>(<scope>): <subject>` (Conventional Commits; see commit skill, Step 6).
+- **PR title:** `<type>(<scope>): <subject> (<TICKET>)` (see pr skill, Step 6).
+
+The Jira category emoji (🧠, 💻, 💿, …) belongs only in the **Jira summary** — never in branch names, commit subjects, or PR titles.
+
 ## Authentication troubleshooting
 
 - **`acli` 401 / OAuth fails:** re-run `acli jira auth login --web`. The browser session may have expired.

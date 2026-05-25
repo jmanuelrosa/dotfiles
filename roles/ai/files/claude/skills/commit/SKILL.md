@@ -34,9 +34,9 @@ Inspect the working tree, ensure we're on a branch the user is willing to commit
      - If the user confirms committing into `$BASE` (common for personal repos), proceed on the base branch.
      - If the user wants a new branch, ask for the name (do not propose one) and validate against:
        ```
-       ^(feat|fix|chore|docs|refactor|test|perf|ci|build|style|revert)(\/[A-Z]+-[0-9]+)?\/[a-z0-9][a-z0-9-]*$
+       ^(feature|fix|chore|docs|refactor|test|perf|ci|build|style|revert)\/([A-Z]+-[0-9]+-)?[a-z0-9][a-z0-9-]*$
        ```
-       Examples that pass: `feat/add-oauth`, `fix/PROJ-123/login-redirect`, `chore/bump-deps`. If the answer fails validation, show the failure reason and ask again. Create and switch with `git switch -c "$NEW_BRANCH"`.
+       Examples that pass: `feature/add-oauth`, `fix/PROJ-123-login-redirect`, `chore/bump-deps`, `refactor/PROJ-9-extract-cart-helper`. The Jira ticket is embedded with a dash (`PROJ-123-<slug>`), not a separate path segment. If the answer fails validation, show the failure reason and ask again. Create and switch with `git switch -c "$NEW_BRANCH"`.
    - If `BRANCH` is already a non-default branch → use it, no prompt.
 
 3. **Staging gate**:
@@ -47,15 +47,7 @@ Inspect the working tree, ensure we're on a branch the user is willing to commit
      - **Nothing staged, something unstaged** → ask the user: "stage all (`git add -A`), pick a subset, or cancel?". Default to *ask*; never auto-stage.
      - **Both staged and unstaged** → ask whether the unstaged should be folded in. If not, proceed with the *staged* set only and print which files are being left out.
 
-4. **Style fingerprint**:
-   - `git log -n 20 --pretty=%s` to read the last 20 subjects.
-   - Detect:
-     - Does the repo use gitmoji prefixes (e.g. `:sparkles:` / `✨`)? If so, match the format — but pick the gitmoji that genuinely fits *this* change, not the most frequent one in the log.
-     - Does it scope (e.g. `feat(api):`)? If consistent, mirror it. If mixed, drop the scope.
-     - Casing after the type (most repos use lowercase). Mirror what's there.
-   - Strict conventional format always wins over fingerprint when they conflict.
-
-5. **Concern analysis** — decide how many commits.
+4. **Concern analysis** — decide how many commits.
    - **Read the candidate diff** (`git diff --cached` if staged, else `git diff HEAD`). For the *message-drafting view*, exclude noisy paths whose contents add no signal:
      ```
      **/package-lock.json, **/yarn.lock, **/pnpm-lock.yaml, **/bun.lock*,
@@ -71,42 +63,28 @@ Inspect the working tree, ensure we're on a branch the user is willing to commit
    - **Hunk-level splits**: if a single file mixes concerns, plan to stage hunks with `git add -p <file>` (interactive). Note this in the plan so the user knows it'll require hunk picking.
    - **Don't force a split** when the diff is genuinely cohesive — one feature touching ten files is still one commit.
 
-6. **Draft the plan** — one entry per concern.
-   - **Subject** (always):
-     - ≤ 70 chars, no trailing period, imperative mood.
-     - Allowed types: `feat | fix | chore | docs | refactor | test | perf | ci | build | style | revert`.
-     - Optional scope only if the fingerprint shows the repo uses scopes consistently.
-   - **Body** (only when the *why* is non-obvious):
-     - **No body for**: single-file edits, renames, version bumps, config tweaks, simple removals, one-line fixes — anything obvious from the subject.
-     - **Body for**: multi-file refactors that need rationale, behavior changes, fixes whose root cause isn't apparent from the diff, multi-purpose touches to one file.
-     - Wrap at 72 cols. Short `-` bullets allowed, max 3-5. No prose paragraphs, no padding. Skip the body entirely rather than padding it.
+5. **Draft the plan** — one entry per concern.
+   - **Subject**: `<type>(<scope>): <subject>`. ≤ 70 chars, imperative mood, no trailing period. Types: `feat | fix | chore | docs | refactor | test | perf | ci | build | style | revert`. Derive scope from the touched area (monorepo package, top-level directory, role name in this dotfiles repo, feature area like `auth`/`api`). Omit `(<scope>)` only when the change is genuinely repo-wide; if unclear, surface it in the approval gate and ask.
+   - **Body**: only when the *why* isn't obvious from the subject. Wrap at 72 cols, short `-` bullets, no prose paragraphs. Skip rather than pad.
    - **Never** write `Co-Authored-By: Claude …` or `🤖 Generated with …` lines. Attribution is handled by Claude Code's `attribution` setting in `settings.json`.
 
-7. **Humanize** — write like a developer, not a press release.
-   - Avoid AI-isms: *leverage, robust, seamless, comprehensive, holistic, delve, crucial, pivotal, foster, empower, unlock, enhance, streamline, utilize, facilitate, landscape, tapestry, testament, underscore, garner, showcase*.
-   - No promotional tone, no vague superlatives ("significant improvement", "major enhancement").
-   - No rule-of-three padding. Don't force three items when one or two suffice.
-   - No negative parallelisms ("not just X, but Y").
-   - No filler phrases ("in order to", "it is important to note").
-   - No em dashes between clauses. Use commas or periods.
-   - No emojis unless the fingerprint shows gitmoji.
-   - Plain verbs: *add, fix, remove, rename, move, drop, rework, switch, bump, split*.
-   - Be specific. `fix: handle empty cart on /checkout` beats `fix: bug in checkout`.
+6. **Humanize** — plain verbs (*add, fix, remove, rename, move, drop, bump, split*), no AI vocabulary (*leverage, robust, seamless, comprehensive, enhance, streamline, foster*), no promotional tone, no em dashes between clauses, no emojis. Be specific: `fix(checkout): handle empty cart on /checkout` beats `fix: bug in checkout`.
 
-   ### Bad vs good
+7. **Approval gate** (mandatory):
+   - Print the plan: for each commit, show its number, subject, file group (and any noisy files folded in), and body if any. For a single-concern diff, this is one entry.
+   - Then call `AskUserQuestion` to collect the approval. Use:
+     - `question: "Proceed with these commits?"`
+     - `header: "Commit plan"`
+     - `multiSelect: false`
+     - `options`:
+       - `Go` — commit each entry in the plan, in order.
+       - `Cancel` — stop without committing.
+   - Do not wait for prose like `go` / `lgtm` / `ok` — the structured question is the gate. Free-form prose confirmations between the plan and the commits break `attributionSkill` in the transcript and cause `git-skill-gate.sh` to block.
+   - The auto-provided `Other` option lets the user redirect ("change commit 2's scope to `auth`", "split commit 1", "drop the last commit"). On `Other`, integrate the feedback, replan from concern analysis if needed, and re-run this approval gate.
+   - On `Cancel`, stop. Do not commit, do not unstage.
+   - Never auto-commit, even in auto mode.
 
-   Bad:
-   > feat: enhance authentication module with robust, seamless OAuth integration
-
-   Good:
-   > feat: add OAuth login via Google and GitHub
-
-8. **Approval gate** (mandatory):
-   - Print the plan: for each commit, show its number, subject, file group (and any noisy files folded in), and body if any.
-   - For a single-concern diff, this is one entry.
-   - Wait for an explicit confirmation: `go`, `lgtm`, `ok`, or edits to specific commits. Never auto-commit, even in auto mode.
-
-9. **Commit each concern in order**:
+8. **Commit each concern in order**:
    - For each entry in the approved plan:
      - **Stage** exactly its file group with `git add <files>`, or `git add -p <file>` for hunk-level splits.
      - **Commit**:
@@ -127,6 +105,7 @@ Inspect the working tree, ensure we're on a branch the user is willing to commit
 ## Rules
 
 - Stops at `git commit`. Do not push. Do not open a PR. `/pr` handles both.
+- Branch names must match the regex in Step 2. Commit subject prefixes use the Conventional Commits set (`feat`, not `feature`); branch prefixes use the Conventional Branch set (`feature`, not `feat`).
 - **One concern → one commit. Many concerns → many commits.** Don't force a split when the diff is cohesive; don't bundle when it isn't.
 - Each commit must be self-contained: it should compile, lint, and ideally pass tests on its own. Order accordingly (config/deps first, features next, cleanup last).
 - Do not stage files that look like *cleartext* secrets (`.env`, `*.pem`, `*-key.json`, `credentials*`). If they appear in the unstaged set, warn and exclude them by default. Vault-encrypted files (e.g. `vars/secrets.yml` in Ansible repos) are *not* in this set — they're meant to be committed.

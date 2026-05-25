@@ -1,73 +1,154 @@
-#!/usr/bin/env bash
-# git-skill-gate.sh — PreToolUse hook for Claude Code.
-#
-# Blocks direct `git commit` / `git push` invocations unless the current
-# session has recently invoked the /commit or /pr skill. Failure modes
-# fail open (allow) to avoid locking the user out on harness edge cases.
+#!/usr/bin/env python3
+# vim: ft=python
+# Filename keeps .sh extension to stay compatible with the path referenced in
+# settings.json (hooks.PreToolUse) and the existing symlink in ~/.claude/hooks.
+# The shebang is what determines execution.
+"""git-skill-gate.sh — PreToolUse hook for Claude Code.
 
-set -euo pipefail
+Blocks any `git commit` or `git push` invocation (including forms like
+`git -c key=val push`, `git --git-dir=… push`, `VAR=… git push`, or
+`… && git push`) unless the current session is inside the /commit or
+/pr skill.
 
-WINDOW_EVENTS=30
-ALLOWED_SKILLS_REGEX='^(commit|pr)$'
-GATED_CMD_REGEX='^[[:space:]]*git[[:space:]]+(commit|push)([[:space:]]|$)'
+The signal is `attributionSkill` on the assistant event: Claude Code
+stamps it on each assistant turn that runs inside a slash-command flow,
+and AskUserQuestion preserves it across the approval gate. Allow if any
+of the last 30 events is attributed to a skill in ALLOWED_SKILLS.
 
-input=$(cat)
-command=$(jq -r '.tool_input.command // ""' <<<"$input")
-transcript=$(jq -r '.transcript_path // ""' <<<"$input")
+Hard-blocks `--no-verify` regardless of skill context.
 
-# Fast path: only gate git commit / git push.
-if ! [[ "$command" =~ $GATED_CMD_REGEX ]]; then
-  exit 0
-fi
+Fail-open on transcript errors so harness replay or compaction can't
+lock the user out. To swap to fail-closed, change the `sys.exit(0)`
+lines in the transcript-handling path to `sys.exit(2)`.
 
-# Hard block --no-verify regardless of skill context. Both skills forbid
-# it in prose; the gate enforces it so a slip can't reach git.
-if [[ "$command" =~ --no-verify ]]; then
-  cat >&2 <<'EOF'
---no-verify is blocked. Pre-commit hooks exist for a reason.
-If a hook is failing, fix the underlying issue or disable the hook in
-its own config — don't skip it.
-EOF
-  exit 2
-fi
+Acknowledged limitations: the matcher does not parse subshells, command
+substitution, `eval`, or shell aliases. The gate is intent-friction, not
+a security boundary.
+"""
 
-# No transcript → fail open so harness replay / compaction can't lock the
-# user out. The user can still re-enable a hard block by editing settings.
-if [[ -z "$transcript" || ! -r "$transcript" ]]; then
-  exit 0
-fi
+import json
+import re
+import shlex
+import sys
+from pathlib import Path
 
-# Scan the last N tool_use events for a Skill(commit|pr) invocation.
-# Event-based (not line-based) so a single noisy tool_result can't push
-# the Skill record out of range. Defensive against schema drift:
-# anything missing → no match.
-if ! found=$(jq -rs --argjson n "$WINDOW_EVENTS" '
-  [ .[]
-    | (.message.content // [])
-    | (if type == "array" then .[] else empty end)
-    | select(.type == "tool_use")
-  ]
-  | .[-$n:]
-  | map(select(.name == "Skill" and ((.input.skill // "") | test("'"$ALLOWED_SKILLS_REGEX"'"))))
-  | length
-' "$transcript" 2>/dev/null); then
-  echo "git-skill-gate: transcript parse failed, allowing command" >&2
-  exit 0
-fi
+WINDOW_EVENTS = 30
+ALLOWED_SKILLS = {"commit", "pr"}
+GATED_SUBCOMMANDS = {"commit", "push"}
 
-if [[ "${found:-0}" -gt 0 ]]; then
-  exit 0
-fi
+OPTIONS_WITH_SEPARATE_ARG = {
+    "-c", "-C",
+    "--git-dir", "--work-tree", "--namespace",
+    "--super-prefix", "--exec-path",
+}
 
-cat >&2 <<'EOF'
-Direct `git commit` / `git push` is blocked outside the commit/pr skills.
+SHELL_SEPARATORS = {";", "&&", "||", "|", "&"}
 
-Use:
-  /commit   — stage and commit through the structured flow
-  /pr       — push and open the PR/MR
 
-To bypass for a one-off, the user can run the command in a terminal
-or temporarily disable this hook in ~/.claude/settings.json
-(hooks.PreToolUse).
-EOF
-exit 2
+def split_subcommands(line):
+    padded = re.sub(r"(\|\||&&|;|\||&)", r" \1 ", line)
+    try:
+        tokens = shlex.split(padded, comments=False, posix=True)
+    except ValueError:
+        tokens = padded.split()
+    chunks, cur = [], []
+    for t in tokens:
+        if t in SHELL_SEPARATORS:
+            if cur:
+                chunks.append(cur)
+                cur = []
+        else:
+            cur.append(t)
+    if cur:
+        chunks.append(cur)
+    return chunks
+
+
+def is_gated(tokens):
+    i = 0
+    while i < len(tokens) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", tokens[i]):
+        i += 1
+    if i >= len(tokens) or tokens[i] != "git":
+        return False
+    i += 1
+    while i < len(tokens):
+        tok = tokens[i]
+        if not tok.startswith("-"):
+            break
+        if tok in OPTIONS_WITH_SEPARATE_ARG:
+            i += 2
+        else:
+            i += 1
+    return i < len(tokens) and tokens[i] in GATED_SUBCOMMANDS
+
+
+def recently_invoked_allowed_skill(transcript_path):
+    if not transcript_path:
+        return None
+    path = Path(transcript_path)
+    if not path.is_file():
+        return None
+    try:
+        events = []
+        with path.open() as f:
+            for raw in f:
+                try:
+                    events.append(json.loads(raw))
+                except Exception:
+                    continue
+        for event in events[-WINDOW_EVENTS:]:
+            if event.get("attributionSkill") in ALLOWED_SKILLS:
+                return True
+        return False
+    except Exception:
+        return None
+
+
+def main():
+    try:
+        data = json.load(sys.stdin)
+    except Exception:
+        sys.exit(0)
+
+    command = (data.get("tool_input") or {}).get("command", "") or ""
+    transcript_path = data.get("transcript_path", "") or ""
+
+    if not command:
+        sys.exit(0)
+
+    if "--no-verify" in command:
+        print(
+            "--no-verify is blocked. Pre-commit hooks exist for a reason.\n"
+            "If a hook is failing, fix the underlying issue or disable the hook\n"
+            "in its own config — don't skip it.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    if not any(is_gated(c) for c in split_subcommands(command)):
+        sys.exit(0)
+
+    result = recently_invoked_allowed_skill(transcript_path)
+    if result is None:
+        print("git-skill-gate: transcript parse failed, allowing command", file=sys.stderr)
+        sys.exit(0)
+    if result:
+        sys.exit(0)
+
+    print(
+        "Direct `git commit` / `git push` is blocked outside the commit/pr skills.\n"
+        "\n"
+        "Use:\n"
+        "  /commit   — stage and commit through the structured flow\n"
+        "  /pr       — push and open the PR/MR\n"
+        "\n"
+        "To bypass for a one-off, the user can run the command in a terminal\n"
+        "or temporarily disable this hook in ~/.claude/settings.json\n"
+        "(hooks.PreToolUse).",
+        file=sys.stderr,
+    )
+    sys.exit(2)
+
+
+if __name__ == "__main__":
+    main()

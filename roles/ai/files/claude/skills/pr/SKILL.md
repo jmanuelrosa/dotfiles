@@ -49,15 +49,26 @@ Fill the platform's PR template from the current branch's changes, push if neede
    ```
 
 6. **Build the title from the branch name** (deterministic):
-   - If the first `/`-separated segment matches `feat|fix|chore|ci|refactor|docs|test|perf|build|style`, treat it as the type prefix.
-   - Extract a Jira ticket (`[A-Z]+-[0-9]+`) from the rest and remove it.
+   - Split the branch on the first `/`. The left side is the **branch type**; the right side is everything else.
+   - If the branch type matches `feature|fix|chore|docs|refactor|test|perf|ci|build|style|revert`, use it. Otherwise treat the branch as having no type prefix (rare — happens on legacy or hand-named branches).
+   - Map branch type → commit type: `feature` → `feat`. Every other branch type passes through unchanged (`fix` stays `fix`, `chore` stays `chore`, …).
+   - From the right side, extract a leading Jira ticket (`^[A-Z]+-[0-9]+`) if present and strip it along with its trailing `-`. What remains is the slug.
    - Replace remaining `-`/`_` with spaces and trim.
-   - Compose: `<type>: <rest> (<TICKET>)` — omit any part that's missing.
+   - Derive the **scope** from the diff per step 6a below.
+   - Compose: `<commit-type>(<scope>): <slug-as-prose> (<TICKET>)`. Omit `(<scope>)` if the change is repo-wide; omit `(<TICKET>)` if missing; omit `<commit-type>:` if the branch had no recognized type.
 
    Examples:
-   - `feat/PROJ-123-add-auth` → `feat: add auth (PROJ-123)`
-   - `fix/login-redirect-loop` → `fix: login redirect loop`
-   - `PROJ-456-cleanup-tests` → `cleanup tests (PROJ-456)`
+   - `feature/PROJ-123-add-auth`, files under `apps/auth/**` → `feat(auth): add auth (PROJ-123)`
+   - `fix/login-redirect-loop`, files under `apps/web/**` → `fix(web): login redirect loop`
+   - `chore/bump-deps`, only root `package.json` → `chore: bump deps`
+   - `refactor/PROJ-9-extract-cart-helper`, files under `packages/cart/**` → `refactor(cart): extract cart helper (PROJ-9)`
+
+6a. **Derive the scope from the diff.** Take the file list from `git diff --name-only "$BASE"...HEAD`. Pick the scope by, in order:
+   - (a) shared monorepo package if all paths live under a single `packages/*` or `apps/*` → use that package name.
+   - (b) shared top-level directory (e.g. `roles/<name>` in this dotfiles repo) → use the directory name.
+   - (c) shared feature area inferred from filenames (`auth`, `checkout`, `api`, …) → use the feature area.
+
+   If files cross two or more candidates with no clear primary one, leave the scope empty and treat the change as repo-wide. When unsure, ask the user with the candidates listed.
 
 7. **Write the filled template to a temp body file**:
    ```sh
@@ -109,5 +120,6 @@ Good:
 ## Rules
 
 - Use `gh` for GitHub remotes and `glab` for GitLab remotes; fail loudly on any other host.
+- Title format is `<type>(<scope>): <subject> (<TICKET>)`. Drop `(<scope>)` only when the change is repo-wide. The `(<TICKET>)` suffix is required if any commit in the branch references a Jira ticket.
 - Use HEREDOC or `--body-file` so newlines and code fences in the description are preserved.
 - Never `--no-verify` or skip hooks.
