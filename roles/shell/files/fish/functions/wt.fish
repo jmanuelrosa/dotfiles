@@ -27,7 +27,7 @@ function _wt_help
   echo "  add [-b <branch>] <dir>  Create worktree at sibling dir <dir>. Branch defaults"
   echo "                           to <dir>; pass -b/--branch to override (created from"
   echo "                           develop > main > master). Copies env/.vscode/.claude,"
-  echo "                           installs deps if a lockfile is present, and cds into it."
+  echo "                           installs deps from lockfile (frozen) if present, and cds into it."
   echo "  list                     List all worktrees"
   echo "  remove <name> [--force]  Remove a worktree (by branch name or path)"
   echo "  prune                    Prune stale worktree metadata"
@@ -105,17 +105,17 @@ function _wt_add
   cd $target
 
   if test -f pnpm-lock.yaml
-    echo "→ pnpm install"
-    pnpm install
+    echo "→ pnpm install --frozen-lockfile"
+    pnpm install --frozen-lockfile
   else if test -f bun.lock; or test -f bun.lockb
-    echo "→ bun install"
-    bun install
+    echo "→ bun install --frozen-lockfile"
+    bun install --frozen-lockfile
   else if test -f package-lock.json
-    echo "→ npm install"
-    npm install
+    echo "→ npm ci"
+    npm ci
   else if test -f yarn.lock
-    echo "→ yarn install"
-    yarn install
+    echo "→ yarn install --frozen-lockfile"
+    yarn install --frozen-lockfile
   end
 end
 
