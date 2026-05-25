@@ -204,9 +204,11 @@
       "allowedDomains": [
         "registry.npmjs.org",
         "registry.yarnpkg.com",
+        "sentry.io",
         "*.sentry.io",
         "github.com",
         "api.github.com",
+        "gitlab.com",
         "*.githubusercontent.com",
         "auth.atlassian.com",
         "as.atlassian.com",
