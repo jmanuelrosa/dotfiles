@@ -40,6 +40,8 @@ alias brew:update='brew update --force && brew upgrade --greedy --force && brew 
 alias clean:brew='brew autoremove && brew cleanup --prune=all --scrub'
 alias clean:docker=clean_docker
 alias clean:node=clean_node
+alias clean:system='mo clean; and mo optimize'
+alias clean:all=clean_all
 
 # docker
 alias docker:start='systemctl start docker'
