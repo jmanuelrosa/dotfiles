@@ -1,14 +1,12 @@
 function clean_all
   echo '🧹 Cleaning Homebrew ...'
-  brew autoremove
-  brew cleanup --prune=all --scrub
+  clean:brew
 
   echo '🧹 Cleaning system (mole) ...'
-  mo clean
-  mo optimize
+  clean:system
 
   echo '🧹 Cleaning Node artifacts (cwd) ...'
-  clean_node
+  clean:node
 
   echo '✨ All cleanup complete!'
 end
