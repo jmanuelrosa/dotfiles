@@ -18,15 +18,14 @@
 
 
   # Commit
-  a = commit --amend --no-edit             # ammend your last commit
-  c     = commit                           # commit
-  ca    = !git add --all && git commit -am # add all and commit with messageß
+  a = commit --amend --no-edit # ammend your last commit
+  c = commit # commit
+  ca = !git add --all && git commit -am # add all and commit with messageß
 
   # Diff
-  d  = diff --color --color-words --abbrev
-  dc = diff --cached
-  df = "!git diff | diffnav"
-  ds = -c delta.side-by-side=true diff
+  d = diff --abbrev # working tree (unstaged) → diffnav
+  dstat = -c pager.diff=delta diff --stat # changed files + line-count summary (delta, not diffnav)
+  dw = "!git -c color.diff=always diff --word-diff=color \"$@\" | less -RFX #" # word diff (prose/config)
 
   # Fetch
   f = fetch --prune
@@ -146,6 +145,7 @@
   helper = !gh auth git-credential
 
 [diff]
+  algorithm = histogram
   colorMoved = default
   # Detect copies in addition to renames
   renames = copies
@@ -180,7 +180,7 @@
 	program =
 
 [pager]
-  diff = delta
+  diff = diffnav
   log = delta
   reflog = delta
   show = delta
