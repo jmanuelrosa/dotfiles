@@ -101,4 +101,5 @@
   "security.workspace.trust.banner": "never",
   "security.workspace.trust.startupPrompt": "never",
   "chat.viewSessions.orientation": "stacked",
+  "update.showReleaseNotes": false,
 }
