@@ -1,29 +1,29 @@
 {
-  "enableInstallTelemetry": false,
-  "lastChangelogVersion": "0.72.1",
-  "theme": "tokyo-night",
-  "showHardwareCursor": true,
-  "editorPaddingX": 2,
-  "terminal": {
-    "showTerminalProgress": true
-  },
-  "quietStartup": true,
-  "defaultThinkingLevel": "high",
-  "hideThinkingBlock": true,
   "collapseChangelog": false,
+  "defaultModel": "qwen3.6:35b-a3b",
   "defaultProvider": "ollama",
-  "defaultModel": "qwen3:latest",
+  "defaultThinkingLevel": "xhigh",
+  "doubleEscapeAction": "tree",
+  "editorPaddingX": 2,
   "enabledModels": [
-    "ollama/qwen3:latest"
+    "ollama/qwen3.6:35b-a3b"
   ],
+  "enableInstallTelemetry": false,
   "extensions": [],
+  "followUpMode": "one-at-a-time",
+  "hideThinkingBlock": true,
+  "lastChangelogVersion": "0.75.5",
   "packages": [
     "npm:@plannotator/pi-extension",
     "git:github.com/earendil-works/pi-review"
   ],
-  "transport": "auto",
+  "quietStartup": true,
+  "showHardwareCursor": true,
   "steeringMode": "all",
-  "doubleEscapeAction": "tree",
+  "terminal": {
+    "showTerminalProgress": true
+  },
+  "theme": "tokyo-night",
+  "transport": "auto",
   "treeFilterMode": "default",
-  "followUpMode": "one-at-a-time"
 }
