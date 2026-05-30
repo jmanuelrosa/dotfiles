@@ -11,11 +11,12 @@ prefer_editor_prompt: disabled
 pager: delta
 # Aliases allow you to create nicknames for gh commands
 aliases:
-    co: pr checkout
-    clone: repo clone
-    pr: pr create --web
-    pv: pr view --web
-    v: repo view --web
+  co: pr checkout
+  clone: repo clone
+  pr: pr create --web
+  pv: pr view --web
+  prd: '!gh pr diff "$@" | diffnav'
+  v: repo view --web
 # The path to a unix socket through which to send HTTP connections. If blank, HTTP traffic will be handled by net/http.DefaultTransport.
 http_unix_socket:
 # Whether to display labels using their RGB hex color codes in terminals that support truecolor. Supported values: enabled, disabled
