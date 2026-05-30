@@ -60,6 +60,13 @@
     state: link
     force: true
 
+- name: Symlink claude status line script
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/claude/statusline.sh"
+    dest: "{{ HOME }}/.claude/statusline.sh"
+    state: link
+    force: true
+
 - name: Ensure pi agent config directory exists
   ansible.builtin.file:
     path: "{{ HOME }}/.pi/agent"
