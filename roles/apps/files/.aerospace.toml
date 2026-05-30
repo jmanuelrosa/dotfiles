@@ -62,23 +62,23 @@ outer.top =        0
 outer.right =      0
 
 [workspace-to-monitor-force-assignment]
-# MB16AHV - Asus Screen
+# Secondary - Asus Screen
 1 = 'main'
 2 = 'main'
 3 = 'main'
 4 = 'MB16AHV'
 AI = 'secondary'
-Browsers = 'MB16AHV'
-Database = 'MB16AHV'
+Browsers = 'secondary'
+Database = 'secondary'
 Editors = ['dell.*', 'main']
-Music = 'MB16AHV'
+Music = 'secondary'
 Notion = 'main'
 Personal = 'main'
-Slack = ['MB16AHV', 'main']
-Rest = 'MB16AHV'
-Terminal = 'MB16AHV'
-TradingView = 'MB16AHV'
-Whatsapp = ['MB16AHV', 'main']
+Slack = ['secondary', 'main']
+Rest = 'secondary'
+Terminal = 'secondary'
+TradingView = 'secondary'
+Whatsapp = ['secondary', 'main']
 
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
