@@ -87,6 +87,7 @@ BREW_PACKAGES:
     - bitwarden
     - figma
     - notion
+    - notion-cli
     - sf-symbols
     - tradingview
     - triage
