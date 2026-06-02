@@ -289,6 +289,15 @@
             "frontend"
           ],
           "updated_at": "2026-05-12T10:27:50Z"
+        },
+        {
+          "upstream_path": "plugins/javascript-typescript/skills/nodejs-backend-patterns",
+          "name": "nodejs-backend-patterns",
+          "groups": [
+            "engineering",
+            "backend"
+          ],
+          "updated_at": "2026-06-02T14:14:18Z"
         }
       ]
     },
