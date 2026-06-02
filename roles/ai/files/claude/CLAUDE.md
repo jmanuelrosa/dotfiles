@@ -48,3 +48,9 @@ These tools are installed for interactive human use and will hang or look broken
 | `nnn`       | `ls`, `fd`, the Read/Glob/Grep tools                |
 | `pgcli` (interactive REPL) | `psql -c "..."` for one-shot SQL     |
 | `lazydocker`| `docker ps`, `docker inspect`, `docker logs`        |
+
+## Code standards
+
+- Complete code only - no TODOs, no placeholders, no incomplete implementations
+- Default to writing no comments. Prefer readable, explicit code (well-named variables, functions, and types) over commentary. A comment is justified only when it explains a non-obvious WHY: hidden constraint, subtle invariant, workaround for a known bug, or surprising behavior a future reader would otherwise misread. Comments that restate WHAT the code does are forbidden, including multiline narrative blocks. JSDoc/docstring format (`/** */`) is allowed only when its content is WHY — the format alone does not earn an exemption.
+- Never reference issue, PR, ticket, or ADR numbers in code comments (no `owner/repo#535`, `PR #561`, `(#545)`, `Fixes #123`, `JIRA-1234`, `ADR-0042`, etc.). They rot as soon as trackers move or decisions are superseded. The branch name, PR description, the ADR document itself, and git blame are the right places for that context. Comments should describe the WHY in self-contained prose.
