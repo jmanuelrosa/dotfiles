@@ -2,6 +2,14 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
+- name: Remove orphaned docker-completion formula
+  # The docker formula now bundles its own completions; the old standalone
+  # docker-completion formula collides with `brew link docker`. Idempotent:
+  # no-op once it's gone.
+  community.general.homebrew:
+    name: docker-completion
+    state: absent
+
 - name: Link docker formula
   ansible.builtin.command: brew link docker
   register: docker_link
