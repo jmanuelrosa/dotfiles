@@ -48,9 +48,14 @@ Fill the platform's PR template from the current branch's changes, push if neede
      case "$HOST" in
        gh)
          # Force HTTPS for this push so sandboxed sessions (where ~/.ssh is
-         # unreadable) can authenticate via the gh credential helper in
-         # ~/.gitconfig. Leaves no state in .git/config or ~/.gitconfig.
+         # unreadable) can authenticate via the gh credential helper. The empty
+         # credential.helper resets the inherited chain so the osxkeychain helper
+         # is never invoked — its store step can't write the keychain in the
+         # sandbox and would fail the push with "failed to store" even though the
+         # push itself succeeded. Leaves no state in .git/config or ~/.gitconfig.
          git -c "url.https://github.com/.pushInsteadOf=git@github.com:" \
+             -c credential.helper= \
+             -c 'credential.helper=!gh auth git-credential' \
              push -u origin "$BRANCH"
          ;;
        *) git push -u origin "$BRANCH" ;;
@@ -82,7 +87,7 @@ Fill the platform's PR template from the current branch's changes, push if neede
 
 7. **Write the filled template to a temp body file**:
    ```sh
-   BODY=$(mktemp "${TMPDIR:-/tmp}/pr-body.XXXXXX.md")
+   BODY=$(mktemp "${TMPDIR:-/tmp}/pr-body-XXXXXX")
    # write the filled template into "$BODY"
    ```
 
