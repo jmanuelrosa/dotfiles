@@ -67,6 +67,20 @@
     state: link
     force: true
 
+- name: Ensure global claude skills directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.claude/skills"
+    state: directory
+    mode: "0755"
+
+- name: Symlink selected skills into global claude skills dir
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/claude/skills/{{ item }}"
+    dest: "{{ HOME }}/.claude/skills/{{ item }}"
+    state: link
+    force: true
+  loop: "{{ GLOBAL_CLAUDE_SKILLS | default([]) }}"
+
 - name: Ensure pi agent config directory exists
   ansible.builtin.file:
     path: "{{ HOME }}/.pi/agent"
