@@ -1,6 +1,8 @@
 ---
 name: pr
 description: Generate the PR description from the current branch and open the PR (GitHub) or MR (GitLab), returning the URL
+argument-hint: "[base-branch]"
+disable-model-invocation: true
 ---
 
 # Create PR / MR
@@ -28,6 +30,8 @@ Fill the platform's PR template from the current branch's changes, push if neede
    BRANCH=$(git branch --show-current)
    ```
    Rule: use `gh` / `glab` wherever they have an equivalent. Fall back to `git` only for operations they don't cover (push, diff, log, status).
+
+   If the skill was invoked with an argument, use it as `$BASE` (the target base branch) instead of the auto-detected default.
 
 2. **Read the template** — first match wins, otherwise proceed with no template:
    - `.github/pull_request_template.md`

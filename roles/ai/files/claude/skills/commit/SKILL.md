@@ -1,11 +1,15 @@
 ---
 name: commit
 description: Stage changes, split the diff into atomic concerns when it makes sense, and write one strict conventional commit per concern. Stops at commit — does not push.
+argument-hint: "[guidance: scope, how to split, or branch name]"
+disable-model-invocation: true
 ---
 
 # Create commit(s)
 
 Inspect the working tree, ensure we're on a branch the user is willing to commit on, split the diff into atomic concerns, draft a strict conventional commit message per concern, confirm the plan with the user, and commit each one in order. Never push, never open a PR — that is `/pr`'s job.
+
+If invoked with arguments, treat them as user guidance — a desired scope, how to split concerns, or a branch name — and factor them into the plan before the approval gate.
 
 ## Steps
 
