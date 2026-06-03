@@ -1,6 +1,19 @@
 {
   "version": 2,
   "repos": {
+    "anthropics/claude-plugins-official": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "plugins/frontend-design/skills/frontend-design",
+          "name": "frontend-design",
+          "groups": [
+            "engineering",
+            "design"
+          ]
+        }
+      ]
+    },
     "addyosmani/agent-skills": {
       "branch": "main",
       "skills": [
@@ -510,14 +523,6 @@
       "groups": [
         "engineering",
         "backend"
-      ],
-      "note": "Consolidated from multiple sources"
-    },
-    {
-      "name": "frontend-design",
-      "groups": [
-        "engineering",
-        "design"
       ],
       "note": "Consolidated from multiple sources"
     }
