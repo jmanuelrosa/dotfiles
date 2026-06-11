@@ -34,6 +34,7 @@ window-save-state = always
 window-height = 200
 window-width = 500
 
+shell-integration = fish
 shell-integration-features = no-cursor,sudo,title,ssh-env,ssh-terminfo
 
 # Keybindings
