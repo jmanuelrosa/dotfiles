@@ -25,6 +25,6 @@ BREW_PACKAGES:
   casks:
     - chatgpt
     - claude
-    - claude-code
+    - claude-code@latest
     - cursor
     - steipete/tap/codexbar
