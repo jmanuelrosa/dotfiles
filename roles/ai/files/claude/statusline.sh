@@ -190,9 +190,12 @@ def main():
         repo_segment(data.get("workspace")),
         context_segment(data.get("context_window")),
     ]
+    # Model leads the right cluster so it survives right-edge truncation in
+    # narrow panels (e.g. the VS Code sidebar); the velocity counter, which is
+    # less critical, absorbs any clipping at the edge instead.
     right_segments = [
-        velocity_segment(data.get("cost")),
         model_segment(data.get("model")),
+        velocity_segment(data.get("cost")),
     ]
     left = SEP.join(s for s in left_segments if s)
     right = SEP.join(s for s in right_segments if s)
