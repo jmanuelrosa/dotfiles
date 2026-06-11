@@ -1,6 +1,7 @@
 ---
 name: jira
 description: Interact with Jira via acli. Create, update, view, transition, and comment on issues. Defaults to the SER project and produces descriptions that both product and engineering can follow, in proper ADF (Atlassian Document Format).
+disable-model-invocation: true
 ---
 
 # Jira via cli
@@ -174,6 +175,14 @@ Good description:
 
 Tickets need to be understood by both product and engineering. Frame the body as **what has to be done**, not what was done. Keep the tone plain and outcome-focused so product can follow it, while keeping file names, library names, and technical specifics accurate so engineering has enough detail to act on.
 
+### Write from the reporter's perspective
+
+Write the body as the person reporting the problem, before the fix and investigation are done. This holds **even when a fix already exists or has shipped** - a ticket created after the work is a record of the problem, not a changelog.
+
+- Describe symptoms in the present tense, as currently happening ("the handler crashes when the payload exceeds 1MB"), not "was crashing" or "is now fixed".
+- Keep any proposed fix in the future / conditional tense ("could switch to a streaming parser", "should reject early with 413"). Never state the fix as done.
+- Don't reference the implementing PR or completed work in the description (see the "Don't reference PR numbers" and "Don't paste raw GitHub URLs" conventions below).
+
 ### Standard structure
 
 ```text
@@ -220,6 +229,14 @@ When the work is research / decision-making and implementation is deferred:
 - **Don't paste raw GitHub URLs** unless the user asks for it.
 - **Update the linked PR's "Related issues"** to the new <PROJECT>-#### after creating a ticket from a PR.
 
+## Auth check
+
+Before pushing a create, edit, or transition, you can verify with `acli jira auth status`. Handle a failed check carefully:
+
+- A single `unauthorized` is not proof the user is logged out, and not a reason to abandon a drafted ticket. `acli` keeps its OAuth tokens in the macOS Keychain, and a command run from here is non-interactive, so the check can be a false negative - a lapsed session, or a Keychain prompt that can't be answered from a spawned process.
+- Recovery: ask the user to run `acli jira auth login --web` once in their own terminal and approve any Keychain prompt, then re-run `acli jira auth status` yourself to confirm before pushing. Don't wait to be told the state changed - re-check it.
+- Keep the drafted ADF ready while you wait so nothing is lost.
+
 ## Workflow patterns
 
 ### A) Update an existing ticket from PR context
@@ -242,7 +259,7 @@ User says: "update <PROJECT>-875 with context from these PRs: <urls>"
 User says: "make a ticket in the same epic from <pr-urls>"
 
 1. Fetch PR(s) with `gh pr view`.
-2. Draft title (with the matching category emoji - 🧠 for backend, 💿 for infra, etc.), type (usually `Task`), parent (usually `<TECH-DEBT-EPIC>` for tech debt), and ADF description using the standard structure.
+2. Draft title (with the matching category emoji - 🧠 for backend, 💿 for infra, etc.), type (usually `Task`), parent (usually `<TECH-DEBT-EPIC>` for tech debt), and ADF description using the standard structure. The PR is only the source of context - write the description as a current, unfixed problem (present-tense symptoms, future-tense fix, no PR reference in the body).
 3. Show the user, ask to push.
 4. On confirmation: write ADF to `/tmp/<topic>-adf.json` and create:
 
@@ -286,7 +303,7 @@ The Jira category emoji (🧠, 💻, 💿, …) belongs only in the **Jira summa
 
 ## Authentication troubleshooting
 
-- **`acli` 401 / OAuth fails:** re-run `acli jira auth login --web`. The browser session may have expired.
+- **`acli jira auth status` says unauthorized here but your own terminal says authenticated:** `acli` stores its OAuth tokens in the macOS Keychain, and it already runs outside the sandbox, so this is not a sandbox issue. A command run from here is non-interactive, so the session can read as inactive even when a normal terminal is fine - usually a lapsed session, sometimes a Keychain prompt that can't be answered. Recovery: run `acli jira auth login --web` once in your own terminal (approve any Keychain prompt), then have me re-run `acli jira auth status` to confirm before pushing. See the Auth check section above.
 - **Don't suggest API tokens, the MCP server, or `jira-cli` (Go).** Didomi's org enforces scoped tokens + SSO; classic tokens are not creatable, and scoped tokens 401 against basic-auth tools.
 - **Verify auth at any time:** `acli jira auth status`.
 

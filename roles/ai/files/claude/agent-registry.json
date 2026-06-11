@@ -7,7 +7,20 @@
         {
           "upstream_path": "agents/code-reviewer.md",
           "name": "code-reviewer",
-          "groups": ["quality", "review"]
+          "groups": [
+            "quality",
+            "review"
+          ],
+          "updated_at": "2026-06-03T14:08:58Z"
+        },
+        {
+          "upstream_path": "agents/test-engineer.md",
+          "name": "test-engineer",
+          "groups": [
+            "quality",
+            "review"
+          ],
+          "updated_at": "2026-06-03T14:09:04Z"
         }
       ]
     }
