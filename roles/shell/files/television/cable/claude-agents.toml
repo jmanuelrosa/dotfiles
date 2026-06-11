@@ -27,16 +27,19 @@ ctrl-o = "actions:edit"
 description = "Toggle the agent link in this project"
 command = "fish -c '_tv_claude_toggle agent {split: :0}'"
 mode = "execute"
+separator = " "
 
 [actions.outdated]
 description = "Check if the agent is up-to-date"
 command = "claude-agent outdated {split: :0}"
 mode = "execute"
+separator = " "
 
 [actions.update]
 description = "Sync the agent from upstream"
 command = "claude-agent update {split: :0}"
 mode = "execute"
+separator = " "
 
 [actions.edit]
 description = "Open agent .md in $EDITOR"

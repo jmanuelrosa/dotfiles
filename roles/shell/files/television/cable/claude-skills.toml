@@ -27,16 +27,19 @@ ctrl-o = "actions:edit"
 description = "Toggle the skill link in this project"
 command = "fish -c '_tv_claude_toggle skill {split: :0}'"
 mode = "execute"
+separator = " "
 
 [actions.outdated]
 description = "Check if the skill is up-to-date"
 command = "claude-skill outdated {split: :0}"
 mode = "execute"
+separator = " "
 
 [actions.update]
 description = "Sync the skill from upstream"
 command = "claude-skill update {split: :0}"
 mode = "execute"
+separator = " "
 
 [actions.edit]
 description = "Open SKILL.md in $EDITOR"

@@ -14,19 +14,19 @@ function claude-skill --description "Manage Claude Code skills for the current p
     set -l c_reset (set_color normal)
 
     if test (count $argv) -lt 1
-        echo "Usage: claude-skill <list|add|remove|update|outdated> [--group] [name]"
+        echo "Usage: claude-skill <list|add|remove|update|outdated> [--group] [name]..."
         return 1
     end
 
     set -l cmd $argv[1]
     set -l use_group false
-    set -l name ""
+    set -l names
 
     for arg in $argv[2..]
         if test "$arg" = "--group"
             set use_group true
         else
-            set name "$arg"
+            set -a names "$arg"
         end
     end
 
@@ -93,111 +93,131 @@ function claude-skill --description "Manage Claude Code skills for the current p
             end
 
         case add
-            if test -z "$name"
-                echo "Usage: claude:skill add [--group] <name>"
+            if test (count $names) -eq 0
+                echo "Usage: claude-skill add [--group] <name>..."
                 return 1
             end
             if test "$use_group" = true
-                set -l group_skills (jq -r --arg g "$name" '
-                    [
-                        (.repos[].skills[] | select(.groups | index($g))),
-                        (.local_skills[]    | select(.groups | index($g)))
-                    ] | .[] | .name
-                ' $registry | sort -u)
+                for name in $names
+                    set -l group_skills (jq -r --arg g "$name" '
+                        [
+                            (.repos[].skills[] | select(.groups | index($g))),
+                            (.local_skills[]    | select(.groups | index($g)))
+                        ] | .[] | .name
+                    ' $registry | sort -u)
 
-                if test (count $group_skills) -eq 0
-                    echo "$c_magenta✗$c_reset Group '$name' not found. Run 'claude:skill list --group' to see available groups."
-                    return 1
+                    if test (count $group_skills) -eq 0
+                        echo "$c_magenta✗$c_reset Group '$name' not found. Run 'claude-skill list --group' to see available groups."
+                        continue
+                    end
+
+                    set -l tracked_names (jq -r '.repos[].skills[].name' $registry)
+
+                    for sname in $group_skills
+                        if not test -d "$skills_source/$sname"
+                            if contains -- $sname $tracked_names
+                                echo "$c_cyan↓$c_reset Downloading '$sname' from registry..."
+                                _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" $sname
+                            else
+                                echo "$c_magenta✗$c_reset Local skill '$sname' missing on disk; cannot install."
+                                continue
+                            end
+                        end
+                    end
+
+                    mkdir -p $skills_target
+                    set -l count 0
+                    for sname in $group_skills
+                        if test -d "$skills_source/$sname"
+                            ln -sfn "$skills_source/$sname" "$skills_target/$sname"
+                            set count (math $count + 1)
+                        end
+                    end
+                    echo "$c_green✓$c_reset Linked $count skills from group '$name' into $skills_target/"
                 end
-
-                set -l tracked_names (jq -r '.repos[].skills[].name' $registry)
-
-                for sname in $group_skills
-                    if not test -d "$skills_source/$sname"
-                        if contains -- $sname $tracked_names
-                            echo "$c_cyan↓$c_reset Downloading '$sname' from registry..."
-                            _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" $sname
+            else
+                for name in $names
+                    if not test -d "$skills_source/$name"
+                        set -l in_registry (jq -r --arg n "$name" '
+                            [.repos[].skills[] | select(.name == $n) | .name] | .[0] // empty
+                        ' $registry)
+                        if test -n "$in_registry"
+                            echo "$c_cyan↓$c_reset Skill '$name' not downloaded. Pulling from registry..."
+                            _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" $name
+                            if not test -d "$skills_source/$name"
+                                echo "$c_magenta✗$c_reset Failed to download '$name'."
+                                continue
+                            end
                         else
-                            echo "$c_magenta✗$c_reset Local skill '$sname' missing on disk; cannot install."
+                            echo "$c_magenta✗$c_reset Skill '$name' not found. Run 'claude-skill list' to see available skills."
                             continue
                         end
                     end
+                    mkdir -p $skills_target
+                    ln -sfn "$skills_source/$name" "$skills_target/$name"
+                    echo "$c_green✓$c_reset Linked '$name' into $skills_target/"
                 end
-
-                mkdir -p $skills_target
-                set -l count 0
-                for sname in $group_skills
-                    if test -d "$skills_source/$sname"
-                        ln -sfn "$skills_source/$sname" "$skills_target/$sname"
-                        set count (math $count + 1)
-                    end
-                end
-                echo "$c_green✓$c_reset Linked $count skills from group '$name' into $skills_target/"
-            else
-                if not test -d "$skills_source/$name"
-                    set -l in_registry (jq -r --arg n "$name" '
-                        [.repos[].skills[] | select(.name == $n) | .name] | .[0] // empty
-                    ' $registry)
-                    if test -n "$in_registry"
-                        echo "$c_cyan↓$c_reset Skill '$name' not downloaded. Pulling from registry..."
-                        _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" $name
-                        if not test -d "$skills_source/$name"
-                            echo "$c_magenta✗$c_reset Failed to download '$name'."
-                            return 1
-                        end
-                    else
-                        echo "$c_magenta✗$c_reset Skill '$name' not found. Run 'claude:skill list' to see available skills."
-                        return 1
-                    end
-                end
-                mkdir -p $skills_target
-                ln -sfn "$skills_source/$name" "$skills_target/$name"
-                echo "$c_green✓$c_reset Linked '$name' into $skills_target/"
             end
 
         case remove
-            if test -z "$name"
-                echo "Usage: claude:skill remove [--group] <name>"
+            if test (count $names) -eq 0
+                echo "Usage: claude-skill remove [--group] <name>..."
                 return 1
             end
             if test "$use_group" = true
-                set -l group_skills (jq -r --arg g "$name" '
-                    [
-                        (.repos[].skills[] | select(.groups | index($g))),
-                        (.local_skills[]    | select(.groups | index($g)))
-                    ] | .[] | .name
-                ' $registry | sort -u)
+                for name in $names
+                    set -l group_skills (jq -r --arg g "$name" '
+                        [
+                            (.repos[].skills[] | select(.groups | index($g))),
+                            (.local_skills[]    | select(.groups | index($g)))
+                        ] | .[] | .name
+                    ' $registry | sort -u)
 
-                if test (count $group_skills) -eq 0
-                    echo "$c_magenta✗$c_reset Group '$name' not found. Run 'claude:skill list --group' to see available groups."
-                    return 1
-                end
-
-                set -l count 0
-                for sname in $group_skills
-                    if test -L "$skills_target/$sname"
-                        command rm "$skills_target/$sname"
-                        set count (math $count + 1)
+                    if test (count $group_skills) -eq 0
+                        echo "$c_magenta✗$c_reset Group '$name' not found. Run 'claude-skill list --group' to see available groups."
+                        continue
                     end
+
+                    set -l count 0
+                    for sname in $group_skills
+                        if test -L "$skills_target/$sname"
+                            command rm "$skills_target/$sname"
+                            set count (math $count + 1)
+                        end
+                    end
+                    echo "$c_green✓$c_reset Removed $count skills from group '$name'"
                 end
-                echo "$c_green✓$c_reset Removed $count skills from group '$name'"
             else
-                if not test -L "$skills_target/$name"
-                    echo "$c_yellow⚠$c_reset Skill '$name' is not linked in this project."
-                    return 1
+                for name in $names
+                    if not test -L "$skills_target/$name"
+                        echo "$c_yellow⚠$c_reset Skill '$name' is not linked in this project."
+                        continue
+                    end
+                    command rm "$skills_target/$name"
+                    echo "$c_green✓$c_reset Removed '$name' from $skills_target/"
                 end
-                command rm "$skills_target/$name"
-                echo "$c_green✓$c_reset Removed '$name' from $skills_target/"
             end
 
         case update
-            _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" "$name" sync
+            if test (count $names) -eq 0
+                _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" "" sync
+            else
+                for name in $names
+                    _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" "$name" sync
+                end
+            end
 
         case outdated
-            _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" "$name" check
+            if test (count $names) -eq 0
+                _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" "" check
+            else
+                for name in $names
+                    _claude_skill_update $registry "$DOTFILES_DIR/roles/ai/files/claude" "$name" check
+                end
+            end
 
         case '*'
-            echo "Usage: claude-skill <list|add|remove|update|outdated> [--group] [name]"
+            echo "Usage: claude-skill <list|add|remove|update|outdated> [--group] [name]..."
             return 1
     end
 end
