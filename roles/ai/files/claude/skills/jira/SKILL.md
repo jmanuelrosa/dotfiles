@@ -231,10 +231,10 @@ When the work is research / decision-making and implementation is deferred:
 
 ## Auth check
 
-Before pushing a create, edit, or transition, you can verify with `acli jira auth status`. Handle a failed check carefully:
+Before pushing a create, edit, or transition, verify with `acli jira auth status`. It works from here: the Bash sandbox can read `acli`'s OAuth token from the macOS Keychain, so a `✓ Authenticated` result is real - trust it and proceed.
 
-- A single `unauthorized` is not proof the user is logged out, and not a reason to abandon a drafted ticket. `acli` keeps its OAuth tokens in the macOS Keychain, and a command run from here is non-interactive, so the check can be a false negative - a lapsed session, or a Keychain prompt that can't be answered from a spawned process.
-- Recovery: ask the user to run `acli jira auth login --web` once in their own terminal and approve any Keychain prompt, then re-run `acli jira auth status` yourself to confirm before pushing. Don't wait to be told the state changed - re-check it.
+- **Trust the status check.** `acli` auth/view/search/create/edit all work under the sandbox. The *only* thing it can't do here is `acli jira auth login` - the one operation that writes `~/.config/acli`, which is read-only in the sandbox. Never copy the config dir to `$TMPDIR` or override `HOME`/`XDG_CONFIG_HOME` to "fix" auth; that is never the problem, and the workaround itself fails.
+- A genuine `unauthorized` here means the session actually lapsed (rarely, a Keychain ACL prompt a spawned process can't answer) - not a false negative to assume away. Recovery: ask the user to run `acli jira auth login --web` once in their own terminal, then re-run `acli jira auth status` yourself to confirm. Don't wait to be told the state changed - re-check it.
 - Keep the drafted ADF ready while you wait so nothing is lost.
 
 ## Workflow patterns
@@ -303,7 +303,7 @@ The Jira category emoji (🧠, 💻, 💿, …) belongs only in the **Jira summa
 
 ## Authentication troubleshooting
 
-- **`acli jira auth status` says unauthorized here but your own terminal says authenticated:** `acli` stores its OAuth tokens in the macOS Keychain, and it already runs outside the sandbox, so this is not a sandbox issue. A command run from here is non-interactive, so the session can read as inactive even when a normal terminal is fine - usually a lapsed session, sometimes a Keychain prompt that can't be answered. Recovery: run `acli jira auth login --web` once in your own terminal (approve any Keychain prompt), then have me re-run `acli jira auth status` to confirm before pushing. See the Auth check section above.
+- **`acli jira auth status` says unauthorized here but your own terminal says authenticated:** rare. Claude runs `acli` *inside* the Bash sandbox, and the sandbox can reach the macOS Keychain, so `acli` normally authenticates fine from here - just run `acli jira auth status` and trust the result instead of assuming it'll fail. The only sandbox limitation is that `~/.config/acli` is read-only, which affects `acli jira auth login` only - not status, query, create, or edit. If status *genuinely* reports unauthorized, the session has lapsed (or a Keychain ACL prompt can't be answered by a spawned process): run `acli jira auth login --web` once in your own terminal, then have me re-run `acli jira auth status` to confirm. See the Auth check section above.
 - **Don't suggest API tokens, the MCP server, or `jira-cli` (Go).** Didomi's org enforces scoped tokens + SSO; classic tokens are not creatable, and scoped tokens 401 against basic-auth tools.
 - **Verify auth at any time:** `acli jira auth status`.
 
