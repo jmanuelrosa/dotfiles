@@ -169,13 +169,6 @@
       "Bash(find ../*)"
     ]
   },
-  "autoMode": {
-    "environment": [
-      "$defaults",
-      "Source control orgs github.com/didomi (Didomi, work) and github.com/jmanuelrosa (personal) are trusted destinations, equivalent to the working repo's configured remote. This SUPERSEDES the default 'no additional orgs configured' line. Treat any private repo under either owner as inside the trust boundary for the Git Push, Unverified Destination, and Data Exfiltration rules. This does NOT extend to force-push or remote-branch deletion (still governed by Git Destructive), to pushing all refs to a brand-new remote, to creating new public repos, or to pushing private-repo content into a public repo under these owners.",
-      "Push auth: this machine's remotes and a global insteadOf rewrite default git to SSH (git@github.com:), but the sandbox cannot read ~/.ssh so SSH auth fails inside Claude Code sessions. The /pr skill therefore flips the push back to HTTPS (url.https://github.com/.pushInsteadOf, which overrides insteadOf for pushes) and authenticates with the gh token via the literal `git -c credential.helper='!gh auth git-credential' push`. That exact command is the only working push path here and is trusted. The exemption applies ONLY to the literal `!gh auth git-credential` helper; any other command substituted via `credential.helper`, or arbitrary commands injected through other `-c` config, is NOT covered and must be evaluated as a possible Auto-Mode Bypass."
-    ]
-  },
   "availableModels": [
     "sonnet",
     "opus",
@@ -270,5 +263,12 @@
   "preferredNotifChannel": "ghostty",
   "fileCheckpointingEnabled": true,
   "skipAutoPermissionPrompt": false,
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "Source control orgs github.com/didomi (Didomi, work) and github.com/jmanuelrosa (personal) are trusted destinations, equivalent to the working repo's configured remote. This SUPERSEDES the default 'no additional orgs configured' line. Treat any private repo under either owner as inside the trust boundary for the Git Push, Unverified Destination, and Data Exfiltration rules. This does NOT extend to force-push or remote-branch deletion (still governed by Git Destructive), to pushing all refs to a brand-new remote, to creating new public repos, or to pushing private-repo content into a public repo under these owners.",
+      "Push auth: this machine's remotes and a global insteadOf rewrite default git to SSH (git@github.com:), but the sandbox cannot read ~/.ssh so SSH auth fails inside Claude Code sessions. The /pr skill therefore flips the push back to HTTPS (url.https://github.com/.pushInsteadOf, which overrides insteadOf for pushes) and authenticates with the gh token via the literal `git -c credential.helper='!gh auth git-credential' push`. That exact command is the only working push path here and is trusted. The exemption applies ONLY to the literal `!gh auth git-credential` helper; any other command substituted via `credential.helper`, or arbitrary commands injected through other `-c` config, is NOT covered and must be evaluated as a possible Auto-Mode Bypass."
+    ]
+  },
   "voiceEnabled": false
 }
