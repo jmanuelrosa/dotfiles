@@ -500,6 +500,14 @@
       "note": "Locally authored"
     },
     {
+      "name": "coderabbit",
+      "groups": [
+        "productivity",
+        "workflow"
+      ],
+      "note": "Locally authored"
+    },
+    {
       "name": "jira",
       "groups": [
         "productivity",
