@@ -45,12 +45,18 @@ current branch's PR.
    The actionable inline threads need resolved/outdated state, which no `gh`
    subcommand and no REST endpoint exposes. Only the GraphQL `reviewThreads`
    connection has it, so this one fetch uses `gh api graphql`. It is the source of
-   truth for what to process and what to skip:
-   ```sh
-   OWNER=${REPO%/*}; NAME=${REPO#*/}
-   gh api graphql --paginate \
-     -f owner="$OWNER" -f name="$NAME" -F pr="$PR" \
-     -f query='
+   truth for what to process and what to skip.
+
+   GraphQL type signatures contain `!` (non-null markers: `String!`, `Int!`, `ID!`).
+   **Never put a GraphQL document in a Bash command** — the shell escapes `!` to
+   `\!` even inside single quotes and heredocs, which GitHub rejects with
+   `Expected VAR_SIGN, actual: UNKNOWN_CHAR ("!")`. Instead **create the query file
+   with the Write tool** (it writes literal bytes, bypassing the shell), then pass it
+   with `-F query=@file`.
+
+   Write this to `/tmp/cr-threads.graphql` with the Write tool, verbatim (use a
+   literal absolute path — the Write tool does not expand `$TMPDIR`):
+   ```graphql
    query($owner:String!,$name:String!,$pr:Int!,$endCursor:String){
      repository(owner:$owner,name:$name){
        pullRequest(number:$pr){
@@ -63,7 +69,14 @@ current branch's PR.
          }
        }
      }
-   }'
+   }
+   ```
+   Then run (no `!` in this command, so it is shell-safe):
+   ```sh
+   OWNER=${REPO%/*}; NAME=${REPO#*/}
+   gh api graphql --paginate \
+     -f owner="$OWNER" -f name="$NAME" -F pr="$PR" \
+     -F query=@/tmp/cr-threads.graphql
    ```
    `--paginate` walks the `reviewThreads` pages via the `$endCursor` variable. A
    CodeRabbit thread is one whose **first** comment author is `coderabbitai[bot]`.
@@ -159,14 +172,17 @@ current branch's PR.
    - **Resolve the thread** once its action succeeds, for both FIX (edit applied)
      and REPLY-AND-SKIP (reply posted). No `gh` subcommand resolves threads, so use
      the GraphQL `resolveReviewThread` mutation against the thread node `id` from
-     step 2:
-     ```sh
-     gh api graphql \
-       -f threadId="$THREAD_NODE_ID" \
-       -f query='
+     step 2. It has an `ID!` marker, so the same rule applies: write the mutation to
+     a file with the **Write tool** (once, then reuse for every thread), never inline
+     it. Write this to `/tmp/cr-resolve.graphql` with the Write tool, verbatim:
+     ```graphql
      mutation($threadId:ID!){
        resolveReviewThread(input:{threadId:$threadId}){ thread{ id isResolved } }
-     }'
+     }
+     ```
+     Then resolve each thread (shell-safe, no `!`):
+     ```sh
+     gh api graphql -f threadId="$THREAD_NODE_ID" -F query=@/tmp/cr-resolve.graphql
      ```
      Resolve only the threads acted on by the chosen gate option. If a resolve call
      fails, report it and continue — the hidden marker and the `isResolved` check
@@ -239,6 +255,10 @@ Bad:
 - Prefer native `gh` subcommands. Use `gh api` / `gh api graphql` only for the
   three things with no subcommand: review-thread resolved/outdated state, posting
   a threaded reply, and resolving a thread. Never WebFetch, MCP, or `curl`.
+- Never put a GraphQL document in a Bash command. The shell escapes `!` to `\!`
+  even inside single quotes and heredocs, corrupting the `Type!` non-null markers
+  (`Expected VAR_SIGN, actual "!"`). Create the `.graphql` file with the **Write
+  tool** (literal bytes, no shell), then pass it with `gh api graphql -F query=@file`.
 - Nothing mutates before the approval gate. Edits and replies happen only after
   `Go` / `Fixes only` / `Replies only`.
 - Never commit or push. Hand off to `/commit` then `/pr`. The hook enforces this.
