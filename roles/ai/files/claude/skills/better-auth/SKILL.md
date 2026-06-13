@@ -13,6 +13,13 @@ metadata:
   version: "1.0.0"
   sources:
     - https://github.com/better-auth/skills/blob/main/better-auth/best-practices/SKILL.md
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+  - Bash(npx @better-auth/cli *)
 ---
 
 # Better Auth Guide

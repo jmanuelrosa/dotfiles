@@ -3,6 +3,17 @@ name: coderabbit
 description: Walk open CodeRabbit review threads on a GitHub PR, investigate each in the code, then either fix it or reply to @coderabbitai explaining why it stays. Resolves each thread it handles. Stops before commit.
 argument-hint: "[pr-number]"
 disable-model-invocation: true
+allowed-tools:
+  - Bash(git remote *)
+  - Bash(gh repo view *)
+  - Bash(gh pr view *)
+  - Bash(gh api *)
+  - Read
+  - Write
+  - Edit
+  - Grep
+  - Glob
+  - AskUserQuestion
 ---
 
 # Address CodeRabbit review threads

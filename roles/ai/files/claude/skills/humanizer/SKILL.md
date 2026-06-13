@@ -7,12 +7,11 @@ description: |
   inflated symbolism, promotional language, superficial -ing analyses, vague
   attributions, em dash overuse, rule of three, AI vocabulary words, negative
   parallelisms, and excessive conjunctive phrases.
+model: opus
 allowed-tools:
   - Read
   - Write
   - Edit
-  - Grep
-  - Glob
   - AskUserQuestion
 ---
 

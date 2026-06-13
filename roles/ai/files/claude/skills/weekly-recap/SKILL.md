@@ -1,6 +1,15 @@
 ---
 name: weekly-recap
 description: Summarize what I worked on in the last 7 days across Jira (acli), GitHub (gh), and GitLab (glab). Output is markdown grouped by project / repo, ready to paste into the weekly team meeting.
+disable-model-invocation: true
+model: sonnet
+allowed-tools:
+  - Bash(date *)
+  - Bash(acli jira *)
+  - Bash(gh search *)
+  - Bash(gh auth status*)
+  - Bash(glab api *)
+  - Bash(glab auth status*)
 ---
 
 # Weekly recap

@@ -13,6 +13,13 @@ metadata:
     - https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices
     - https://github.com/vercel-labs/agent-skills/tree/main/skills/composition-patterns
     - https://github.com/millionco/react-doctor/blob/main/skills/react-doctor/SKILL.md
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+  - Bash(npx react-doctor *)
 ---
 
 # React Development Guide

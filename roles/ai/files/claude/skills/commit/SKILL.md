@@ -3,6 +3,18 @@ name: commit
 description: Stage changes, split the diff into atomic concerns when it makes sense, and write one strict conventional commit per concern. Stops at commit — does not push.
 argument-hint: "[guidance: scope, how to split, or branch name]"
 disable-model-invocation: true
+allowed-tools:
+  - Bash(git status *)
+  - Bash(git diff *)
+  - Bash(git add *)
+  - Bash(git commit *)
+  - Bash(git log *)
+  - Bash(git branch *)
+  - Bash(git switch *)
+  - Bash(git remote *)
+  - Bash(gh repo view *)
+  - Bash(glab repo view *)
+  - AskUserQuestion
 ---
 
 # Create commit(s)

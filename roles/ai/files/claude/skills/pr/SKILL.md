@@ -3,6 +3,18 @@ name: pr
 description: Generate the PR description from the current branch and open the PR (GitHub) or MR (GitLab), returning the URL
 argument-hint: "[base-branch]"
 disable-model-invocation: true
+allowed-tools:
+  - Bash(git remote *)
+  - Bash(git branch *)
+  - Bash(git diff *)
+  - Bash(git log *)
+  - Bash(gh repo view *)
+  - Bash(gh pr create *)
+  - Bash(gh pr view *)
+  - Bash(glab repo view *)
+  - Bash(glab mr create *)
+  - Read
+  - Write
 ---
 
 # Create PR / MR

@@ -2,6 +2,11 @@
 name: jira
 description: Interact with Jira via acli. Create, update, view, transition, and comment on issues. Defaults to the SER project and produces descriptions that both product and engineering can follow, in proper ADF (Atlassian Document Format).
 disable-model-invocation: true
+allowed-tools:
+  - Bash(acli jira *)
+  - Bash(gh pr view *)
+  - Bash(gh pr edit *)
+  - Write
 ---
 
 # Jira via cli
