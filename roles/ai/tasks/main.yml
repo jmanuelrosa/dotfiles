@@ -81,6 +81,20 @@
     force: true
   loop: "{{ GLOBAL_CLAUDE_SKILLS | default([]) }}"
 
+- name: Ensure global claude agents directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.claude/agents"
+    state: directory
+    mode: "0755"
+
+- name: Symlink selected agents into global claude agents dir
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/claude/agents/{{ item }}.md"
+    dest: "{{ HOME }}/.claude/agents/{{ item }}.md"
+    state: link
+    force: true
+  loop: "{{ GLOBAL_CLAUDE_AGENTS | default([]) }}"
+
 - name: Ensure pi agent config directory exists
   ansible.builtin.file:
     path: "{{ HOME }}/.pi/agent"

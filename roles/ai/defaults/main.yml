@@ -15,6 +15,11 @@ GLOBAL_CLAUDE_SKILLS:
   - pr
   - humanizer
 
+# Agents symlinked into ~/.claude/agents/ so they are available to Claude Code
+# in every project (no per-project `claude-agent add` needed).
+GLOBAL_CLAUDE_AGENTS:
+  - cc-staff-reviewer
+
 BREW_PACKAGES:
   taps:
     - steipete/tap
