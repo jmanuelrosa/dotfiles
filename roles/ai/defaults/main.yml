@@ -14,6 +14,7 @@ GLOBAL_CLAUDE_SKILLS:
   - commit
   - pr
   - humanizer
+  - cc-review
 
 # Agents symlinked into ~/.claude/agents/ so they are available to Claude Code
 # in every project (no per-project `claude-agent add` needed).
