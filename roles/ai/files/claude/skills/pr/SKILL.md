@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # Create PR / MR
 
-Fill the platform's PR template from the current branch's changes, push if needed, open the PR/MR, and return the URL.
+Fill the platform's PR template from the current branch's changes, push the branch, open the PR/MR, and return the URL.
 
 ## Steps
 
@@ -46,26 +46,28 @@ Fill the platform's PR template from the current branch's changes, push if neede
    - **Checkbox sections**: check `[x]` only when the diff clearly supports it; leave `[ ]` for items not verifiable from code (e.g. "tested locally").
    - **Type/category selections**: infer from commit prefixes (`feat:`, `fix:`, `chore:`, `ci:`, `refactor:`, …) and check all that apply.
 
-5. **Push branch if it has no upstream** (use `$HOST` from step 1):
+5. **Push the branch** (use `$HOST` from step 1). Always push: `-u` sets the upstream when it's missing, pushes new commits when the branch is ahead, and prints `Everything up-to-date` when there's nothing to send.
+
+   Issue the push as a **standalone top-level `git …` command** — never inside `if`/`case`/`&&` or any other shell construct. The sandbox runs a command unsandboxed only when its leading token is the excluded binary (`git`); a wrapper like `if … then git push; fi` leads with `if`, so the whole block is sandboxed and the pre-push hook (e.g. Biome) fails because it can't read `node_modules`. A bare `git push` runs unsandboxed, so the hook runs normally.
+
+   GitHub:
    ```sh
-   if ! git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
-     case "$HOST" in
-       gh)
-         # Force HTTPS for this push so sandboxed sessions (where ~/.ssh is
-         # unreadable) can authenticate via the gh credential helper. The empty
-         # credential.helper resets the inherited chain so the osxkeychain helper
-         # is never invoked — its store step can't write the keychain in the
-         # sandbox and would fail the push with "failed to store" even though the
-         # push itself succeeded. Leaves no state in .git/config or ~/.gitconfig.
-         git -c "url.https://github.com/.pushInsteadOf=git@github.com:" \
-             -c credential.helper= \
-             -c 'credential.helper=!gh auth git-credential' \
-             push -u origin "$BRANCH"
-         ;;
-       *) git push -u origin "$BRANCH" ;;
-     esac
-   fi
+   # Force HTTPS for this push so sandboxed sessions (where ~/.ssh is
+   # unreadable) can authenticate via the gh credential helper. The empty
+   # credential.helper resets the inherited chain so the osxkeychain helper
+   # is never invoked — its store step can't write the keychain in the
+   # sandbox and would fail the push with "failed to store" even though the
+   # push itself succeeded. Leaves no state in .git/config or ~/.gitconfig.
+   git -c "url.https://github.com/.pushInsteadOf=git@github.com:" \
+       -c credential.helper= \
+       -c 'credential.helper=!gh auth git-credential' \
+       push -u origin "$BRANCH"
    ```
+   GitLab / other:
+   ```sh
+   git push -u origin "$BRANCH"
+   ```
+   If the pre-push hook fails on real errors (lint, types, tests), surface the full output and stop. Never `--no-verify`.
 
 6. **Build the title from the branch name** (deterministic):
    - Split the branch on the first `/`. The left side is the **branch type**; the right side is everything else.
@@ -141,4 +143,5 @@ Good:
 - Use `gh` for GitHub remotes and `glab` for GitLab remotes; fail loudly on any other host.
 - Title format is `<type>(<scope>): <subject> (<TICKET>)`. Drop `(<scope>)` only when the change is repo-wide. The `(<TICKET>)` suffix is required if any commit in the branch references a Jira ticket.
 - Use HEREDOC or `--body-file` so newlines and code fences in the description are preserved.
+- Issue `git push` as a standalone top-level command — no `if`/`case`/`&&` wrapper — so the sandbox runs it (and its pre-push hooks) unsandboxed.
 - Never `--no-verify` or skip hooks.
