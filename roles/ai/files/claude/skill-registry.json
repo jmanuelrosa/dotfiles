@@ -240,13 +240,13 @@
       "branch": "main",
       "skills": [
         {
-          "upstream_path": ".",
+          "upstream_path": "skills/astro",
           "name": "astro",
           "groups": [
             "engineering",
             "frontend"
           ],
-          "updated_at": "2026-06-11T18:48:01Z"
+          "updated_at": "2026-06-13T09:57:53Z"
         }
       ]
     },
