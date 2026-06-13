@@ -25,5 +25,13 @@
       ]
     }
   },
-  "local_agents": []
+  "local_agents": [
+    {
+      "name": "cc-staff-reviewer",
+      "groups": [
+        "productivity"
+      ],
+      "note": "No external source"
+    }
+  ]
 }
