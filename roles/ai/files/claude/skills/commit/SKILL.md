@@ -80,8 +80,8 @@ If invoked with arguments, treat them as user guidance — a desired scope, how 
    - **Don't force a split** when the diff is genuinely cohesive — one feature touching ten files is still one commit.
 
 5. **Draft the plan** — one entry per concern.
-   - **Subject**: `<type>(<scope>): <subject>`. ≤ 70 chars, imperative mood, no trailing period. Types: `feat | fix | chore | docs | refactor | test | perf | ci | build | style | revert`. Derive scope from the touched area (monorepo package, top-level directory, role name in this dotfiles repo, feature area like `auth`/`api`). Omit `(<scope>)` only when the change is genuinely repo-wide; if unclear, surface it in the approval gate and ask.
-   - **Body**: only when the *why* isn't obvious from the subject. Wrap at 72 cols, short `-` bullets, no prose paragraphs. Skip rather than pad.
+   - **Header**: `<type>(<scope>): <subject>`. The whole header line ≤ 100 chars (commitlint `header-max-length`), imperative mood, no leading capital / sentence-case subject (`subject-case`), no trailing period (`subject-full-stop`). Types: `feat | fix | chore | docs | refactor | test | perf | ci | build | style | revert`. Derive scope from the touched area (monorepo package, top-level directory, role name in this dotfiles repo, feature area like `auth`/`api`). Omit `(<scope>)` only when the change is genuinely repo-wide; if unclear, surface it in the approval gate and ask.
+   - **Body**: only when the *why* isn't obvious from the subject. Blank line after the subject, wrap at 100 cols (commitlint `body-max-line-length`), short `-` bullets, no prose paragraphs. Skip rather than pad.
    - **Never** write `Co-Authored-By: Claude …` or `🤖 Generated with …` lines. Attribution is handled by Claude Code's `attribution` setting in `settings.json`.
 
 6. **Humanize** — plain verbs (*add, fix, remove, rename, move, drop, bump, split*), no AI vocabulary (*leverage, robust, seamless, comprehensive, enhance, streamline, foster*), no promotional tone, no em dashes between clauses, no emojis. Be specific: `fix(checkout): handle empty cart on /checkout` beats `fix: bug in checkout`.
@@ -122,6 +122,7 @@ If invoked with arguments, treat them as user guidance — a desired scope, how 
 
 - Stops at `git commit`. Do not push. Do not open a PR. `/pr` handles both.
 - Branch names must match the regex in Step 2. Commit subject prefixes use the Conventional Commits set (`feat`, not `feature`); branch prefixes use the Conventional Branch set (`feature`, not `feat`).
+- These rules mirror `@commitlint/config-conventional`: the type-enum above, lower-case type and scope, non-empty type + subject, no trailing full-stop, header ≤ 100. The branch-name regex (Step 2) is the separate Conventional Branch set, intentionally distinct.
 - **One concern → one commit. Many concerns → many commits.** Don't force a split when the diff is cohesive; don't bundle when it isn't.
 - Each commit must be self-contained: it should compile, lint, and ideally pass tests on its own. Order accordingly (config/deps first, features next, cleanup last).
 - Do not stage files that look like *cleartext* secrets (`.env`, `*.pem`, `*-key.json`, `credentials*`). If they appear in the unstaged set, warn and exclude them by default. Vault-encrypted files (e.g. `vars/secrets.yml` in Ansible repos) are *not* in this set — they're meant to be committed.
