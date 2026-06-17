@@ -54,3 +54,15 @@ These tools are installed for interactive human use and will hang or look broken
 - Complete code only - no TODOs, no placeholders, no incomplete implementations
 - Default to writing no comments. Prefer readable, explicit code (well-named variables, functions, and types) over commentary. A comment is justified only when it explains a non-obvious WHY: hidden constraint, subtle invariant, workaround for a known bug, or surprising behavior a future reader would otherwise misread. Comments that restate WHAT the code does are forbidden, including multiline narrative blocks. JSDoc/docstring format (`/** */`) is allowed only when its content is WHY — the format alone does not earn an exemption.
 - Never reference issue, PR, ticket, or ADR numbers in code comments (no `owner/repo#535`, `PR #561`, `(#545)`, `Fixes #123`, `JIRA-1234`, `ADR-0042`, etc.). They rot as soon as trackers move or decisions are superseded. The branch name, PR description, the ADR document itself, and git blame are the right places for that context. Comments should describe the WHY in self-contained prose.
+
+## Approach discipline
+
+- Verify before you propose. Inspect the actual harness, config file, or env var in question — don't diagnose from memory or assumption and then walk it back after testing.
+- Simplest thing that fits the evidence first. Before writing a new script or artifact, check whether a single query, an existing CLI flag, or a one-line config change already does the job.
+- No hardcoded URLs, tokens, or paths. Resolve them at runtime from the environment (env vars, CLI output, on-disk config) — never bake in a literal.
+- When a shell command misbehaves, look at what the harness actually sent (quoting, `!` escaping, heredocs) before blaming the source.
+
+## Sandbox and auth reality
+
+- Don't preemptively claim a command or auth step is blocked. Run it first; hand off only if the tool returns a real error, and show that error. What runs outside the sandbox is recorded in `sandbox.excludedCommands` — check it, don't memorize it.
+- Normal commits/pushes go through `/commit` and `/pr` (the hook enforces this; `/pr` carries the only working push path here). Only force-push, branch deletion, and lockfile writes are genuinely denied — for those, hand the user the exact command.
