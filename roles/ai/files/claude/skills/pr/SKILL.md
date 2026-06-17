@@ -15,6 +15,7 @@ allowed-tools:
   - Bash(glab mr create *)
   - Read
   - Write
+  - AskUserQuestion
 ---
 
 # Create PR / MR
@@ -57,6 +58,12 @@ Fill the platform's PR template from the current branch's changes, push the bran
    - **Free-text sections** (descriptions, related issues): write clear, concise content based on what the changes do and why. Focus on the "why", not just the "what". Extract Jira tickets from the branch name (`[A-Z]+-[0-9]+`) and link them where relevant.
    - **Checkbox sections**: check `[x]` only when the diff clearly supports it; leave `[ ]` for items not verifiable from code (e.g. "tested locally").
    - **Type/category selections**: infer from commit prefixes (`feat:`, `fix:`, `chore:`, `ci:`, `refactor:`, …) and check all that apply.
+
+4b. **Confirm the target before pushing** (mandatory). The push below is the first outward action and the only sanctioned push path here, so a wrong branch means a manually-closed PR. Call `AskUserQuestion` before pushing:
+   - `question`: "Push `$BRANCH` and open a PR against `$BASE`?" (interpolate the real branch and base)
+   - `header`: "PR target", `multiSelect: false`
+   - `options`: `Go` (push and open the PR/MR) and `Cancel` (stop without pushing).
+   Don't accept prose like "yes" / "go" in place of the structured question. On `Cancel`, stop and push nothing. The auto-provided `Other` lets the user redirect (e.g. a different base branch); integrate it and re-confirm.
 
 5. **Push the branch** (use `$HOST` from step 1). Always push: `-u` sets the upstream when it's missing, pushes new commits when the branch is ahead, and prints `Everything up-to-date` when there's nothing to send.
 
