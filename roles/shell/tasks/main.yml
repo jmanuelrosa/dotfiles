@@ -146,6 +146,7 @@
     - fish/functions/_tv_claude_list.fish
     - fish/functions/_tv_claude_toggle.fish
     - fish/functions/tv_change_dir.fish
+    - fish/functions/tv_history.fish
 
 - name: Symlink television custom channels
   ansible.builtin.file:

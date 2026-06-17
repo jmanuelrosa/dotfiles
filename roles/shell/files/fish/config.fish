@@ -66,6 +66,8 @@ source $HOME/.config/television/shell/integration.fish
 
 for mode in default insert
     bind --mode $mode alt-c tv_change_dir
+    # Override the upstream Ctrl-R history widget to use substring (exact) matching
+    bind --mode $mode ctrl-r tv_history
 end
 
 # pnpm
