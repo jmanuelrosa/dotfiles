@@ -76,6 +76,7 @@ AI = 'secondary'
 Browsers = 'secondary'
 Database = 'secondary'
 Editors = ['dell.*', 'main']
+Git = 'secondary'
 Music = 'secondary'
 Notion = 'main'
 Personal = 'main'
@@ -152,7 +153,7 @@ alt-a = 'workspace AI'
 alt-b = 'workspace Browsers'
 alt-d = 'workspace Database'
 alt-e = 'workspace Editors'
-alt-g = 'workspace TradingView'
+alt-g = 'workspace Git'
 alt-m = 'workspace Music'
 alt-o = 'workspace Notion'
 alt-p = 'workspace Personal'
@@ -161,6 +162,7 @@ alt-s = 'workspace Slack'
 alt-t = 'workspace Terminal'
 alt-v = 'workspace Vault'
 alt-w = 'workspace Whatsapp'
+alt-z = 'workspace TradingView'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#move-node-to-workspace
 alt-shift-1 = 'move-node-to-workspace 1'
@@ -176,7 +178,7 @@ alt-shift-a = 'move-node-to-workspace AI'
 alt-shift-b = 'move-node-to-workspace Browsers'
 alt-shift-d = 'move-node-to-workspace Database'
 alt-shift-e = 'move-node-to-workspace Editors'
-alt-shift-g = 'move-node-to-workspace TradingView'
+alt-shift-g = 'move-node-to-workspace Git'
 alt-shift-m = 'move-node-to-workspace Music'
 alt-shift-o = 'move-node-to-workspace Notion'
 alt-shift-p = 'move-node-to-workspace Personal'
@@ -185,6 +187,7 @@ alt-shift-s = 'move-node-to-workspace Slack'
 alt-shift-t = 'move-node-to-workspace Terminal'
 alt-shift-v = 'move-node-to-workspace Vault'
 alt-shift-w = 'move-node-to-workspace Whatsapp'
+alt-shift-z = 'move-node-to-workspace TradingView'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#workspace-back-and-forth
 alt-tab = 'workspace-back-and-forth'
@@ -274,3 +277,7 @@ run= ["layout tiling", 'move-node-to-workspace TradingView']
 [[on-window-detected]]
 if.app-id = 'com.bitwarden.desktop'
 run= ["layout floating", 'move-node-to-workspace Vault']
+
+[[on-window-detected]]
+if.app-id = 'dev.davidrosa.gitpulse'
+run= ["layout floating", 'move-node-to-workspace Git']
