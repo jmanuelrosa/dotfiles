@@ -48,6 +48,8 @@ roles/<name>/
 
 Each role that installs packages defines a `BREW_PACKAGES` dict in `defaults/main.yml` with optional `taps`, `formulas`, `casks` keys. The role's tasks loop those over `community.general.homebrew_tap` / `homebrew` / `homebrew_cask`. There is no central package list — adding a tool means editing the role it belongs to.
 
+An optional `trusted` key records Homebrew tap-trust entries — a list of whole-tap (`user/repo`) or fully-qualified (`user/repo/name`) targets the role passes to `brew trust` (the Ansible module has no trust parameter, so it's a `command` task after the tap loop). This pre-trusts non-official taps so installs keep working once Homebrew enforces tap trust by default (5.2/6.0). Trust is recorded into a shared `~/.homebrew/trust.json` but only *enforced* when `HOMEBREW_REQUIRE_TAP_TRUST` is set, which the playbook does not set.
+
 ### Role execution order matters
 
 Playbook order is load-bearing — `brew` runs first so every later role can assume Homebrew is on PATH. **Don't add `meta/main.yml` deps**; control sequencing via the order in [dotfiles.yml](dotfiles.yml).

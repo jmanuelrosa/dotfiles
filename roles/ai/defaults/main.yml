@@ -24,6 +24,8 @@ GLOBAL_CLAUDE_AGENTS:
 BREW_PACKAGES:
   taps:
     - steipete/tap
+  trusted:
+    - steipete/tap/codexbar
   formulas:
     - gemini-cli
     - ollama

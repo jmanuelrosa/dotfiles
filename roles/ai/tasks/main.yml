@@ -8,6 +8,13 @@
     state: present
   loop: "{{ BREW_PACKAGES.taps | default([]) }}"
 
+- name: Trust non-official Homebrew taps for AI tooling
+  ansible.builtin.command:
+    cmd: "{{ lookup('pipe', 'which brew') }} trust {{ item }}"
+  loop: "{{ BREW_PACKAGES.trusted | default([]) }}"
+  register: brew_trust
+  changed_when: brew_trust.stdout is search('^Trusted ')
+
 - name: Install AI formulas
   community.general.homebrew:
     name: "{{ BREW_PACKAGES.formulas | default([]) }}"

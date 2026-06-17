@@ -25,6 +25,16 @@ BREW_PACKAGES:
     - nikitabobko/tap
     - dlvhdr/formulae
     - jmanuelrosa/tap
+  # Recorded so installs keep working once Homebrew enforces tap trust by
+  # default (5.2/6.0). Granular per Homebrew's docs; jmanuelrosa/tap is our
+  # own tap, so it's trusted wholesale.
+  trusted:
+    - oven-sh/bun/bun
+    - getsentry/tools/sentry
+    - tw93/tap/mole
+    - dlvhdr/formulae/diffnav
+    - nikitabobko/tap/aerospace
+    - jmanuelrosa/tap
   formulas:
     # Development
     - bruno-cli

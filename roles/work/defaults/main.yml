@@ -6,6 +6,9 @@
 BREW_PACKAGES:
   taps:
     - atlassian/homebrew-acli
+  trusted:
+    # Canonical name drops the homebrew- prefix from the tap repo above.
+    - atlassian/acli/acli
   formulas:
     - acli
   casks:
