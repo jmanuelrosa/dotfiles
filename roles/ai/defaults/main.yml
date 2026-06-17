@@ -11,6 +11,7 @@ OLLAMA_MODELS:
 # in every project (no per-project `claude-skill add` needed).
 GLOBAL_CLAUDE_SKILLS:
   - grill-me
+  - grill-with-docs
   - commit
   - pr
   - humanizer
@@ -25,7 +26,7 @@ BREW_PACKAGES:
   taps:
     - steipete/tap
   trusted:
-    - steipete/tap/codexbar
+    - steipete/tap
   formulas:
     - gemini-cli
     - ollama
