@@ -49,6 +49,16 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/skill-recap.sh"
+          }
+        ]
+      }
     ]
   },
   "minimumVersion": "2.1.173",

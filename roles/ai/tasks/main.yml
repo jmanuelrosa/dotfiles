@@ -67,6 +67,13 @@
     state: link
     force: true
 
+- name: Symlink claude skill-recap hook
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/claude/hooks/skill-recap.sh"
+    dest: "{{ HOME }}/.claude/hooks/skill-recap.sh"
+    state: link
+    force: true
+
 - name: Symlink claude status line script
   ansible.builtin.file:
     src: "{{ role_path }}/files/claude/statusline.sh"
