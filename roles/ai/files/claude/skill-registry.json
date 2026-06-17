@@ -538,6 +538,14 @@
         "backend"
       ],
       "note": "Consolidated from multiple sources"
+    },
+    {
+      "name": "cc-review",
+      "groups": [
+        "productivity",
+        "workflow"
+      ],
+      "note": "Locally authored"
     }
   ]
 }
