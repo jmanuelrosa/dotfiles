@@ -53,7 +53,9 @@ If invoked with arguments, treat them as user guidance — a desired scope, how 
        ^(feature|fix|chore|docs|refactor|test|perf|ci|build|style|revert)\/([A-Z]+-[0-9]+-)?[a-z0-9][a-z0-9-]*$
        ```
        Examples that pass: `feature/add-oauth`, `fix/PROJ-123-login-redirect`, `chore/bump-deps`, `refactor/PROJ-9-extract-cart-helper`. The Jira ticket is embedded with a dash (`PROJ-123-<slug>`), not a separate path segment. If the answer fails validation, show the failure reason and ask again. Create and switch with `git switch -c "$NEW_BRANCH"`.
-   - If `BRANCH` is already a non-default branch → use it, no prompt.
+   - If `BRANCH` is already a non-default branch:
+     - If it matches the work at hand (named for this change, or the user pointed you at it) → use it, no prompt.
+     - If it looks unrelated to the current diff — e.g. a `chore/bump-*`, a release branch, or someone else's in-progress feature branch → **stop and ask**: commit onto `$BRANCH`, or create a new dedicated branch? Don't silently reuse it. On "new branch", follow the same name prompt + validation as the `BASE` case above.
 
 3. **Staging gate**:
    - Run `git status --porcelain=v1`. Group output into *staged* (`M `, `A `, `D `, `R `, …) and *unstaged* (` M`, ` D`, `??`).
@@ -126,5 +128,6 @@ If invoked with arguments, treat them as user guidance — a desired scope, how 
 - **One concern → one commit. Many concerns → many commits.** Don't force a split when the diff is cohesive; don't bundle when it isn't.
 - Each commit must be self-contained: it should compile, lint, and ideally pass tests on its own. Order accordingly (config/deps first, features next, cleanup last).
 - Do not stage files that look like *cleartext* secrets (`.env`, `*.pem`, `*-key.json`, `credentials*`). If they appear in the unstaged set, warn and exclude them by default. Vault-encrypted files (e.g. `vars/secrets.yml` in Ansible repos) are *not* in this set — they're meant to be committed.
+- Never stage local-only Claude state — `.claude/tasks/` above all (per-machine agent state, not repo content). The `git-skill-gate` hook hard-blocks committing it regardless, so exclude it at staging rather than hitting the gate.
 - Use `git switch` for branch creation, not `git checkout -b`.
 - Read the plan back to the user *before* running any `git commit`, never after.
