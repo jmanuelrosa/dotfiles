@@ -15,7 +15,9 @@ stamps it on each assistant turn that runs inside a slash-command flow,
 and AskUserQuestion preserves it across the approval gate. Allow if any
 of the last 30 events is attributed to a skill in ALLOWED_SKILLS.
 
-Hard-blocks `--no-verify` regardless of skill context.
+Hard-blocks `--no-verify` regardless of skill context. Also hard-blocks
+any `git commit` that stages files under `.claude/tasks/` (local-only
+agent task state that must never be tracked), regardless of skill context.
 
 Fail-open on transcript errors so harness replay or compaction can't
 lock the user out. To swap to fail-closed, change the `sys.exit(0)`
@@ -29,6 +31,7 @@ a security boundary.
 import json
 import re
 import shlex
+import subprocess
 import sys
 from pathlib import Path
 
@@ -43,6 +46,8 @@ OPTIONS_WITH_SEPARATE_ARG = {
 }
 
 SHELL_SEPARATORS = {";", "&&", "||", "|", "&"}
+
+TASKS_PATH_RE = re.compile(r"(^|/)\.claude/tasks/")
 
 
 def split_subcommands(line):
@@ -64,12 +69,12 @@ def split_subcommands(line):
     return chunks
 
 
-def is_gated(tokens):
+def gated_subcommand(tokens):
     i = 0
     while i < len(tokens) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", tokens[i]):
         i += 1
     if i >= len(tokens) or tokens[i] != "git":
-        return False
+        return None
     i += 1
     while i < len(tokens):
         tok = tokens[i]
@@ -79,7 +84,13 @@ def is_gated(tokens):
             i += 2
         else:
             i += 1
-    return i < len(tokens) and tokens[i] in GATED_SUBCOMMANDS
+    if i < len(tokens) and tokens[i] in GATED_SUBCOMMANDS:
+        return tokens[i]
+    return None
+
+
+def is_gated(tokens):
+    return gated_subcommand(tokens) is not None
 
 
 def recently_invoked_allowed_skill(transcript_path):
@@ -104,6 +115,24 @@ def recently_invoked_allowed_skill(transcript_path):
         return None
 
 
+def staged_tasks_files(cwd):
+    """Staged paths under .claude/tasks/, or None on any error (fail-open)."""
+    if not cwd:
+        return None
+    try:
+        out = subprocess.run(
+            ["git", "-C", cwd, "diff", "--cached", "--name-only", "-z"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except Exception:
+        return None
+    if out.returncode != 0:
+        return None
+    return [p for p in out.stdout.split("\0") if p and TASKS_PATH_RE.search(p)]
+
+
 def main():
     try:
         data = json.load(sys.stdin)
@@ -112,6 +141,7 @@ def main():
 
     command = (data.get("tool_input") or {}).get("command", "") or ""
     transcript_path = data.get("transcript_path", "") or ""
+    cwd = data.get("cwd", "") or ""
 
     if not command:
         sys.exit(0)
@@ -125,8 +155,25 @@ def main():
         )
         sys.exit(2)
 
-    if not any(is_gated(c) for c in split_subcommands(command)):
+    gated = [s for s in (gated_subcommand(c) for c in split_subcommands(command)) if s]
+    if not gated:
         sys.exit(0)
+
+    if "commit" in gated:
+        tasks_hits = staged_tasks_files(cwd)
+        if tasks_hits:
+            preview = "\n".join(f"  {p}" for p in tasks_hits[:10])
+            print(
+                ".claude/tasks/ files are staged — that's local-only agent state and\n"
+                "must never be tracked. Unstage it before committing:\n"
+                f"{preview}\n"
+                "\n"
+                "  git restore --staged .claude/tasks\n"
+                "\n"
+                "and make sure `.claude/tasks/` (or `.claude/`) is in this repo's .gitignore.",
+                file=sys.stderr,
+            )
+            sys.exit(2)
 
     result = recently_invoked_allowed_skill(transcript_path)
     if result is None:
