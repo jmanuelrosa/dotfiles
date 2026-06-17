@@ -66,3 +66,4 @@ These tools are installed for interactive human use and will hang or look broken
 
 - Don't preemptively claim a command or auth step is blocked. Run it first; hand off only if the tool returns a real error, and show that error. What runs outside the sandbox is recorded in `sandbox.excludedCommands` — check it, don't memorize it.
 - Normal commits/pushes go through `/commit` and `/pr` (the hook enforces this; `/pr` carries the only working push path here). Only force-push, branch deletion, and lockfile writes are genuinely denied — for those, hand the user the exact command.
+- `acli` (Jira auth) sits in `excludedCommands` and has repeatedly been wrongly declared "sandbox-blocked." Run the acli command first; only if it returns a real write/auth error is there a problem, and the fix is the user re-authenticating interactively with `acli auth login` — never a guess that the sandbox forbids it.

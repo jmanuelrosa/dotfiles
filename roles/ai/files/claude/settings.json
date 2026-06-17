@@ -242,7 +242,8 @@
     "filesystem": {
       "allowWrite": [
         ".",
-        "/tmp"
+        "/tmp",
+        "$TMPDIR"
       ],
       "denyRead": [
         "~/.ssh",
