@@ -116,9 +116,9 @@ Fill the platform's PR template from the current branch's changes, push the bran
    # write the filled template into "$BODY"
    ```
 
-8. **Create the PR/MR** (dispatch on `$HOST`):
-   - `gh`: `gh pr create --base "$BASE" --head "$BRANCH" --title "$TITLE" --body-file "$BODY"`
-   - `glab`: `glab mr create --target-branch "$BASE" --source-branch "$BRANCH" --title "$TITLE" --description "$(cat "$BODY")" --yes`
+8. **Create the PR/MR** and self-assign it to the author (`@me`) (dispatch on `$HOST`):
+   - `gh`: `gh pr create --base "$BASE" --head "$BRANCH" --title "$TITLE" --body-file "$BODY" --assignee @me`
+   - `glab`: `glab mr create --target-branch "$BASE" --source-branch "$BRANCH" --title "$TITLE" --description "$(cat "$BODY")" --assignee @me --yes`
 
 9. **Print only the resulting URL**, prefixed with `Created: `. The URL is the last line of stdout from the create command.
 
@@ -160,6 +160,7 @@ Good:
 ## Rules
 
 - Use `gh` for GitHub remotes and `glab` for GitLab remotes; fail loudly on any other host.
+- Self-assign the PR/MR to the author with `--assignee @me`.
 - Title format is `<type>(<scope>): <subject> (<TICKET>)`. Drop `(<scope>)` only when the change is repo-wide. The `(<TICKET>)` suffix is required if any commit in the branch references a Jira ticket.
 - Use HEREDOC or `--body-file` so newlines and code fences in the description are preserved.
 - Issue `git push` as a standalone top-level command — no `if`/`case`/`&&` wrapper — so the sandbox runs it (and its pre-push hooks) unsandboxed.
