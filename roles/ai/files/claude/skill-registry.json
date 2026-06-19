@@ -97,7 +97,7 @@
             "engineering",
             "workflow"
           ],
-          "updated_at": "2026-06-11T18:47:58Z"
+          "updated_at": "2026-06-19T11:13:54Z"
         },
         {
           "upstream_path": "skills/ci-cd-and-automation",
@@ -479,6 +479,101 @@
             "design"
           ],
           "updated_at": "2026-06-11T18:48:05Z"
+        }
+      ]
+    },
+    "expo/skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "plugins/expo/skills/building-native-ui",
+          "name": "expo-native-ui",
+          "groups": [
+            "engineering",
+            "expo"
+          ],
+          "updated_at": "2026-06-19T11:02:32Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/expo-api-routes",
+          "name": "expo-api-routes",
+          "groups": [
+            "engineering",
+            "expo"
+          ],
+          "updated_at": "2026-06-19T11:02:27Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/expo-brownfield",
+          "name": "expo-brownfield",
+          "groups": [
+            "engineering",
+            "expo"
+          ],
+          "updated_at": "2026-06-19T11:02:28Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/expo-cicd-workflows",
+          "name": "expo-cicd-workflows",
+          "groups": [
+            "engineering",
+            "expo"
+          ],
+          "updated_at": "2026-06-19T11:02:29Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/expo-deployment",
+          "name": "expo-deployment",
+          "groups": [
+            "engineering",
+            "expo"
+          ],
+          "updated_at": "2026-06-19T11:02:30Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/expo-dev-client",
+          "name": "expo-dev-client",
+          "groups": [
+            "engineering",
+            "expo"
+          ],
+          "updated_at": "2026-06-19T11:02:31Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/expo-tailwind-setup",
+          "name": "expo-tailwind",
+          "groups": [
+            "engineering",
+            "expo"
+          ],
+          "updated_at": "2026-06-19T11:02:32Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/native-data-fetching",
+          "name": "expo-data-fetching",
+          "groups": [
+            "engineering",
+            "expo"
+          ],
+          "updated_at": "2026-06-19T11:02:29Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/upgrading-expo",
+          "name": "expo-upgrading",
+          "groups": [
+            "engineering",
+            "expo"
+          ],
+          "updated_at": "2026-06-19T11:02:33Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/use-dom",
+          "name": "expo-use-dom",
+          "groups": [
+            "engineering",
+            "expo"
+          ],
+          "updated_at": "2026-06-19T11:02:34Z"
         }
       ]
     }
