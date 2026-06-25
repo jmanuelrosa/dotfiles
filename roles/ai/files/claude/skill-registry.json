@@ -40,6 +40,8 @@
           "upstream_path": "skills/test-driven-development",
           "groups": [
             "engineering",
+            "frontend",
+            "backend",
             "testing"
           ],
           "updated_at": "2026-06-22T17:55:52Z"
@@ -56,6 +58,7 @@
         {
           "upstream_path": "skills/planning-and-task-breakdown",
           "groups": [
+            "product",
             "pm",
             "planning"
           ],
@@ -72,6 +75,7 @@
         {
           "upstream_path": "skills/code-review-and-quality",
           "groups": [
+            "refactoring",
             "review"
           ],
           "updated_at": "2026-06-22T17:55:52Z"
@@ -80,7 +84,6 @@
           "upstream_path": "skills/performance-optimization",
           "groups": [
             "refactoring",
-            "performance",
             "review"
           ],
           "updated_at": "2026-06-22T17:55:52Z"
@@ -106,7 +109,7 @@
           "groups": [
             "engineering",
             "workflow",
-            "ai"
+            "claude"
           ],
           "updated_at": "2026-06-22T17:55:52Z"
         }
@@ -331,7 +334,7 @@
         {
           "upstream_path": "skills/productivity/handoff",
           "groups": [
-            "productivity",
+            "product",
             "workflow"
           ],
           "updated_at": "2026-06-22T17:55:59Z"
@@ -339,7 +342,7 @@
         {
           "upstream_path": "skills/productivity/grill-me",
           "groups": [
-            "productivity",
+            "product",
             "workflow",
             "idea-refinement",
             "planning"
@@ -352,7 +355,7 @@
         {
           "upstream_path": "skills/engineering/grill-with-docs",
           "groups": [
-            "productivity",
+            "product",
             "workflow",
             "idea-refinement",
             "planning"
