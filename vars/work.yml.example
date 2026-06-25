@@ -24,12 +24,20 @@
 # block scalar. Mode 0600 / 0644 is set automatically by the role.
 # Consumed by: roles/work/tasks/main.yml
 
+SSH_DIDOMI_PUBLIC: "ssh-ed25519 AAAA...replace with id_didomi.pub contents... your-work-email@example.com"
 SSH_DIDOMI_KEY: |
   -----BEGIN OPENSSH PRIVATE KEY-----
   ...replace with the contents of ~/.ssh/id_didomi...
   -----END OPENSSH PRIVATE KEY-----
 
-SSH_DIDOMI_PUBLIC: "ssh-ed25519 AAAA...replace with id_didomi.pub contents... your-work-email@example.com"
+# --- GitLab ---------------------------------------------------------------
+
+# Username (the @handle, not the email) of your work GitLab account on
+# gitlab.com. Used as the `user` for the `gitlab.com-work` host so glab can
+# tell the work account apart from the personal one. The token itself is not
+# stored here — it lives in the macOS keychain via `glab auth login --use-keyring`.
+# Consumed by: roles/work/templates/glab/config.yml.j2
+GLAB_WORK_USER: "your-work-gitlab-username"
 
 # --- Tokens ---------------------------------------------------------------
 
@@ -41,4 +49,5 @@ DID_NPM_TOKEN: "your-npm-token-here"
 # FOSSA API key for license/security scanning.
 # Consumed by: roles/work/templates/exports.fish.j2
 FOSSA_API_KEY: "your-fossa-api-key-here"
+
 

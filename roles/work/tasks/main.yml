@@ -103,10 +103,18 @@
              glab auth login --hostname <HOST> --git-protocol ssh --use-keyring
            Paste the PAT when prompted.
 
-      For gitlab.com-work, when glab asks for the API host, answer gitlab.com.
+      gitlab.com-work is a local alias, not a real domain, so glab asks a few
+      extra questions. Answer with the real gitlab.com values for everything
+      except the SSH hostname:
+        - API hostname:               gitlab.com
+        - SSH hostname:               gitlab.com-work
+        - Container registry domains: gitlab.com,gitlab.com:443,registry.gitlab.com
+      (The SSH hostname keeps the alias because ~/.ssh/config resolves it to
+      the real gitlab.com using the work key id_didomi.)
 
       The tokens are stored in the macOS keychain — this repo keeps no
-      GitLab credentials on disk.
+      GitLab credentials on disk. See roles/work/README.md (GitLab auth) for
+      the full explanation.
 
       Then re-run the playbook.
   when: glab_auth_check.results | selectattr('rc', 'ne', 0) | list | length > 0
