@@ -87,13 +87,46 @@
     state: directory
     mode: "0755"
 
+- name: Read claude skill registry
+  ansible.builtin.slurp:
+    src: "{{ role_path }}/files/claude/skill-registry.json"
+  register: _claude_skill_registry_raw
+
+# The registry no longer stores a `name` for repos skills; derive each one's directory
+# name from upstream_path (basename, or repo name for root skills) so the dependency
+# filter below can still match by name. local_skills keep their explicit `name`.
+- name: Derive repos skill names from upstream_path
+  ansible.builtin.set_fact:
+    _named_repo_skills: >-
+      {{ _named_repo_skills | default([])
+         + [item | combine({'name': (item.upstream_path | default('') | regex_replace('^.*/', ''))})] }}
+  loop: >-
+    {{ (_claude_skill_registry_raw.content | b64decode | from_json).repos.values()
+       | map(attribute='skills') | flatten }}
+  loop_control:
+    label: "{{ item.upstream_path | default('?') }}"
+
+# Expand the global skill list with each skill's registry-declared dependencies
+# so a dispatcher skill (e.g. grill-me -> grilling) never ships without the
+# skills it invokes. One level of expansion; deps must themselves be registered.
+- name: Build effective global skills (with declared dependencies)
+  ansible.builtin.set_fact:
+    GLOBAL_CLAUDE_SKILLS_EFFECTIVE: >-
+      {{ (GLOBAL_CLAUDE_SKILLS | default([])) + (
+            (_named_repo_skills | default([]))
+            + ((_claude_skill_registry_raw.content | b64decode | from_json).local_skills | default([]))
+            | selectattr('name', 'in', GLOBAL_CLAUDE_SKILLS | default([]))
+            | selectattr('dependencies', 'defined')
+            | map(attribute='dependencies') | flatten
+         ) | unique }}
+
 - name: Symlink selected skills into global claude skills dir
   ansible.builtin.file:
     src: "{{ role_path }}/files/claude/skills/{{ item }}"
     dest: "{{ HOME }}/.claude/skills/{{ item }}"
     state: link
     force: true
-  loop: "{{ GLOBAL_CLAUDE_SKILLS | default([]) }}"
+  loop: "{{ GLOBAL_CLAUDE_SKILLS_EFFECTIVE | default([]) }}"
 
 - name: Ensure global claude agents directory exists
   ansible.builtin.file:

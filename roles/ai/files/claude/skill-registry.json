@@ -6,12 +6,13 @@
       "skills": [
         {
           "upstream_path": "plugins/frontend-design/skills/frontend-design",
-          "name": "frontend-design",
           "groups": [
             "engineering",
+            "frontend",
+            "designer",
             "design"
           ],
-          "updated_at": "2026-06-11T18:47:59Z"
+          "updated_at": "2026-06-22T17:55:53Z"
         }
       ]
     },
@@ -20,111 +21,94 @@
       "skills": [
         {
           "upstream_path": "skills/idea-refine",
-          "name": "brainstorming",
           "groups": [
             "product",
-            "product-manager"
-          ],
-          "updated_at": "2026-06-11T18:47:58Z"
+            "pm",
+            "planning"
+          ]
         },
         {
           "upstream_path": "skills/documentation-and-adrs",
-          "name": "dev-documentation",
           "groups": [
             "product",
-            "product-manager"
+            "pm",
+            "documentation"
           ],
-          "updated_at": "2026-06-11T18:47:58Z"
+          "updated_at": "2026-06-22T17:55:52Z"
         },
         {
           "upstream_path": "skills/test-driven-development",
-          "name": "tdd",
           "groups": [
-            "quality",
+            "engineering",
             "testing"
           ],
-          "updated_at": "2026-06-11T18:47:58Z"
+          "updated_at": "2026-06-22T17:55:52Z"
         },
         {
           "upstream_path": "skills/spec-driven-development",
-          "name": "spec-driven-development",
           "groups": [
             "product",
-            "product-manager"
+            "pm",
+            "planning"
           ],
-          "updated_at": "2026-06-11T18:47:58Z"
+          "updated_at": "2026-06-22T17:55:52Z"
         },
         {
           "upstream_path": "skills/planning-and-task-breakdown",
-          "name": "planning-and-task-breakdown",
           "groups": [
-            "product",
-            "product-manager"
+            "pm",
+            "planning"
           ],
-          "updated_at": "2026-06-11T18:47:58Z"
+          "updated_at": "2026-06-22T17:55:52Z"
         },
         {
           "upstream_path": "skills/code-simplification",
-          "name": "code-simplification",
           "groups": [
-            "quality",
+            "refactoring",
             "review"
           ],
-          "updated_at": "2026-06-11T18:47:58Z"
+          "updated_at": "2026-06-22T17:55:52Z"
         },
         {
           "upstream_path": "skills/code-review-and-quality",
-          "name": "code-review-and-quality",
           "groups": [
-            "quality",
             "review"
           ],
-          "updated_at": "2026-06-11T18:47:58Z"
+          "updated_at": "2026-06-22T17:55:52Z"
         },
         {
           "upstream_path": "skills/performance-optimization",
-          "name": "performance-optimization",
           "groups": [
-            "quality",
+            "refactoring",
+            "performance",
             "review"
           ],
-          "updated_at": "2026-06-11T18:47:58Z"
+          "updated_at": "2026-06-22T17:55:52Z"
         },
         {
           "upstream_path": "skills/incremental-implementation",
-          "name": "incremental-implementation",
           "groups": [
             "engineering",
             "workflow"
           ],
-          "updated_at": "2026-06-19T11:13:54Z"
+          "updated_at": "2026-06-22T17:55:52Z"
         },
         {
           "upstream_path": "skills/ci-cd-and-automation",
-          "name": "ci-cd-and-automation",
           "groups": [
             "engineering",
-            "ci"
+            "devops"
           ],
-          "updated_at": "2026-06-11T18:47:58Z"
+          "updated_at": "2026-06-22T17:55:52Z"
         },
         {
           "upstream_path": "skills/context-engineering",
-          "name": "context-engineering",
           "groups": [
             "engineering",
-            "workflow"
+            "workflow",
+            "ai"
           ],
-          "updated_at": "2026-06-11T18:47:58Z"
-        },
-        {
-          "upstream_path": "skills/test-driven-development",
-          "name": "test-driven-development",
-          "groups": [
-            "engineering",
-            "workflow"
-          ],
-          "updated_at": "2026-06-11T18:47:58Z"
+          "updated_at": "2026-06-22T17:55:52Z"
         }
       ]
     },
@@ -133,30 +117,31 @@
       "skills": [
         {
           "upstream_path": "skills/fastify",
-          "name": "fastify",
           "groups": [
             "engineering",
-            "backend"
+            "backend",
+            "fastify"
           ],
-          "updated_at": "2026-06-11T18:48:07Z"
+          "updated_at": "2026-06-22T17:56:00Z"
         },
         {
           "upstream_path": "skills/node",
-          "name": "node",
           "groups": [
             "engineering",
-            "backend"
+            "backend",
+            "node"
           ],
-          "updated_at": "2026-06-11T18:48:07Z"
+          "updated_at": "2026-06-22T17:56:00Z"
         },
         {
           "upstream_path": "skills/typescript-magician",
-          "name": "typescript",
           "groups": [
             "engineering",
-            "language"
+            "frontend",
+            "backend",
+            "typescript"
           ],
-          "updated_at": "2026-06-11T18:48:07Z"
+          "updated_at": "2026-06-24T10:51:54Z"
         }
       ]
     },
@@ -165,21 +150,21 @@
       "skills": [
         {
           "upstream_path": "skills/apollo-client",
-          "name": "apollo-client",
           "groups": [
             "engineering",
+            "frontend",
             "graphql"
           ],
-          "updated_at": "2026-06-11T18:48:00Z"
+          "updated_at": "2026-06-22T17:55:53Z"
         },
         {
           "upstream_path": "skills/graphql-operations",
-          "name": "graphql-operations",
           "groups": [
             "engineering",
+            "backend",
             "graphql"
           ],
-          "updated_at": "2026-06-11T18:48:00Z"
+          "updated_at": "2026-06-22T17:55:53Z"
         }
       ]
     },
@@ -188,37 +173,35 @@
       "skills": [
         {
           "upstream_path": "skills/copywriting",
-          "name": "copywriting",
           "groups": [
-            "marketing"
+            "marketing",
+            "seo"
           ],
-          "updated_at": "2026-06-11T18:48:04Z"
+          "updated_at": "2026-06-22T17:55:56Z"
         },
         {
           "upstream_path": "skills/cro",
-          "name": "conversion-rate",
           "groups": [
-            "marketing"
+            "marketing",
+            "seo"
           ],
-          "updated_at": "2026-06-11T19:11:18Z"
+          "updated_at": "2026-06-22T17:55:56Z"
         },
         {
           "upstream_path": "skills/seo-audit",
-          "name": "seo",
           "groups": [
             "marketing",
             "seo"
           ],
-          "updated_at": "2026-06-11T18:48:04Z"
+          "updated_at": "2026-06-22T17:55:56Z"
         },
         {
           "upstream_path": "skills/ai-seo",
-          "name": "ai-seo",
           "groups": [
             "marketing",
             "seo"
           ],
-          "updated_at": "2026-06-11T18:48:04Z"
+          "updated_at": "2026-06-22T17:55:56Z"
         }
       ]
     },
@@ -227,12 +210,12 @@
       "skills": [
         {
           "upstream_path": "skills/react-native-skills",
-          "name": "react-native",
           "groups": [
             "engineering",
-            "frontend"
+            "mobile",
+            "expo"
           ],
-          "updated_at": "2026-06-11T18:48:18Z"
+          "updated_at": "2026-06-22T17:56:14Z"
         }
       ]
     },
@@ -241,12 +224,12 @@
       "skills": [
         {
           "upstream_path": "skills/astro",
-          "name": "astro",
           "groups": [
             "engineering",
-            "frontend"
+            "frontend",
+            "astro"
           ],
-          "updated_at": "2026-06-13T09:57:53Z"
+          "updated_at": "2026-06-22T17:55:54Z"
         }
       ]
     },
@@ -255,12 +238,12 @@
       "skills": [
         {
           "upstream_path": "skills/hono",
-          "name": "hono",
           "groups": [
             "engineering",
-            "backend"
+            "backend",
+            "hono"
           ],
-          "updated_at": "2026-06-11T18:48:20Z"
+          "updated_at": "2026-06-22T17:56:16Z"
         }
       ]
     },
@@ -269,12 +252,12 @@
       "skills": [
         {
           "upstream_path": ".",
-          "name": "nestjs",
           "groups": [
             "engineering",
-            "backend"
+            "backend",
+            "nestjs"
           ],
-          "updated_at": "2026-06-11T18:48:06Z"
+          "updated_at": "2026-06-22T17:55:58Z"
         }
       ]
     },
@@ -283,12 +266,12 @@
       "skills": [
         {
           "upstream_path": "skills/prisma-expert",
-          "name": "prisma",
           "groups": [
             "engineering",
-            "backend"
+            "backend",
+            "database"
           ],
-          "updated_at": "2026-06-11T18:48:17Z"
+          "updated_at": "2026-06-22T17:56:14Z"
         }
       ]
     },
@@ -297,21 +280,21 @@
       "skills": [
         {
           "upstream_path": "plugins/frontend-mobile-development/skills/tailwind-design-system",
-          "name": "tailwind",
           "groups": [
             "engineering",
-            "frontend"
+            "frontend",
+            "tailwind"
           ],
-          "updated_at": "2026-06-11T18:48:19Z"
+          "updated_at": "2026-06-22T17:56:15Z"
         },
         {
           "upstream_path": "plugins/javascript-typescript/skills/nodejs-backend-patterns",
-          "name": "nodejs-backend-patterns",
           "groups": [
             "engineering",
-            "backend"
+            "backend",
+            "node"
           ],
-          "updated_at": "2026-06-11T18:48:19Z"
+          "updated_at": "2026-06-22T17:56:15Z"
         }
       ]
     },
@@ -320,12 +303,11 @@
       "skills": [
         {
           "upstream_path": "skills_all/claude-code-analyzer",
-          "name": "code-analyzer",
           "groups": [
-            "quality",
+            "engineering",
             "review"
           ],
-          "updated_at": "2026-06-11T18:47:58Z"
+          "updated_at": "2026-06-22T17:55:51Z"
         }
       ]
     },
@@ -333,13 +315,13 @@
       "branch": "main",
       "skills": [
         {
-          "upstream_path": "/",
-          "name": "playwright",
+          "upstream_path": ".",
           "groups": [
-            "quality",
-            "testing"
+            "engineering",
+            "testing",
+            "playwright"
           ],
-          "updated_at": "2026-06-11T18:48:05Z"
+          "updated_at": "2026-06-22T17:55:57Z"
         }
       ]
     },
@@ -348,30 +330,46 @@
       "skills": [
         {
           "upstream_path": "skills/productivity/handoff",
-          "name": "handoff",
           "groups": [
             "productivity",
             "workflow"
           ],
-          "updated_at": "2026-06-11T18:48:06Z"
+          "updated_at": "2026-06-22T17:55:59Z"
         },
         {
           "upstream_path": "skills/productivity/grill-me",
-          "name": "grill-me",
           "groups": [
             "productivity",
-            "workflow"
+            "workflow",
+            "idea-refinement",
+            "planning"
           ],
-          "updated_at": "2026-06-11T19:07:29Z"
+          "dependencies": [
+            "grilling"
+          ],
+          "updated_at": "2026-06-25T05:43:08Z"
         },
         {
           "upstream_path": "skills/engineering/grill-with-docs",
-          "name": "grill-with-docs",
           "groups": [
             "productivity",
-            "workflow"
+            "workflow",
+            "idea-refinement",
+            "planning"
           ],
-          "updated_at": "2026-06-11T19:07:52Z"
+          "dependencies": [
+            "grilling",
+            "domain-modeling"
+          ],
+          "updated_at": "2026-06-22T17:55:59Z"
+        },
+        {
+          "upstream_path": "skills/engineering/domain-modeling",
+          "groups": [
+            "engineering",
+            "architecture"
+          ],
+          "updated_at": "2026-06-23T10:58:24Z"
         }
       ]
     },
@@ -380,21 +378,20 @@
       "skills": [
         {
           "upstream_path": "skills/knip",
-          "name": "knip",
           "groups": [
-            "quality",
+            "engineering",
             "review"
           ],
-          "updated_at": "2026-06-11T18:48:03Z"
+          "updated_at": "2026-06-22T17:55:55Z"
         },
         {
           "upstream_path": "skills/fix-sentry-issues",
-          "name": "sentry",
           "groups": [
             "engineering",
-            "workflow"
+            "observability",
+            "sentry"
           ],
-          "updated_at": "2026-06-17T15:11:32Z"
+          "updated_at": "2026-06-22T17:55:55Z"
         }
       ]
     },
@@ -403,12 +400,12 @@
       "skills": [
         {
           "upstream_path": "skills/react-router-data-mode",
-          "name": "react-router",
           "groups": [
             "engineering",
-            "frontend"
+            "frontend",
+            "react"
           ],
-          "updated_at": "2026-06-11T18:48:08Z"
+          "updated_at": "2026-06-22T17:56:00Z"
         }
       ]
     },
@@ -417,12 +414,12 @@
       "skills": [
         {
           "upstream_path": "skills/tanstack-router",
-          "name": "tanstack-router",
           "groups": [
             "engineering",
-            "frontend"
+            "frontend",
+            "react"
           ],
-          "updated_at": "2026-06-11T18:47:55Z"
+          "updated_at": "2026-06-22T17:55:49Z"
         }
       ]
     },
@@ -431,12 +428,13 @@
       "skills": [
         {
           "upstream_path": "swiftui-expert-skill",
-          "name": "swiftui-expert",
           "groups": [
             "engineering",
+            "mobile",
+            "ios",
             "swift"
           ],
-          "updated_at": "2026-06-11T18:48:02Z"
+          "updated_at": "2026-06-22T17:55:55Z"
         }
       ]
     },
@@ -445,12 +443,13 @@
       "skills": [
         {
           "upstream_path": "swift-concurrency",
-          "name": "swift-concurrency",
           "groups": [
             "engineering",
+            "mobile",
+            "ios",
             "swift"
           ],
-          "updated_at": "2026-06-11T18:48:01Z"
+          "updated_at": "2026-06-22T17:55:54Z"
         }
       ]
     },
@@ -459,12 +458,14 @@
       "skills": [
         {
           "upstream_path": "swift-testing-expert",
-          "name": "swift-testing",
           "groups": [
             "engineering",
-            "swift"
+            "mobile",
+            "ios",
+            "swift",
+            "testing"
           ],
-          "updated_at": "2026-06-11T18:48:02Z"
+          "updated_at": "2026-06-22T17:55:54Z"
         }
       ]
     },
@@ -473,12 +474,13 @@
       "skills": [
         {
           "upstream_path": "skills/emil-design-eng",
-          "name": "design-engineer",
           "groups": [
             "engineering",
+            "frontend",
+            "designer",
             "design"
           ],
-          "updated_at": "2026-06-11T18:48:05Z"
+          "updated_at": "2026-06-22T17:55:57Z"
         }
       ]
     },
@@ -487,93 +489,95 @@
       "skills": [
         {
           "upstream_path": "plugins/expo/skills/building-native-ui",
-          "name": "expo-native-ui",
           "groups": [
             "engineering",
+            "mobile",
             "expo"
           ],
-          "updated_at": "2026-06-19T11:02:32Z"
+          "updated_at": "2026-06-22T17:55:58Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-api-routes",
-          "name": "expo-api-routes",
           "groups": [
             "engineering",
+            "mobile",
             "expo"
           ],
-          "updated_at": "2026-06-19T11:02:27Z"
+          "updated_at": "2026-06-22T17:55:58Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-brownfield",
-          "name": "expo-brownfield",
           "groups": [
             "engineering",
+            "mobile",
             "expo"
           ],
-          "updated_at": "2026-06-19T11:02:28Z"
+          "updated_at": "2026-06-22T17:55:58Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-cicd-workflows",
-          "name": "expo-cicd-workflows",
           "groups": [
             "engineering",
+            "mobile",
+            "devops",
             "expo"
           ],
-          "updated_at": "2026-06-19T11:02:29Z"
+          "updated_at": "2026-06-22T17:55:58Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-deployment",
-          "name": "expo-deployment",
           "groups": [
             "engineering",
+            "mobile",
+            "devops",
             "expo"
           ],
-          "updated_at": "2026-06-19T11:02:30Z"
+          "updated_at": "2026-06-22T17:55:58Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-dev-client",
-          "name": "expo-dev-client",
           "groups": [
             "engineering",
+            "mobile",
             "expo"
           ],
-          "updated_at": "2026-06-19T11:02:31Z"
+          "updated_at": "2026-06-22T17:55:58Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-tailwind-setup",
-          "name": "expo-tailwind",
           "groups": [
             "engineering",
+            "mobile",
             "expo"
           ],
-          "updated_at": "2026-06-19T11:02:32Z"
+          "updated_at": "2026-06-22T17:55:58Z"
         },
         {
           "upstream_path": "plugins/expo/skills/native-data-fetching",
-          "name": "expo-data-fetching",
           "groups": [
             "engineering",
+            "mobile",
             "expo"
           ],
-          "updated_at": "2026-06-19T11:02:29Z"
+          "updated_at": "2026-06-22T17:55:58Z"
         },
         {
           "upstream_path": "plugins/expo/skills/upgrading-expo",
-          "name": "expo-upgrading",
           "groups": [
             "engineering",
+            "mobile",
             "expo"
           ],
-          "updated_at": "2026-06-19T11:02:33Z"
+          "updated_at": "2026-06-22T17:55:58Z"
         },
         {
           "upstream_path": "plugins/expo/skills/use-dom",
-          "name": "expo-use-dom",
           "groups": [
             "engineering",
+            "mobile",
             "expo"
           ],
-          "updated_at": "2026-06-19T11:02:34Z"
+          "updated_at": "2026-06-22T17:55:58Z"
         }
       ]
     }
@@ -583,7 +587,7 @@
       "name": "humanizer",
       "groups": [
         "productivity",
-        "writing"
+        "claude"
       ],
       "note": "No external source"
     },
@@ -591,7 +595,8 @@
       "name": "commit",
       "groups": [
         "productivity",
-        "workflow"
+        "workflow",
+        "git"
       ],
       "note": "Locally authored"
     },
@@ -599,7 +604,8 @@
       "name": "pr",
       "groups": [
         "productivity",
-        "workflow"
+        "workflow",
+        "git"
       ],
       "note": "Locally authored"
     },
@@ -607,7 +613,8 @@
       "name": "coderabbit",
       "groups": [
         "productivity",
-        "workflow"
+        "workflow",
+        "review"
       ],
       "note": "Locally authored"
     },
@@ -615,7 +622,8 @@
       "name": "jira",
       "groups": [
         "productivity",
-        "workflow"
+        "workflow",
+        "tasks"
       ],
       "note": "Locally authored"
     },
@@ -623,31 +631,17 @@
       "name": "weekly-recap",
       "groups": [
         "productivity",
-        "workflow"
+        "workflow",
+        "tasks"
       ],
       "note": "Locally authored"
-    },
-    {
-      "name": "react",
-      "groups": [
-        "engineering",
-        "frontend"
-      ],
-      "note": "Consolidated from multiple sources"
-    },
-    {
-      "name": "better-auth",
-      "groups": [
-        "engineering",
-        "backend"
-      ],
-      "note": "Consolidated from multiple sources"
     },
     {
       "name": "cc-review",
       "groups": [
         "productivity",
-        "workflow"
+        "workflow",
+        "claude"
       ],
       "note": "Locally authored"
     }

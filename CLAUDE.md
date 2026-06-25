@@ -66,6 +66,14 @@ Configs are linked from the repo with `ansible.builtin.file state=link force=tru
 - [roles/ssh/](roles/ssh/) — drives off `SSH_KEYS + SSH_KEYS_EXTRA`. Per-profile keys go in `host_vars/<profile>.yml` as `SSH_KEYS_EXTRA`.
 - [roles/macos/](roles/macos/) — `osx_defaults` plus nvram/pmset firmware tweaks.
 
+### Skill registry & dependencies
+
+Skills are tracked in [roles/ai/files/claude/skill-registry.json](roles/ai/files/claude/skill-registry.json): `repos` (synced from upstream GitHub repos) and `local_skills` (authored here). A skill entry may declare `dependencies: [<name>, ...]` — other skills it invokes at runtime (e.g. the dispatcher `grill-me` runs `/grilling`, so it depends on `grilling`). Each named dependency must itself be a registered or on-disk skill.
+
+Two consumers honor the field. The `claude-skill` fish function (`add`) resolves a skill's transitive dependency closure, downloading and symlinking each into the project; `claude-skill list` shows `(needs: …)` annotations. The `ai` role symlinks `GLOBAL_CLAUDE_SKILLS` plus one level of their declared dependencies into `~/.claude/skills/`, so a global dispatcher skill never ships without the skills it calls. Declare dependencies in the registry, not in `SKILL.md` prose — the latter is overwritten on every `claude-skill update`.
+
+Each entry also carries `groups` — a **flat** array of tags drawn from a controlled, multi-facet vocabulary. The tooling treats it as an opaque tag set (`claude-skill list --group <tag>`, `add --group`, `remove --group`, and the Television picker all filter by membership), so adding a tag needs no code change. Tag in this order, deduped: **discipline** (exactly one — `engineering` · `quality` · `product` · `marketing` · `productivity`), then **profile/persona** (`frontend` · `backend` · `mobile` · `ios` · `devops` · `qa` · `designer` · `marketer` · `pm` · `writer`), then **technology** (`react` · `react-native` · `expo` · `swift` · `swiftui` · `node` · `nestjs` · `fastify` · `hono` · `graphql` · `apollo` · `prisma` · `tailwind` · `astro` · `tanstack` · `playwright` · `sentry` · `typescript`), then **topic/activity** (`design` · `ui` · `testing` · `review` · `refactoring` · `performance` · `architecture` · `seo` · `conversion` · `copywriting` · `writing` · `ci` · `deployment` · `observability` · `workflow` · `documentation` · `planning` · `git` · `language` · `ai` · `web` · `database` · `learning`). Reuse an existing tag before coining a new one. `agent-registry.json` uses the same `groups` shape but a simpler vocabulary.
+
 ### Secrets
 
 Vault-encrypted vars live in `vars/secrets.yml` (personal) and `vars/work.yml` (work). Both are loaded unconditionally by the playbook. Config files reference env vars as `${NAME}` and resolve at runtime. [vars/work.yml.example](vars/work.yml.example) lists the keys a fork needs to provide.
