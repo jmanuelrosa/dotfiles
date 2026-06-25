@@ -23,6 +23,12 @@ Rules:
 - Do **not** call an MCP server for these domains if the CLI is installed.
 - If a CLI is missing or auth-broken, surface that — don't silently fall back.
 
+**Multiple GitLab accounts.** `glab` may be configured with more than one host (a personal `gitlab.com` and a work alias). **Inside a repo**, glab auto-selects the host and token from the git remote — repo-scoped commands (`glab mr create`, `glab repo view`) need no `--hostname`. **Repo-agnostic** calls (`glab api …`) hit only the default host, so they miss the other account; enumerate every authenticated host and pass `--hostname` per host:
+
+```sh
+for H in $(glab auth status 2>&1 | grep -E '^[^[:space:]]'); do glab api --hostname "$H" …; done
+```
+
 ## JS package managers
 
 Match the project's lockfile — don't default to `npm`:
