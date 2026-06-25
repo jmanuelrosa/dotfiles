@@ -62,18 +62,29 @@ Produce a markdown recap of my last 7 days of activity across Jira, GitHub, and 
    ### GitLab (glab)
 
    ```sh
-   ME=$(glab api /user --jq .username)
+   # Personal and work GitLab accounts share api_host gitlab.com but use different
+   # tokens, so a default-host query only sees one account. Enumerate every
+   # authenticated host (glab auth status lists them flush-left on stderr) and
+   # query each one. The printf | while loop splits strictly on newlines so it
+   # behaves the same under bash and zsh.
+   HOSTS=$(glab auth status 2>&1 | grep -E '^[^[:space:]]')
+   [ -z "$HOSTS" ] && echo "GitLab: not authenticated, run \`glab auth login\`"
 
-   # MRs I authored
-   glab api "merge_requests?scope=created_by_me&updated_after=${SINCE}T00:00:00Z&per_page=100"
+   printf '%s\n' "$HOSTS" | while IFS= read -r H; do
+     [ -z "$H" ] && continue
+     ME=$(glab api --hostname "$H" /user | jq -r .username)
 
-   # MRs I'm a reviewer on
-   glab api "merge_requests?reviewer_username=${ME}&updated_after=${SINCE}T00:00:00Z&per_page=100"
+     # MRs I authored
+     glab api --hostname "$H" "merge_requests?scope=created_by_me&updated_after=${SINCE}T00:00:00Z&per_page=100"
+
+     # MRs I'm a reviewer on
+     glab api --hostname "$H" "merge_requests?reviewer_username=${ME}&updated_after=${SINCE}T00:00:00Z&per_page=100"
+   done
    ```
 
-   Dedupe by `web_url`. Classify each MR as `opened`, `merged` (when `state == "merged"` and `merged_at >= $SINCE`), or `reviewed` (author username differs from `$ME`). The group label is the project path from `references.full` with the `!N` suffix stripped, i.e. `group/project`.
+   Dedupe by `web_url` across all hosts (a single MR surfaced under two accounts collapses to one). Classify each MR as `opened`, `merged` (when `state == "merged"` and `merged_at >= $SINCE`), or `reviewed` (author username differs from the `$ME` of the host it came from). The group label is the project path from `references.full` with the `!N` suffix stripped, i.e. `group/project`.
 
-   If `glab auth status` reports unauthenticated, emit `GitLab: not authenticated, run \`glab auth login\`` and move on.
+   If a host's query errors (expired token, network), record one line for it and continue with the other hosts.
 
 3. **Group, sort, format**:
    - One `##` header per project / repo. Sort groups alphabetically.
