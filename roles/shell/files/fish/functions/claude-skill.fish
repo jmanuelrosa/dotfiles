@@ -50,14 +50,12 @@ function claude-skill --description "Manage Claude Code skills for the current p
             if test "$use_group" = true
                 echo $c_bold"Available groups:"$c_reset
 
-                set -l groups (jq -r '
-                    [.repos[].skills[].groups[], .local_skills[].groups[]]
-                    | unique | .[]
-                ' $registry)
+                set -l prog (_claude_skill_jqlib)' [ visibleskills[] | .groups[]? ] | unique | .[]'
+                set -l groups (jq -r $prog $registry)
 
                 for g in $groups
                     echo "  $c_cyan$g:$c_reset"
-                    set -l prog (_claude_skill_jqlib)' allskills | map(select(.groups | index($g))) | .[].name'
+                    set -l prog (_claude_skill_jqlib)' visibleskills | map(select(.groups | index($g))) | .[].name'
                     set -l names (jq -r --arg g "$g" $prog $registry | sort -u)
                     for sname in $names
                         set -l deps (_claude_skill_direct_deps $registry $sname)
@@ -79,6 +77,9 @@ function claude-skill --description "Manage Claude Code skills for the current p
                 if test -d "$skills_source"
                     for skill in $skills_source/*/
                         set -l sname (basename $skill)
+                        if _claude_skill_is_hidden $registry $sname
+                            continue
+                        end
                         set -a seen_skills $sname
                         set -l deps (_claude_skill_direct_deps $registry $sname)
                         set -l dep_suffix ""
@@ -94,7 +95,7 @@ function claude-skill --description "Manage Claude Code skills for the current p
                     end
                 end
 
-                set -l prog (_claude_skill_jqlib)' allskills | map(select(.repo != null)) | .[].name'
+                set -l prog (_claude_skill_jqlib)' visibleskills | map(select(.repo != null)) | .[].name'
                 set -l reg_names (jq -r $prog $registry)
                 for sname in $reg_names
                     if not contains -- $sname $seen_skills
@@ -116,7 +117,7 @@ function claude-skill --description "Manage Claude Code skills for the current p
             end
             if test "$use_group" = true
                 for name in $names
-                    set -l prog (_claude_skill_jqlib)' allskills | map(select(.groups | index($g))) | .[].name'
+                    set -l prog (_claude_skill_jqlib)' visibleskills | map(select(.groups | index($g))) | .[].name'
                     set -l group_skills (jq -r --arg g "$name" $prog $registry | sort -u)
 
                     if test (count $group_skills) -eq 0
@@ -147,6 +148,10 @@ function claude-skill --description "Manage Claude Code skills for the current p
                 end
             else
                 for name in $names
+                    if _claude_skill_is_hidden $registry $name
+                        echo "$c_magenta✗$c_reset '$name' is a dependency-only skill (installed automatically with the skill that requires it). Add the parent skill instead."
+                        continue
+                    end
                     for d in (_claude_skill_deps $registry $name)
                         _claude_skill_ensure_linked $skills_source $skills_target $registry $base_dir $d "required by $name"
                     end
@@ -161,7 +166,7 @@ function claude-skill --description "Manage Claude Code skills for the current p
             end
             if test "$use_group" = true
                 for name in $names
-                    set -l prog (_claude_skill_jqlib)' allskills | map(select(.groups | index($g))) | .[].name'
+                    set -l prog (_claude_skill_jqlib)' visibleskills | map(select(.groups | index($g))) | .[].name'
                     set -l group_skills (jq -r --arg g "$name" $prog $registry | sort -u)
 
                     if test (count $group_skills) -eq 0
@@ -383,8 +388,8 @@ function _claude_skill_update --description "Sync (or check) skills against upst
     end
 end
 
-function _claude_skill_jqlib --description "jq prelude: dn() derives a repos skill's directory name from upstream_path; allskills augments every entry with it (local skills keep their own name)"
-    echo 'def dn($r): (.upstream_path // "") as $p | if ($p == "" or $p == "." or $p == "/") then ($r | split("/")[1]) else ($p | sub("/+$";"") | split("/") | last) end; def allskills: [ (.repos | to_entries[] | .key as $r | .value.skills[] | . + {name: dn($r), repo: $r}), (.local_skills[]? | . + {repo: null}) ];'
+function _claude_skill_jqlib --description "jq prelude: dn() derives a repos skill's directory name from upstream_path; allskills augments every entry with it (local skills keep their own name); visibleskills drops dependency_only entries for browsing"
+    echo 'def dn($r): (.upstream_path // "") as $p | if ($p == "" or $p == "." or $p == "/") then ($r | split("/")[1]) else ($p | sub("/+$";"") | split("/") | last) end; def allskills: [ (.repos | to_entries[] | .key as $r | .value.skills[] | . + {name: dn($r), repo: $r}), (.local_skills[]? | . + {repo: null}) ]; def visibleskills: allskills | map(select((.dependency_only // false) | not));'
 end
 
 function _claude_skill_check_collisions --description "Fail if two skills resolve to the same directory name"
@@ -418,6 +423,13 @@ function _claude_skill_stamp --description "Record updated_at on a tracked skill
     else
         rm -f $tmp
     end
+end
+
+function _claude_skill_is_hidden --description "Exit 0 if the named skill is marked dependency_only in the registry"
+    set -l registry $argv[1]
+    set -l name $argv[2]
+    set -l prog (_claude_skill_jqlib)' [ allskills | .[] | select(.name == $n and (.dependency_only // false)) ] | length'
+    test (jq -r --arg n "$name" $prog $registry) != 0
 end
 
 function _claude_skill_direct_deps --description "Print a skill's directly declared dependency names, comma-joined"

@@ -21,13 +21,13 @@ function _tv_claude_list --description "Television source: list claude skills or
 
     # Derive a repos skill's directory name from upstream_path (basename, or repo name for
     # root skills); local skills keep their own name. Kept in sync with claude-skill.fish.
-    set -l jqlib 'def dn($r): (.upstream_path // "") as $p | if ($p == "" or $p == "." or $p == "/") then ($r | split("/")[1]) else ($p | sub("/+$";"") | split("/") | last) end; def allskills: [ (.repos | to_entries[] | .key as $r | .value.skills[] | . + {name: dn($r), repo: $r}), (.local_skills[]? | . + {repo: null}) ];'
+    set -l jqlib 'def dn($r): (.upstream_path // "") as $p | if ($p == "" or $p == "." or $p == "/") then ($r | split("/")[1]) else ($p | sub("/+$";"") | split("/") | last) end; def allskills: [ (.repos | to_entries[] | .key as $r | .value.skills[] | . + {name: dn($r), repo: $r}), (.local_skills[]? | . + {repo: null}) ]; def visibleskills: allskills | map(select((.dependency_only // false) | not));'
 
     set -l group_map
     if command -q jq; and test -f "$registry"
         switch $kind
             case skill skills
-                set group_map (jq -r $jqlib' allskills | .[] | "\(.name)|\(.groups // [] | join(", "))"' $registry)
+                set group_map (jq -r $jqlib' visibleskills | .[] | "\(.name)|\(.groups // [] | join(", "))"' $registry)
             case agent agents
                 set group_map (jq -r '[.repos[].agents[]?, .local_agents[]?] | .[] | "\(.name)|\(.groups // [] | join(", "))"' $registry)
         end
@@ -36,10 +36,18 @@ function _tv_claude_list --description "Television source: list claude skills or
     set -l lines
     set -l seen
 
+    set -l hidden
+    if test -z "$ext"; and command -q jq; and test -f "$registry"
+        set hidden (jq -r $jqlib' allskills | map(select(.dependency_only // false)) | .[].name' $registry)
+    end
+
     if test -d "$source"
         if test -z "$ext"
             for entry in $source/*/
                 set -l name (basename $entry)
+                if contains -- $name $hidden
+                    continue
+                end
                 set -a seen $name
                 set -l state available
                 test -L "$target/$name$ext"; and set state linked
@@ -61,7 +69,7 @@ function _tv_claude_list --description "Television source: list claude skills or
         set -l reg_names
         switch $kind
             case skill skills
-                set reg_names (jq -r $jqlib' allskills | map(select(.repo != null)) | .[].name' $registry)
+                set reg_names (jq -r $jqlib' visibleskills | map(select(.repo != null)) | .[].name' $registry)
             case agent agents
                 set reg_names (jq -r '.repos[].agents[].name' $registry)
         end
