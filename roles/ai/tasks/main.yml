@@ -112,12 +112,17 @@
 - name: Build effective global skills (with declared dependencies)
   ansible.builtin.set_fact:
     GLOBAL_CLAUDE_SKILLS_EFFECTIVE: >-
-      {{ (GLOBAL_CLAUDE_SKILLS | default([])) + (
-            (_named_repo_skills | default([]))
-            + ((_claude_skill_registry_raw.content | b64decode | from_json).local_skills | default([]))
-            | selectattr('name', 'in', GLOBAL_CLAUDE_SKILLS | default([]))
-            | selectattr('dependencies', 'defined')
-            | map(attribute='dependencies') | flatten
+      {{ (
+            (GLOBAL_CLAUDE_SKILLS | default([]))
+            + (
+                (
+                  (_named_repo_skills | default([]))
+                  + ((_claude_skill_registry_raw.content | b64decode | from_json).local_skills | default([]))
+                )
+                | selectattr('name', 'in', GLOBAL_CLAUDE_SKILLS | default([]))
+                | selectattr('dependencies', 'defined')
+                | map(attribute='dependencies') | flatten
+              )
          ) | unique }}
 
 - name: Symlink selected skills into global claude skills dir
