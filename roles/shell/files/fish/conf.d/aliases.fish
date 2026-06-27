@@ -8,7 +8,7 @@ alias rm='rm -i'
 alias grep=rg
 alias cat=bat
 alias less=bat
-# alias find=fd
+alias find=fd
 
 # fish
 alias please-clean-history='history clear'
