@@ -505,8 +505,14 @@ function _claude_skill_ensure_linked --description "Ensure a skill is on disk (d
         end
     end
 
-    mkdir -p $skills_target
-    ln -sfn "$skills_source/$name" "$skills_target/$name"
+    if not mkdir -p $skills_target 2>/dev/null
+        echo "$c_magenta✗$c_reset Cannot create $skills_target/ — permission denied. Run this outside the sandbox."
+        return 1
+    end
+    if not ln -sfn "$skills_source/$name" "$skills_target/$name" 2>/dev/null; or not test -L "$skills_target/$name"
+        echo "$c_magenta✗$c_reset Failed to link '$name' into $skills_target/ — permission denied. Run this outside the sandbox."
+        return 1
+    end
     if test -n "$label"
         echo "$c_green✓$c_reset Linked '$name' $c_dim($label)$c_reset into $skills_target/"
     else
