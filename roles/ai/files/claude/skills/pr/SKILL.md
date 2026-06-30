@@ -13,6 +13,9 @@ allowed-tools:
   - Bash(gh pr view *)
   - Bash(glab repo view *)
   - Bash(glab mr create *)
+  - Bash(glab auth status *)
+  - Bash(git symbolic-ref *)
+  - Bash(git config --get *)
   - Read
   - Write
   - AskUserQuestion
@@ -24,7 +27,9 @@ Fill the platform's PR template from the current branch's changes, push the bran
 
 ## Steps
 
-1. **Detect host and base branch**. Bootstrap host from the local remote URL, then ask the host CLI for the default branch:
+1. **Detect host, base branch, and (GitLab) account.**
+
+   Host and branch from the remote:
    ```sh
    REMOTE=$(git remote get-url origin 2>/dev/null) || { echo "No origin remote"; exit 1; }
    case "$REMOTE" in
@@ -32,19 +37,41 @@ Fill the platform's PR template from the current branch's changes, push the bran
      *gitlab*) HOST=glab ;;
      *) echo "Unsupported remote host: $REMOTE"; exit 1 ;;
    esac
-
-   if [ "$HOST" = gh ]; then
-     BASE=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null)
-   else
-     BASE=$(glab repo view -F json 2>/dev/null | jq -r '.default_branch')
-   fi
-   [ -z "$BASE" ] || [ "$BASE" = "null" ] && { echo "Could not determine default branch via $HOST"; exit 1; }
-
    BRANCH=$(git branch --show-current)
    ```
-   Rule: use `gh` / `glab` wherever they have an equivalent. Fall back to `git` only for operations they don't cover (push, diff, log, status).
 
-   If the skill was invoked with an argument, use it as `$BASE` (the target base branch) instead of the auto-detected default.
+   **Base branch.** The default branch is the same for every account, so read it from the local `origin/HEAD` ref (set at clone time). This avoids glab's per-account 404 on a repo cloned without its host alias. Fall back to the host CLI only when `origin/HEAD` is unset:
+   ```sh
+   BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##')
+   if [ -z "$BASE" ]; then
+     if [ "$HOST" = gh ]; then
+       BASE=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null)
+     else
+       BASE=$(glab repo view -F json 2>/dev/null | jq -r '.default_branch')
+     fi
+   fi
+   [ -z "$BASE" ] || [ "$BASE" = "null" ] && { echo "Could not determine default branch"; exit 1; }
+   ```
+   If the skill was invoked with an argument, use it as `$BASE` instead of the auto-detected default.
+
+   **GitLab account** (skip for GitHub). One GitLab server can back more than one authenticated account — glab keys auth by host, and an SSH/host alias can point a second account at the same server. glab picks the account from the remote's host token, so a repo cloned with a bare or shared host can resolve to the wrong account (a silent 404). Resolve it from the live `glab auth status`, never a fixed list. Derive the host token and namespace, then map every authenticated host to its API endpoint and account:
+   ```sh
+   RHOST=$(printf '%s' "$REMOTE" | sed -E 's#^[a-z]+://##; s#^[^@]*@##; s#[:/].*##')
+   NS=$(printf '%s' "$REMOTE" | sed -E 's#^[a-z]+://[^/]+/##; s#^[^@]*@[^:]+:##; s#\.git$##')
+   # host <TAB> api-endpoint-host <TAB> account, one line per authenticated host
+   HOSTMAP=$(glab auth status 2>&1 | awk '
+     /^[A-Za-z0-9._-]+$/  { h=$1; a="?" }
+     /Logged in to/       { for (i=1;i<=NF;i++) if ($i=="as") a=$(i+1) }
+     /REST API Endpoint:/ { u=$NF; gsub(/https?:\/\/|\/.*/, "", u); print h"\t"u"\t"a }')
+   # candidates: authenticated hosts whose key OR API endpoint matches the remote host token
+   CANDS=$(printf '%s\n' "$HOSTMAP" | awk -F'\t' -v r="$RHOST" '$1==r || $2==r {print $1"\t"$3}')
+   ```
+   Pick `$GLHOST` from `$CANDS` (each line is `host <TAB> account`):
+   - **One candidate** → use its host, **don't ask**.
+   - **More than one** → **call `AskUserQuestion`** (`header: "GitLab account"`, `multiSelect: false`, one option per candidate labelled `<host> — <account>`). Default to the candidate whose account matches `git config --get user.email` when you can tell. Set `$GLHOST` to the chosen host.
+   - **None** → `$RHOST` is a host you're not logged into: drop `-R` and let glab auto-detect; if that fails, surface "not logged into `$RHOST` — run `glab auth login`".
+
+   Carry `$HOST`, `$BASE`, `$BRANCH`, and for GitLab `$GLHOST`/`$NS` into the later steps. Rule: use `gh`/`glab` wherever they have an equivalent; fall back to `git` only for operations they don't cover (push, diff, log, status).
 
 2. **Read the template** — first match wins, otherwise proceed with no template:
    - `.github/pull_request_template.md`
@@ -60,7 +87,7 @@ Fill the platform's PR template from the current branch's changes, push the bran
    - **Type/category selections**: infer from commit prefixes (`feat:`, `fix:`, `chore:`, `ci:`, `refactor:`, …) and check all that apply.
 
 4b. **Confirm the target before pushing** (mandatory). The push below is the first outward action and the only sanctioned push path here, so a wrong branch means a manually-closed PR. Call `AskUserQuestion` before pushing:
-   - `question`: "Push `$BRANCH` and open a PR against `$BASE`?" (interpolate the real branch and base)
+   - `question`: "Push `$BRANCH` and open a PR against `$BASE`?" (interpolate the real branch and base; for GitLab, name the resolved account too, e.g. "Push `feature/x` and open an MR against `main` as `gitlab.com-work`?")
    - `header`: "PR target", `multiSelect: false`
    - `options`: `Go` (push and open the PR/MR) and `Cancel` (stop without pushing).
    Don't accept prose like "yes" / "go" in place of the structured question. On `Cancel`, stop and push nothing. The auto-provided `Other` lets the user redirect (e.g. a different base branch); integrate it and re-confirm.
@@ -118,7 +145,7 @@ Fill the platform's PR template from the current branch's changes, push the bran
 
 8. **Create the PR/MR** and self-assign it to the author (`@me`) (dispatch on `$HOST`):
    - `gh`: `gh pr create --base "$BASE" --head "$BRANCH" --title "$TITLE" --body-file "$BODY" --assignee @me`
-   - `glab`: `glab mr create --target-branch "$BASE" --source-branch "$BRANCH" --title "$TITLE" --description "$(cat "$BODY")" --assignee @me --yes`
+   - `glab`: `glab mr create -R "$GLHOST/$NS" --target-branch "$BASE" --source-branch "$BRANCH" --title "$TITLE" --description "$(cat "$BODY")" --assignee @me --yes`
 
 9. **Print only the resulting URL**, prefixed with `Created: `. The URL is the last line of stdout from the create command.
 
@@ -160,6 +187,7 @@ Good:
 ## Rules
 
 - Use `gh` for GitHub remotes and `glab` for GitLab remotes; fail loudly on any other host.
+- GitLab account: resolve it from `glab auth status` (step 1) — the candidate accounts are the authenticated hosts whose key or API endpoint matches the remote's host token. One candidate resolves with no prompt; more than one prompts; the chosen host is passed as `-R "$GLHOST/$NS"` to `glab mr create`.
 - Self-assign the PR/MR to the author with `--assignee @me`.
 - Title format is `<type>(<scope>): <subject> (<TICKET>)`. Drop `(<scope>)` only when the change is repo-wide. The `(<TICKET>)` suffix is required if any commit in the branch references a Jira ticket.
 - Use HEREDOC or `--body-file` so newlines and code fences in the description are preserved.

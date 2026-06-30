@@ -12,6 +12,7 @@ allowed-tools:
   - Bash(git branch *)
   - Bash(git switch *)
   - Bash(git remote *)
+  - Bash(git symbolic-ref *)
   - Bash(gh repo view *)
   - Bash(glab repo view *)
   - AskUserQuestion
@@ -25,7 +26,7 @@ If invoked with arguments, treat them as user guidance — a desired scope, how 
 
 ## Steps
 
-1. **Detect host and default branch**. Bootstrap from the local remote URL, then ask the host CLI:
+1. **Detect host and default branch**. The default branch is the same for every account, so read it from the local `origin/HEAD` ref (set at clone time) rather than a per-account `gh`/`glab` call that can 404 on a repo cloned without its host alias. Fall back to the host CLI only when `origin/HEAD` is unset:
    ```sh
    REMOTE=$(git remote get-url origin 2>/dev/null) || { echo "No origin remote"; exit 1; }
    case "$REMOTE" in
@@ -34,12 +35,15 @@ If invoked with arguments, treat them as user guidance — a desired scope, how 
      *) echo "Unsupported remote host: $REMOTE"; exit 1 ;;
    esac
 
-   if [ "$HOST" = gh ]; then
-     BASE=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null)
-   else
-     BASE=$(glab repo view -F json 2>/dev/null | jq -r '.default_branch')
+   BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##')
+   if [ -z "$BASE" ]; then
+     if [ "$HOST" = gh ]; then
+       BASE=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null)
+     else
+       BASE=$(glab repo view -F json 2>/dev/null | jq -r '.default_branch')
+     fi
    fi
-   [ -z "$BASE" ] || [ "$BASE" = "null" ] && { echo "Could not determine default branch via $HOST"; exit 1; }
+   [ -z "$BASE" ] || [ "$BASE" = "null" ] && { echo "Could not determine default branch"; exit 1; }
 
    BRANCH=$(git branch --show-current)
    ```
