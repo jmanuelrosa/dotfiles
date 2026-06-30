@@ -61,6 +61,7 @@ BREW_PACKAGES:
     - docker-buildx
     - docker-credential-helper
     # Multimedia
+    - imagemagick
     - mpv
     # Network
     - nextdns
