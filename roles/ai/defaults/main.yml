@@ -13,6 +13,7 @@ GLOBAL_CLAUDE_SKILLS:
   - skill-writer
   - skill-scout
   - cc-review
+  - agent-audit
   - grill-me
   - grill-with-docs
   - commit

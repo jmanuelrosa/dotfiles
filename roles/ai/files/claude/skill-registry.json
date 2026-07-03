@@ -730,6 +730,15 @@
         "claude"
       ],
       "note": "Locally authored"
+    },
+    {
+      "name": "agent-audit",
+      "groups": [
+        "ai",
+        "prompt engineering",
+        "claude"
+      ],
+      "note": "Locally authored"
     }
   ]
 }

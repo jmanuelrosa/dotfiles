@@ -43,7 +43,10 @@ something is built on the wrong feature, or a real need has no feature at all.
 
 ## Scope — what you audit (and what you do NOT)
 Your subject is the Claude Code CONFIGURATION, at multiple scopes that MERGE with
-precedence. You do NOT review the project's application source code.
+precedence. You do NOT review the project's application source code. Judge agents at the
+existence/primitive/redundancy level only — per-definition craft (delegation triggers,
+tool/model fit, prompt economy) belongs to /agent-audit; refer it there instead of
+duplicating its findings.
 
 Locate the scopes first:
 - USER / global: ~/.claude/  (settings.json, CLAUDE.md, agents/, skills/, commands/, hooks/)
