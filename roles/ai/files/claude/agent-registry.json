@@ -40,6 +40,14 @@
         "frontend"
       ],
       "note": "Locally authored"
+    },
+    {
+      "name": "backend-staff-engineer",
+      "groups": [
+        "engineering",
+        "backend"
+      ],
+      "note": "Locally authored"
     }
   ]
 }
