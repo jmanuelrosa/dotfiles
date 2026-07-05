@@ -12,7 +12,7 @@ When the work touches one of these domains, prefer the listed CLI over WebFetch,
 
 | Domain                    | CLI       | Notes                                         |
 |---------------------------|-----------|-----------------------------------------------|
-| Jira (issues, sprints)    | `acli`    | See the `jira` skill for query patterns       |
+| Jira (issues, sprints)    | `acli`    | Query patterns in the `jira` skill (`claude-skill add jira` per project) |
 | GitHub (repos, PRs, CI)   | `gh`      | See the `pr` and `commit` skills              |
 | GitLab (repos, MRs, CI)   | `glab`    | Same role as `gh`; see the `pr`/`commit` skills |
 | Sentry (errors, releases) | `sentry`  | Use `sentry --help` to discover subcommands   |
