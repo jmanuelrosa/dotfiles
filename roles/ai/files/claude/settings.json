@@ -161,12 +161,9 @@
       "Bash(shred *)",
       "Bash(sudo *)",
       "Bash(find / *)",
-      "Bash(find /*)",
       "Bash(find ~ *)",
-      "Bash(find ~/*)",
       "Bash(find ..)",
-      "Bash(find .. *)",
-      "Bash(find ../*)"
+      "Bash(find .. *)"
     ]
   },
   "model": "fable",
@@ -291,5 +288,6 @@
       "Push auth: this machine's remotes and a global insteadOf rewrite default git to SSH (git@github.com:), but the sandbox cannot read ~/.ssh so SSH auth fails inside Claude Code sessions. The /pr skill therefore flips the push back to HTTPS (url.https://github.com/.pushInsteadOf, which overrides insteadOf for pushes) and authenticates with the gh token via the literal `git -c credential.helper='!gh auth git-credential' push`. That exact command is the only working push path here and is trusted. The exemption applies ONLY to the literal `!gh auth git-credential` helper; any other command substituted via `credential.helper`, or arbitrary commands injected through other `-c` config, is NOT covered and must be evaluated as a possible Auto-Mode Bypass."
     ]
   },
-  "voiceEnabled": false
+  "voiceEnabled": false,
+  "askUserQuestionTimeout": "never"
 }
