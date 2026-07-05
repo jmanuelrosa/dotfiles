@@ -17,6 +17,7 @@ When the work touches one of these domains, prefer the listed CLI over WebFetch,
 | GitLab (repos, MRs, CI)   | `glab`    | Same role as `gh`; see the `pr`/`commit` skills |
 | Sentry (errors, releases) | `sentry`  | Use `sentry --help` to discover subcommands   |
 | Bruno (API test requests) | `bru-cli` | Use `bru-cli --help` to discover subcommands  |
+| Library/framework/SDK docs | `bunx ctx7` | Context7; see "Latest docs via ctx7" below |
 
 Rules:
 - Reach for the CLI first. Do **not** open a Jira/GitHub/Sentry URL with WebFetch when the CLI can answer.
@@ -28,6 +29,15 @@ Rules:
 ```sh
 for H in $(glab auth status 2>&1 | grep -E '^[^[:space:]]'); do glab api --hostname "$H" …; done
 ```
+
+**Latest docs via `ctx7`.** Whenever the user asks about a library, framework, SDK, API, CLI tool, or cloud service — including well-known ones (React, Next.js, Prisma, Tailwind, Django), since training data may not reflect recent changes — fetch current docs with the Context7 CLI before answering:
+
+```sh
+bunx ctx7 library <name> "<question>"      # resolve the Context7 library ID
+bunx ctx7 docs <libraryId> "<question>"    # fetch docs; skip the resolve step if an ID like /vercel/next.js is already known
+```
+
+Run it through `bunx` (or `npx -y ctx7` if bun is unavailable) — the CLI is not installed globally. It uses Context7's free anonymous tier; no API key is configured. Do **not** use the Context7 MCP server or WebFetch for library docs.
 
 ## JS package managers
 

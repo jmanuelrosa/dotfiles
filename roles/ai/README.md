@@ -16,3 +16,4 @@ Installs and configures AI tooling: Claude Code, Gemini CLI, Pi (mariozechner), 
 
 ## Notes
 
+Claude Code fetches up-to-date library docs with the Context7 CLI, run on demand via `bunx ctx7` (bun is installed by the apps role) on the free anonymous tier — nothing is installed by this role and no API key is configured. The usage rule lives in `files/claude/CLAUDE.md`; the `CTX7_TELEMETRY_DISABLED` opt-out is exported by the shell role.
