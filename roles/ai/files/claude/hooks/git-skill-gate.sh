@@ -7,13 +7,15 @@
 
 Blocks any `git commit` or `git push` invocation (including forms like
 `git -c key=val push`, `git --git-dir=… push`, `VAR=… git push`, or
-`… && git push`) unless the current session is inside the /commit or
-/pr skill.
+`… && git push`) unless the current session is inside the skill that
+owns that subcommand: `git commit` requires /commit, `git push`
+requires /pr (SKILLS_FOR_SUBCOMMAND).
 
 The signal is `attributionSkill` on the assistant event: Claude Code
 stamps it on each assistant turn that runs inside a slash-command flow,
-and AskUserQuestion preserves it across the approval gate. Allow if any
-of the last 30 events is attributed to a skill in ALLOWED_SKILLS.
+and AskUserQuestion preserves it across the approval gate. A gated
+subcommand is allowed if any of the last 30 events is attributed to
+one of its skills.
 
 Hard-blocks `--no-verify` regardless of skill context. Also hard-blocks
 any `git commit` that stages files under `.claude/tasks/` (local-only
@@ -36,8 +38,8 @@ import sys
 from pathlib import Path
 
 WINDOW_EVENTS = 30
-ALLOWED_SKILLS = {"commit", "pr"}
-GATED_SUBCOMMANDS = {"commit", "push"}
+SKILLS_FOR_SUBCOMMAND = {"commit": {"commit"}, "push": {"pr"}}
+GATED_SUBCOMMANDS = set(SKILLS_FOR_SUBCOMMAND)
 
 OPTIONS_WITH_SEPARATE_ARG = {
     "-c", "-C",
@@ -93,7 +95,7 @@ def is_gated(tokens):
     return gated_subcommand(tokens) is not None
 
 
-def recently_invoked_allowed_skill(transcript_path):
+def skills_in_window(transcript_path):
     if not transcript_path:
         return None
     path = Path(transcript_path)
@@ -107,10 +109,11 @@ def recently_invoked_allowed_skill(transcript_path):
                     events.append(json.loads(raw))
                 except Exception:
                     continue
-        for event in events[-WINDOW_EVENTS:]:
-            if event.get("attributionSkill") in ALLOWED_SKILLS:
-                return True
-        return False
+        return {
+            event.get("attributionSkill")
+            for event in events[-WINDOW_EVENTS:]
+            if event.get("attributionSkill")
+        }
     except Exception:
         return None
 
@@ -175,15 +178,19 @@ def main():
             )
             sys.exit(2)
 
-    result = recently_invoked_allowed_skill(transcript_path)
-    if result is None:
+    active = skills_in_window(transcript_path)
+    if active is None:
         print("git-skill-gate: transcript parse failed, allowing command", file=sys.stderr)
         sys.exit(0)
-    if result:
+
+    blocked = sorted(s for s in set(gated) if not (SKILLS_FOR_SUBCOMMAND[s] & active))
+    if not blocked:
         sys.exit(0)
 
+    for sub in blocked:
+        skills = " or ".join(f"/{s}" for s in sorted(SKILLS_FOR_SUBCOMMAND[sub]))
+        print(f"Direct `git {sub}` is blocked outside the {skills} skill.", file=sys.stderr)
     print(
-        "Direct `git commit` / `git push` is blocked outside the commit/pr skills.\n"
         "\n"
         "Use:\n"
         "  /commit   — stage and commit through the structured flow\n"
