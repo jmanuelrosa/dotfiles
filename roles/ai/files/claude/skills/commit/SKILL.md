@@ -77,9 +77,9 @@ Arguments, if any, are user guidance — a scope, how to split concerns, or a br
 
 8. **Commit each concern in order:**
    - **Stage** exactly its file group with `git add <files>`, or `git add -p <file>` for hunk splits.
-   - **Commit** — write the full message (subject, blank line, body when present) to `/tmp/claude/commit-msg.txt` with the **Write tool**, then:
+   - **Commit** — write the full message (subject, blank line, body when present) with the **Write tool** to a message file unique to this session: `/tmp/claude/commit-msg-<repo>-<suffix>.txt`, where `<suffix>` is a short random string picked once per run. Concurrent sessions share `/tmp/claude/`, so a fixed filename lets another session's message land between your Write and your commit. Then:
      ```sh
-     git commit -F /tmp/claude/commit-msg.txt
+     git commit -F /tmp/claude/commit-msg-<repo>-<suffix>.txt
      ```
      Applies to every commit, single-line included — never inline `-m` and never a HEREDOC. The harness escapes `!` and other shell-special characters before the shell runs, so subjects like `feat(api)!: drop v1` pick up stray backslashes on both paths; the Write tool bypasses the shell entirely. Overwrite the same file for each commit in the loop.
    - **Never** `--no-verify`. On a pre-commit hook failure, surface the full output and stop the loop — don't retry, don't start the next commit until it's resolved.
