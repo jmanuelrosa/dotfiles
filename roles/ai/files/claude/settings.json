@@ -94,7 +94,6 @@
       "Write(**/credentials.json)",
       "Read(~/.git-credentials)",
       "Read(~/.gitconfig)",
-      "Read(~/.config/gh/hosts.yml)",
       "Read(~/.aws/**)",
       "Edit(~/.aws/**)",
       "Write(~/.aws/**)",
