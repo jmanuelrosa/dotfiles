@@ -729,6 +729,9 @@
         "prompt engineering",
         "claude"
       ],
+      "dependencies": [
+        "skill-writer"
+      ],
       "note": "Locally authored"
     },
     {
