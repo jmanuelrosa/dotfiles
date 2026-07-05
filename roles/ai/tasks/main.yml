@@ -92,6 +92,11 @@
     src: "{{ role_path }}/files/claude/skill-registry.json"
   register: _claude_skill_registry_raw
 
+- name: Read claude agent registry
+  ansible.builtin.slurp:
+    src: "{{ role_path }}/files/claude/agent-registry.json"
+  register: _claude_agent_registry_raw
+
 # The registry no longer stores a `name` for repos skills; derive each one's directory
 # name from upstream_path (basename, or repo name for root skills) so the dependency
 # filter below can still match by name. local_skills keep their explicit `name`.
@@ -106,24 +111,64 @@
   loop_control:
     label: "{{ item.upstream_path | default('?') }}"
 
+# Global agents may declare skill dependencies in agent-registry.json; treat
+# those skills as extra roots so a global agent (e.g. architect) never ships
+# without the method skills it invokes.
+- name: Collect skill dependencies of global agents
+  ansible.builtin.set_fact:
+    _global_agent_skill_deps: >-
+      {{ (
+            ((_claude_agent_registry_raw.content | b64decode | from_json).local_agents | default([]))
+            + ((_claude_agent_registry_raw.content | b64decode | from_json).repos.values()
+               | map(attribute='agents') | flatten)
+         )
+         | selectattr('name', 'in', GLOBAL_CLAUDE_AGENTS | default([]))
+         | selectattr('dependencies', 'defined')
+         | map(attribute='dependencies') | flatten | unique }}
+
 # Expand the global skill list with each skill's registry-declared dependencies
 # so a dispatcher skill (e.g. grill-me -> grilling) never ships without the
-# skills it invokes. One level of expansion; deps must themselves be registered.
-- name: Build effective global skills (with declared dependencies)
+# skills it invokes. One level of expansion over the combined roots
+# (GLOBAL_CLAUDE_SKILLS + global agents' skill deps); deps must themselves
+# be registered.
+- name: Build effective global skills (with declared skill and agent dependencies)
   ansible.builtin.set_fact:
     GLOBAL_CLAUDE_SKILLS_EFFECTIVE: >-
       {{ (
             (GLOBAL_CLAUDE_SKILLS | default([]))
+            + (_global_agent_skill_deps | default([]))
             + (
                 (
                   (_named_repo_skills | default([]))
                   + ((_claude_skill_registry_raw.content | b64decode | from_json).local_skills | default([]))
                 )
-                | selectattr('name', 'in', GLOBAL_CLAUDE_SKILLS | default([]))
+                | selectattr('name', 'in', (GLOBAL_CLAUDE_SKILLS | default([])) + (_global_agent_skill_deps | default([])))
                 | selectattr('dependencies', 'defined')
                 | map(attribute='dependencies') | flatten
               )
          ) | unique }}
+
+# A registry typo would otherwise become a dangling symlink (file state=link
+# force=true never validates its target).
+- name: Stat every effective global skill on disk
+  ansible.builtin.stat:
+    path: "{{ role_path }}/files/claude/skills/{{ item }}"
+  register: _eff_skill_stat
+  loop: "{{ GLOBAL_CLAUDE_SKILLS_EFFECTIVE | default([]) }}"
+
+- name: Fail loudly if a declared global skill is missing on disk
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+      - item.stat.isdir
+    fail_msg: >-
+      Skill '{{ item.item }}' is required globally (in GLOBAL_CLAUDE_SKILLS or
+      declared as a dependency by a global skill/agent) but is not present under
+      roles/ai/files/claude/skills/. Fix the registry name or run
+      'claude-skill update {{ item.item }}'.
+  loop: "{{ _eff_skill_stat.results }}"
+  loop_control:
+    label: "{{ item.item }}"
 
 - name: Symlink selected skills into global claude skills dir
   ansible.builtin.file:

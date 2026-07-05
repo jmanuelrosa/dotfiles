@@ -24,6 +24,19 @@
         "backend"
       ],
       "note": "Locally authored"
+    },
+    {
+      "name": "architect",
+      "groups": [
+        "engineering",
+        "architecture"
+      ],
+      "note": "Locally authored",
+      "dependencies": [
+        "planning-and-task-breakdown",
+        "documentation-and-adrs",
+        "domain-modeling"
+      ]
     }
   ]
 }

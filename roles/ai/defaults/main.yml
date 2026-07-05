@@ -19,6 +19,7 @@ GLOBAL_CLAUDE_SKILLS:
 # in every project (no per-project `claude-agent add` needed).
 GLOBAL_CLAUDE_AGENTS:
   - cc-staff-reviewer
+  - architect
 
 BREW_PACKAGES:
   taps:

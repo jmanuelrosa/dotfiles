@@ -59,12 +59,15 @@ function claude-agent --description "Manage Claude Code agents for the current p
                         ] | .[] | .name
                     ' $registry | sort -u)
                     for aname in $names
+                        set -l deps (_claude_agent_direct_deps $registry $aname)
+                        set -l dep_suffix ""
+                        test -n "$deps"; and set dep_suffix " $c_dim(needs: $deps)$c_reset"
                         if test -L "$agents_target/$aname.md"
-                            echo "    $c_green✓$c_reset $aname $c_green(linked)$c_reset"
+                            echo "    $c_green✓$c_reset $aname $c_green(linked)$c_reset$dep_suffix"
                         else if test -f "$agents_source/$aname.md"
-                            echo "    $c_dim·$c_reset $aname"
+                            echo "    $c_dim·$c_reset $aname$dep_suffix"
                         else
-                            echo "    $c_dim↓ $aname (not downloaded)$c_reset"
+                            echo "    $c_dim↓ $aname (not downloaded)$c_reset$dep_suffix"
                         end
                     end
                 end
@@ -79,10 +82,13 @@ function claude-agent --description "Manage Claude Code agents for the current p
                         end
                         set -l aname (basename $agent .md)
                         set -a seen $aname
+                        set -l deps (_claude_agent_direct_deps $registry $aname)
+                        set -l dep_suffix ""
+                        test -n "$deps"; and set dep_suffix " $c_dim(needs: $deps)$c_reset"
                         if test -L "$agents_target/$aname.md"
-                            echo "  $c_green✓$c_reset $aname $c_green(linked)$c_reset"
+                            echo "  $c_green✓$c_reset $aname $c_green(linked)$c_reset$dep_suffix"
                         else
-                            echo "  $c_dim·$c_reset $aname"
+                            echo "  $c_dim·$c_reset $aname$dep_suffix"
                         end
                     end
                 end
@@ -90,7 +96,10 @@ function claude-agent --description "Manage Claude Code agents for the current p
                 set -l reg_names (jq -r '.repos[].agents[].name' $registry)
                 for aname in $reg_names
                     if not contains -- $aname $seen
-                        echo "  $c_dim↓ $aname (not downloaded)$c_reset"
+                        set -l deps (_claude_agent_direct_deps $registry $aname)
+                        set -l dep_suffix ""
+                        test -n "$deps"; and set dep_suffix " $c_dim(needs: $deps)$c_reset"
+                        echo "  $c_dim↓ $aname (not downloaded)$c_reset$dep_suffix"
                     end
                 end
             end
@@ -134,6 +143,7 @@ function claude-agent --description "Manage Claude Code agents for the current p
                         if test -f "$agents_source/$aname.md"
                             ln -sfn "$agents_source/$aname.md" "$agents_target/$aname.md"
                             set count (math $count + 1)
+                            _claude_agent_install_skill_deps $registry $aname
                         end
                     end
                     echo "$c_green✓$c_reset Linked $count agents from group '$name' into $agents_target/"
@@ -165,6 +175,7 @@ function claude-agent --description "Manage Claude Code agents for the current p
                     mkdir -p $agents_target
                     ln -sfn "$agents_source/$name.md" "$agents_target/$name.md"
                     echo "$c_green✓$c_reset Linked '$name' into $agents_target/"
+                    _claude_agent_install_skill_deps $registry $name
                 end
             end
 
@@ -402,6 +413,49 @@ function _claude_agent_update --description "Sync (or check) agents against upst
             $c_blue $updated $c_reset \
             $c_green $skipped $c_reset \
             $c_magenta $failed $c_reset
+    end
+end
+
+function _claude_agent_direct_deps --description "Print an agent's declared skill dependency names, comma-joined"
+    set -l registry $argv[1]
+    set -l name $argv[2]
+    jq -r --arg n "$name" '
+        [ (.repos[]?.agents[]?, .local_agents[]?) | select(.name == $n) | .dependencies // [] | .[] ] | unique | join(", ")
+    ' $registry
+end
+
+function _claude_agent_skill_deps --description "Print an agent's declared skill dependency names, one per line"
+    set -l registry $argv[1]
+    set -l name $argv[2]
+    jq -r --arg n "$name" '
+        [ (.repos[]?.agents[]?, .local_agents[]?) | select(.name == $n) | .dependencies // [] | .[] ] | unique | .[]
+    ' $registry
+end
+
+# Reuses claude-skill's internal helpers instead of `claude-skill add` so a
+# dependency_only skill (e.g. domain-modeling) installs without tripping the
+# direct-add refusal — resolution paths are meant to bypass it.
+function _claude_agent_install_skill_deps --description "Install the skills an agent declares as dependencies into .claude/skills"
+    set -l agent_registry $argv[1]
+    set -l agent_name $argv[2]
+
+    set -l deps (_claude_agent_skill_deps $agent_registry $agent_name)
+    test (count $deps) -eq 0; and return 0
+
+    if not functions -q _claude_skill_ensure_linked
+        source (dirname (status --current-filename))/claude-skill.fish
+    end
+
+    set -l base_dir "$DOTFILES_DIR/roles/ai/files/claude"
+    set -l skills_source "$base_dir/skills"
+    set -l skills_target ".claude/skills"
+    set -l skill_registry "$base_dir/skill-registry.json"
+
+    for d in $deps
+        for sub in (_claude_skill_deps $skill_registry $d)
+            _claude_skill_ensure_linked $skills_source $skills_target $skill_registry $base_dir $sub "required by $d"
+        end
+        _claude_skill_ensure_linked $skills_source $skills_target $skill_registry $base_dir $d "required by agent $agent_name"
     end
 end
 
