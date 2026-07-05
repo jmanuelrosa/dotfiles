@@ -10,3 +10,4 @@ exclude_paths:
   - vars/secrets.yml
   - vars/work.yml
   - roles/work/files/  # static config files, not Ansible YAML
+  - roles/ai/files/  # vendored skills/agents and Claude config, not Ansible YAML
