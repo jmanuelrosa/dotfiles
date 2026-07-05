@@ -13,6 +13,7 @@ allowed-tools:
   - Bash(git switch *)
   - Bash(git remote *)
   - Bash(git symbolic-ref *)
+  - Write(/tmp/claude/**)
   - AskUserQuestion
 ---
 
@@ -76,15 +77,11 @@ Arguments, if any, are user guidance — a scope, how to split concerns, or a br
 
 8. **Commit each concern in order:**
    - **Stage** exactly its file group with `git add <files>`, or `git add -p <file>` for hunk splits.
-   - **Commit** — single-line → `git commit -m "<subject>"`; multi-line → HEREDOC, never `-m` chains:
+   - **Commit** — write the full message (subject, blank line, body when present) to `/tmp/claude/commit-msg.txt` with the **Write tool**, then:
      ```sh
-     git commit -m "$(cat <<'EOF'
-     <subject>
-
-     <body>
-     EOF
-     )"
+     git commit -F /tmp/claude/commit-msg.txt
      ```
+     Applies to every commit, single-line included — never inline `-m` and never a HEREDOC. The harness escapes `!` and other shell-special characters before the shell runs, so subjects like `feat(api)!: drop v1` pick up stray backslashes on both paths; the Write tool bypasses the shell entirely. Overwrite the same file for each commit in the loop.
    - **Never** `--no-verify`. On a pre-commit hook failure, surface the full output and stop the loop — don't retry, don't start the next commit until it's resolved.
    - **Never** `--amend` unless the user explicitly typed the word "amend".
    - After the loop, print `git log -n <count> --pretty='%h %s'`.
