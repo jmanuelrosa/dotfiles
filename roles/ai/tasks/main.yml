@@ -180,9 +180,3 @@
     dest: "{{ HOME }}/.pi/agent/skills"
     state: link
     force: true
-
-- name: Ensure ollama serve is not running (free memory, run on-demand only)
-  ansible.builtin.command: pkill -x ollama
-  register: ollama_kill
-  changed_when: ollama_kill.rc == 0
-  failed_when: ollama_kill.rc not in [0, 1]

@@ -1,13 +1,8 @@
 {
   "collapseChangelog": false,
-  "defaultModel": "qwen3.6:35b-a3b",
-  "defaultProvider": "ollama",
   "defaultThinkingLevel": "xhigh",
   "doubleEscapeAction": "tree",
   "editorPaddingX": 2,
-  "enabledModels": [
-    "ollama/qwen3.6:35b-a3b"
-  ],
   "enableInstallTelemetry": false,
   "extensions": [],
   "followUpMode": "one-at-a-time",

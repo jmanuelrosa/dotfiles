@@ -2,11 +2,6 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-# Models to pull manually with `ollama pull <name>` when needed.
-# Not pulled by the playbook so Ollama stays fully on-demand.
-OLLAMA_MODELS:
-  - qwen3:latest
-
 # Skills symlinked into ~/.claude/skills/ so they are available to Claude Code
 # in every project (no per-project `claude-skill add` needed).
 GLOBAL_CLAUDE_SKILLS:
@@ -32,7 +27,6 @@ BREW_PACKAGES:
     - steipete/tap
   formulas:
     - gemini-cli
-    - ollama
     - pi-coding-agent
     # Runs the bundled Claude skill validators (e.g. skill-writer's
     # `uv run quick_validate.py`), which declare inline script dependencies.
