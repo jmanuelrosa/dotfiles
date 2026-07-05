@@ -172,10 +172,11 @@
   },
   "model": "fable",
   "availableModels": [
-    "sonnet",
+    "fable",
     "opus",
-    "fable"
+    "sonnet"
   ],
+  "fallbackModel": ["opus"],
   "hooks": {
     "PreToolUse": [
       {
