@@ -183,7 +183,14 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/git-skill-gate.sh"
+            "command": "~/.claude/hooks/git-skill-gate.sh",
+            "if": "Bash(git *)"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/pre-commit-verify.sh",
+            "timeout": 180,
+            "if": "Bash(git *)"
           }
         ]
       }

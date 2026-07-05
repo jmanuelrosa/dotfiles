@@ -74,6 +74,13 @@
     state: link
     force: true
 
+- name: Symlink claude pre-commit-verify hook
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/claude/hooks/pre-commit-verify.sh"
+    dest: "{{ HOME }}/.claude/hooks/pre-commit-verify.sh"
+    state: link
+    force: true
+
 - name: Symlink claude status line script
   ansible.builtin.file:
     src: "{{ role_path }}/files/claude/statusline.sh"
