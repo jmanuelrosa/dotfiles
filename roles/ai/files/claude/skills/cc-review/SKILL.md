@@ -7,9 +7,9 @@ Maintenance review of my Claude Code configuration.
 
 1. Check for /insights data in ~/.claude/usage-data/ (facets/*.json preferred, else report.html).
    If neither exists, tell me to run /insights first, but offer to proceed config-only.
-2. Use the cc-staff-reviewer subagent to review my setup at BOTH scopes — user (~/.claude)
+2. Use the cc-staff-reviewer subagent to review my setup at BOTH scopes: user (~/.claude)
    and the current project (.claude/ found from cwd). State which scope it actually detected.
-3. Return its prioritized P0–P2 report, the adoption opportunities, the proposed new
+3. Return its prioritized P0-P2 report, the adoption opportunities, the proposed new
    artifacts, the action table, and the top-3 next moves verbatim.
 4. If the report lists adoption opportunities or proposed new artifacts, ask me which to
    take with AskUserQuestion (multiSelect; one option per item, description = the why +

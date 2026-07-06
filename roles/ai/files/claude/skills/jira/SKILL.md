@@ -13,9 +13,9 @@ allowed-tools:
 
 Use Atlassian's official CLI (`acli`) to interact with Jira. Avoid the Atlassian MCP server and `jira-cli` (Go) - both fail against Didomi's SSO + scoped-token org policy. `acli` uses an OAuth device flow that works with SSO.
 
-- `<INSTANCE>` — your Atlassian site, e.g. `acme.atlassian.net`
-- `<PROJECT>` — your default Jira project key, e.g. `ENG`
-- `<TECH-DEBT-EPIC>` — your tech-debt parent epic key, if you use one
+- `<INSTANCE>`: your Atlassian site, e.g. `acme.atlassian.net`
+- `<PROJECT>`: your default Jira project key, e.g. `ENG`
+- `<TECH-DEBT-EPIC>`: your tech-debt parent epic key, if you use one
 
 ## Prerequisites
 
@@ -135,7 +135,7 @@ Always pass ADF JSON via `--description-file`. The file is the bare ADF doc:
 
 ## Humanization (required)
 
-Every word that ends up in a Jira summary, description, or comment must read like a teammate wrote it. This is not optional. Output should be specific, plain, and honest — no AI tells.
+Every word that ends up in a Jira summary, description, or comment must read like a teammate wrote it. This is not optional. Output should be specific, plain, and honest: no AI tells.
 
 **Vocabulary to avoid** (and their cousins): *additionally, leverage, robust, seamless, comprehensive, holistic, delve, crucial, pivotal, key, vital, intricate, tapestry, landscape (figurative), testament, underscore, highlight (verb), enduring, vibrant, foster, journey, ecosystem, empower, unlock*. Use plain English.
 
@@ -147,7 +147,7 @@ Every word that ends up in a Jira summary, description, or comment must read lik
 - Tail "-ing" clauses tacked on for depth ("…highlighting our commitment", "…ensuring scalability").
 - Forced rule-of-three lists when there are really one or two things.
 - Promotional adjectives (*powerful, seamless, robust, cutting-edge, modern*).
-- Bold-header bullets (`**Performance:** …`) — write a sentence.
+- Bold-header bullets (`**Performance:** …`): write a sentence.
 - Emojis anywhere in body copy (the category emoji at the start of a title is the one exception, see below).
 - Title Case Headings. Use sentence case.
 - Filler ("in order to" → "to"; "it is important to note that" → drop it).
@@ -156,7 +156,7 @@ Every word that ends up in a Jira summary, description, or comment must read lik
 - Curly quotes (`"…"`). Use straight quotes.
 - Chatbot artifacts: "I hope this helps", "Let me know if…", "Certainly!".
 
-**Voice:** say what's happening or what was found, not how transformative it is. Reference concrete things — ticket IDs, file paths, error messages, dates, numbers. If something's blocked or uncertain, say so plainly ("can't repro on staging yet") instead of papering over it. Vary sentence length naturally.
+**Voice:** say what's happening or what was found, not how transformative it is. Reference concrete things: ticket IDs, file paths, error messages, dates, numbers. If something's blocked or uncertain, say so plainly ("can't repro on staging yet") instead of papering over it. Vary sentence length naturally.
 
 ### Bad vs good
 
@@ -304,7 +304,7 @@ Tickets created or referenced here flow into branches, commits, and PRs that fol
 - **Commit subject:** `<type>(<scope>): <subject>` (Conventional Commits; see commit skill, Step 6).
 - **PR title:** `<type>(<scope>): <subject> (<TICKET>)` (see pr skill, Step 6).
 
-The Jira category emoji (🧠, 💻, 💿, …) belongs only in the **Jira summary** — never in branch names, commit subjects, or PR titles.
+The Jira category emoji (🧠, 💻, 💿, …) belongs only in the **Jira summary**, never in branch names, commit subjects, or PR titles.
 
 ## Authentication troubleshooting
 

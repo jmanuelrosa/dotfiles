@@ -39,7 +39,7 @@ Fill the platform's PR template from the current branch's changes, push the bran
    BRANCH=$(git branch --show-current)
    ```
 
-   **Base branch.** Read it from local `origin/HEAD` (set at clone time, same for every account — avoids glab's per-account 404 on a repo cloned without its host alias). Fall back to the host CLI only when unset:
+   **Base branch.** Read it from local `origin/HEAD` (set at clone time, same for every account: avoids glab's per-account 404 on a repo cloned without its host alias). Fall back to the host CLI only when unset:
    ```sh
    BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##')
    if [ -z "$BASE" ]; then
@@ -53,7 +53,7 @@ Fill the platform's PR template from the current branch's changes, push the bran
    ```
    If invoked with an argument, use it as `$BASE` instead.
 
-   **GitLab account** (skip for GitHub). One GitLab server can back more than one authenticated account (a host alias can point a second account at the same server), and glab picks by the remote's host token — so a repo cloned with a bare or shared host can resolve to the wrong account (silent 404). Resolve from live `glab auth status`, never a fixed list:
+   **GitLab account** (skip for GitHub). One GitLab server can back more than one authenticated account (a host alias can point a second account at the same server), and glab picks by the remote's host token, so a repo cloned with a bare or shared host can resolve to the wrong account (silent 404). Resolve from live `glab auth status`, never a fixed list:
    ```sh
    RHOST=$(printf '%s' "$REMOTE" | sed -E 's#^[a-z]+://##; s#^[^@]*@##; s#[:/].*##')
    NS=$(printf '%s' "$REMOTE" | sed -E 's#^[a-z]+://[^/]+/##; s#^[^@]*@[^:]+:##; s#\.git$##')
@@ -67,25 +67,25 @@ Fill the platform's PR template from the current branch's changes, push the bran
    ```
    Pick `$GLHOST` from `$CANDS` (each line is `host <TAB> account`):
    - **One** → use its host, don't ask.
-   - **More than one** → `AskUserQuestion` (`header: "GitLab account"`, `multiSelect: false`, one option per candidate labelled `<host> — <account>`, default to the one whose account matches `git config --get user.email`). Set `$GLHOST` to the choice.
-   - **None** → not logged into `$RHOST`: drop `-R` and let glab auto-detect; if that fails, surface "not logged into `$RHOST` — run `glab auth login`".
+   - **More than one** → `AskUserQuestion` (`header: "GitLab account"`, `multiSelect: false`, one option per candidate labelled `<host> (<account>)`, default to the one whose account matches `git config --get user.email`). Set `$GLHOST` to the choice.
+   - **None** → not logged into `$RHOST`: drop `-R` and let glab auto-detect; if that fails, surface "not logged into `$RHOST`: run `glab auth login`".
 
    Carry `$HOST`, `$BASE`, `$BRANCH`, and for GitLab `$GLHOST`/`$NS` forward. Use `gh`/`glab` wherever they have an equivalent; fall back to `git` only for what they don't cover (push, diff, log, status).
 
-2. **Read the template** — first match wins, else proceed with none:
+2. **Read the template**. First match wins, else proceed with none:
    - `.github/pull_request_template.md`
    - `.gitlab/merge_request_templates/*.md`
 
 3. **Analyze the branch**:
-   - `git diff "$BASE"...HEAD` — full diff
-   - `git log "$BASE"..HEAD --oneline` — commit history
+   - `git diff "$BASE"...HEAD`: full diff
+   - `git log "$BASE"..HEAD --oneline`: commit history
 
 4. **Fill the template**:
    - **Free-text sections**: clear, concise content on what the changes do and *why*. Extract Jira tickets from the branch name (`[A-Z]+-[0-9]+`) and link them where relevant.
    - **Checkbox sections**: check `[x]` only when the diff clearly supports it; leave `[ ]` for items not verifiable from code (e.g. "tested locally").
    - **Type/category selections**: infer from commit prefixes (`feat:`, `fix:`, `chore:`, `ci:`, `refactor:`, …) and check all that apply.
 
-4b. **Confirm the target before pushing** (mandatory). The push below is the first outward action and the only sanctioned push path — a wrong branch means a manually-closed PR. Call `AskUserQuestion`:
+4b. **Confirm the target before pushing** (mandatory). The push below is the first outward action and the only sanctioned push path: a wrong branch means a manually-closed PR. Call `AskUserQuestion`:
    - `question`: "Push `$BRANCH` and open a PR against `$BASE`?" (interpolate real values; for GitLab name the resolved account too, e.g. "…as `gitlab.com-work`?")
    - `header`: "PR target", `multiSelect: false`
    - `options`: `Go` (push and open the PR/MR), `Cancel` (stop, push nothing).
@@ -93,9 +93,9 @@ Fill the platform's PR template from the current branch's changes, push the bran
 
 5. **Push the branch** (`$HOST`). `-u` sets the upstream when missing, pushes new commits when ahead, or prints `Everything up-to-date`.
 
-   Issue the push as a **standalone top-level `git …` command** — never inside `if`/`case`/`&&`. The sandbox runs a command unsandboxed only when its leading token is the excluded binary (`git`); a wrapper leads with `if`/etc., so the whole block is sandboxed and a pre-push hook (e.g. Biome) fails because it can't read `node_modules`.
+   Issue the push as a **standalone top-level `git …` command**: never inside `if`/`case`/`&&`. The sandbox runs a command unsandboxed only when its leading token is the excluded binary (`git`); a wrapper leads with `if`/etc., so the whole block is sandboxed and a pre-push hook (e.g. Biome) fails because it can't read `node_modules`.
 
-   GitHub — force HTTPS so sandboxed sessions (no readable `~/.ssh`) auth via the gh helper; the empty `credential.helper` resets the inherited chain so osxkeychain (which can't write in the sandbox) is never invoked. Leaves no state in `.git/config` or `~/.gitconfig`:
+   GitHub: force HTTPS so sandboxed sessions (no readable `~/.ssh`) auth via the gh helper; the empty `credential.helper` resets the inherited chain so osxkeychain (which can't write in the sandbox) is never invoked. Leaves no state in `.git/config` or `~/.gitconfig`:
    ```sh
    git -c "url.https://github.com/.pushInsteadOf=git@github.com:" \
        -c credential.helper= \
@@ -110,7 +110,7 @@ Fill the platform's PR template from the current branch's changes, push the bran
 
 6. **Build the title from the branch name** (deterministic):
    - Split the branch on the first `/`: left side is the **branch type**, right side is everything else.
-   - If the branch type matches `feature|fix|chore|docs|refactor|test|perf|ci|build|style|revert`, use it; otherwise treat the branch as having no type prefix (rare — legacy or hand-named branches).
+   - If the branch type matches `feature|fix|chore|docs|refactor|test|perf|ci|build|style|revert`, use it; otherwise treat the branch as having no type prefix (rare: legacy or hand-named branches).
    - Map branch type → commit type: `feature` → `feat`; every other type passes through unchanged.
    - From the right side, strip a leading Jira ticket (`^[A-Z]+-[0-9]+`) and its trailing `-`; the rest is the slug. Replace remaining `-`/`_` with spaces and trim.
    - Derive the **scope** from the diff per step 6a.
@@ -143,25 +143,25 @@ Fill the platform's PR template from the current branch's changes, push the bran
 
 ## Humanization (required)
 
-Every word in the title or description must read like a teammate wrote it — specific, plain, honest, no AI tells.
+Every word in the title or description must read like a teammate wrote it: specific, plain, honest, no AI tells.
 
 **Vocabulary to avoid** (and their cousins): *additionally, leverage, robust, seamless, comprehensive, holistic, delve, crucial, pivotal, key, vital, intricate, tapestry, landscape (figurative), testament, underscore, highlight (verb), enduring, vibrant, foster, journey, ecosystem, empower, unlock*.
 
 **Constructions to avoid:**
 
-- Em dashes between clauses — use commas or periods.
+- Em dashes between clauses: use commas or periods.
 - Negative parallelisms ("not only X but Y", "it's not just X, it's Y").
-- Copula avoidance (*serves as / stands as / marks / represents*) — use *is* / *has*.
+- Copula avoidance (*serves as / stands as / marks / represents*): use *is* / *has*.
 - Tail "-ing" clauses for false depth ("…highlighting our commitment", "…ensuring scalability").
 - Forced rule-of-three when there are really one or two things.
 - Promotional adjectives (*powerful, seamless, robust, cutting-edge, modern*).
-- Bold-header bullets (`**Performance:** …`) — write a sentence.
+- Bold-header bullets (`**Performance:** …`): write a sentence.
 - Emojis, anywhere.
-- Title Case Headings — use sentence case.
+- Title Case Headings: use sentence case.
 - Filler ("in order to" → "to"; drop "it is important to note that").
 - Stacked hedges ("could potentially possibly").
 - Generic positive endings ("a major step forward", "exciting things ahead").
-- Curly quotes — use straight quotes.
+- Curly quotes: use straight quotes.
 - Chatbot artifacts ("I hope this helps", "Let me know if…", "Certainly!").
 
 **Voice:** say what changed and why, not how transformative it is. Be specific about numbers, file names, and behavior. If something's incomplete, say so plainly ("doesn't cover the X case yet"). Vary sentence length; short sentences are fine.

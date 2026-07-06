@@ -28,7 +28,7 @@ Out of scope:
 - Authoring, editing, or merging skills (that is `skill-writer`).
 - Managing the registry itself, syncing upstream, or removing skills.
 - Recommending skills outside the tracked registry.
-- Re-implementing dependency resolution, download, or symlinking — these are
+- Re-implementing dependency resolution, download, or symlinking: these are
   delegated to `claude-skill add`.
 
 ## Users And Trigger Context
@@ -36,7 +36,7 @@ Out of scope:
 - Primary users: humans and agents deciding which skills to add to a project.
 - Common user requests: "which skills should I add?", "recommend skills for this
   repo", "what skills fit this codebase?", "scout skills for my project",
-  "setting up a project — what skills are useful?".
+  "setting up a project, what skills are useful?".
 - Should not trigger for: creating/writing/improving a skill (→ `skill-writer`),
   listing all skills (→ `claude-skill list`), adding one named skill directly
   (→ `claude-skill add`), info queries about a specific skill, or removing a
@@ -60,7 +60,7 @@ Out of scope:
   - Installation is gated behind explicit user confirmation (AskUserQuestion);
     the analysis/report phase is read-only.
   - Surface auto-pulled dependencies before adding a skill that declares them.
-  - Do not return an empty report — when the stack has no catalog tech skills,
+  - Do not return an empty report: when the stack has no catalog tech skills,
     fall back to language-agnostic skills inferred from gaps and CLAUDE.md.
 - Expected bundled files loaded at runtime: none beyond `SKILL.md` (single inline
   skill).
@@ -69,18 +69,18 @@ Out of scope:
 
 Authoritative sources:
 
-- `$DOTFILES_DIR/roles/ai/files/claude/skill-registry.json` — names, groups,
+- `$DOTFILES_DIR/roles/ai/files/claude/skill-registry.json`: names, groups,
   `dependencies`, `dependency_only`.
 - Each skill's `SKILL.md` frontmatter under
-  `$DOTFILES_DIR/roles/ai/files/claude/skills/<name>/` — descriptions. Step 1
+  `$DOTFILES_DIR/roles/ai/files/claude/skills/<name>/`: descriptions. Step 1
   emits name + groups + description in one pass (bulk `grep`), so Step 4 does no
   per-skill reads; block-scalar descriptions (3 skills) are read individually
   only if shortlisted.
 - The current project: `package.json` (JS/TS tags), Swift/iOS markers, repo
   structure/gaps, and `CLAUDE.md`/`README.md`.
-- `~/.claude/skills/` — globally-installed set (exclude).
-- `.claude/skills/` in the working directory — project-linked set (mark).
-- The `claude-skill` CLI — the install path.
+- `~/.claude/skills/`: globally-installed set (exclude).
+- `.claude/skills/` in the working directory: project-linked set (mark).
+- The `claude-skill` CLI: the install path.
 
 Data that must not be stored: secrets, tokens, private paths, or customer data
 encountered while analyzing a project.
@@ -90,7 +90,7 @@ encountered while analyzing a project.
 - `SKILL.md` contains the full five-step runtime workflow, the candidate-catalog
   jq snippet, the analysis signals, the report format, and the install step.
 - `SPEC.md` contains this maintenance contract.
-- No `references/`, `scripts/`, or `assets/` — the skill is small, single-path
+- No `references/`, `scripts/`, or `assets/`: the skill is small, single-path
   inline guidance and needs no routed depth.
 
 Execution shape: inline-guidance (primary); argument-driven and prompt-chaining
@@ -112,7 +112,7 @@ warranted at the current size.
 
 - Dotfiles-coupled: requires `$DOTFILES_DIR` and the on-disk registry; not
   portable to machines without this dotfiles checkout.
-- Tech-specific matching covers **JS/TS and Swift/iOS only** — the only ecosystems
+- Tech-specific matching covers **JS/TS and Swift/iOS only**, the only ecosystems
   the catalog has skills for. Other stacks (Rust, Go, Python, Ruby, …) receive
   only language-agnostic recommendations. Revisit Step 2 if the catalog gains
   skills for a new ecosystem.
@@ -121,7 +121,7 @@ warranted at the current size.
 - The install picker uses AskUserQuestion, capped at four options per question;
   beyond ~16 recommendations the printed report is the complete list and extras
   are added manually.
-- Matching is heuristic over names, groups, and descriptions — it can miss a
+- Matching is heuristic over names, groups, and descriptions; it can miss a
   relevant skill or over-rank a weak one.
 
 ## Maintenance Notes

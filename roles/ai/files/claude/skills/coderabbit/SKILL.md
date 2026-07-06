@@ -59,14 +59,14 @@ current branch's PR.
    truth for what to process and what to skip.
 
    GraphQL type signatures contain `!` (non-null markers: `String!`, `Int!`, `ID!`).
-   **Never put a GraphQL document in a Bash command** — the shell escapes `!` to
+   **Never put a GraphQL document in a Bash command**: the shell escapes `!` to
    `\!` even inside single quotes and heredocs, which GitHub rejects with
    `Expected VAR_SIGN, actual: UNKNOWN_CHAR ("!")`. Instead **create the query file
    with the Write tool** (it writes literal bytes, bypassing the shell), then pass it
    with `-F query=@file`.
 
    Write this to `/tmp/cr-threads.graphql` with the Write tool, verbatim (use a
-   literal absolute path — the Write tool does not expand `$TMPDIR`):
+   literal absolute path; the Write tool does not expand `$TMPDIR`):
    ```graphql
    query($owner:String!,$name:String!,$pr:Int!,$endCursor:String){
      repository(owner:$owner,name:$name){
@@ -96,10 +96,10 @@ current branch's PR.
 
 3. **Skip already-handled threads** (idempotency). Skip a CodeRabbit thread when
    any of:
-   - `isResolved == true` — the primary signal. Step 8 resolves every thread this
+   - `isResolved == true`: the primary signal. Step 8 resolves every thread this
      skill acts on, so anything handled in a prior run drops out here. Also covers
      threads resolved by hand or auto-resolved by CodeRabbit on re-review.
-   - `isOutdated == true` — the line no longer exists, the suggestion is stale.
+   - `isOutdated == true`: the line no longer exists, the suggestion is stale.
    - the thread already has a reply by a human or the PR author.
    - the thread already has a reply carrying this skill's hidden marker
      (`<!-- cr-skill -->`), a backup signal if a resolve call failed mid-run.
@@ -110,8 +110,8 @@ current branch's PR.
 4. **Strip noise from each comment body** before triage. Drop:
    - collapsed `<details>` blocks, especially "Nitpick comments" and "Outside diff
      range" sections,
-   - the "🤖 Prompt for AI Agents" block — read it as a hint, never paste it into a
-     reply,
+   - the "🤖 Prompt for AI Agents" block (read it as a hint, never paste it into a
+     reply),
    - `<summary>` wrappers and committable-suggestion diff fences.
 
    Treat `nitpick` items as low priority. Treat items flagged `potential issue` or
@@ -125,10 +125,10 @@ current branch's PR.
    one-line, code-grounded verdict.
 
 6. **Triage into three buckets**:
-   - **FIX** — the suggestion is correct and worth doing now. Note the exact edit.
-   - **REPLY-AND-SKIP** — declined: wrong, out of scope, intentional, or a nitpick
+   - **FIX**: the suggestion is correct and worth doing now. Note the exact edit.
+   - **REPLY-AND-SKIP** (declined): wrong, out of scope, intentional, or a nitpick
      not worth it. Draft a reply per the format below.
-   - **ASK-USER** — a judgment call, or a real change in behavior or public API the
+   - **ASK-USER**: a judgment call, or a real change in behavior or public API the
      user should decide. Carries a specific question.
 
 7. **Single batched approval gate** (mandatory). Print **one** verdict table for
@@ -148,23 +148,23 @@ current branch's PR.
    - `header: "CodeRabbit triage"`
    - `multiSelect: false`
    - `options`:
-     - `Go` — apply all FIX edits and post all REPLY-AND-SKIP replies, then
+     - `Go`: apply all FIX edits and post all REPLY-AND-SKIP replies, then
        resolve every handled thread.
-     - `Fixes only` — apply FIX edits and resolve those threads, post no replies.
-     - `Replies only` — post replies and resolve those threads, make no code edits.
-     - `Cancel` — do nothing.
+     - `Fixes only`: apply FIX edits and resolve those threads, post no replies.
+     - `Replies only`: post replies and resolve those threads, make no code edits.
+     - `Cancel`: do nothing.
    - The auto-provided `Other` lets the user redirect ("flip 2 to FIX", "answer
      ASK-USER #3: yes", "reword reply 2"). On `Other`, fold in the feedback,
      re-triage, re-show the table, and re-run this gate.
 
    Resolve every ASK-USER item inside this loop (via `Other` or a short prior
    question) so the final answer is unambiguous. Never auto-pick an ASK-USER
-   verdict. Do not wait for prose like `go` / `lgtm` — the structured question is
+   verdict. Do not wait for prose like `go` / `lgtm`. The structured question is
    the gate. Free-form confirmations break `attributionSkill` in the transcript
    and would cause `git-skill-gate.sh` to block a later `/commit`.
 
 8. **Execute, then resolve each handled thread**:
-   - **FIX**: make the edits with Edit. Do **not** commit or push — the
+   - **FIX**: make the edits with Edit. Do **not** commit or push. The
      `git-skill-gate.sh` hook blocks `git commit` / `git push` outside `/commit`
      and `/pr`, and that is intended. After edits, tell the user to run `/commit`
      then `/pr`.
@@ -196,12 +196,12 @@ current branch's PR.
      gh api graphql -f threadId="$THREAD_NODE_ID" -F query=@/tmp/cr-resolve.graphql
      ```
      Resolve only the threads acted on by the chosen gate option. If a resolve call
-     fails, report it and continue — the hidden marker and the `isResolved` check
+     fails, report it and continue; the hidden marker and the `isResolved` check
      in step 3 still keep the next run idempotent.
 
 9. **Print a summary**: N fixed (files touched), N replied (with thread links), N
    threads resolved, N asked, N skipped as already resolved or outdated. Remind the
-   user to run `/commit` then `/pr` to push the fixes — the threads are resolved,
+   user to run `/commit` then `/pr` to push the fixes. The threads are resolved,
    but the code is not pushed yet, and resolving does not push for them. Multiple
    rounds are normal: re-run `/coderabbit` after each push and step 3 keeps it
    idempotent.
