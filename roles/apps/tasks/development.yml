@@ -60,6 +60,24 @@
       Then re-run the playbook.
   when: gh_auth_check.rc != 0
 
+- name: Install gh-dash (PR/issue dashboard) gh extension
+  ansible.builtin.command: gh extension install dlvhdr/gh-dash
+  args:
+    creates: "{{ HOME }}/.local/share/gh/extensions/gh-dash"
+
+- name: Ensure gh-dash config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/gh-dash"
+    state: directory
+    mode: "0755"
+
+- name: Symlink gh-dash config
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/gh-dash/config.yml"
+    dest: "{{ HOME }}/.config/gh-dash/config.yml"
+    state: link
+    force: true
+
 - name: Ensure diffnav config directory exists
   ansible.builtin.file:
     path: "{{ HOME }}/.config/diffnav"

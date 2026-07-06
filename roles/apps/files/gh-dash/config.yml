@@ -1,0 +1,68 @@
+prSections:
+  - title: My Pull Requests
+    filters: is:open author:@me
+  - title: Needs My Review
+    filters: is:open review-requested:@me
+  - title: Involved
+    filters: is:open involves:@me -author:@me
+  - title: Addingwell
+    filters: is:open org:addingwell
+
+issuesSections:
+  - title: My Issues
+    filters: is:open author:@me
+  - title: Assigned
+    filters: is:open assignee:@me
+  - title: Involved
+    filters: is:open involves:@me -author:@me
+
+defaults:
+  view: prs
+  prsLimit: 20
+  issuesLimit: 20
+  refetchIntervalMinutes: 30
+  preview:
+    open: true
+    width: 0.45
+    height: 0.60
+    position: auto
+
+# Solarized Dark, matching the Ghostty theme
+theme:
+  colors:
+    text:
+      primary: "#93a1a1"
+      secondary: "#839496"
+      inverted: "#002b36"
+      faint: "#586e75"
+      warning: "#dc322f"
+      success: "#859900"
+      actor: "#268bd2"
+    background:
+      selected: "#073642"
+    border:
+      primary: "#586e75"
+      secondary: "#073642"
+      faint: "#073642"
+
+# {{.RepoPath}} resolves through repoPaths, so these only work on mapped repos
+keybindings:
+  universal:
+    - key: g
+      name: lazygit
+      command: cd {{.RepoPath}} && lazygit
+  prs:
+    - key: e
+      name: code
+      command: code {{.RepoPath}}
+
+# Lets the built-in checkout keybinding (C) find local clones.
+# Didomi repos live on GitLab, so they are out of gh-dash's scope.
+repoPaths:
+  jmanuelrosa/dotfiles: ~/Developer/dotfiles
+  jmanuelrosa/*: ~/Developer/personal/*
+  addingwell/*: ~/Developer/work/addingwell/*
+
+# Same diff pager as git (pager.diff in .gitconfig)
+pager:
+  diff: diffnav
