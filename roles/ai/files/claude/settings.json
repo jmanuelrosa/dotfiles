@@ -163,7 +163,19 @@
       "Bash(find / *)",
       "Bash(find ~ *)",
       "Bash(find ..)",
-      "Bash(find .. *)"
+      "Bash(find .. *)",
+      "Bash(lazygit)",
+      "Bash(lazygit *)",
+      "Bash(btop)",
+      "Bash(btop *)",
+      "Bash(ctop)",
+      "Bash(ctop *)",
+      "Bash(nnn)",
+      "Bash(nnn *)",
+      "Bash(pgcli)",
+      "Bash(pgcli *)",
+      "Bash(lazydocker)",
+      "Bash(lazydocker *)"
     ]
   },
   "model": "fable",
@@ -185,9 +197,28 @@
           },
           {
             "type": "command",
+            "command": "~/.claude/hooks/git-skill-gate.sh",
+            "if": "Bash(gh *)"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/git-skill-gate.sh",
+            "if": "Bash(glab *)"
+          },
+          {
+            "type": "command",
             "command": "~/.claude/hooks/pre-commit-verify.sh",
             "timeout": 180,
             "if": "Bash(git *)"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/em-dash-gate.sh"
           }
         ]
       }
