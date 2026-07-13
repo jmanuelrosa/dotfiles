@@ -181,6 +181,62 @@
       "dependencies": [
         "dx-failure-modes"
       ]
+    },
+    {
+      "name": "competitive-researcher",
+      "groups": [
+        "product",
+        "research"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "user-evidence-researcher",
+      "groups": [
+        "product",
+        "research"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "market-sizer",
+      "groups": [
+        "product",
+        "research"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "strategy-checker",
+      "groups": [
+        "product",
+        "strategy"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "pm-red-team",
+      "groups": [
+        "product",
+        "review"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "adr-scribe",
+      "groups": [
+        "engineering",
+        "documentation"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "ac-writer",
+      "groups": [
+        "quality",
+        "testing"
+      ],
+      "note": "Locally authored"
     }
   ]
 }

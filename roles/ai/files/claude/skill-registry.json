@@ -892,6 +892,139 @@
         "claude"
       ],
       "note": "Locally authored"
+    },
+    {
+      "name": "feature-team",
+      "groups": [
+        "engineering",
+        "workflow",
+        "ai"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "product-lead",
+      "groups": [
+        "product",
+        "pm",
+        "workflow",
+        "documentation"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "setup-strategy",
+      "groups": [
+        "product",
+        "pm",
+        "planning"
+      ],
+      "dependencies": [
+        "product-lead",
+        "grilling",
+        "idea-refine"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "0-refine-idea",
+      "groups": [
+        "product",
+        "pm",
+        "planning"
+      ],
+      "dependencies": [
+        "product-lead",
+        "grilling",
+        "idea-refine"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "1-research",
+      "groups": [
+        "product",
+        "pm",
+        "research"
+      ],
+      "dependencies": [
+        "product-lead"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "2-write-prd",
+      "groups": [
+        "product",
+        "pm",
+        "writing",
+        "documentation"
+      ],
+      "dependencies": [
+        "product-lead"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "3-red-team",
+      "groups": [
+        "product",
+        "pm",
+        "review"
+      ],
+      "dependencies": [
+        "product-lead"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "4-tech-shape",
+      "groups": [
+        "product",
+        "pm",
+        "architecture",
+        "documentation"
+      ],
+      "dependencies": [
+        "product-lead"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "5-decompose",
+      "groups": [
+        "product",
+        "pm",
+        "planning"
+      ],
+      "dependencies": [
+        "product-lead"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "6-gate-check",
+      "groups": [
+        "product",
+        "pm",
+        "review"
+      ],
+      "dependencies": [
+        "product-lead"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "7-push-to-board",
+      "groups": [
+        "product",
+        "pm",
+        "workflow"
+      ],
+      "dependencies": [
+        "product-lead"
+      ],
+      "note": "Locally authored"
     }
   ]
 }
