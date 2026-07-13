@@ -49,6 +49,7 @@ BREW_PACKAGES:
     - oven-sh/bun/bun
     - pnpm
     - getsentry/tools/sentry
+    - herdr
     # Databases
     - libpq
     - pgcli

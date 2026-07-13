@@ -28,6 +28,8 @@ function _wt_help
   echo "                           to <dir>; pass -b/--branch to override (created from"
   echo "                           develop > main > master). Copies env/.vscode/.claude,"
   echo "                           installs deps from lockfile (frozen) if present, and cds into it."
+  echo "                           Inside a herdr session, also opens and focuses the worktree"
+  echo "                           as a herdr workspace."
   echo "  list                     List all worktrees"
   echo "  remove <name> [--force]  Remove a worktree (by branch name or path)"
   echo "  prune                    Prune stale worktree metadata"
@@ -116,6 +118,13 @@ function _wt_add
   else if test -f yarn.lock
     echo "→ yarn install --frozen-lockfile"
     yarn install --frozen-lockfile
+  end
+
+  if set -q HERDR_ENV; and type -q herdr
+    echo "→ Opening worktree in herdr"
+    if not herdr worktree open --path $target --label $branch --focus
+      echo "wt: herdr worktree open failed (worktree created regardless)" >&2
+    end
   end
 end
 
