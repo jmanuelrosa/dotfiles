@@ -103,3 +103,16 @@
     dest: "{{ HOME }}/.config/pgcli/config"
     state: link
     force: true
+
+- name: Ensure herdr config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/herdr"
+    state: directory
+    mode: "0755"
+
+- name: Symlink herdr config
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/herdr/config.toml"
+    dest: "{{ HOME }}/.config/herdr/config.toml"
+    state: link
+    force: true
