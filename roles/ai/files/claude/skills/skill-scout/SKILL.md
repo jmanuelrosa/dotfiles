@@ -7,16 +7,14 @@ disable-model-invocation: true
 
 # Skill Scout
 
-Recommend which skills from the registry are worth adding to the **current
-project**, then offer to install them. Work through the steps in order. An
-argument narrows ranking to that area (e.g. `frontend`, `testing`); with no
-argument, rank across all relevant skills.
+Recommend which skills from the registry are worth adding to the **current project**, then offer to install them.
+Work through the steps in order.
+An argument narrows ranking to that area (e.g. `frontend`, `testing`); with no argument, rank across all relevant skills.
 
 ## Step 1: Build the candidate catalog
 
-The catalog metadata lives in the dotfiles registry; descriptions live in each
-skill's `SKILL.md`. One command emits the whole annotated catalog
-(`name <TAB> groups <TAB> description`), so no per-skill reads are needed later:
+The catalog metadata lives in the dotfiles registry; descriptions live in each skill's `SKILL.md`.
+One command emits the whole annotated catalog (`name <TAB> groups <TAB> description`), so no per-skill reads are needed later:
 
 ```bash
 test -n "$DOTFILES_DIR" || { echo "DOTFILES_DIR is not set. Cannot read the skill registry."; exit 1; }
@@ -32,22 +30,21 @@ while IFS=$'\t' read -r name groups; do
 done
 ```
 
-`visibleskills` already drops `dependency_only` skills. From the candidate list:
+`visibleskills` already drops `dependency_only` skills.
+From the candidate list:
 
-- **Drop** any name that appears under `~/.claude/skills/` (installed globally,
-  available everywhere already, including `skill-scout` itself).
-- **Mark** any name that appears under `.claude/skills/` as already-linked. Keep
-  it for the report but never offer to add it again.
-- A blank description means a block-scalar frontmatter (3 skills, e.g.
-  `humanizer`). Only if such a skill reaches the shortlist, read its `SKILL.md`.
+- **Drop** any name that appears under `~/.claude/skills/` (installed globally, available everywhere already, including `skill-scout` itself).
+- **Mark** any name that appears under `.claude/skills/` as already-linked.
+  Keep it for the report but never offer to add it again.
+- A blank description means a block-scalar frontmatter (3 skills, e.g. `humanizer`).
+  Only if such a skill reaches the shortlist, read its `SKILL.md`.
 
 Everything that survives is a **candidate**.
 
 ## Step 2: Analyze the project
 
-The catalog only has **tech-specific** skills for two ecosystems (JS/TS and
-Swift/iOS), so the fingerprint targets exactly those, plus language-agnostic
-signals. Read what exists; do not assume.
+The catalog only has **tech-specific** skills for two ecosystems (JS/TS and Swift/iOS), so the fingerprint targets exactly those, plus language-agnostic signals.
+Read what exists; do not assume.
 
 | Signal | How | Yields |
 |---|---|---|
@@ -56,33 +53,29 @@ signals. Read what exists; do not assume.
 | Gaps (any language) | `ls -d tests test __tests__ .github/workflows docs src 2>/dev/null` | needs from absence (no tests → testing; no CI → ci) |
 | Intent | read `CLAUDE.md` / `README.md` | conventions file structure won't reveal (e.g. "we follow DDD" → domain-modeling) |
 
-`package.json` deps encode nearly every JS/TS tag, so there is no need to open
-individual config files (vite/tailwind/prisma/playwright/…). Do **not** probe
-`Cargo.toml`/`go.mod`/`pyproject.toml`/`Gemfile`: the catalog has no skills for
-those stacks.
+`package.json` deps encode nearly every JS/TS tag, so there is no need to open individual config files (vite/tailwind/prisma/playwright/…).
+Do **not** probe `Cargo.toml`/`go.mod`/`pyproject.toml`/`Gemfile`: the catalog has no skills for those stacks.
 
-**No `package.json` and no Swift markers?** The project's stack isn't represented
-in the catalog (Rust, Go, Python, Ruby, …). Skip tech matching and recommend the
-language-agnostic skills (workflow, quality, review, testing, git, ai, planning,
-marketing) inferred from the gaps + CLAUDE.md. Never return an empty report.
+**No `package.json` and no Swift markers?** The project's stack isn't represented in the catalog (Rust, Go, Python, Ruby, …).
+Skip tech matching and recommend the language-agnostic skills (workflow, quality, review, testing, git, ai, planning, marketing) inferred from the gaps + CLAUDE.md.
+Never return an empty report.
 
 ## Step 3: Match & tier
 
-Score each surviving candidate holistically against the project signals, using
-its name, groups, and description (all already in the Step 1 catalog). Assign two
-tiers:
+Score each surviving candidate holistically against the project signals, using its name, groups, and description (all already in the Step 1 catalog).
+Assign two tiers:
 
-- **Strong match**: direct, concrete evidence (e.g. `react` in deps, zero test
-  files, a `.github/workflows/` dir, an explicit convention in CLAUDE.md).
+- **Strong match**: direct, concrete evidence (e.g. `react` in deps, zero test files, a `.github/workflows/` dir, an explicit convention in CLAUDE.md).
 - **Worth considering**: plausible but weaker signal.
 
-Shortlist roughly the top 12. A focus argument, if given, promotes matching
-skills and demotes the rest.
+Shortlist roughly the top 12.
+A focus argument, if given, promotes matching skills and demotes the rest.
 
 ## Step 4: Present the report
 
-Descriptions are already in the Step 1 catalog. No extra reads. Print the
-report (for a blank/block-scalar description, read that one `SKILL.md`):
+Descriptions are already in the Step 1 catalog.
+No extra reads.
+Print the report (for a blank/block-scalar description, read that one `SKILL.md`):
 
 ```
 STRONG MATCH
@@ -102,55 +95,42 @@ ALREADY IN THIS PROJECT (skipped)
  ✓ commit  [git]
 ```
 
-Every recommended line carries: number, skill name, groups, a project-specific
-**Why**, and the **What** description. Already-linked skills go in their own
-section and are never numbered for install.
+Every recommended line carries: number, skill name, groups, a project-specific **Why**, and the **What** description.
+Already-linked skills go in their own section and are never numbered for install.
 
 ## Step 5: Offer to install
 
-Offer the recommended (non-installed) skills via an AskUserQuestion
-multi-select. If there are more than four, batch them across up to four questions
-(four options each); anything beyond is already visible in the printed report and
-can be added manually.
+Offer the recommended (non-installed) skills via an AskUserQuestion multi-select.
+If there are more than four, batch them across up to four questions (four options each); anything beyond is already visible in the printed report and can be added manually.
 
-`claude-skill` is a **fish function**, not a binary: calling it from the Bash
-tool's shell fails (`command not found`), and a bare `fish -c` loads the full
-fish config (ssh-agent, etc.) and floods stderr with sandbox errors. Invoke it
-with config disabled and the function file sourced, passing **all** selected
-skills in one call (it resolves dependencies and links them together):
+`claude-skill` is a **fish function**, not a binary: calling it from the Bash tool's shell fails (`command not found`), and a bare `fish -c` loads the full fish config (ssh-agent, etc.) and floods stderr with sandbox errors.
+Invoke it with config disabled and the function file sourced, passing **all** selected skills in one call (it resolves dependencies and links them together):
 
 ```bash
 fish --no-config -c "source $DOTFILES_DIR/roles/shell/files/fish/functions/claude-skill.fish; claude-skill add <name1> <name2> ..."
 ```
 
-`--no-config` skips the noisy shell startup; sourcing the file defines
-`claude-skill` and its helpers; `$DOTFILES_DIR` is inherited by the subshell.
-`claude-skill add` resolves transitive dependencies, downloads any missing
-skill, and symlinks into `.claude/skills/` **relative to the current directory**.
-Run from the project root. If a chosen skill declares `dependencies`, say
-"also pulls: …" before adding so the user knows what else lands.
+`--no-config` skips the noisy shell startup; sourcing the file defines `claude-skill` and its helpers; `$DOTFILES_DIR` is inherited by the subshell.
+`claude-skill add` resolves transitive dependencies, downloads any missing skill, and symlinks into `.claude/skills/` **relative to the current directory**.
+Run from the project root.
+If a chosen skill declares `dependencies`, say "also pulls: …" before adding so the user knows what else lands.
 
-**Verify, do not assume.** The symlink target `.claude/skills/` is often outside
-the command sandbox's writable roots, so `ln` fails with "Operation not
-permitted". After adding, confirm the links exist:
+**Verify, do not assume.** The symlink target `.claude/skills/` is often outside the command sandbox's writable roots, so `ln` fails with "Operation not permitted".
+After adding, confirm the links exist:
 
 ```bash
 ls -l .claude/skills/
 ```
 
-If the expected symlinks are missing (writes were denied), do **not** report
-success. Tell the user the sandbox blocked it and hand them the exact command to
-run themselves in this session with a leading `!` (runs unsandboxed as fish, so
-the function is already available, no sourcing needed):
+If the expected symlinks are missing (writes were denied), do **not** report success.
+Tell the user the sandbox blocked it and hand them the exact command to run themselves in this session with a leading `!` (runs unsandboxed as fish, so the function is already available, no sourcing needed):
 
 ```
 ! claude-skill add <name1> <name2> ...
 ```
 
-Finish with a one-line summary of what was actually linked (verified by the
-`ls`), not what was attempted.
+Finish with a one-line summary of what was actually linked (verified by the `ls`), not what was attempted.
 
 ## Notes
 
-- The `$DOTFILES_DIR` paths are an intentional host coupling (same source as the
-  `claude-skill` CLI); see `SPEC.md` for the full contract and limitations.
+- The `$DOTFILES_DIR` paths are an intentional host coupling (same source as the `claude-skill` CLI); see `SPEC.md` for the full contract and limitations.

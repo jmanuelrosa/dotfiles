@@ -2,6 +2,7 @@
 name: commit
 description: Stage changes, split the diff into atomic concerns when it makes sense, and write one strict conventional commit per concern. Stops at commit; does not push.
 argument-hint: "[guidance: scope, how to split, or branch name]"
+model: sonnet
 disable-model-invocation: true
 allowed-tools:
   - Bash(git status *)
@@ -65,30 +66,29 @@ Arguments, if any, are user guidance: a scope, how to split concerns, or a branc
 5. **Draft the plan**: one entry per concern.
    - **Header**: `<type>(<scope>): <subject>`, ≤ 100 chars, imperative, no leading capital, no trailing period. Types: `feat | fix | chore | docs | refactor | test | perf | ci | build | style | revert`. Derive scope from the touched area (monorepo package, top-level directory, role name in this dotfiles repo, feature area like `auth`/`api`); omit `(<scope>)` only when genuinely repo-wide, and surface the doubt at the gate if unclear.
    - **Body**: only when the *why* isn't obvious from the subject. Blank line after subject, wrap at 100 cols, short `-` bullets, no prose paragraphs. Skip rather than pad.
-   - **Never** write `Co-Authored-By: Claude …` or `🤖 Generated with …`. Attribution is handled by the `attribution` setting in `settings.json`; duplicating it in the message body produces the trailer even when attribution is configured to be empty. The `git-skill-gate` hook hard-blocks messages containing these lines.
+   - **Never** write `Co-Authored-By: Claude …` or `🤖 Generated with …`: `settings.json` handles attribution and the `git-skill-gate` hook hard-blocks these lines.
 
 6. **Humanize**: plain verbs (*add, fix, remove, rename, move, drop, bump, split*), no AI vocabulary (*leverage, robust, seamless, comprehensive, enhance, streamline, foster*), no promotional tone, no em dashes between clauses, no emojis. Be specific: `fix(checkout): handle empty cart on /checkout` beats `fix: bug in checkout`.
 
 7. **Approval gate** (mandatory). Print the plan (per commit: number, subject, file group, any folded-in noisy files, body). Then call `AskUserQuestion`:
    - `question: "Proceed with these commits?"`, `header: "Commit plan"`, `multiSelect: false`
    - options: `Go` (commit each entry in order), `Cancel` (stop, commit nothing, unstage nothing).
-   - The structured question *is* the gate: don't wait for prose like `go` / `lgtm` / `ok`. Free-form confirmations between the plan and the commits break `attributionSkill` in the transcript and cause `git-skill-gate.sh` to block.
+   - The structured question *is* the gate: don't wait for prose like `go` / `lgtm` / `ok` (free-form confirmations break the `git-skill-gate` hook).
    - On `Other`, integrate the redirect ("change commit 2's scope", "split commit 1", "drop the last"), replan from concern analysis if needed, and re-run this gate.
 
 8. **Commit each concern in order:**
    - **Stage** exactly its file group with `git add <files>`, or `git add -p <file>` for hunk splits.
-   - **Commit**: write the full message (subject, blank line, body when present) with the **Write tool** to a message file unique to this session: `/tmp/claude/commit-msg-<repo>-<suffix>.txt`, where `<suffix>` is a short random string picked once per run. Concurrent sessions share `/tmp/claude/`, so a fixed filename lets another session's message land between your Write and your commit. Then:
+   - **Commit**: write the full message (subject, blank line, body when present) with the **Write tool** to `/tmp/claude/commit-msg-<repo>-<suffix>.txt`, where `<suffix>` is a short random string picked once per run (concurrent sessions share `/tmp/claude/`, so a fixed name risks a collision). Then:
      ```sh
      git commit -F /tmp/claude/commit-msg-<repo>-<suffix>.txt
      ```
-     Applies to every commit, single-line included: never inline `-m` and never a HEREDOC. The harness escapes `!` and other shell-special characters before the shell runs, so subjects like `feat(api)!: drop v1` pick up stray backslashes on both paths; the Write tool bypasses the shell entirely. Overwrite the same file for each commit in the loop.
+     Applies to every commit, single-line included: never inline `-m` and never a HEREDOC (the harness escapes `!` and other shell-special chars, so subjects like `feat(api)!: drop v1` pick up stray backslashes; the Write tool bypasses the shell). Overwrite the same file for each commit in the loop.
    - **Never** `--no-verify`. On a pre-commit hook failure, surface the full output and stop the loop: don't retry, don't start the next commit until it's resolved.
    - **Never** `--amend` unless the user explicitly typed the word "amend".
    - After the loop, print `git log -n <count> --pretty='%h %s'`.
 
 ## Rules
 
-- Subject prefixes follow `@commitlint/config-conventional` (`feat`, not `feature`; lower-case type and scope; non-empty type + subject; no trailing full-stop; header ≤ 100). Branch prefixes use the distinct Conventional Branch set (`feature`, not `feat`): the Step 2 regex.
+- Subject prefixes follow `@commitlint/config-conventional` (`feat`, not `feature`; lower-case type and scope; non-empty type + subject; no trailing full-stop; header ≤ 100).
 - Never stage *cleartext* secrets (`.env`, `*.pem`, `*-key.json`, `credentials*`): warn and exclude by default. Vault-encrypted files (e.g. `vars/secrets.yml`) are meant to be committed and are fine.
-- Never stage local-only Claude state, `.claude/tasks/` above all: the `git-skill-gate` hook hard-blocks it, so exclude it at staging.
-- Use `git switch` for branch creation, not `git checkout -b`.
+- Never stage local-only Claude state (`.claude/tasks/` above all; the hook hard-blocks it).

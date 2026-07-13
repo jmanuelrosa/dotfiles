@@ -85,5 +85,5 @@ Vault-encrypted vars live in `vars/secrets.yml` (personal) and `vars/work.yml` (
 ## Conventions
 
 - **Idempotency is mandatory.** Every task must be safe to re-run. If a task isn't naturally idempotent, gate it with a `stat` / `register` check.
-- **Commits use short conventional-commit prefixes**, lowercase, informal: `feat:`, `fix:`, `chore:`. Subject under ~70 chars. Body optional.
+- **Commits and branch names follow the global conventions** (conventional commits via `/commit`, Conventional Branch naming); they are defined in the global CLAUDE.md and the commit skill, not per-repo.
 - **Lint exclusions** ([.ansible-lint](.ansible-lint)) skip `yaml[truthy]` and `var-naming` (uppercase Ansible vars are intentional). Don't fight the linter on those — they're conscious choices.

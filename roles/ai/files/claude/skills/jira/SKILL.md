@@ -170,7 +170,7 @@ Good summary:
 
 Bad description:
 
-> This ticket aims to introduce a comprehensive new error-handling layer, leveraging best-in-class patterns to deliver a seamless and resilient user experience — serving as a key milestone in our journey toward operational excellence.
+> This ticket aims to introduce a comprehensive new error-handling layer, leveraging best-in-class patterns to deliver a seamless and resilient user experience - serving as a key milestone in our journey toward operational excellence.
 
 Good description:
 
@@ -300,7 +300,7 @@ Same as B, but:
 
 Tickets created or referenced here flow into branches, commits, and PRs that follow shared conventions:
 
-- **Branch:** `<type>/<TICKET>-<slug>` (see commit skill, Step 2 regex). Use `s-task <TICKET>` to scaffold one from a Jira key; pass `--type` to override the inferred branch type when the issue type doesn't fit.
+- **Branch:** `<type>/<TICKET>-<slug>`. Use `s-task <TICKET>` to scaffold one from a Jira key; pass `--type` to override the inferred branch type when the issue type doesn't fit.
 - **Commit subject:** `<type>(<scope>): <subject>` (Conventional Commits; see commit skill, Step 6).
 - **PR title:** `<type>(<scope>): <subject> (<TICKET>)` (see pr skill, Step 6).
 
