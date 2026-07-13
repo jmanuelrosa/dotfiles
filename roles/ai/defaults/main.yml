@@ -5,21 +5,40 @@
 # Skills symlinked into ~/.claude/skills/ so they are available to Claude Code
 # in every project (no per-project `claude-skill add` needed).
 GLOBAL_CLAUDE_SKILLS:
+  - cc-review
   - skill-writer
   - skill-scout
-  - cc-review
   - agent-audit
+  - agent-writer
   - grill-me
   - grill-with-docs
   - commit
   - pr
   - humanizer
+  - feature-team
+  - product-lead
+  - setup-strategy
+  - 0-refine-idea
+  - 1-research
+  - 2-write-prd
+  - 3-red-team
+  - 4-tech-shape
+  - 5-decompose
+  - 6-gate-check
+  - 7-push-to-board
 
 # Agents symlinked into ~/.claude/agents/ so they are available to Claude Code
 # in every project (no per-project `claude-agent add` needed).
 GLOBAL_CLAUDE_AGENTS:
   - cc-staff-reviewer
   - architect
+  - competitive-researcher
+  - user-evidence-researcher
+  - market-sizer
+  - strategy-checker
+  - pm-red-team
+  - adr-scribe
+  - ac-writer
 
 BREW_PACKAGES:
   taps:

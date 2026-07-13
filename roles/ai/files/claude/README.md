@@ -46,6 +46,100 @@ claude-agent <list|add|remove|update|outdated> [--group] [name]
 | `outdated` | Fetch upstream for every tracked agent and report what's behind — without writing anything. Shows `last synced` from the registry. |
 | `outdated <name>` | Same, scoped to one agent. Local agents emit the same "no upstream" warning. |
 
+## Product Team
+
+A gated, spec-driven pipeline that takes a raw product idea to an engineering-ready backlog on a GitHub Project board. It is a set of locally-authored skills and agents (see [skills/product-lead/SKILL.md](skills/product-lead/SKILL.md) for the guide).
+
+The mental model:
+
+- **The filesystem is the orchestrator.** There is no long-running process. Each initiative is a folder under `docs/initiatives/{slug}/`, and `docs/initiatives/{slug}/STATUS.md` is its state machine.
+- **Documents are the contracts.** Every stage reads the prior stage's artifact from disk and writes its own; nothing depends on chat history.
+- **Every gate is a human PR review.** A stage opens or updates a PR, and merging it means the gate passed. Stages refuse to run until the prior gate is recorded `approved` in `STATUS.md`. In a repo without an `origin` remote, gates fall back to explicit recorded human decisions (local mode in conventions.md).
+- **No agent ever commits, pushes, or merges.** You drive git through `/commit` and `/pr`; the skills only write files.
+
+### Two ways in: new product or new feature
+
+The pipeline always runs inside one repo and scaffolds `docs/` into it; the only real difference between the two cases is how much code stage 4 has to read.
+
+- **New product (greenfield).** Start in an empty repo (`git init`), run `/setup-strategy` to establish the strategy and scaffold `docs/`, then open the first initiative with `/0-refine-idea "<idea>"`. Stage 4 has little or no code to explore, so it asks for stack choices rather than inferring them and writes the design from scratch.
+- **New feature in an existing project (brownfield).** Run `/setup-strategy` once to capture the strategy and OKRs the product already implies (skip it if `docs/strategy/` already exists), then treat every feature as its own initiative: a fresh `docs/{slug}` branch carried from `/0-refine-idea` through `/7-push-to-board`. Stage 4 reads the real codebase, cites `path:line` for every design claim, fits existing patterns, and numbers new ADRs after (or supersedes) the ones already in `docs/adr/`.
+
+Either way `docs/strategy/` and `docs/adr/` are shared across every initiative in the repo, and each initiative's own artifacts live under `docs/initiatives/{slug}/`. Small, low-risk features can take the expedited path described below.
+
+### Pipeline map
+
+| Stage | Reads | Produces | Gate | Agents |
+|---|---|---|---|---|
+| `/setup-strategy` (once) | interview (optionally seeded by `/idea-refine`) | `docs/strategy/strategy.md`, `docs/strategy/okrs.md`, repo scaffold | strategy PR | none |
+| `/0-refine-idea "<idea>"` | interview + strategy | `00-brief.md`, `STATUS.md`, branch | Gate 0: kill or proceed | `strategy-checker` |
+| `/1-research` | brief | `01-research/` (3 researchers + `summary.md`) | none (feeds Gate 1) | `competitive-researcher`, `user-evidence-researcher`, `market-sizer` (parallel) |
+| `/2-write-prd` | brief + research | `02-prd.md` | Gate 1: PM + team | none |
+| `/3-red-team` | PRD only (fresh eyes) | `03-red-team-report.md`, PRD revision | none (feeds Gate 1) | `pm-red-team` |
+| `/4-tech-shape` | PRD + this codebase | `04-design-doc.md`, `docs/adr/` | Gate 2: tech lead | `adr-scribe` |
+| `/5-decompose` | PRD + design doc | `05-backlog/` epics + stories + ACs | none (feeds Gate 3) | `ac-writer` |
+| `/6-gate-check` | backlog | `06-dor-report.md` (PASS/FAIL per story) | Gate 3: final | none |
+| `/7-push-to-board` | backlog + DoR report | GitHub issues + Project items, `docs/LEARNINGS.md` entry | dry-run confirm | none |
+
+A healthy funnel kills most ideas at Gate 0. Killing early is the pipeline working, not failing. Small, low-risk features may take the expedited path (conventions.md): the human may explicitly skip stages 1 and 3; gates and stages 4-6 are never skipped.
+
+### Running an initiative
+
+1. `/setup-strategy` once per repo: interviews you for vision, bets, non-bets, and OKRs, then writes `docs/strategy/` and scaffolds the repo. Arrive with a raw idea instead and it first runs `/idea-refine` (the vendored ideation skill), whose one-pager in `docs/ideas/` seeds the interview - the 3-5 bets and human-supplied OKR numbers are still required in full. Merge the strategy PR before running any initiative.
+2. `/0-refine-idea "<your idea>"`: creates the `docs/{slug}` branch and `00-brief.md`, pre-filling its interview from a matching `docs/ideas/` one-pager when one exists (and offering `/idea-refine` when the idea is still vague), and runs `strategy-checker` for a fit verdict. Then `/commit` and `/pr`; merging the PR passes Gate 0.
+3. `/1-research`: fans out to the three researchers in parallel (the only fan-out in the pipeline) and synthesizes `01-research/summary.md`. No gate of its own.
+4. `/2-write-prd`: writes `02-prd.md` (numbered `R1..Rn` requirements, non-goals, metrics with baselines) and opens the Gate 1 PR.
+5. `/3-red-team`: `pm-red-team` attacks the PRD with fresh eyes; agreed fixes are applied to the PRD by the skill. Both files ride the Gate 1 PR, so merge to pass Gate 1.
+6. `/4-tech-shape`: explores this codebase read-only and writes `04-design-doc.md`; `adr-scribe` extracts decisions into the repo-wide `docs/adr/`. Opens the Gate 2 PR.
+7. `/5-decompose`: writes epics and vertically-sliced stories; `ac-writer` adds Given/When/Then acceptance criteria, each traced to a PRD requirement.
+8. `/6-gate-check`: verifies every story against the Definition of Ready and writes `06-dor-report.md`. Opens the Gate 3 PR; merge only on ALL PASS.
+9. `/7-push-to-board`: dry-runs, asks Go/Cancel, then creates the GitHub epic and story issues, links them, adds them to the Project, and appends a retrospective to `docs/LEARNINGS.md`.
+
+Run `/product-lead` at any time for a status board: it reads every `docs/initiatives/*/STATUS.md`, reconciles stale gates against merged PRs, and prints the exact next command.
+
+### Artifact trail
+
+```
+docs/
+  ideas/                    # /idea-refine one-pagers, read by stage 0 to pre-fill
+  adr/
+    NNNN-{slug}.md          # all ADRs, global numbering, immutable, Initiative field links each back
+  strategy/
+    strategy.md
+    okrs.md
+  LEARNINGS.md              # appended at stage 7
+  initiatives/{slug}/
+    STATUS.md               # state machine, updated every stage
+    00-brief.md
+    01-research/
+      competitive.md
+      user-evidence.md
+      sizing.md
+      summary.md
+    02-prd.md
+    03-red-team-report.md
+    04-design-doc.md        # its ADR index points at the ADRs in docs/adr/
+    05-backlog/
+      epic-{n}.md
+      story-{n.m}.md
+    06-dor-report.md
+``` The design goal is an unbroken traceability chain: story to `AC-{n.m}.{k}` to `R#` (PRD requirement) to PRD to brief to strategy bet/OKR, cleared by five human PR gates plus the stage-7 dry-run confirm.
+
+### Product agents
+
+Each is single-artifact and least-privilege: it is dispatched only from its owning stage, writes exactly one thing, and cannot reach the human or touch git.
+
+| Agent | Dispatched from | Writes | Role |
+|---|---|---|---|
+| `strategy-checker` | `/0-refine-idea` | nothing (verdict only) | Judges brief fit against strategy + OKRs; blunt proceed/kill verdict |
+| `competitive-researcher` | `/1-research` | `01-research/competitive.md` | Maps who solves the problem today and where the gaps are |
+| `user-evidence-researcher` | `/1-research` | `01-research/user-evidence.md` | Collects public user signals, quoting evidence separately from inference |
+| `market-sizer` | `/1-research` | `01-research/sizing.md` | Rough TAM/SAM sizing with arithmetic shown and every assumption labeled |
+| `pm-red-team` | `/3-red-team` | `03-red-team-report.md` | Attacks the PRD with fresh eyes, at least 5 severity-labeled challenges |
+| `adr-scribe` | `/4-tech-shape` | `docs/adr/NNNN-*.md` | Extracts design decisions into numbered, immutable ADRs |
+| `ac-writer` | `/5-decompose` | edits `05-backlog/story-*.md` | Adds Given/When/Then acceptance criteria traced to a PRD `R#` |
+
+The pipeline skills are all `disable-model-invocation: true` (human-invoked only). The one exception is `idea-refine`, vendored pristine from `addyosmani/agent-skills` and left model-invocable: `/setup-strategy` and `/0-refine-idea` invoke it via the Skill tool as their ideation front-end, and it works standalone too. Install the whole pipeline into a project with `claude-skill add --group product` (the group includes `idea-refine`). Its agents span a few tags: `claude-agent add --group product` links the five research and review seats; add the last two by name with `claude-agent add adr-scribe` and `claude-agent add ac-writer`.
+
 ## Staff-engineer bench
 
 A separate delegation system for building what Product Team specs out. Each seat detects the project stack first, routes to installed project skills for stack-specific best practices, implements within strict boundaries, self-verifies, and returns a structured completion report. The `architect` is the bridge: given a refined brief it explores the codebase read-only, writes a feature spec to `docs/specs/` with an owner-split work breakdown across these seats, and returns dispatch-ready briefs.

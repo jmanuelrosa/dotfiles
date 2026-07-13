@@ -165,6 +165,8 @@ claude-skill remove vercel-react-best-practices # Remove it
 claude-agent add backend-staff-engineer      # Link an agent into current project
 ```
 
+Two larger systems ship here. **Product Team** is a gated pipeline that takes a raw idea to an engineering-ready GitHub backlog through numbered stages (`/0-refine-idea` to `/7-push-to-board`), and a **staff-engineer bench** of implementation agents (`architect` plus frontend, mobile, design, backend, platform, cloud, sre, data, analytics, gtm, database, qa, and security seats) builds what the pipeline specs out. See [`roles/ai/files/claude/README.md`](roles/ai/files/claude/README.md) for the full guide.
+
 ### Television (interactive fuzzy picker)
 
 [Television](https://github.com/alexpasmantier/television) is wired into fish via shell integration generated at provision time. `alt-c` opens the `dirs` channel for jump-to-directory; other channels surface from context-aware triggers (`gh pr`, `acli jira`, `sentry-cli issues`, …) defined in [roles/shell/files/television/config.toml](roles/shell/files/television/config.toml).
