@@ -38,6 +38,7 @@
       "Bash(pgcli:*)",
       "Bash(sentry:*)",
       "Bash(bru-cli:*)",
+      "Bash(ntn:*)",
       "Edit(**/.env.sample)",
       "Write(**/.env.sample)",
       "Edit(**/.env.example)",
@@ -200,7 +201,11 @@
       "Bash(pgcli)",
       "Bash(pgcli *)",
       "Bash(lazydocker)",
-      "Bash(lazydocker *)"
+      "Bash(lazydocker *)",
+      "mcp__notion",
+      "mcp__Notion",
+      "mcp__supabase",
+      "mcp__Supabase"
     ]
   },
   "model": "fable",
@@ -286,7 +291,9 @@
         "auth.atlassian.com",
         "as.atlassian.com",
         "api.atlassian.com",
-        "app.fossa.com"
+        "app.fossa.com",
+        "developers.notion.com",
+        "api.notion.com"
       ],
       "allowLocalBinding": true
     },
@@ -321,7 +328,8 @@
       "glab",
       "acli",
       "sentry",
-      "bru-cli"
+      "bru-cli",
+      "ntn"
     ]
   },
   "feedbackSurveyRate": 0,

@@ -13,6 +13,7 @@ CLI-first for these domains, never WebFetch or MCP for them. If a CLI is missing
 | GitLab | `glab` |
 | Sentry | `sentry` |
 | Bruno API tests | `bru-cli` |
+| Notion | `ntn` |
 | Library/framework/SDK docs | `bunx ctx7` |
 
 - IMPORTANT: for any library/framework/SDK/API question, fetch current docs BEFORE answering (training data is stale): `bunx ctx7 library <name> "<q>"`, then `bunx ctx7 docs <id> "<q>"` (free anonymous tier; `npx -y ctx7` if bun is missing). Never the Context7 MCP server or WebFetch for this.
