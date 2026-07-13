@@ -84,13 +84,17 @@ request/response or payload per endpoint or event>
 
 ## Work breakdown
 
-### Slice: <name> — owner: <installed staff-engineer seat>
+### Slice: <name> (owner: <installed staff-engineer seat>)
 <one slice per owning seat, repeated as needed. Dependency-ordered tasks with
-acceptance criteria and the files each expects to own; no two slices own the
-same file. Work behind a seat's ask-first boundary (schema/migration, new
-dependencies, backfills) is stated explicitly in its owning slice — the spec is
-the authorization that boundary needs. Note which tasks can start immediately
-(contracts are fixed) and which depend on other slices landing.>
+acceptance criteria. Work behind a seat's ask-first boundary (schema/migration,
+new dependencies, backfills) is stated explicitly here: the spec is the
+authorization that boundary needs.>
+
+- **Owns:** <files/dirs this slice writes; no two slices own the same file>
+- **Parallel:** yes | no (yes = contracts are fixed and this slice shares no file with another concurrent slice, so it can build in isolation from the start; no = it must wait)
+- **Depends on:** <slice names that must land before this one, or "none">
+
+The caller uses `Parallel` and `Depends on` to decide which slices dispatch together in isolation and which are held until their prerequisites land; make them accurate.
 
 ## Decision items
 <numbered: question · options · recommendation · default this spec proceeds with>
@@ -163,8 +167,9 @@ Your final message, always:
 
 **<owning seat>** (one brief per slice)
 - Goal: <one sentence>
-- Read: docs/specs/<feature>.md — §Contracts, §Work breakdown / <slice>
+- Read: docs/specs/<feature>.md (§Contracts, §Work breakdown / <slice>)
 - Owns: <files/dirs>
+- Parallel: yes | no · Depends on: <slice names, or "none">
 - Acceptance: <criteria numbers>
 - Note: <pre-authorizations this seat's ask-first boundary needs, e.g. schema/migration
   work for backend or database, new dependencies, backfill commands>

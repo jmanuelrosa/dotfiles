@@ -363,7 +363,10 @@
   "effortLevel": "xhigh",
   "askUserQuestionTimeout": "never",
   "autoUpdatesChannel": "stable",
-  "minimumVersion": "2.1.198",
+  "minimumVersion": "2.1.203",
+  "worktree": {
+    "baseRef": "head"
+  },
   "tui": "default",
   "showThinkingSummaries": true,
   "skipDangerousModePermissionPrompt": true,
