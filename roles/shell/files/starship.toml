@@ -28,10 +28,22 @@ disabled = true
 [cmd_duration]
 disabled = false
 
+[memory_usage]
+disabled=true
+
 [directory]
 style = "bold cyan"
 truncate_to_repo = false
-truncation_length = 0
+truncation_length = 5
+read_only = " 󰌾"
+truncation_symbol = "…/"
+
+[directory.substitutions]
+"~/Developer/work/didomi" = "@didomi"
+"~/Developer/work/addingwell" = "@addingwell"
+"~/Developer/dotfiles" = "@dotfiles"
+"~/Developer/personal" = "@personal"
+"~/Developer/3bitslost" = "@3bitslost"
 
 [docker_context]
 disabled = true
@@ -39,9 +51,12 @@ disabled = true
 [gcloud]
 disabled = true
 
+[git_state]
+disabled=false
+
 [git_branch]
 symbol = " "
-format = "[$branch(:$remote_branch)]($style) "
+format = "on [$branch(:$remote_branch)]($style) "
 style = "bold purple"
 
 [git_metrics]
