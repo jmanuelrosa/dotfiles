@@ -20,9 +20,8 @@ alias shutdown='sudo shutdown now'
 
 #navigation
 alias ..='cd ..' # Exists by default in fish
-alias l='eza --color=auto --icons=auto --group-directories-first'
-alias ls='eza --color=auto --icons=auto --long --git --group-directories-first --sort=name'
-alias ll='eza --color=auto --icons=auto --long --git --group-directories-first --all --sort=name'
+alias l='eza --color=auto --icons=auto --long --git --group-directories-first --all --sort=name'
+alias lt="eza --tree --level=2 --long --icons --git --ignore-glob node_modules"
 
 # NPM
 alias p=pnpm
