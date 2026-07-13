@@ -1,6 +1,8 @@
 prSections:
   - title: My Pull Requests
     filters: is:open author:@me
+  - title: 📝 My draft PRs
+    filters: is:open assignee:@me is:draft sort:created-desc
   - title: Needs My Review
     filters: is:open review-requested:@me
   - title: Involved
@@ -16,16 +18,48 @@ issuesSections:
   - title: Involved
     filters: is:open involves:@me -author:@me
 
+notificationsSections:
+  - title: 📬 All
+    filters: ""
+
 defaults:
-  view: prs
-  prsLimit: 20
-  issuesLimit: 20
-  refetchIntervalMinutes: 30
   preview:
     open: true
-    width: 0.45
-    height: 0.60
+    width: 0.5
     position: auto
+  prsLimit: 20
+  issuesLimit: 20
+  notificationsLimit: 40
+  view: prs
+  prApproveComment: ""
+  dateFormat: relative
+  refetchIntervalMinutes: 10
+  layout:
+    prs:
+      updatedAt:
+        width: 7
+      repo:
+        width: 15
+      author:
+        width: 15
+      assignees:
+        width: 20
+        hidden: true
+      base:
+        width: 15
+        hidden: true
+      lines:
+        width: 16
+    issues:
+      updatedAt:
+        width: 7
+      repo:
+        width: 15
+      creator:
+        width: 10
+      assignees:
+        width: 20
+        hidden: true
 
 # Solarized Dark, matching the Ghostty theme
 theme:
