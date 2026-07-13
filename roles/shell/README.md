@@ -26,7 +26,7 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 
 ## Files
 
-- `files/fish/` — `config.fish`, `conf.d/{aliases,exports}.fish`, plus functions: `clean_docker`, `clean_node`, `create_gitconfig`, `claude-skill`, `claude-mcp`, `claude-agent`, `_tv_claude_list`, `_tv_claude_toggle`, `tv_change_dir`. (Work-only helpers like `_tv_jira` live in the `work` role.)
+- `files/fish/` — `config.fish`, `conf.d/{aliases,exports}.fish`, plus functions: `clean_claude`, `clean_docker`, `clean_node`, `create_gitconfig`, `claude-skill`, `claude-mcp`, `claude-agent`, `_tv_claude_list`, `_tv_claude_toggle`, `tv_change_dir`. (Work-only helpers like `_tv_jira` live in the `work` role.)
 - `files/ghostty/config` — Ghostty terminal config.
 - `files/starship.toml` — Starship prompt config.
 - `files/television/config.toml` — top-level television config (keybindings, theme, shell-integration channel triggers).

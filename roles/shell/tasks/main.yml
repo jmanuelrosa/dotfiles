@@ -68,6 +68,7 @@
     - .config/fish/config.fish
     - .config/fish/conf.d/aliases.fish
     - .config/fish/conf.d/exports.fish
+    - .config/fish/functions/clean_claude.fish
     - .config/fish/functions/clean_docker.fish
     - .config/fish/functions/clean_node.fish
     - .config/fish/functions/create_gitconfig.fish
@@ -137,6 +138,7 @@
     - fish/config.fish
     - fish/conf.d/aliases.fish
     - fish/conf.d/exports.fish
+    - fish/functions/clean_claude.fish
     - fish/functions/clean_docker.fish
     - fish/functions/clean_node.fish
     - fish/functions/create_gitconfig.fish
