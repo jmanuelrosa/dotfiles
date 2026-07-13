@@ -88,6 +88,13 @@
     state: link
     force: true
 
+- name: Symlink claude cloud-readonly-gate hook
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/claude/hooks/cloud-readonly-gate.sh"
+    dest: "{{ HOME }}/.claude/hooks/cloud-readonly-gate.sh"
+    state: link
+    force: true
+
 - name: Symlink claude status line script
   ansible.builtin.file:
     src: "{{ role_path }}/files/claude/statusline.sh"

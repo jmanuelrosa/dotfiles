@@ -39,6 +39,10 @@
       "Bash(sentry:*)",
       "Bash(bru-cli:*)",
       "Bash(ntn:*)",
+      "Bash(aws:*)",
+      "Bash(gcloud:*)",
+      "Bash(gsutil:*)",
+      "Bash(bq:*)",
       "Edit(**/.env.sample)",
       "Write(**/.env.sample)",
       "Edit(**/.env.example)",
@@ -238,8 +242,12 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/pre-commit-verify.sh",
-            "timeout": 180,
-            "if": "Bash(git *)"
+            "if": "Bash(git *)",
+            "timeout": 180
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/cloud-readonly-gate.sh"
           }
         ]
       },
@@ -329,7 +337,11 @@
       "acli",
       "sentry",
       "bru-cli",
-      "ntn"
+      "ntn",
+      "aws *",
+      "gcloud *",
+      "gsutil *",
+      "bq *"
     ]
   },
   "feedbackSurveyRate": 0,

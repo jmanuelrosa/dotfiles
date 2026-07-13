@@ -156,12 +156,13 @@ Git, git-delta, LazyGit, GitHub CLI, GitLab CLI (glab), fnm (Node version manage
 
 Gemini CLI, ChatGPT, Claude, Claude Code, Cursor, CodexBar
 
-Claude Code skills are managed per-project using the `claude-skill` function:
+Claude Code skills and agents are managed per-project with the `claude-skill` and `claude-agent` functions:
 
 ```bash
 claude-skill list                            # Show available skills
 claude-skill add vercel-react-best-practices # Link a skill into current project
 claude-skill remove vercel-react-best-practices # Remove it
+claude-agent add backend-staff-engineer      # Link an agent into current project
 ```
 
 ### Television (interactive fuzzy picker)

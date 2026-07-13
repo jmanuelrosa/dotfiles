@@ -46,6 +46,31 @@ claude-agent <list|add|remove|update|outdated> [--group] [name]
 | `outdated` | Fetch upstream for every tracked agent and report what's behind — without writing anything. Shows `last synced` from the registry. |
 | `outdated <name>` | Same, scoped to one agent. Local agents emit the same "no upstream" warning. |
 
+## Staff-engineer bench
+
+A separate delegation system for building what Product Team specs out. Each seat detects the project stack first, routes to installed project skills for stack-specific best practices, implements within strict boundaries, self-verifies, and returns a structured completion report. The `architect` is the bridge: given a refined brief it explores the codebase read-only, writes a feature spec to `docs/specs/` with an owner-split work breakdown across these seats, and returns dispatch-ready briefs.
+
+| Agent | Owns | Never |
+|---|---|---|
+| `architect` | Cross-stack design: feature spec in `docs/specs/`, work split across seats, ADRs for hard-to-reverse choices | Implements, reviews, or dispatches (disallows the Agent tool) |
+| `frontend-staff-engineer` | UI features, components, styling, state, routing, data fetching | Reviews its own work (the caller owns review) |
+| `design-staff-engineer` | Design system: tokens, theming, shared components and variant APIs, typography, color, spacing, motion, responsive/CSS architecture | Data fetching, routing, business logic (the frontend seat); never trades accessibility for aesthetics |
+| `mobile-staff-engineer` | Native iOS (SwiftUI), Android (Compose), React Native/Expo screens and flows, offline/sync, persistence, deep links, push, permissions | Web UI (frontend seat), server code (backend seat); never submits to a store or ships an OTA update |
+| `backend-staff-engineer` | API endpoints, services, business logic, data models, migrations, queues, jobs | Reviews its own work (the caller owns review) |
+| `platform-staff-engineer` | CI/CD, Dockerfiles and compose, app-level K8s/Helm, hooks, task runners | Cloud IaC, SLOs/alerts; never deploys |
+| `cloud-staff-engineer` | Terraform/Pulumi/CDK, networking, IAM, cluster provisioning, cost controls | CI pipelines, alert rules; never `apply`s or mutates live infra |
+| `sre-staff-engineer` | SLOs and error budgets, burn-rate alerts, dashboards-as-code, observability, runbooks | CI, IaC; never silences an alert without a root cause |
+| `data-staff-engineer` | Orchestrated pipelines (Airflow, Dagster), Spark/batch jobs, ingestion, data contracts | dbt/metrics, OLTP schemas; never runs pipelines/backfills against prod |
+| `analytics-staff-engineer` | dbt models and tests, semantic-layer/metric definitions, experiments, notebooks | Ingestion, OLTP schemas; never redefines a metric of record without approval |
+| `gtm-staff-engineer` | Web and server GTM containers, dataLayer contracts, tags/triggers/variables, GA4 and Consent Mode, server-side Conversion APIs (Meta CAPI, GA4 Measurement Protocol) | GA4 data modeling and metrics (the analytics seat), provisioning or deploying the tagging server (cloud/platform); never publishes a container version |
+| `database-staff-engineer` | Schema design, migrations, indexes, query optimization, replication-aware DDL | Business logic, lakehouse; never runs against a non-disposable environment |
+| `qa-staff-engineer` | Unit/integration/e2e tests, test infra, fixtures, flake diagnosis | Modifies application source; reports product bugs back to the caller |
+| `security-staff-engineer` | Read-only assessment: STRIDE threat models, dependency audits, secrets hygiene, authn/authz review | Edits files; auto-delegation during coding (diff review is `/security-review`) |
+
+Each seat is paired with a `<discipline>-failure-modes` skill (`frontend-failure-modes`, `backend-failure-modes`, `mobile-failure-modes`, and so on) - an audited checklist of that domain's common defects that the seat consults before it implements. The skill is the agent's declared dependency, so `claude-agent add <seat>` pulls the matching failure-modes skill into the project automatically.
+
+Product Team hands off a backlog; then `/feature-team "<brief>"` runs the build side: `architect` writes the spec, you approve the plan, the installed seats implement in parallel, and the skill verifies and returns an integration report. Install a whole discipline with `claude-agent add --group engineering` (all seats above except `qa-staff-engineer`, which lives under `quality`: add it with `claude-agent add qa-staff-engineer`), or add individual seats by name.
+
 ## The Tracked/Local Rule
 
 Every skill and agent in this repo is either:

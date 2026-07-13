@@ -660,6 +660,156 @@
   },
   "local_skills": [
     {
+      "name": "agent-writer",
+      "groups": [
+        "ai",
+        "prompt engineering",
+        "claude"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "analytics-failure-modes",
+      "groups": [
+        "engineering",
+        "data",
+        "review"
+      ],
+      "dependency_only": true,
+      "note": "Locally authored"
+    },
+    {
+      "name": "backend-failure-modes",
+      "groups": [
+        "engineering",
+        "backend",
+        "review"
+      ],
+      "dependency_only": true,
+      "note": "Locally authored"
+    },
+    {
+      "name": "cloud-failure-modes",
+      "groups": [
+        "engineering",
+        "devops",
+        "review"
+      ],
+      "dependency_only": true,
+      "note": "Locally authored"
+    },
+    {
+      "name": "data-failure-modes",
+      "groups": [
+        "engineering",
+        "data",
+        "review"
+      ],
+      "dependency_only": true,
+      "note": "Locally authored"
+    },
+    {
+      "name": "database-failure-modes",
+      "groups": [
+        "engineering",
+        "database",
+        "review"
+      ],
+      "dependency_only": true,
+      "note": "Locally authored"
+    },
+    {
+      "name": "design-failure-modes",
+      "groups": [
+        "engineering",
+        "designer",
+        "review"
+      ],
+      "dependency_only": true,
+      "note": "Locally authored"
+    },
+    {
+      "name": "dx-failure-modes",
+      "groups": [
+        "engineering",
+        "devops",
+        "review"
+      ],
+      "dependency_only": true,
+      "note": "Locally authored"
+    },
+    {
+      "name": "frontend-failure-modes",
+      "groups": [
+        "engineering",
+        "frontend",
+        "review"
+      ],
+      "dependency_only": true,
+      "note": "Locally authored"
+    },
+    {
+      "name": "platform-failure-modes",
+      "groups": [
+        "engineering",
+        "devops",
+        "review"
+      ],
+      "dependency_only": true,
+      "note": "Locally authored"
+    },
+    {
+      "name": "gtm-failure-modes",
+      "groups": [
+        "engineering",
+        "data",
+        "web",
+        "review"
+      ],
+      "dependency_only": true,
+      "note": "Locally authored"
+    },
+    {
+      "name": "qa-failure-modes",
+      "groups": [
+        "quality",
+        "qa",
+        "review"
+      ],
+      "dependency_only": true,
+      "note": "Locally authored"
+    },
+    {
+      "name": "security-failure-modes",
+      "groups": [
+        "engineering",
+        "security",
+        "review"
+      ],
+      "dependency_only": true,
+      "note": "Locally authored"
+    },
+    {
+      "name": "sre-failure-modes",
+      "groups": [
+        "engineering",
+        "devops",
+        "review"
+      ],
+      "dependency_only": true,
+      "note": "Locally authored"
+    },
+    {
+      "name": "mobile-failure-modes",
+      "groups": [
+        "engineering",
+        "mobile",
+        "review"
+      ],
+      "dependency_only": true,
+      "note": "Locally authored"
+    },
+    {
       "name": "skill-scout",
       "groups": [
         "productivity",
