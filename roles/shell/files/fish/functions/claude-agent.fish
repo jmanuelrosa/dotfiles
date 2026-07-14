@@ -1,7 +1,13 @@
 function claude-agent --description "Manage Claude Code agents for the current project"
     set -l agents_source "$DOTFILES_DIR/roles/ai/files/claude/agents"
-    set -l agents_target ".claude/agents"
     set -l registry "$DOTFILES_DIR/roles/ai/files/claude/agent-registry.json"
+    set -l plugins_source "$DOTFILES_DIR/roles/ai/files/claude/plugins"
+    # Anchor to the repo root (where Claude Code scans and where workspace trust
+    # is keyed), not CWD, so "linked" means "linked where the session will look".
+    set -l project_root (git rev-parse --show-toplevel 2>/dev/null)
+    test -n "$project_root"; or set project_root (pwd)
+    set -l agents_target "$project_root/.claude/agents"
+    set -l plugins_target "$project_root/.claude/skills"
 
     set -l c_green (set_color green)
     set -l c_yellow (set_color yellow)
@@ -45,10 +51,10 @@ function claude-agent --description "Manage Claude Code agents for the current p
             if test "$use_group" = true
                 echo $c_bold"Available groups:"$c_reset
 
-                set -l groups (jq -r '
-                    [.repos[].agents[].groups[]?, .local_agents[]?.groups[]?]
-                    | unique | .[]
-                ' $registry)
+                set -l groups (begin
+                    jq -r '[.repos[].agents[].groups[]?, .local_agents[]?.groups[]?] | .[]' $registry
+                    _claude_agent_plugin_all_groups $plugins_source
+                end | sort -u)
 
                 for g in $groups
                     echo "  $c_cyan$g:$c_reset"
@@ -68,6 +74,13 @@ function claude-agent --description "Manage Claude Code agents for the current p
                             echo "    $c_dim·$c_reset $aname$dep_suffix"
                         else
                             echo "    $c_dim↓ $aname (not downloaded)$c_reset$dep_suffix"
+                        end
+                    end
+                    for pname in (_claude_agent_plugins_in_group $plugins_source $g)
+                        if test -L "$plugins_target/$pname"
+                            echo "    $c_green✓$c_reset $pname $c_green(plugin, linked)$c_reset"
+                        else
+                            echo "    $c_dim·$c_reset $pname $c_dim(plugin)$c_reset"
                         end
                     end
                 end
@@ -102,6 +115,17 @@ function claude-agent --description "Manage Claude Code agents for the current p
                         echo "  $c_dim↓ $aname (not downloaded)$c_reset$dep_suffix"
                     end
                 end
+
+                for pname in (_claude_agent_plugin_names $plugins_source)
+                    set -l grp (_claude_agent_plugin_groups $plugins_source $pname)
+                    set -l grp_suffix ""
+                    test -n "$grp"; and set grp_suffix " $c_cyan""[$grp]""$c_reset"
+                    if test -L "$plugins_target/$pname"
+                        echo "  $c_green✓$c_reset $pname $c_green(plugin, linked)$c_reset$grp_suffix"
+                    else
+                        echo "  $c_dim·$c_reset $pname $c_dim(plugin)$c_reset$grp_suffix"
+                    end
+                end
             end
 
         case add
@@ -117,8 +141,9 @@ function claude-agent --description "Manage Claude Code agents for the current p
                             (.local_agents[]    | select(.groups | index($g)))
                         ] | .[] | .name
                     ' $registry | sort -u)
+                    set -l group_plugins (_claude_agent_plugins_in_group $plugins_source $name)
 
-                    if test (count $group_agents) -eq 0
+                    if test (count $group_agents) -eq 0; and test (count $group_plugins) -eq 0
                         echo "$c_magenta✗$c_reset Group '$name' not found. Run 'claude-agent list --group' to see available groups."
                         continue
                     end
@@ -143,13 +168,31 @@ function claude-agent --description "Manage Claude Code agents for the current p
                         if test -f "$agents_source/$aname.md"
                             ln -sfn "$agents_source/$aname.md" "$agents_target/$aname.md"
                             set count (math $count + 1)
-                            _claude_agent_install_skill_deps $registry $aname
+                            _claude_agent_install_skill_deps $registry $aname $plugins_target
                         end
                     end
-                    echo "$c_green✓$c_reset Linked $count agents from group '$name' into $agents_target/"
+                    if test (count $group_plugins) -gt 0
+                        mkdir -p $plugins_target
+                        for pname in $group_plugins
+                            ln -sfn "$plugins_source/$pname" "$plugins_target/$pname"
+                            set count (math $count + 1)
+                        end
+                    end
+                    echo "$c_green✓$c_reset Linked $count seats from group '$name'"
+                    test (count $group_plugins) -gt 0; and _claude_agent_plugin_load_hint
                 end
             else
                 for name in $names
+                    if _claude_agent_is_plugin $plugins_source $name
+                        if not mkdir -p $plugins_target 2>/dev/null
+                            echo "$c_magenta✗$c_reset Cannot create $plugins_target/: permission denied. Run this outside the sandbox."
+                            continue
+                        end
+                        ln -sfn "$plugins_source/$name" "$plugins_target/$name"
+                        echo "$c_green✓$c_reset Linked plugin seat '$name' into $plugins_target/ $c_dim(loads as $name@skills-dir)$c_reset"
+                        _claude_agent_plugin_load_hint
+                        continue
+                    end
                     if not test -f "$agents_source/$name.md"
                         set -l in_registry (jq -r --arg n "$name" '
                             [.repos[].agents[] | select(.name == $n) | .name] | .[0] // empty
@@ -175,7 +218,7 @@ function claude-agent --description "Manage Claude Code agents for the current p
                     mkdir -p $agents_target
                     ln -sfn "$agents_source/$name.md" "$agents_target/$name.md"
                     echo "$c_green✓$c_reset Linked '$name' into $agents_target/"
-                    _claude_agent_install_skill_deps $registry $name
+                    _claude_agent_install_skill_deps $registry $name $plugins_target
                 end
             end
 
@@ -192,8 +235,9 @@ function claude-agent --description "Manage Claude Code agents for the current p
                             (.local_agents[]    | select(.groups | index($g)))
                         ] | .[] | .name
                     ' $registry | sort -u)
+                    set -l group_plugins (_claude_agent_plugins_in_group $plugins_source $name)
 
-                    if test (count $group_agents) -eq 0
+                    if test (count $group_agents) -eq 0; and test (count $group_plugins) -eq 0
                         echo "$c_magenta✗$c_reset Group '$name' not found. Run 'claude-agent list --group' to see available groups."
                         continue
                     end
@@ -205,10 +249,23 @@ function claude-agent --description "Manage Claude Code agents for the current p
                             set count (math $count + 1)
                         end
                     end
-                    echo "$c_green✓$c_reset Removed $count agents from group '$name'"
+                    for pname in $group_plugins
+                        if test -L "$plugins_target/$pname"
+                            command rm "$plugins_target/$pname"
+                            set count (math $count + 1)
+                        end
+                    end
+                    echo "$c_green✓$c_reset Removed $count seats from group '$name'"
+                    test (count $group_plugins) -gt 0; and _claude_agent_plugin_unload_hint
                 end
             else
                 for name in $names
+                    if test -L "$plugins_target/$name"; and _claude_agent_is_plugin $plugins_source $name
+                        command rm "$plugins_target/$name"
+                        echo "$c_green✓$c_reset Removed plugin seat '$name' from $plugins_target/"
+                        _claude_agent_plugin_unload_hint
+                        continue
+                    end
                     if not test -L "$agents_target/$name.md"
                         echo "$c_yellow⚠$c_reset Agent '$name' is not linked in this project."
                         continue
@@ -435,9 +492,15 @@ end
 # Reuses claude-skill's internal helpers instead of `claude-skill add` so a
 # dependency_only skill (e.g. domain-modeling) installs without tripping the
 # direct-add refusal — resolution paths are meant to bypass it.
-function _claude_agent_install_skill_deps --description "Install the skills an agent declares as dependencies into .claude/skills"
+function _claude_agent_install_skill_deps --description "Install the skills an agent declares as dependencies into the project skills dir"
     set -l agent_registry $argv[1]
     set -l agent_name $argv[2]
+    set -l skills_target $argv[3]
+    if test -z "$skills_target"
+        set -l root (git rev-parse --show-toplevel 2>/dev/null)
+        test -n "$root"; or set root (pwd)
+        set skills_target "$root/.claude/skills"
+    end
 
     set -l deps (_claude_agent_skill_deps $agent_registry $agent_name)
     test (count $deps) -eq 0; and return 0
@@ -448,7 +511,6 @@ function _claude_agent_install_skill_deps --description "Install the skills an a
 
     set -l base_dir "$DOTFILES_DIR/roles/ai/files/claude"
     set -l skills_source "$base_dir/skills"
-    set -l skills_target ".claude/skills"
     set -l skill_registry "$base_dir/skill-registry.json"
 
     for d in $deps
@@ -474,4 +536,52 @@ function _claude_registry_stamp --description "Record updated_at on a tracked re
     else
         rm -f $tmp
     end
+end
+
+# A seat delivered as a skills-dir plugin: a folder under plugins/ with a
+# .claude-plugin/plugin.json manifest, bundling the agent + its coupled skill.
+# These carry no agent-registry/skill-registry rows; plugin.json is their metadata.
+function _claude_agent_plugin_names --description "List seat-plugin names (dirs under plugins/ with a manifest)"
+    set -l plugins_source $argv[1]
+    test -d "$plugins_source"; or return 0
+    for d in $plugins_source/*/
+        test -f "$d/.claude-plugin/plugin.json"; and basename $d
+    end
+end
+
+function _claude_agent_is_plugin --description "Exit 0 if <name> is a seat plugin"
+    test -f "$argv[1]/$argv[2]/.claude-plugin/plugin.json"
+end
+
+function _claude_agent_plugin_groups --description "Print a seat plugin's groups, comma-joined"
+    jq -r '[.groups // [] | .[]] | unique | join(", ")' "$argv[1]/$argv[2]/.claude-plugin/plugin.json" 2>/dev/null
+end
+
+function _claude_agent_plugin_all_groups --description "Print every group any seat plugin declares"
+    set -l plugins_source $argv[1]
+    for name in (_claude_agent_plugin_names $plugins_source)
+        jq -r '.groups[]?' "$plugins_source/$name/.claude-plugin/plugin.json" 2>/dev/null
+    end
+end
+
+function _claude_agent_plugins_in_group --description "Print seat-plugin names whose groups include <g>"
+    set -l plugins_source $argv[1]
+    set -l g $argv[2]
+    for name in (_claude_agent_plugin_names $plugins_source)
+        if jq -e --arg g "$g" '(.groups // []) | index($g)' "$plugins_source/$name/.claude-plugin/plugin.json" >/dev/null 2>&1
+            echo $name
+        end
+    end
+end
+
+function _claude_agent_plugin_load_hint --description "Reminder that a project seat plugin needs workspace trust + relaunch to load"
+    set -l c_dim (set_color brblack)
+    set -l c_reset (set_color normal)
+    echo "  $c_dim""→ project plugins load only in a trusted workspace: accept the trust dialog (or set hasTrustDialogAccepted in ~/.claude.json), then relaunch claude from the repo root$c_reset"
+end
+
+function _claude_agent_plugin_unload_hint --description "Reminder that removing a seat plugin needs a relaunch to take effect"
+    set -l c_dim (set_color brblack)
+    set -l c_reset (set_color normal)
+    echo "  $c_dim""→ relaunch claude to finish unloading it$c_reset"
 end
