@@ -15,8 +15,18 @@ function _tv_claude_toggle --description "Television action: toggle link for one
                 end
             end
         case agent agents
+            set -l proot (git rev-parse --show-toplevel 2>/dev/null)
+            test -n "$proot"; or set proot (pwd)
+            set -l plugins_source $DOTFILES_DIR/roles/ai/files/claude/plugins
             for name in $names
-                if test -L ".claude/agents/$name.md"
+                # A seat plugin links as a folder into .claude/skills/; a plain agent as a .md into .claude/agents/.
+                if test -f "$plugins_source/$name/.claude-plugin/plugin.json"
+                    if test -L "$proot/.claude/skills/$name"
+                        claude-agent remove $name
+                    else
+                        claude-agent add $name
+                    end
+                else if test -L "$proot/.claude/agents/$name.md"
                     claude-agent remove $name
                 else
                     claude-agent add $name
