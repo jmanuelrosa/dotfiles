@@ -212,9 +212,10 @@
       "mcp__Supabase"
     ]
   },
-  "model": "opus[1m]",
+  "model": "opus",
   "fallbackModel": [
-    "opus"
+    "opus",
+    "sonnet"
   ],
   "availableModels": [
     "fable",
@@ -289,6 +290,9 @@
         ]
       }
     ]
+  },
+  "worktree": {
+    "baseRef": "head"
   },
   "statusLine": {
     "type": "command",
@@ -365,13 +369,10 @@
   },
   "feedbackSurveyRate": 0,
   "alwaysThinkingEnabled": true,
-  "effortLevel": "xhigh",
+  "effortLevel": "high",
   "askUserQuestionTimeout": "never",
   "autoUpdatesChannel": "stable",
   "minimumVersion": "2.1.203",
-  "worktree": {
-    "baseRef": "head"
-  },
   "tui": "default",
   "showThinkingSummaries": true,
   "skipDangerousModePermissionPrompt": true,
