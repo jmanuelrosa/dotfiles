@@ -12,26 +12,22 @@ allowed-tools:
   - Bash(git log *)
   - Bash(git branch *)
   - Bash(git switch *)
-  - Bash(git remote *)
-  - Bash(git symbolic-ref *)
-  - Write(/tmp/claude/**)
+  - Bash(bash *skills/commit/scripts/context.sh)
+  - Bash(python3 *skills/commit/scripts/apply.py *)
+  - Write(//tmp/claude/**)
+  - Write(//private/tmp/claude/**)
   - AskUserQuestion
 ---
 
 # Create commit(s)
 
-Inspect the working tree, confirm the branch is one the user will commit on, split the diff into atomic concerns, draft a strict conventional commit per concern, get approval, and commit each in order. Never push, never open a PR: that is `/pr`'s job.
+Inspect the working tree, confirm the branch, split the diff into atomic concerns, draft a strict conventional commit per concern, get approval, and commit each in order. Never push, never open a PR: that is `/pr`'s job. Arguments, if any, are user guidance (a scope, how to split, a branch name); factor them in before the approval gate.
 
-Arguments, if any, are user guidance: a scope, how to split concerns, or a branch name. Factor them into the plan before the approval gate.
+Two bundled scripts do the mechanical work in one call each; don't re-run git for anything their output already shows. Global install: `~/.claude/skills/commit/scripts/`; project install: `.claude/skills/commit/scripts/`.
 
 ## Steps
 
-1. **Resolve base and current branch:**
-   ```sh
-   BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##')
-   BRANCH=$(git branch --show-current)
-   ```
-   If `BASE` is empty, `origin/HEAD` is unset. Populate it once with `git remote set-head origin -a` (plain git, works on any host), then re-read. With no `origin` remote at all, `BASE` stays empty: skip the default-branch comparison in Step 2 and treat the current branch as the working branch.
+1. **Gather context** (single call): `bash ~/.claude/skills/commit/scripts/context.sh`. It prints `BASE`/`BRANCH`, porcelain status, staged + unstaged stats, drafting diffs (noisy paths like lockfiles/minified/generated excluded, capped per file), untracked previews, and recent subjects. Excluded or capped files still show in the stats: commit them with the concern they belong to; only run `git diff -- <path>` when a capped file genuinely matters for clustering. `BASE=<none: no origin>` means skip the default-branch comparison and treat the current branch as the working branch.
 
 2. **Branch gate:**
    - `BRANCH` == `BASE` (on the default branch) → **ask**: commit into `$BASE`, or create a new branch?
@@ -40,55 +36,42 @@ Arguments, if any, are user guidance: a scope, how to split concerns, or a branc
        ```
        ^(feature|fix|chore|docs|refactor|test|perf|ci|build|style|revert)\/([A-Z]+-[0-9]+-)?[a-z0-9][a-z0-9-]*$
        ```
-       Passing: `feature/add-oauth`, `fix/PROJ-123-login-redirect`, `chore/bump-deps`. The Jira ticket is embedded with a dash (`PROJ-123-<slug>`), not a separate segment. On failure, show why and re-ask. Create with `git switch -c "$NEW_BRANCH"`.
-   - `BRANCH` is a non-default branch:
-     - Matches the work at hand (named for this change, or the user pointed you at it) → use it, no prompt.
-     - Looks unrelated to the diff (a `chore/bump-*`, a release branch, someone else's feature branch) → **ask** before reusing it; on "new branch", follow the same name prompt + validation.
+       The Jira ticket is embedded with a dash (`PROJ-123-<slug>`), not a separate segment. On failure, show why and re-ask. Create with `git switch -c "$NEW_BRANCH"`.
+   - Non-default branch that matches the work at hand → use it, no prompt. Looks unrelated to the diff (a `chore/bump-*`, a release branch, someone else's feature) → **ask** before reusing it; on "new branch", same name prompt + validation.
 
-3. **Staging gate.** Run `git status --porcelain=v1`. If nothing is staged or unstaged → stop ("no changes to commit"). Otherwise the candidate is the *staged* set; if there are unstaged changes not already staged, **ask** whether to fold them in (stage all, pick a subset, or leave out) and print what's left out. If leaving out empties the candidate set (nothing was staged), that's a cancel: stop with "no changes to commit". Never auto-stage.
+3. **Staging gate.** From the status section: nothing staged or unstaged → stop ("no changes to commit"). Otherwise the candidate is the *staged* set; if there are unstaged changes not already staged, **ask** whether to fold them in (all, a subset, or leave out) and print what's left out. If that empties the candidate set, stop with "no changes to commit". Never auto-stage.
 
-4. **Concern analysis**: decide how many commits.
-   - **Read the candidate diff** (`git diff --cached` if staged, else `git diff HEAD`). For the *drafting view only*, exclude noisy paths that add no signal:
-     ```
-     **/package-lock.json, **/yarn.lock, **/pnpm-lock.yaml, **/bun.lock*,
-     **/*.min.js, **/*.min.css, **/*.map,
-     **/dist/**, **/build/**, **/.next/**, **/node_modules/**,
-     **/*.generated.*, **/*_generated.*, **/*.pb.ts
-     ```
-     They still show in `--stat`, so commit them with the concern they belong to and mention them in the body if useful.
-   - **Cluster files into concerns by intent, not directory.** A concern is a self-contained change with one purpose.
-     - Separate: a fix + an unrelated config tweak; a feature + a dep bump; a refactor + a doc update.
-     - Same: a feature spanning N files; a rename across the repo; a fix and its test.
-   - **Order** so each commit leaves the build green: config / deps first, then features and fixes, cosmetic / cleanup last.
-   - **Hunk-level splits**: if one file mixes concerns, plan `git add -p <file>` and note it in the plan.
+4. **Concern analysis**: cluster files into concerns by intent, not directory; a concern is a self-contained change with one purpose.
+   - Separate: a fix + an unrelated config tweak; a feature + a dep bump; a refactor + a doc update.
+   - Same: a feature spanning N files; a rename across the repo; a fix and its test.
+   - **Order** so each commit leaves the build green: config/deps first, features and fixes next, cosmetic/cleanup last.
+   - If one file mixes concerns, plan a hunk split (`git add -p <file>`) and note it in the plan.
    - **Don't force a split** when the diff is cohesive: one feature touching ten files is one commit.
 
 5. **Draft the plan**: one entry per concern.
-   - **Header**: `<type>(<scope>): <subject>`, ≤ 100 chars, imperative, no leading capital, no trailing period. Types: `feat | fix | chore | docs | refactor | test | perf | ci | build | style | revert`. Derive scope from the touched area (monorepo package, top-level directory, role name in this dotfiles repo, feature area like `auth`/`api`); omit `(<scope>)` only when genuinely repo-wide, and surface the doubt at the gate if unclear.
-   - **Body**: only when the *why* isn't obvious from the subject. Blank line after subject, wrap at 100 cols, short `-` bullets, no prose paragraphs. Skip rather than pad.
-   - **Never** write `Co-Authored-By: Claude …` or `🤖 Generated with …`: `settings.json` handles attribution and the `git-skill-gate` hook hard-blocks these lines.
+   - **Header**: `<type>(<scope>): <subject>`, ≤ 100 chars, imperative, no leading capital, no trailing period. Types: `feat | fix | chore | docs | refactor | test | perf | ci | build | style | revert`. Derive scope from the touched area (monorepo package, top-level directory, role name in this dotfiles repo, feature area); omit `(<scope>)` only when genuinely repo-wide, and surface the doubt at the gate if unclear.
+   - **Body**: only when the *why* isn't obvious from the subject. Blank line after subject, short `-` bullets, no prose paragraphs. Skip rather than pad.
+   - **Never** write `Co-Authored-By: Claude …` or `🤖 Generated with …`: `settings.json` handles attribution and both the `git-skill-gate` hook and `apply.py` hard-block these lines.
 
-6. **Humanize**: plain verbs (*add, fix, remove, rename, move, drop, bump, split*), no AI vocabulary (*leverage, robust, seamless, comprehensive, enhance, streamline, foster*), no promotional tone, no em dashes between clauses, no emojis. Be specific: `fix(checkout): handle empty cart on /checkout` beats `fix: bug in checkout`.
+6. **Humanize**: plain verbs (*add, fix, remove, rename, move, drop, bump, split*), no AI vocabulary (*leverage, robust, seamless, comprehensive, enhance, streamline, foster*), no promotional tone, no em dashes, no emojis. Be specific: `fix(checkout): handle empty cart on /checkout` beats `fix: bug in checkout`.
 
 7. **Approval gate** (mandatory). Print the plan (per commit: number, subject, file group, any folded-in noisy files, body). Then call `AskUserQuestion`:
    - `question: "Proceed with these commits?"`, `header: "Commit plan"`, `multiSelect: false`
    - options: `Go` (commit each entry in order), `Cancel` (stop, commit nothing, unstage nothing).
-   - The structured question *is* the gate: don't wait for prose like `go` / `lgtm` / `ok` (free-form confirmations break the `git-skill-gate` hook).
-   - On `Other`, integrate the redirect ("change commit 2's scope", "split commit 1", "drop the last"), replan from concern analysis if needed, and re-run this gate.
+   - The structured question *is* the gate: don't wait for prose like `go` / `lgtm` (free-form confirmations break the `git-skill-gate` hook).
+   - On `Other`, integrate the redirect, replan from concern analysis if needed, and re-run this gate.
 
-8. **Commit each concern in order:**
-   - **Stage** exactly its file group with `git add <files>`, or `git add -p <file>` for hunk splits.
-   - **Commit**: write the full message (subject, blank line, body when present) with the **Write tool** to `/tmp/claude/commit-msg-<repo>-<suffix>.txt`, where `<suffix>` is a short random string picked once per run (concurrent sessions share `/tmp/claude/`, so a fixed name risks a collision). Then:
-     ```sh
-     git commit -F /tmp/claude/commit-msg-<repo>-<suffix>.txt
-     ```
-     Applies to every commit, single-line included: never inline `-m` and never a HEREDOC (the harness escapes `!` and other shell-special chars, so subjects like `feat(api)!: drop v1` pick up stray backslashes; the Write tool bypasses the shell). Overwrite the same file for each commit in the loop.
-   - **Never** `--no-verify`. On a pre-commit hook failure, surface the full output and stop the loop: don't retry, don't start the next commit until it's resolved.
+8. **Execute** (single call after Go). **Write** the approved plan to `/tmp/claude/commit-plan-<repo>-<suffix>.json` (`<suffix>` random once per run; `/tmp/claude/` is shared across sessions):
+   ```json
+   {"commits": [{"files": ["src/a.ts", "src/b.ts"], "message": "feat(x): subject\n\n- why bullet"}]}
+   ```
+   Newlines inside `message` are `\n` escapes; keep entries in plan order. Then run `python3 ~/.claude/skills/commit/scripts/apply.py <plan path>`. It validates every entry up front (attribution lines, em/en dashes, `.claude/tasks/`, secret-looking files, header length), then stages each file group and commits it with `-F`, stops on the first failure leaving that group staged, and prints the final log.
+   - **Hunk splits**: `apply.py` stages whole files only. Commit a mixed-concern entry manually instead: `git add -p <file>`, **Write** the message to `/tmp/claude/commit-msg-<repo>-<suffix>.txt`, then `git commit -F <that file>`. Never inline `-m` and never a HEREDOC (the harness escapes `!` and other shell-special chars; the Write tool bypasses the shell).
+   - **Never** `--no-verify`. On a pre-commit hook failure, surface the full output and stop: don't retry, don't continue until it's resolved.
    - **Never** `--amend` unless the user explicitly typed the word "amend".
-   - After the loop, print `git log -n <count> --pretty='%h %s'`.
 
 ## Rules
 
 - Subject prefixes follow `@commitlint/config-conventional` (`feat`, not `feature`; lower-case type and scope; non-empty type + subject; no trailing full-stop; header ≤ 100).
 - Never stage *cleartext* secrets (`.env`, `*.pem`, `*-key.json`, `credentials*`): warn and exclude by default. Vault-encrypted files (e.g. `vars/secrets.yml`) are meant to be committed and are fine.
-- Never stage local-only Claude state (`.claude/tasks/` above all; the hook hard-blocks it).
+- Never stage local-only Claude state (`.claude/tasks/` above all; hook and `apply.py` both hard-block it).
