@@ -12,6 +12,7 @@ GLOBAL_CLAUDE_SKILLS:
   - agent-writer
   - grill-me
   - grill-with-docs
+  - handoff
   - commit
   - pr
   - humanizer
