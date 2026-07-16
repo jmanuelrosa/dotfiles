@@ -36,8 +36,8 @@ function usage
     echo "Connects to cloud-sql-proxy for the specified environment."
     echo ""
     echo "Environments:"
-    echo "  production  - Port 5433, addingwell-prod database"
-    echo "  staging     - Port 5432, addingwell-dev database"
+    echo "  production  - Port 5434, addingwell-prod database"
+    echo "  staging     - Port 5433, addingwell-dev database"
     echo ""
     echo "Options:"
     echo "  -d, --detach  Run in background (detached mode)"
@@ -54,9 +54,9 @@ end
 function get_port
     switch $argv[1]
         case production
-            echo "5433"
+            echo "5434"
         case staging
-            echo "5432"
+            echo "5433"
     end
 end
 
@@ -144,8 +144,8 @@ function prompt_environment_selection
     end
 
     echo -e "$BLUE""Select environment:$NC"
-    echo "  1) Staging (port 5432)"
-    echo "  2) Production (port 5433)"
+    echo "  1) Staging (port 5433)"
+    echo "  2) Production (port 5434)"
     echo ""
     read -P "Enter choice [1-2]: " choice
 
