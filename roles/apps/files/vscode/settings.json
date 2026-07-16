@@ -101,4 +101,6 @@
   "security.workspace.trust.startupPrompt": "never",
   "chat.viewSessions.orientation": "stacked",
   "update.showReleaseNotes": false,
+  "gitlens.ai.model": "vscode",
+  "gitlens.ai.vscode.model": "copilot:gpt-4o-mini",
 }
