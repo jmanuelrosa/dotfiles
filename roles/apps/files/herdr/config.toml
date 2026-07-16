@@ -65,18 +65,18 @@ prefix = "ctrl+d"
 # help = "prefix+?"
 # settings = "prefix+s"
 # detach = "prefix+q"
-# reload_config = "prefix+shift+r"
+reload_config = "prefix+r"
 # open_notification_target = "prefix+o"
 workspace_picker = "prefix+shift+w"
 goto = "prefix+shift+g"
 new_workspace = "prefix+w"
+rename_workspace = "prefix+shift+r"
 
 # Worktree creation is routed through the wt fish helper via the
 # [[keys.command]] block below (bound to prefix+g), not herdr's built-in.
 new_worktree = "prefix+ctrl+shift+w"
 open_worktree = "prefix+ctrl+shift+o"
 remove_worktree = "prefix+ctrl+shift+d"
-rename_workspace = "prefix+ctrl+shift+r"
 # close_workspace = "prefix+shift+d"
 # previous_workspace = "" # optional, unset by default
 # next_workspace = ""     # optional, unset by default
@@ -124,14 +124,6 @@ toggle_sidebar = "prefix+s"
 # key = "prefix+alt+g"
 # type = "pane"
 # command = "lazygit"
-
-# Create a git worktree through the wt fish helper (base-branch resolution,
-# env/.vscode/.claude copy, frozen dep install) and open it as a focused herdr
-# workspace. Assumes $SHELL is fish, where wt is an autoloaded function.
-[[keys.command]]
-key = "prefix+g"
-type = "pane"
-command = "read -P 'worktree slug: ' s; and wt add $s"
 
 # Legacy indexed shortcut config is still parsed for compatibility.
 # Prefer switch_tab, switch_workspace, and focus_agent for new configs.
