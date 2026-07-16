@@ -9,6 +9,7 @@
     "DISABLE_AUTOUPDATER": "1",
     "DISABLE_ERROR_REPORTING": "1",
     "ENABLE_TOOL_SEARCH": "auto:5",
+    "RTK_HOOK_AUDIT": "1",
     "USE_BUILTIN_RIPGREP": "0"
   },
   "attribution": {
@@ -249,6 +250,10 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/cloud-readonly-gate.sh"
+          },
+          {
+            "type": "command",
+            "command": "if [ -n \"$RTK_ENABLE\" ] && command -v rtk >/dev/null 2>&1; then rtk hook claude || true; fi"
           }
         ]
       },

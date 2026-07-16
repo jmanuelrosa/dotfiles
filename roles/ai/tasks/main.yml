@@ -246,3 +246,17 @@
     dest: "{{ HOME }}/.pi/agent/skills"
     state: link
     force: true
+
+# rtk ignores XDG_CONFIG_HOME and only reads the macOS Application Support path.
+- name: Ensure rtk config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/Library/Application Support/rtk"
+    state: directory
+    mode: "0755"
+
+- name: Symlink rtk config
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/rtk/config.toml"
+    dest: "{{ HOME }}/Library/Application Support/rtk/config.toml"
+    state: link
+    force: true

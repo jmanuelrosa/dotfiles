@@ -48,6 +48,7 @@ BREW_PACKAGES:
   formulas:
     - gemini-cli
     - pi-coding-agent
+    - rtk
     # Runs the bundled Claude skill validators (e.g. skill-writer's
     # `uv run quick_validate.py`), which declare inline script dependencies.
     - uv
