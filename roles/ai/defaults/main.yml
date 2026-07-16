@@ -15,6 +15,7 @@ GLOBAL_CLAUDE_SKILLS:
   - commit
   - pr
   - humanizer
+  - research
   - feature-team
   - product-lead
   - setup-strategy
