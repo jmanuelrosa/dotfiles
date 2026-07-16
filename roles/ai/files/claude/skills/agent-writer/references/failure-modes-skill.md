@@ -7,7 +7,7 @@ The living exemplars are `backend-failure-modes/` and `platform-failure-modes/`.
 
 A thin-router `SKILL.md` (~40 lines) plus ~8 reference files of 40-55 lines each, one per domain.
 The domains come from Step 4's confirmed answer, refined by the researcher reports.
-The skill is `dependency_only: true` in the registry: it exists to be shipped with its agent, and browsing surfaces hide it.
+The skill lives inside the seat's plugin (`plugins/<discipline>/skills/<seat>-failure-modes/`): it ships with the agent because they share the plugin folder, carries no registry row, and is invoked as `<discipline>:<seat>-failure-modes`.
 
 ## SKILL.md router
 
