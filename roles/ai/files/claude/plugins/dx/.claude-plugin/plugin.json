@@ -9,6 +9,7 @@
   "groups": [
     "engineering",
     "devops",
-    "workflow"
+    "workflow",
+    "observability"
   ]
 }
