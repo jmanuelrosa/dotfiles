@@ -122,7 +122,9 @@ docs/
       epic-{n}.md
       story-{n.m}.md
     06-dor-report.md
-``` The design goal is an unbroken traceability chain: story to `AC-{n.m}.{k}` to `R#` (PRD requirement) to PRD to brief to strategy bet/OKR, cleared by five human PR gates plus the stage-7 dry-run confirm.
+```
+
+The design goal is an unbroken traceability chain: story to `AC-{n.m}.{k}` to `R#` (PRD requirement) to PRD to brief to strategy bet/OKR, cleared by five human PR gates plus the stage-7 dry-run confirm.
 
 ### Product agents
 
