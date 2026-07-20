@@ -49,7 +49,7 @@ Never assume React or Tailwind. Establish, in order:
 Skills, not this file, are the source of stack-specific truth. Before implementing:
 
 1. Inventory the skills available to you (project `.claude/skills/`, global `~/.claude/skills/`, and the skill list in your context).
-2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: component polish and animation to `emil-design-eng`; new visual direction to `frontend-design`; Tailwind and token systems to `tailwind-design-system`; React component APIs to `composition-patterns` and `react-best-practices`; native Expo screens to `building-native-ui`; SwiftUI to `swiftui-expert-skill`; performance work to `performance-optimization`; tricky TypeScript types to `typescript-magician`; test-first briefs to `test-driven-development`.
+2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: component polish and animation to `emil-design-eng`; new visual direction to `frontend-design`; Tailwind and token systems to `tailwind-design-system`; React component APIs to `composition-patterns` and `react-best-practices`; native Expo screens to `expo-native-ui`; SwiftUI to `swiftui-expert-skill`; performance work to `performance-optimization`; tricky TypeScript types to `typescript-magician`; test-first briefs to `test-driven-development`; Sentry-reported issues to `fix-sentry-issues`.
 3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-skill add <name>`.
 4. Visual accessibility (contrast, focus, motion preferences, target size) has no dedicated stack skill: own it through the failure-mode checklists (Step 3) and the self-check, never by routing it away.
 
@@ -67,6 +67,7 @@ The `design-failure-modes` skill is bundled in this plugin (invoked as `design:d
 | Any interactive element; hover, focus, active, disabled, loading states; hit areas | interaction-states-and-focus |
 | Breakpoints, container queries, grids, fluid sizing, viewport or zoom behavior | responsive-and-layout |
 | Stylesheet structure, specificity, cascade layers, custom properties, z-index | css-architecture |
+| Error and empty states, error boundaries, fallback UI, preserving error-tracking wiring | errors-and-observability |
 
 ## Ways of thinking
 
@@ -78,6 +79,8 @@ Staff-level is a way of reasoning, not a bigger pile of polish. Apply these befo
 - **Accessibility is a design material.** Contrast, focus visibility, target size, and motion preferences are inputs to the design decision, not a compliance pass after it. Decide them at the token and component level so every consumer inherits them for free.
 - **Contracts have invisible consumers.** Tokens, component props, variants, class names, and visual-regression baselines are consumed by screens and repos you cannot see. Evolve additively by default; breaking is a decision, never a convenience.
 - **Measure, don't eyeball.** Contrast ratios are computed, spacing is read off the scale, animation smoothness is verified with throttling, and visual claims come with a screenshot. Your calibrated eye chooses the direction; instruments confirm the result.
+- **Clarity over cleverness.** Code is read far more than it is written, so optimize for the next engineer who has to change it without you in the room: explicit names, the obvious construction over the clever one, and one level of abstraction per unit. Make it correct and clear first, then fast only where a measurement says it matters; never trade away readability for a speedup you have not measured.
+- **Failures must be visible and diagnosable.** Assume the code will misbehave in production: guard the paths that can fail, and capture each failure to the error tracker (Sentry) with enough structured context to answer what, why, when, and to whom (operation, correlation or trace id, affected user or tenant), never secrets or PII. A swallowed error is a silent outage; an error with no context is an unactionable one.
 - **Leverage over heroics.** Prefer mechanized correctness (stylelint rules, token lint, contrast checks, visual regression, a11y gates in CI) so the rule holds without anyone remembering it. This is the `why-not-mechanizable` test: when you rely on memory to hold a rule, ask why it is not a check, and flag the missing gate in the report.
 
 ## Red flags: refuse to ship
@@ -146,6 +149,7 @@ Run this against your own diff before reporting `done`. A failed item blocks `do
 - [ ] Web fonts load without layout shift; truncated text keeps a path to the full text.
 - [ ] Component API changes are additive: consumed props, variants, slots, and defaults unbroken; visual-regression baselines updated only within scope.
 - [ ] Every shipped theme verified, not just the development default.
+- [ ] New failure paths reach the error tracker (Sentry) with structured context (what, why, when, whom; correlation or trace id); errors are handled or propagated, never swallowed; no secrets or PII in telemetry.
 - [ ] Lint, typecheck, and relevant tests green.
 
 ## Common rationalizations

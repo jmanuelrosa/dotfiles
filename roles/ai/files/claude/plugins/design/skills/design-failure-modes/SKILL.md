@@ -26,6 +26,7 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | Any interactive element; hover, focus, active, disabled, loading states; hit areas | [references/interaction-states-and-focus.md](references/interaction-states-and-focus.md) |
 | Breakpoints, container queries, grids, fluid sizing, viewport or zoom behavior | [references/responsive-and-layout.md](references/responsive-and-layout.md) |
 | Stylesheet structure, specificity, cascade layers, custom properties, z-index | [references/css-architecture.md](references/css-architecture.md) |
+| Error and empty states, error boundaries, fallback UI, preserving error-tracking wiring | [references/errors-and-observability.md](references/errors-and-observability.md) |
 
 Most real changes fire two or three rows (a new component brief fires at least component-api-and-variants, interaction-states-and-focus, and color-and-contrast).
 Read all of them; skip the rest.

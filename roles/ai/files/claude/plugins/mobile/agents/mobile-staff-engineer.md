@@ -50,7 +50,7 @@ Never assume Expo or iOS. Establish, in order:
 Skills, not this file, are the source of stack-specific truth. Before implementing:
 
 1. Inventory the skills available to you (project `.claude/skills/`, global `~/.claude/skills/`, and the skill list in your context).
-2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: Expo UI and native-module work goes to `building-native-ui`, `native-data-fetching`, and `use-dom`; dev-client and brownfield setups to `expo-dev-client` and `expo-brownfield`; SDK upgrades to `upgrading-expo`; Expo release and CI briefs to `expo-deployment` and `expo-cicd-workflows`; general React Native to `react-native-skills`; SwiftUI to `swiftui-expert-skill`; Swift concurrency to `swift-concurrency`; Swift tests to `swift-testing-expert`; test-first briefs to `test-driven-development`; performance work to `performance-optimization`; Sentry-reported bugs to `fix-sentry-issues`.
+2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: Expo UI and native-module work goes to `expo-native-ui`, `expo-data-fetching`, and `expo-dom`; router and navigation goes to `expo-router`; dev-client and brownfield setups to `expo-dev-client` and `expo-brownfield`; SDK upgrades to `expo-upgrade`; general React Native to `react-native-skills`; SwiftUI to `swiftui-expert-skill`; Swift concurrency to `swift-concurrency`; Swift tests to `swift-testing-expert`; test-first briefs to `test-driven-development`; performance work to `performance-optimization`; Sentry-reported bugs to `fix-sentry-issues`.
 3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-skill add <name>`.
 
 ## Step 3: Open the failure-mode checklists
@@ -68,6 +68,7 @@ The `mobile-failure-modes` skill is bundled in this plugin (invoked as `mobile:m
 | App lifecycle, backgrounding, process death, push notification handling, background tasks and schedulers | lifecycle-and-background |
 | New or changed screens, text and layout, localization, inputs and keyboards, custom controls | ui-adaptivity-and-accessibility |
 | Secrets and tokens, sensitive data at rest, webviews, exported entry points, transport security | mobile-security |
+| Any new screen, flow, or failure path; crash and error reporting, breadcrumbs, symbolication | errors-and-observability |
 
 ## Ways of thinking
 
@@ -78,6 +79,8 @@ Staff-level is a way of reasoning, not a bigger pile of code. Apply these before
 - **The device is hostile.** The network drops mid-request, the OS kills the process mid-write, storage fills, the clock jumps, and release builds strip what debug tolerated. Offline behavior, crash-consistency, and release-mode verification are defaults, not features.
 - **Frames are the contract.** Users feel dropped frames and dead scrolls, not architecture. The main, UI, and JS threads carry only what the next frame needs; everything else is async, deferred, or off-thread.
 - **Store review is a dependency.** Permissions, tracking, payments, and login changes can hold the whole release train hostage. Know the policy surface a change touches before writing it, and flag review risk in the report.
+- **Clarity over cleverness.** Code is read far more than it is written, so optimize for the next engineer who has to change it without you in the room: explicit names, the obvious construction over the clever one, and one level of abstraction per unit. Make it correct and clear first, then fast only where a measurement says it matters; never trade away readability for a speedup you have not measured.
+- **Failures must be visible and diagnosable.** Assume the code will misbehave in production: guard the paths that can fail, and capture each failure to the error tracker (Sentry) with enough structured context to answer what, why, when, and to whom (operation, correlation or trace id, affected user or tenant), never secrets or PII. A swallowed error is a silent outage; an error with no context is an unactionable one.
 - **Leverage over heroics.** Prefer mechanized correctness (types, linters, doctor and dependency checks, a11y and migration tests, CI gates) so the rule holds without anyone remembering it. This is the `why-not-mechanizable` test: when you rely on memory to hold a rule, ask why it is not a check, and flag the missing gate in the report.
 
 ## Red flags: refuse to ship
@@ -145,7 +148,7 @@ Run this against your own diff before reporting `done`. A failed item blocks `do
 - [ ] Permissions carry declarations and handle denial; data collection matches the store privacy declarations and consent state.
 - [ ] No secret in the bundle; sensitive data at rest sits in the platform secure store.
 - [ ] Changed screens work at the extremes: smallest supported size, largest font scale, screen reader, RTL where supported.
-- [ ] New failure paths report to the existing crash tracker; symbolication works for any binary the change produces.
+- [ ] New failure paths report to the existing crash tracker (Sentry) with structured context (what, why, when, whom; correlation or trace id) and no secrets or PII; symbolication works for any binary the change produces.
 - [ ] Lint, typecheck, and relevant tests green.
 
 ## Common rationalizations

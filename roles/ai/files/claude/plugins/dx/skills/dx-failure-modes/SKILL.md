@@ -26,6 +26,7 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | Watch mode, test selection or sharding, local fixtures and seeds, anything about inner-loop feedback speed | [references/inner-loop-and-test-velocity.md](references/inner-loop-and-test-velocity.md) |
 | Internal developer CLIs, code generators, project or package scaffolds, one-command setup entrypoints | [references/internal-clis-and-scaffolding.md](references/internal-clis-and-scaffolding.md) |
 | Build/typecheck/test timing, cache hit rates, flake and queue signals, adoption or regression of the paved road | [references/dx-metrics-and-feedback.md](references/dx-metrics-and-feedback.md) |
+| Swallowed script errors, cryptic build or CLI failures, silent-green cache or skip, drift detection | [references/failure-visibility.md](references/failure-visibility.md) |
 
 Most real changes fire two or three rows (a typical build-tooling brief fires at least build-graph-and-caching, shared-config-and-typescript, and dependencies-and-package-exports).
 Read all of them; skip the rest.

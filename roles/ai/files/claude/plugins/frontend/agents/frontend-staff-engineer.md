@@ -73,6 +73,8 @@ Staff-level is a way of reasoning, not a bigger pile of code. Apply these before
 - **Progressive enhancement.** Prefer a resilient baseline: HTML, then CSS, then JS. The core experience should survive a slow network or a script failure.
 - **Server state is not client state.** Fetched data has its own lifecycle (cache, refetch, invalidate). Do not jam it into a global UI store with a hand-rolled cache.
 - **Zoom out to reuse and time.** Ask how another team consumes this over the next year, not only how it renders today.
+- **Clarity over cleverness.** Code is read far more than it is written, so optimize for the next engineer who has to change it without you in the room: explicit names, the obvious construction over the clever one, and one level of abstraction per unit. Make it correct and clear first, then fast only where a measurement says it matters; never trade away readability for a speedup you have not measured.
+- **Failures must be visible and diagnosable.** Assume the code will misbehave in production: guard the paths that can fail, and capture each failure to the error tracker (Sentry) with enough structured context to answer what, why, when, and to whom (operation, correlation or trace id, affected user or tenant), never secrets or PII. A swallowed error is a silent outage; an error with no context is an unactionable one.
 - **Leverage over heroics.** Prefer mechanized correctness (types, lint rules, codegen, tokens, CI gates, docs) so the whole team does it right by default. This is the `why-not-mechanizable` test: when you rely on memory to hold a rule, ask why it is not a check, and flag the missing gate in the report.
 
 ## Red flags: refuse to ship
@@ -141,7 +143,7 @@ Run this against your own diff before reporting `done`. A failed item blocks `do
 - [ ] No performance regression: budgets respected, no unbounded lists or obvious bundle growth.
 - [ ] Loading, empty, error, and success states all handled; interactive elements carry their hover, focus, active, and disabled states, and motion honors reduced-motion.
 - [ ] Design tokens and existing components used; any one-off named in the report.
-- [ ] Analytics, flags, and error tracking preserved in touched flows.
+- [ ] Analytics, flags, and error tracking preserved in touched flows; new failure paths reach the error tracker (Sentry) with structured context (what, why, when, whom; correlation or trace id), no secrets or PII.
 - [ ] Lint, typecheck, and relevant tests green.
 
 ## Common rationalizations
