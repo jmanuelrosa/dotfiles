@@ -24,10 +24,8 @@ SEP = f" {DIM}│{RESET} "
 BAR_WIDTH = 8
 DEFAULT_CONTEXT_WINDOW = 200_000
 
-
 def rgb(r, g, b):
     return f"\033[38;2;{r};{g};{b}m"
-
 
 ACCENT_5H = rgb(0x26, 0x8B, 0xD2)    # blue   → 5-hour window
 ACCENT_7D = rgb(0x6C, 0x71, 0xC4)    # violet → 7-day window
@@ -252,13 +250,27 @@ def pm_segment(workspace):
     return f"📦 {PM_COLORS.get(name, ACCENT_NODE)}{name}{' ' + version if version else ''}{RESET}"
 
 
+def rtk_segment():
+    """RTK token-proxy toggle, mirroring the PreToolUse hook's gate.
+
+    The hook only routes through rtk when RTK_ENABLE is set and the binary is on
+    PATH, so the segment shows nothing when rtk isn't installed and on/off from
+    the env var otherwise.
+    """
+    if not shutil.which("rtk"):
+        return None
+    if os.environ.get("RTK_ENABLE"):
+        return f"✂️ {GREEN}rtk{RESET}"
+    return f"{DIM}✂️ rtk off{RESET}"
+
+
 def model_segment(model):
     name = model.get("display_name") if isinstance(model, dict) else None
     return f"🤖 {MAGENTA}{name}{RESET}" if name else None
 
 
 def cc_version_segment(version):
-    return f"{DIM}v{version}{RESET}" if isinstance(version, str) and version else None
+    return f"{DIM}cc{RESET} v{version}" if isinstance(version, str) and version else None
 
 
 def main():
@@ -276,8 +288,9 @@ def main():
             context_segment(data.get("context_window")),
             usage_segment(data.get("rate_limits")),
             model_segment(data.get("model")),
+            rtk_segment(),
         ),
-        (  # toolchain: node, package manager, edit velocity, CC version
+        (  # toolchain: node, package manager, edit velocity, rtk, CC version
             node_segment(),
             pm_segment(workspace),
             velocity_segment(data.get("cost")),
@@ -286,7 +299,6 @@ def main():
     )
     lines = [SEP.join(s for s in row if s) for row in rows]
     print("\n".join(line for line in lines if line) or "🤖 Claude Code")
-
 
 if __name__ == "__main__":
     main()
