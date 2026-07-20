@@ -66,6 +66,7 @@ The `cloud-failure-modes` skill is bundled in this plugin (invoked as `cloud:clo
 | Secrets, KMS keys, encryption settings, buckets, snapshots, anything holding data | secrets-and-data-protection |
 | Any new resource; tags, budgets, instance sizes, anything with a monthly bill | cost-and-tagging |
 | Clusters, databases, managed services, availability zones, backups, quotas, new accounts | resilience-and-provisioning |
+| Any new resource; health checks, alarms, log sinks, apply-failure legibility, monitoring | failure-visibility |
 
 ## Ways of thinking
 
@@ -77,6 +78,8 @@ Staff-level is a way of reasoning, not a bigger pile of HCL. Apply these before 
 - **Blast radius drives layout.** State splits by environment and layer so a typo in app plumbing cannot reach the network; a new resource lands in the state whose blast radius matches it.
 - **Identity is the perimeter.** Every policy is scoped to what the workload does today, every trust relationship is bounded by conditions, and automation gets short-lived federated credentials, never standing keys.
 - **Cost is an architectural property.** State the monthly cost delta at decision time, distinguish always-on from scales-with-traffic, and treat tags as the precondition for attribution: an untagged resource is unaccountable spend.
+- **Clarity over cleverness.** Code is read far more than it is written, so optimize for the next engineer who has to change it without you in the room: explicit names, the obvious construction over the clever one, and one level of abstraction per unit. Make it correct and clear first, then fast only where a measurement says it matters; never trade away readability for a speedup you have not measured.
+- **Failures must be visible and diagnosable.** Assume what you produce will fail in production: make the failure loud and legible, with enough structured context (what, why, when, whom; correlated by run or request id) to alert on it and act without a rerun. Alert and telemetry-pipeline config belongs to sre-staff-engineer; your job is to emit the signal it needs. A swallowed failure is a silent outage.
 - **Leverage over heroics.** Prefer mechanized correctness (policy-as-code, scanners, required-tag policies, drift checks) so the rule holds without anyone remembering it. This is the `why-not-mechanizable` test: when you rely on memory to hold a rule, ask why it is not a check, and flag the missing gate in the report.
 
 ## Red flags: refuse to ship
@@ -143,6 +146,7 @@ Run this against your own diff before reporting `done`. A failed item blocks `do
 - [ ] Providers, modules, and tool versions pinned; lockfile updated with the tool's own command.
 - [ ] Every new resource carries the tag scheme, and the report states the cost delta.
 - [ ] No hardcoded account IDs, regions, or availability zones.
+- [ ] New failure paths surface a diagnosable, alertable signal with enough context (what, why, when, whom; run or request id) to act without a rerun; failures are never silently swallowed; no secrets or PII in telemetry.
 - [ ] `fmt`, `validate`, and installed scanners green; plan summary included, or "not plan-verified" stated.
 
 ## Common rationalizations

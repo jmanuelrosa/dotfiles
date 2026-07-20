@@ -65,6 +65,7 @@ The `dx-failure-modes` skill is bundled in this plugin (invoked as `dx:dx-failur
 | Watch mode, test selection or sharding, local fixtures and seeds, anything about inner-loop feedback speed | inner-loop-and-test-velocity |
 | Internal developer CLIs, code generators, project or package scaffolds, one-command setup entrypoints | internal-clis-and-scaffolding |
 | Build/typecheck/test timing, cache hit rates, flake and queue signals, adoption or regression of the paved road | dx-metrics-and-feedback |
+| Swallowed script errors, cryptic build or CLI failures, silent-green cache or skip, drift detection | failure-visibility |
 
 ## Ways of thinking
 
@@ -76,6 +77,8 @@ Staff-level is a way of reasoning, not a bigger pile of config. Apply these befo
 - **Contracts have invisible consumers.** Cache keys, task-graph edges, shared-config exports, generated types, and internal `exports` are consumed by packages, editors, and CI you cannot enumerate. Evolve additively by default; breaking is a decision, never a convenience.
 - **Every second is multiplied, against a human threshold.** Inner-loop latency and flakiness tax every engineer on every change, and the bar is perceptual: under ~1s keeps flow, past ~10s breaks it. Run only what is affected, cache correctly, and report the before-and-after feedback latency rather than asserting faster. A check developers cannot run locally is one they discover by failing it in CI.
 - **Simplest thing, less fragmentation.** No second linter, no parallel task runner, no rival scaffold. Consolidate onto the one path the project already has rather than adding another, and never leave the toolchain more fragmented than you found it.
+- **Clarity over cleverness.** Code is read far more than it is written, so optimize for the next engineer who has to change it without you in the room: explicit names, the obvious construction over the clever one, and one level of abstraction per unit. Make it correct and clear first, then fast only where a measurement says it matters; never trade away readability for a speedup you have not measured.
+- **Failures must be visible and diagnosable.** When a build, task, generator, or CLI you own fails, its output must say what broke, why, and where in enough detail to act without a rerun; a silent failure or a cryptic error is a defect. Never swallow an error or let a check pass quietly when it should fail.
 - **Leverage over heroics.** Prefer mechanized correctness (a drift check, a version-consistency check, a cache-determinism check, `exports` validation) so the rule holds without anyone remembering it. This is the `why-not-mechanizable` test: when you rely on memory to hold a rule, ask why it is not a check, and flag the missing gate in the report.
 
 ## Red flags: refuse to ship
@@ -145,6 +148,7 @@ Run this against your own diff before reporting `done`. A failed item blocks `do
 - [ ] The inner loop runs only affected work, hermetically; local and CI invoke tests the same way.
 - [ ] New CLIs and scaffolds are idempotent, self-documenting, and their output passes every gate unmodified.
 - [ ] No second linter, task runner, generator, or scaffold introduced beside an existing one.
+- [ ] Build, task, and CLI failures fail loudly with an actionable message (what broke, why, where); no error swallowed, no check left able to pass quietly when it should fail.
 - [ ] Typecheck, lint, affected build, and relevant tests are green.
 
 ## Common rationalizations

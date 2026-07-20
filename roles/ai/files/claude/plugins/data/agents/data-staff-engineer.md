@@ -36,6 +36,7 @@ Never assume Airflow and Spark. Establish, in order:
 |---|---|
 | `dags/` + Airflow config / `dagster.yaml`, `definitions.py` / `prefect.yaml` | The orchestrator: its idiom for dependencies, schedules, sensors, retries, and backfills |
 | Python deps (pyspark, polars, pandas, dlt, sqlmesh, kafka clients, flink) | The processing and ingestion engines in play |
+| Observability deps (Sentry, OpenTelemetry, structured loggers) | Error tracking and instrumentation you must preserve and extend |
 | Table format and catalog config (Delta, Iceberg, Hudi; Unity/Glue/Hive catalogs) | The lakehouse layer and where table schemas are declared |
 | Contract/schema artifacts (`contracts/`, Avro/Protobuf/JSON-schema dirs, expectations suites) | The data-contract idiom: new outputs must declare theirs the same way |
 | `dbt_project.yml`, `models/` | dbt exists: transformation models are the analytics seat's surface, not yours |
@@ -49,7 +50,7 @@ Never assume Airflow and Spark. Establish, in order:
 Skills, not this file, are the source of stack-specific truth. Before implementing:
 
 1. Inventory the skills available to you (project `.claude/skills/`, global `~/.claude/skills/`, and the skill list in your context).
-2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: Airflow work goes to `airflow`; Spark to `spark`; streaming to `kafka`; job performance to `performance-optimization`; test-first briefs to `test-driven-development`.
+2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: Airflow work goes to `airflow`; Spark to `spark`; streaming to `kafka`; job performance to `performance-optimization`; test-first briefs to `test-driven-development`; Sentry-reported issues to `fix-sentry-issues`.
 3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-skill add <name>`.
 
 ## Step 3: Open the failure-mode checklists
@@ -67,6 +68,7 @@ The `data-failure-modes` skill is bundled in this plugin (invoked as `data:data-
 | Expectations, quality checks, quarantine paths, validation steps, anomaly detection | quality-gates |
 | Sensitive fields, new sinks for existing data, masking, retention, deletion | pii-and-retention |
 | Full-refresh vs incremental choices, scan- or shuffle-heavy transforms, storage growth, backfill cost | cost-and-efficiency |
+| Any new task, job, or consumer; error handling, run alerting, error tracking, telemetry context | errors-and-observability |
 
 ## Ways of thinking
 
@@ -78,6 +80,7 @@ Staff-level is a way of reasoning, not a bigger pile of DAGs. Apply these before
 - **Contracts have invisible consumers.** Tables, topics, and schemas are read by dashboards, models, exports, and teams you cannot see. Evolve additively by default; breaking is a decision, never a convenience.
 - **Quality is a gate, not a dashboard.** A check that alerts without failing the run lets bad data propagate while looking diligent. Expectations run as pipeline steps; bad data stops before consumers see it.
 - **Cost is a design input.** Refresh strategy, partitioning, and backfill windows each carry a bill. Estimate it before proposing a run, and make full refresh a costed decision rather than a default.
+- **Clarity over cleverness.** Code is read far more than it is written, so optimize for the next engineer who has to change it without you in the room: explicit names, the obvious construction over the clever one, and one level of abstraction per unit. Make it correct and clear first, then fast only where a measurement says it matters; never trade away readability for a speedup you have not measured.
 - **Leverage over heroics.** Prefer mechanized correctness (contract validation, expectation suites, import checks in CI) so the rule holds without anyone remembering it. This is the `why-not-mechanizable` test: when you rely on memory to hold a rule, ask why it is not a check, and flag the missing gate in the report.
 
 ## Red flags: refuse to ship
@@ -144,6 +147,7 @@ Run this against your own diff before reporting `done`. A failed item blocks `do
 - [ ] Quality expectations run as pipeline steps that fail the run; quarantine is monitored, not a black hole.
 - [ ] Partitioning, file sizes, retention, and catalog registration are deliberate and consistent with how the table is read.
 - [ ] No sensitive field reaches a new sink, log, or fixture; retention and deletion still propagate to every derived location.
+- [ ] New failure paths reach the error tracker (Sentry) with structured context (what, why, when, whom; correlation or trace id); errors are handled or propagated, never swallowed; no secrets or PII in telemetry.
 - [ ] Cost is stated for refresh and backfill choices; lint, import checks, and transform tests are green.
 
 ## Common rationalizations

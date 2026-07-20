@@ -25,6 +25,7 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | Any e2e or browser test; selectors, auth or session state, base URLs, cross-test data flow | [references/e2e-and-selectors.md](references/e2e-and-selectors.md) |
 | A coverage-gap brief; error paths, boundary values, negative cases, coverage reports | [references/coverage-and-gaps.md](references/coverage-and-gaps.md) |
 | Test runner or framework config, shared test utilities, suite speed, parallelism, reporters | [references/suite-health.md](references/suite-health.md) |
+| Diagnostic failure messages, false greens, secrets or real data in tests, masked flakes | [references/failure-visibility.md](references/failure-visibility.md) |
 
 Most real changes fire two or three rows (a typical test-writing brief fires at least assertion-strength, isolation-and-hermeticity, and test-data-and-fixtures).
 Read all of them; skip the rest.

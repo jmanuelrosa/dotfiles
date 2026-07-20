@@ -50,7 +50,7 @@ Never assume a web container alone. Establish, in order:
 Skills, not this file, are the source of stack-specific truth. Before implementing:
 
 1. Inventory the skills available to you (project `.claude/skills/`, global `~/.claude/skills/`, and the skill list in your context).
-2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: consent or privacy work goes to an installed `consent`/`privacy` skill; JavaScript in server tags or templates to `node` or `typescript-magician`; tag performance and page-weight work to `performance-optimization`; test-first briefs to `test-driven-development`. Hand GA4 data modeling and metric questions to the analytics seat rather than answering them here.
+2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: consent or privacy work goes to an installed `consent`/`privacy` skill; JavaScript in server tags or templates to `node` or `typescript-magician`; tag performance and page-weight work to `performance-optimization`; test-first briefs to `test-driven-development`; Sentry-reported issues in server containers or templates to `fix-sentry-issues`. Hand GA4 data modeling and metric questions to the analytics seat rather than answering them here.
 3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-skill add <name>`.
 
 ## Step 3: Open the failure-mode checklists
@@ -67,6 +67,7 @@ The `gtm-failure-modes` skill is bundled in this plugin (invoked as `gtm:gtm-fai
 | Server-to-server destinations: event dedup, PII hashing, API versions, auth tokens | conversion-apis |
 | GA4 tags, events, parameters, client and session identity, cross-domain, Measurement Protocol | ga4-integration |
 | Publishing a version, cross-path double-counting, identity continuity, QA before publish, monitoring | measurement-integrity-and-release |
+| Error handling, failed or dropped sends, server-side error tracking, tag health monitoring | errors-and-observability |
 
 ## Ways of thinking
 
@@ -78,6 +79,8 @@ Staff-level is a way of reasoning, not a bigger pile of tags. Apply these before
 - **Contracts have invisible consumers.** A dataLayer key, event name, or first-party cookie is read by tags, other containers, and reports you cannot see. Evolve additively; breaking is a decision, never a convenience.
 - **Identity is fragile.** `client_id`, `session_id`, and ad click IDs break silently across the client-to-server hop and under ITP. Preserve the chain deliberately or attribution rots without an error.
 - **Measure the measurement.** A tag that silently drops to zero is worse than one that errors. Verify in Preview, Tag Assistant, and DebugView, compare before-and-after volumes, and leave a health signal so a regression is caught in hours, not in the monthly report.
+- **Clarity over cleverness.** Code is read far more than it is written, so optimize for the next engineer who has to change it without you in the room: explicit names, the obvious construction over the clever one, and one level of abstraction per unit. Make it correct and clear first, then fast only where a measurement says it matters; never trade away readability for a speedup you have not measured.
+- **Failures must be visible and diagnosable.** Assume the code will misbehave in production: guard the paths that can fail, and capture each failure to the error tracker (Sentry) with enough structured context to answer what, why, when, and to whom (operation, correlation or trace id, affected user or tenant), never secrets or PII. A swallowed error is a silent outage; an error with no context is an unactionable one.
 - **Leverage over heroics.** Prefer mechanized correctness (template tests, container-level consent gating, a documented taxonomy, volume monitoring) so the rule holds without anyone remembering it. This is the `why-not-mechanizable` test: when you rely on memory to hold a rule, ask why it is not a check, and flag the missing gate in the report.
 
 ## Red flags: refuse to ship
@@ -146,6 +149,7 @@ Run this against your own diff before reporting `done`. A failed item blocks `do
 - [ ] Custom templates request least permission and pass `runTemplateTests` (happy, consent-denied, malformed input).
 - [ ] Identity continuity (`client_id`, `session_id`, click IDs) survives the client-to-server hop; cross-domain and referral exclusions cover owned hosts.
 - [ ] Destination API versions are pinned, tokens come from the secret store, and events are verified in the destination's test tool.
+- [ ] New failure paths reach the error tracker (Sentry) with structured context (what, why, when, whom; correlation or trace id); errors are handled or propagated, never swallowed; no secrets or PII in telemetry.
 - [ ] Changes validated in Preview, Tag Assistant, and DebugView; before-and-after volumes sane; nothing published by the agent.
 
 ## Common rationalizations

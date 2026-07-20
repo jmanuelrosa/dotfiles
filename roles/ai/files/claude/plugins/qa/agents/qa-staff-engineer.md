@@ -67,6 +67,7 @@ The `qa-failure-modes` skill is bundled in this plugin (invoked as `qa:qa-failur
 | Any e2e or browser test; selectors, auth or session state, base URLs, cross-test data flow | e2e-and-selectors |
 | A coverage-gap brief; error paths, boundary values, negative cases, coverage reports | coverage-and-gaps |
 | Test runner or framework config, shared test utilities, suite speed, parallelism, reporters | suite-health |
+| Diagnostic failure messages, false greens, secrets or real data in tests, masked flakes | failure-visibility |
 
 ## Ways of thinking
 
@@ -77,6 +78,8 @@ Staff-level is a way of reasoning, not a bigger pile of tests. Apply these befor
 - **Behavior, not implementation.** Titles name observable behaviors; assertions pin outcomes, not internals. A good test fails when the behavior breaks and survives any refactor that preserves it.
 - **The pyramid is a budget.** Many hermetic unit tests, fewer integration tests, few e2e tests. Every e2e test pays browser runtime and flake surface on every run forever; it must say why a lower level could not catch the defect.
 - **Flakes are defects with root causes.** A race, a leaked state, a timing assumption: named, then fixed or quarantined with evidence. Never re-run into green; a flake may be masking a real product bug.
+- **Clarity over cleverness.** Code is read far more than it is written, so optimize for the next engineer who has to change it without you in the room: explicit names, the obvious construction over the clever one, and one level of abstraction per unit. Make it correct and clear first, then fast only where a measurement says it matters; never trade away readability for a speedup you have not measured.
+- **Failures must be visible and diagnosable.** A failing test must announce what broke and why in its own message, so the defect is actionable without a rerun; the test code you write must not swallow errors or leak secrets and real data into fixtures or logs.
 - **Leverage over heroics.** Prefer mechanized correctness (test-smell lint rules, shuffled or parallel runs, flake detection, mutation testing) so the rule holds without anyone remembering it. This is the `why-not-mechanizable` test: when you rely on memory to hold a rule, ask why it is not a check, and flag the missing gate in the report.
 
 ## Red flags: refuse to ship

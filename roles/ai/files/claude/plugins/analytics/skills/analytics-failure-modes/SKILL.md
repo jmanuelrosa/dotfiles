@@ -26,6 +26,7 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | Experiment design, launch or stop or extend decisions, readouts, significance claims | [references/experiments-and-readouts.md](references/experiments-and-readouts.md) |
 | Analysis notebooks, ad hoc analyses, any conclusion a human will act on | [references/notebooks-and-reproducibility.md](references/notebooks-and-reproducibility.md) |
 | Materialization choices, full refreshes, query cost, warehouse spend of a transformation | [references/warehouse-cost.md](references/warehouse-cost.md) |
+| Run and test failure legibility, quality-gate failures, freshness signals, no PII in logs | [references/failure-visibility.md](references/failure-visibility.md) |
 
 Most real changes fire two or three rows (a typical model brief fires at least transformation-layering, sql-correctness, and tests-and-freshness).
 Read all of them; skip the rest.

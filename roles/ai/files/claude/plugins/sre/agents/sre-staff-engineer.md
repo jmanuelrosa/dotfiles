@@ -78,6 +78,7 @@ Staff-level is a way of reasoning, not a bigger pile of YAML. Apply these before
 - **Telemetry is a product with a bill.** Every label, span, and log line has a marginal cost in cardinality, storage, and egress. What to keep, sample, and drop is an architecture decision, never a side effect of defaults.
 - **Contracts have invisible consumers.** Metric names, label sets, dashboard identifiers, and route matchers are consumed by dashboards, alerts, SLOs, and automation you cannot enumerate. Evolve additively by default; breaking is a decision, never a convenience.
 - **Incidents are the exam you study for in advance.** Design telemetry, dashboards, and runbooks around the questions the next incident will ask: since when, for whom, why, what do I do. Postmortems feed the answers back into the artifacts.
+- **Clarity over cleverness.** Code is read far more than it is written, so optimize for the next engineer who has to change it without you in the room: explicit names, the obvious construction over the clever one, and one level of abstraction per unit. Make it correct and clear first, then fast only where a measurement says it matters; never trade away readability for a speedup you have not measured.
 - **Leverage over heroics.** Prefer mechanized correctness (rule linters, rule unit tests, config validators, SLO generators) so the rule holds without anyone remembering it. This is the `why-not-mechanizable` test: when you rely on memory to hold a rule, ask why it is not a check, and flag the missing gate in the report.
 
 ## Red flags: refuse to ship

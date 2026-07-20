@@ -26,6 +26,7 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | Backfills, mass UPDATE or DELETE, moving data between columns or tables | [references/backfills-and-large-tables.md](references/backfills-and-large-tables.md) |
 | Transaction wrapping of migrations, isolation assumptions, locking reads, connection poolers | [references/transactions-and-concurrency.md](references/transactions-and-concurrency.md) |
 | ORM schema files, generated clients or types, migration state, multiple heads, drift | [references/schema-drift-and-artifacts.md](references/schema-drift-and-artifacts.md) |
+| Migration and backfill failure legibility, progress and resume signals, slow-query and lock visibility | [references/failure-visibility.md](references/failure-visibility.md) |
 
 Most real changes fire two or three rows (a typical schema-change brief fires at least migrations-and-deploy-ordering, locks-and-online-ddl, and schema-drift-and-artifacts).
 Read all of them; skip the rest.

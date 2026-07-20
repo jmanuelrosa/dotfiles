@@ -28,6 +28,7 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | Expectations, quality checks, quarantine paths, validation steps, anomaly detection | [references/quality-gates.md](references/quality-gates.md) |
 | Sensitive fields, new sinks for existing data, masking, retention, deletion | [references/pii-and-retention.md](references/pii-and-retention.md) |
 | Full-refresh vs incremental choices, scan- or shuffle-heavy transforms, storage growth, backfill cost | [references/cost-and-efficiency.md](references/cost-and-efficiency.md) |
+| Error handling, task failures, run alerting, error tracking, telemetry context | [references/errors-and-observability.md](references/errors-and-observability.md) |
 
 Most real changes fire two or three rows (a typical new-pipeline brief fires at least idempotency-and-replay, orchestration-and-scheduling, and quality-gates).
 Read all of them; skip the rest.
