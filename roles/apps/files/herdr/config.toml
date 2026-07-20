@@ -67,30 +67,34 @@ prefix = "ctrl+d"
 # detach = "prefix+q"
 # reload_config = "prefix+shift+r"
 # open_notification_target = "prefix+o"
+
 workspace_picker = "prefix+shift+w"
 goto = "prefix+shift+g"
 new_workspace = "prefix+w"
+rename_workspace = "prefix+ctrl+shift+r"
+# close_workspace = "prefix+shift+d"
+# previous_workspace = "" # optional, unset by default
+# next_workspace = ""     # optional, unset by default
+# switch_workspace = ""   # optional indexed binding, e.g. "prefix+shift+1..9"
 
 # Worktree creation is routed through the wt fish helper via the
 # [[keys.command]] block below (bound to prefix+g), not herdr's built-in.
 new_worktree = "prefix+ctrl+shift+w"
 open_worktree = "prefix+ctrl+shift+o"
 remove_worktree = "prefix+ctrl+shift+d"
-rename_workspace = "prefix+ctrl+shift+r"
-# close_workspace = "prefix+shift+d"
-# previous_workspace = "" # optional, unset by default
-# next_workspace = ""     # optional, unset by default
+
 # previous_agent = ""     # optional, unset by default
 # next_agent = ""         # optional, unset by default
 # focus_agent = ""        # optional indexed binding, e.g. "prefix+alt+1..9"
 # remote_image_paste = "ctrl+v" # only active in herdr --remote; empty disables raw-key image paste
+
 new_tab = "prefix+t"
 rename_tab = "prefix+ctrl+t"
 previous_tab = "prefix+shift+tab"
 next_tab = "prefix+tab"
 switch_tab = "prefix+1..9"
-# switch_workspace = ""   # optional indexed binding, e.g. "prefix+shift+1..9"
 # close_tab = "prefix+shift+x"
+
 # rename_pane = "prefix+shift+p"
 # edit_scrollback = "prefix+e"
 focus_pane_left = "prefix+j"
@@ -103,6 +107,7 @@ cycle_pane_previous = ""
 split_vertical = "prefix+v"
 split_horizontal = "prefix+h"
 close_pane = "prefix+x"
+
 zoom = "prefix+z"       # legacy alias: fullscreen
 # resize_mode = "prefix+r"
 toggle_sidebar = "prefix+s"
@@ -127,11 +132,13 @@ toggle_sidebar = "prefix+s"
 
 # Create a git worktree through the wt fish helper (base-branch resolution,
 # env/.vscode/.claude copy, frozen dep install) and open it as a focused herdr
-# workspace. Assumes $SHELL is fish, where wt is an autoloaded function.
+# workspace. --herdr opts into the workspace open and --focus focuses it (wt add
+# is otherwise git-only and background); it scopes to the current session via
+# HERDR_SOCKET_PATH. Assumes $SHELL is fish, where wt is an autoloaded function.
 [[keys.command]]
 key = "prefix+g"
 type = "pane"
-command = "read -P 'worktree slug: ' s; and wt add $s"
+command = "read -P 'worktree slug: ' s; and wt add --herdr --focus $s"
 
 # Legacy indexed shortcut config is still parsed for compatibility.
 # Prefer switch_tab, switch_workspace, and focus_agent for new configs.
@@ -205,6 +212,27 @@ hide_tab_bar_when_single_tab = true
 # Agent panel ordering: "spaces" (grouped by space) or "priority" (attention queue).
 # "workspaces" is accepted as an alias for "spaces".
 # agent_panel_sort = "spaces"
+
+# Expanded agent rows. Built-ins are state_icon, state_text, workspace, tab, pane, agent,
+# terminal_title, and terminal_title_stripped.
+# Custom values reported through pane metadata use a $name token.
+# A token occurrence may be styled with { token = "workspace", fg = "#89b4fa", bold = true, dim = false }.
+# Omitted style fields preserve the contextual default.
+[ui.sidebar.agents]
+# Blank rows between agent entries. Set to 1 to restore the previous spacing.
+row_gap = 1
+# rows = [["state_icon", "workspace", "tab"], ["agent"]]
+# Optional canonical agent IDs replace the default rows for matching agents.
+# [ui.sidebar.agents.rows_by_agent]
+# claude = [["state_icon", "workspace", "tab"], ["terminal_title_stripped"], ["agent"]]
+
+# Expanded space rows. Built-ins are state_icon, state_text, workspace, branch, and git_status.
+# Custom values reported through workspace metadata use a $name token, for example $jj_status.
+# Inline token styles accept strict #RGB/#RRGGBB foregrounds plus bold and dim booleans.
+[ui.sidebar.spaces]
+# Blank rows between space entries. Set to 1 to restore the previous spacing.
+row_gap = 1
+# rows = [["state_icon", "workspace"], ["branch", "git_status"]]
 
 # Accent color for highlights, borders, and navigation UI.
 # Accepts: hex (#89b4fa), named colors (cyan, blue, magenta), or rgb(r,g,b)
