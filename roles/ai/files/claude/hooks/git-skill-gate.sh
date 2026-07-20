@@ -52,6 +52,13 @@ SKILLS_FOR_SUBCOMMAND = {
     "glab mr create": {"pr"},
 }
 
+# The commit skill's apply.py commits without a `git commit` in the command
+# string, so executing it (directly or via an interpreter) gets the same
+# gate by path. Only execution positions are checked: a `wc -c .../apply.py`
+# must not trip the gate.
+APPLY_PY_RE = re.compile(r"(^|/)skills/commit/scripts/apply\.py$")
+INTERPRETERS = {"bash", "sh", "zsh", "python", "python3"}
+
 OPTIONS_WITH_SEPARATE_ARG = {
     "-c", "-C",
     "--git-dir", "--work-tree", "--namespace",
@@ -93,6 +100,15 @@ def gated_subcommand(tokens):
     if i >= len(tokens):
         return None
     binary = tokens[i]
+    if APPLY_PY_RE.search(binary):
+        return "git commit"
+    if binary in INTERPRETERS:
+        for tok in tokens[i + 1:]:
+            if tok.startswith("-"):
+                continue
+            if APPLY_PY_RE.search(tok):
+                return "git commit"
+            break
     if binary == "git":
         i += 1
         while i < len(tokens):

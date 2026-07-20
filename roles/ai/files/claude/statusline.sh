@@ -1,129 +1,110 @@
 #!/usr/bin/env python3
 # vim: ft=python
-# Filename keeps .sh extension to match the path referenced in settings.json
-# (statusLine.command) and the symlink in ~/.claude. The shebang is what
-# determines execution. Python is used to avoid a jq runtime dependency and to
-# match the existing git-skill-gate.sh convention in this repo.
-"""statusline.sh — Claude Code status line.
+# Kept as .sh to match settings.json (statusLine.command) and the ~/.claude
+# symlink; the shebang selects Python, which avoids a jq runtime dependency.
+"""Claude Code status line: reads the payload JSON on stdin, prints two rows.
 
-Reads the status-line JSON payload on stdin and prints a single line:
+    📁 app (main) │ context [▓▓░░░░░░] 100k (19%) │ usage 5h 9% 7d 1% │ 🤖 Opus 4.8
+    ⬢ node 22.4.0 │ 📦 pnpm 9.1.0 │ ⚡ +120/-30 │ v2.1.90
 
-    📁 dotfiles (main) │ ⚡ ▓▓▓░░░░░░░ 28% │ 🤖 Opus 4.8 │ ⚡ +120/-30
-
-Colors: the named segments (repo yellow, branch cyan, model magenta, velocity
-green/red) use ANSI color indices, so they track whatever terminal theme is
-active. The context bar uses a truecolor gradient tuned to the Solarized accent
-palette (green → yellow → orange → red), with a gauge emoji that steps at
-20 / 70 / 90 percent (🟢 → ⚡ → 🔥 → 🚨).
-
-Every field is optional in the payload (null / missing early in a session or
-right after /compact), so each is pulled defensively and dropped from the line
-if unavailable. Always exits 0 with a non-empty line — a blank line or non-zero
-exit blanks the status line.
+Every field is optional (missing early in a session), so each segment is pulled
+defensively and dropped when unavailable; the script always exits 0 with a
+non-empty line.
 """
 import json
 import os
-import re
+import shutil
 import subprocess
 import sys
-import unicodedata
+import tempfile
 
-# ANSI colors (the status line renders ANSI escapes). GREEN/RED are the 16-color
-# SGR codes used for velocity; the context bar uses 24-bit truecolor instead.
-RESET = "\033[0m"
-BOLD = "\033[1m"
-DIM = "\033[2m"
-GREEN = "\033[32m"
-RED = "\033[31m"
-YELLOW = "\033[33m"
-MAGENTA = "\033[35m"
-CYAN = "\033[36m"
-
+RESET, BOLD, DIM = "\033[0m", "\033[1m", "\033[2m"
+GREEN, RED, YELLOW, MAGENTA, CYAN = (f"\033[3{n}m" for n in (2, 1, 3, 5, 6))
 SEP = f" {DIM}│{RESET} "
-BAR_WIDTH = 10
-
-ANSI_RE = re.compile(r"\033\[[0-9;]*m")
-
-
-def char_width(ch):
-    """Rendered cell width of a single character (0, 1, or 2)."""
-    o = ord(ch)
-    if o == 0x200D or 0xFE00 <= o <= 0xFE0F or unicodedata.combining(ch):
-        return 0  # ZWJ, variation selectors, combining marks
-    if unicodedata.east_asian_width(ch) in ("W", "F"):
-        return 2
-    # Emoji / symbol ranges that render double-width in modern terminals.
-    if (
-        0x1F000 <= o <= 0x1FAFF
-        or 0x2600 <= o <= 0x27BF
-        or 0x2B00 <= o <= 0x2BFF
-    ):
-        return 2
-    return 1
-
-
-def display_width(s):
-    """Visible width of a string, ignoring ANSI escapes."""
-    return sum(char_width(ch) for ch in ANSI_RE.sub("", s))
-
+BAR_WIDTH = 8
+DEFAULT_CONTEXT_WINDOW = 200_000
 
 def rgb(r, g, b):
-    """24-bit truecolor foreground escape."""
     return f"\033[38;2;{r};{g};{b}m"
 
+ACCENT_5H = rgb(0x26, 0x8B, 0xD2)    # blue   → 5-hour window
+ACCENT_7D = rgb(0x6C, 0x71, 0xC4)    # violet → 7-day window
+ACCENT_NODE = rgb(0x5F, 0xA0, 0x4E)  # node brand green
 
-# Solarized accent stops for the context gauge: green → yellow → orange → red.
-# Truecolor so the gradient is smooth; tuned to the palette to sit well against
-# the Solarized Dark background rather than the default neon RGB endpoints.
-GRADIENT_STOPS = (
-    (0x85, 0x99, 0x00),  # green   #859900
-    (0xB5, 0x89, 0x00),  # yellow  #b58900
-    (0xCB, 0x4B, 0x16),  # orange  #cb4b16
-    (0xDC, 0x32, 0x2F),  # red     #dc322f
-)
+# Package-manager brand colors so the active one reads at a glance.
+PM_COLORS = {
+    "npm": rgb(0xCB, 0x38, 0x37),
+    "pnpm": rgb(0xF6, 0x92, 0x20),
+    "yarn": rgb(0x2C, 0x8E, 0xBB),
+    "bun": rgb(0xE6, 0xC8, 0x9C),
+}
+
+# Solarized accent stops for the gauges: green → yellow → orange → red, tuned to
+# sit well on a Solarized background rather than the default neon RGB endpoints.
+GRADIENT_STOPS = ((0x85, 0x99, 0x00), (0xB5, 0x89, 0x00), (0xCB, 0x4B, 0x16), (0xDC, 0x32, 0x2F))
 
 
 def gradient(t):
-    """Interpolate across the Solarized accent stops for t in [0, 1]."""
     t = max(0.0, min(1.0, t))
     span = len(GRADIENT_STOPS) - 1
-    pos = t * span
-    i = min(int(pos), span - 1)
-    frac = pos - i
+    i = min(int(t * span), span - 1)
+    frac = t * span - i
     a, b = GRADIENT_STOPS[i], GRADIENT_STOPS[i + 1]
-    return tuple(int(a[k] + (b[k] - a[k]) * frac) for k in range(3))
+    return rgb(*(int(a[k] + (b[k] - a[k]) * frac) for k in range(3)))
 
 
-def context_emoji(pct):
-    """Dynamic gauge emoji; steps at 20 / 70 / 90 percent."""
-    if pct >= 90:
-        return "🚨"
-    if pct >= 70:
-        return "🔥"
-    if pct >= 20:
-        return "⚡"
-    return "🟢"
+def gradient_bar(pct):
+    filled = int(pct) * BAR_WIDTH // 100
+    return "".join(
+        f"{gradient(i / (BAR_WIDTH - 1))}▓{RESET}" if i < filled else f"{DIM}░{RESET}"
+        for i in range(BAR_WIDTH)
+    )
+
+
+def clamp_pct(value):
+    return max(0, min(100, int(round(value)))) if isinstance(value, (int, float)) else None
+
+
+def fmt_tokens(n):
+    """16700 → 16.7k, 200000 → 200k, 512 → 512."""
+    if n < 1000:
+        return str(int(n))
+    return f"{n / 1000:.1f}".rstrip("0").rstrip(".") + "k"
 
 
 def context_segment(ctx):
     if not isinstance(ctx, dict):
         return None
-    pct_raw = ctx.get("used_percentage")
-    pct = int(pct_raw) if isinstance(pct_raw, (int, float)) else 0
-    pct = max(0, min(100, pct))
-    filled = pct * BAR_WIDTH // 100
-    cells = []
-    for i in range(BAR_WIDTH):
-        if i < filled:
-            # Each filled cell is colored by its position along the full bar,
-            # so the gradient stays fixed and more of it reveals as usage grows.
-            r, g, b = gradient(i / (BAR_WIDTH - 1))
-            cells.append(f"{rgb(r, g, b)}▓{RESET}")
-        else:
-            cells.append(f"{DIM}░{RESET}")
-    bar = "".join(cells)
-    r, g, b = gradient(pct / 100)
-    return f"{context_emoji(pct)} {bar} {rgb(r, g, b)}{pct}%{RESET}"
+    pct = clamp_pct(ctx.get("used_percentage")) or 0
+    size = ctx.get("context_window_size")
+    size = int(size) if isinstance(size, (int, float)) and size else DEFAULT_CONTEXT_WINDOW
+    used = _context_used_tokens(ctx, size, pct)
+    tokens = f" {DIM}{fmt_tokens(used)}{RESET}" if used is not None else ""
+    return f"{DIM}context{RESET} [{gradient_bar(pct)}]{tokens} {gradient(pct / 100)}({pct}%){RESET}"
+
+
+def _context_used_tokens(ctx, size, pct):
+    ti, to = ctx.get("total_input_tokens"), ctx.get("total_output_tokens")
+    if isinstance(ti, (int, float)) or isinstance(to, (int, float)):
+        return int(ti or 0) + int(to or 0)
+    cur = ctx.get("current_usage")
+    if isinstance(cur, dict):
+        total = sum(int(v) for v in cur.values() if isinstance(v, (int, float)))
+        if total:
+            return total
+    return int(size * pct / 100) if pct else None
+
+
+def usage_segment(rate_limits):
+    if not isinstance(rate_limits, dict):
+        return None
+    parts = []
+    for key, label, accent in (("five_hour", "5h", ACCENT_5H), ("seven_day", "7d", ACCENT_7D)):
+        window = rate_limits.get(key)
+        pct = clamp_pct(window.get("used_percentage")) if isinstance(window, dict) else None
+        if pct is not None:
+            parts.append(f"{accent}{label}{RESET} {gradient(pct / 100)}{pct}%{RESET}")
+    return f"{DIM}usage{RESET} " + " ".join(parts) if parts else None
 
 
 def git_branch(cwd):
@@ -132,14 +113,11 @@ def git_branch(cwd):
     try:
         out = subprocess.run(
             ["git", "-C", cwd, "rev-parse", "--abbrev-ref", "HEAD"],
-            capture_output=True,
-            text=True,
-            timeout=1,
+            capture_output=True, text=True, timeout=1,
         )
     except (OSError, subprocess.SubprocessError):
         return None
-    branch = out.stdout.strip()
-    return branch or None
+    return out.stdout.strip() or None
 
 
 def repo_segment(workspace):
@@ -154,16 +132,13 @@ def repo_segment(workspace):
         return None
     label = f"📁 {BOLD}{YELLOW}{name}{RESET}"
     branch = git_branch(cwd)
-    if branch:
-        label += f" ({BOLD}{CYAN}{branch}{RESET})"
-    return label
+    return f"{label} ({BOLD}{CYAN}{branch}{RESET})" if branch else label
 
 
 def velocity_segment(cost):
     if not isinstance(cost, dict):
         return None
-    added = cost.get("total_lines_added")
-    removed = cost.get("total_lines_removed")
+    added, removed = cost.get("total_lines_added"), cost.get("total_lines_removed")
     if not isinstance(added, (int, float)) and not isinstance(removed, (int, float)):
         return None
     added = int(added) if isinstance(added, (int, float)) else 0
@@ -171,11 +146,131 @@ def velocity_segment(cost):
     return f"⚡ {GREEN}+{added}{RESET}/{RED}-{removed}{RESET}"
 
 
-def model_segment(model):
-    if not isinstance(model, dict):
+TOOL_CACHE_FILE = os.path.join(tempfile.gettempdir(), "claude-statusline-tools.json")
+
+
+def tool_version(tool):
+    """`<tool> --version`, cached per tool by binary path + mtime.
+
+    The status line re-runs every turn and a spawn costs ~50ms, so a given
+    binary at a fixed path (one version) is resolved at most once per install.
+    """
+    path = shutil.which(tool)
+    if not path:
         return None
-    name = model.get("display_name")
+    mtime = os.path.getmtime(path) if os.path.exists(path) else 0
+
+    cache = {}
+    try:
+        with open(TOOL_CACHE_FILE, encoding="utf-8") as fh:
+            cache = json.load(fh)
+        entry = cache.get(tool, {})
+        if entry.get("path") == path and entry.get("mtime") == mtime:
+            return entry.get("version") or None
+    except (OSError, ValueError, AttributeError):
+        cache = cache if isinstance(cache, dict) else {}
+
+    try:
+        out = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=1)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    lines = out.stdout.strip().splitlines()
+    token = lines[0].strip().lstrip("v").split() if lines else []
+    version = token[0] if token else None
+    if not version:
+        return None
+
+    cache[tool] = {"path": path, "mtime": mtime, "version": version}
+    try:
+        with open(TOOL_CACHE_FILE, "w", encoding="utf-8") as fh:
+            json.dump(cache, fh)
+    except OSError:
+        pass
+    return version
+
+
+def node_segment():
+    version = tool_version("node")
+    return f"⬢ {ACCENT_NODE}node {version}{RESET}" if version else None
+
+
+# Lockfile → package-manager name, specific before npm.
+LOCKFILES = (
+    ("bun.lockb", "bun"), ("bun.lock", "bun"), ("pnpm-lock.yaml", "pnpm"),
+    ("yarn.lock", "yarn"), ("package-lock.json", "npm"), ("npm-shrinkwrap.json", "npm"),
+)
+KNOWN_PMS = frozenset(name for _, name in LOCKFILES)
+
+
+def detect_package_manager(cwd):
+    """(name, version) for the project's package manager, walking cwd upward.
+
+    Monorepo lockfiles live at the root, above per-package package.json files.
+    package.json's `packageManager` field carries name+version with no spawn.
+    """
+    directory = cwd
+    while directory and os.path.isdir(directory):
+        found = _pm_from_package_json(directory) or _pm_from_lockfile(directory)
+        if found:
+            return found
+        parent = os.path.dirname(directory)
+        if parent == directory:
+            return None
+        directory = parent
+    return None
+
+
+def _pm_from_package_json(directory):
+    try:
+        with open(os.path.join(directory, "package.json"), encoding="utf-8") as fh:
+            field = json.load(fh).get("packageManager")
+    except (OSError, ValueError, AttributeError):
+        return None
+    if not isinstance(field, str) or "@" not in field:
+        return None
+    name, _, version = field.partition("@")
+    if name not in KNOWN_PMS:
+        return None
+    return name, version.split("+")[0] or tool_version(name)  # drop corepack hash
+
+
+def _pm_from_lockfile(directory):
+    for fname, name in LOCKFILES:
+        if os.path.exists(os.path.join(directory, fname)):
+            return name, tool_version(name)
+    return None
+
+
+def pm_segment(workspace):
+    cwd = workspace.get("current_dir") if isinstance(workspace, dict) else None
+    found = detect_package_manager(cwd) if cwd else None
+    if not found:
+        return None
+    name, version = found
+    return f"📦 {PM_COLORS.get(name, ACCENT_NODE)}{name}{' ' + version if version else ''}{RESET}"
+
+
+def rtk_segment():
+    """RTK token-proxy toggle, mirroring the PreToolUse hook's gate.
+
+    The hook only routes through rtk when RTK_ENABLE is set and the binary is on
+    PATH, so the segment shows nothing when rtk isn't installed and on/off from
+    the env var otherwise.
+    """
+    if not shutil.which("rtk"):
+        return None
+    if os.environ.get("RTK_ENABLE"):
+        return f"✂️ {GREEN}rtk{RESET}"
+    return f"{DIM}✂️ rtk off{RESET}"
+
+
+def model_segment(model):
+    name = model.get("display_name") if isinstance(model, dict) else None
     return f"🤖 {MAGENTA}{name}{RESET}" if name else None
+
+
+def cc_version_segment(version):
+    return f"{DIM}cc{RESET} v{version}" if isinstance(version, str) and version else None
 
 
 def main():
@@ -185,36 +280,25 @@ def main():
         data = {}
     if not isinstance(data, dict):
         data = {}
+    workspace = data.get("workspace")
 
-    left_segments = [
-        repo_segment(data.get("workspace")),
-        context_segment(data.get("context_window")),
-    ]
-    # Model leads the right cluster so it survives right-edge truncation in
-    # narrow panels (e.g. the VS Code sidebar); the velocity counter, which is
-    # less critical, absorbs any clipping at the edge instead.
-    right_segments = [
-        model_segment(data.get("model")),
-        velocity_segment(data.get("cost")),
-    ]
-    left = SEP.join(s for s in left_segments if s)
-    right = SEP.join(s for s in right_segments if s)
-
-    # Right-align the right group against the terminal edge when Claude Code
-    # exposes the width (COLUMNS, v2.1.153+) and both groups fit on one line.
-    try:
-        cols = int(os.environ.get("COLUMNS", "0"))
-    except ValueError:
-        cols = 0
-    if cols > 0 and left and right:
-        gap = cols - display_width(left) - display_width(right)
-        if gap >= 1:
-            print(left + " " * gap + right)
-            return
-
-    # Fallback: everything left-aligned on one line. Never emit an empty line.
-    print(SEP.join(s for s in (left, right) if s) or "🤖 Claude Code")
-
+    rows = (
+        (  # live picture: identity, context, usage windows, model
+            repo_segment(workspace),
+            context_segment(data.get("context_window")),
+            usage_segment(data.get("rate_limits")),
+            model_segment(data.get("model")),
+            rtk_segment(),
+        ),
+        (  # toolchain: node, package manager, edit velocity, rtk, CC version
+            node_segment(),
+            pm_segment(workspace),
+            velocity_segment(data.get("cost")),
+            cc_version_segment(data.get("version")),
+        ),
+    )
+    lines = [SEP.join(s for s in row if s) for row in rows]
+    print("\n".join(line for line in lines if line) or "🤖 Claude Code")
 
 if __name__ == "__main__":
     main()
