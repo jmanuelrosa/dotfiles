@@ -24,25 +24,40 @@ function _wt_help
   echo "Usage: wt <subcommand> [args...]"
   echo ""
   echo "Subcommands:"
-  echo "  add [-b <branch>] <dir>  Create worktree at sibling dir <dir>. Branch defaults"
+  echo "  add [-b <branch>] [-h/--herdr] [-f/--focus] <dir>"
+  echo "                           Create worktree at sibling dir <dir>. Branch defaults"
   echo "                           to <dir>; pass -b/--branch to override (created from"
-  echo "                           develop > main > master). Copies env/.vscode/.claude,"
-  echo "                           installs deps from lockfile (frozen) if present, and cds into it."
-  echo "                           Inside a herdr session, also opens and focuses the worktree"
-  echo "                           as a herdr workspace."
+  echo "                           develop > main > master). Copies env/.vscode/.claude and"
+  echo "                           installs deps from lockfile (frozen) if present."
+  echo "                           Pass -h/--herdr to also open the worktree as a workspace"
+  echo "                           in the current herdr session. Pass -f/--focus to move to"
+  echo "                           the new worktree (cd, and focus the herdr workspace);"
+  echo "                           without it the worktree is created in the background."
   echo "  list                     List all worktrees"
-  echo "  remove <name> [--force]  Remove a worktree (by branch name or path)"
+  echo "  remove [-h/--herdr] [-f/--force] <name>"
+  echo "                           Remove a worktree (by branch name or path). Pass -h/--herdr"
+  echo "                           to also close its workspace in the current herdr session."
   echo "  prune                    Prune stale worktree metadata"
 end
 
+function _wt_in_herdr
+  set -q HERDR_ENV; and type -q herdr
+end
+
+function _wt_herdr_workspace_id --argument-names abs_path
+  herdr worktree list --json 2>/dev/null \
+    | jq -r --arg p $abs_path \
+      '[.. | objects | select(.path? == $p) | .open_workspace_id] | map(select(. != null)) | first // empty'
+end
+
 function _wt_add
-  argparse 'b/branch=' -- $argv
+  argparse 'b/branch=' 'h/herdr' 'f/focus' -- $argv
   or return 1
 
   set -l dir $argv[1]
   if test -z "$dir"
     echo "wt add: missing directory name" >&2
-    echo "Usage: wt add [-b <branch>] <dir>" >&2
+    echo "Usage: wt add [-b <branch>] [-h/--herdr] [-f/--focus] <dir>" >&2
     return 1
   end
 
@@ -104,6 +119,7 @@ function _wt_add
     cp -R $main_wt/.claude $target/
   end
 
+  set -l prev_dir $PWD
   cd $target
 
   if test -f pnpm-lock.yaml
@@ -120,16 +136,29 @@ function _wt_add
     yarn install --frozen-lockfile
   end
 
-  if set -q HERDR_ENV; and type -q herdr
-    echo "→ Opening worktree in herdr"
-    if not herdr worktree open --path $target --label $branch --focus
-      echo "wt: herdr worktree open failed (worktree created regardless)" >&2
+  set -l focus_arg --no-focus
+  if set -q _flag_focus
+    set focus_arg --focus
+  end
+
+  if set -q _flag_herdr
+    if _wt_in_herdr
+      echo "→ Opening worktree in herdr"
+      if not herdr worktree open --path $target --label $branch $focus_arg
+        echo "wt: herdr worktree open failed (worktree created regardless)" >&2
+      end
+    else
+      echo "wt: --herdr ignored (not inside a herdr session)" >&2
     end
+  end
+
+  if not set -q _flag_focus
+    cd $prev_dir
   end
 end
 
 function _wt_remove
-  argparse 'f/force' -- $argv
+  argparse 'f/force' 'h/herdr' -- $argv
   or return 1
 
   set -l target $argv[1]
@@ -143,25 +172,44 @@ function _wt_remove
     set force_args --force
   end
 
+  set -l resolved
   if test -d $target
-    git worktree remove $force_args $target
-    return $status
-  end
-
-  set -l found ""
-  set -l current ""
-  for line in (git worktree list --porcelain)
-    if string match -q 'worktree *' -- $line
-      set current (string replace 'worktree ' '' -- $line)
-    else if string match -q "branch refs/heads/$target" -- $line
-      set found $current
-      break
+    set resolved (path resolve $target)
+  else
+    set -l current ""
+    for line in (git worktree list --porcelain)
+      if string match -q 'worktree *' -- $line
+        set current (string replace 'worktree ' '' -- $line)
+      else if string match -q "branch refs/heads/$target" -- $line
+        set resolved $current
+        break
+      end
     end
   end
 
-  if test -n "$found"
-    git worktree remove $force_args $found
-  else
-    git worktree remove $force_args $target
+  set -l remove_arg $target
+  if test -n "$resolved"
+    set remove_arg $resolved
+  end
+
+  set -l ws_id
+  if set -q _flag_herdr
+    if _wt_in_herdr
+      if test -n "$resolved"
+        set ws_id (_wt_herdr_workspace_id $resolved)
+      end
+    else
+      echo "wt: --herdr ignored (not inside a herdr session)" >&2
+    end
+  end
+
+  git worktree remove $force_args $remove_arg
+  or return $status
+
+  if test -n "$ws_id"
+    echo "→ Closing herdr workspace $ws_id"
+    if not herdr workspace close $ws_id
+      echo "wt: herdr workspace close failed (worktree removed regardless)" >&2
+    end
   end
 end
