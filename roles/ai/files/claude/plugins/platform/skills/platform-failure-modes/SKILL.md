@@ -26,6 +26,7 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | Build artifacts, package publishing, releases, version tags, provenance | [references/artifacts-and-releases.md](references/artifacts-and-releases.md) |
 | Shell scripts, pre-commit hooks, task runners, developer setup, local-CI parity | [references/scripts-hooks-and-local-dev.md](references/scripts-hooks-and-local-dev.md) |
 | Shared workflows, composite actions, golden-path templates, scaffolding | [references/templates-and-reuse.md](references/templates-and-reuse.md) |
+| Silent job skips, unreadable pipeline failures, workload probes, deploy-failure visibility | [references/failure-visibility.md](references/failure-visibility.md) |
 
 Most real changes fire two or three rows (a typical pipeline brief fires at least ci-pipelines, ci-security-and-secrets, and caching-and-build-speed).
 Read all of them; skip the rest.

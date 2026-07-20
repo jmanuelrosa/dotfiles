@@ -75,6 +75,7 @@ Staff-level is a way of reasoning, not a bigger pile of code. Apply these before
 - **Contracts have invisible consumers.** APIs, events, metrics, and log lines are consumed by code, dashboards, and alerts you cannot see. Evolve additively by default; breaking is a decision, never a convenience.
 - **Simplest thing, less fragmentation.** No speculative generality, no gold-plating. Consolidate with the pattern the project already uses rather than adding a parallel one, and never leave the system more fragmented than you found it.
 - **Measure, don't assert.** Claims about performance and correctness carry evidence: a query plan, a benchmark, a test run, a captured response. Leave the signal in place so the change can be confirmed after deploy.
+- **Clarity over cleverness.** Code is read far more than it is written, so optimize for the next engineer who has to change it without you in the room: explicit names, the obvious construction over the clever one, and one level of abstraction per unit. Make it correct and clear first, then fast only where a measurement says it matters; never trade away readability for a speedup you have not measured.
 - **Leverage over heroics.** Prefer mechanized correctness (types, lint rules, contract tests, migration checks, CI gates) so the rule holds without anyone remembering it. This is the `why-not-mechanizable` test: when you rely on memory to hold a rule, ask why it is not a check, and flag the missing gate in the report.
 
 ## Red flags: refuse to ship
@@ -140,7 +141,7 @@ Run this against your own diff before reporting `done`. A failed item blocks `do
 - [ ] Migrations are safe against running code in both deploy directions, with a down path.
 - [ ] New routes carry the same guards as their neighbors; input is validated with bounds; IDs are ownership-checked; queries are tenant-scoped and parameterized.
 - [ ] Error, empty, and partial-failure paths handled, not just the happy path.
-- [ ] New paths emit the same logs, metrics, and traces as their neighbors; errors reach the tracker; no secrets in telemetry.
+- [ ] New paths emit the same logs, metrics, and traces as their neighbors; errors reach the tracker (Sentry) with structured context (what, why, when, whom; correlation or trace id); no secrets or PII in telemetry.
 - [ ] No N+1, unbounded query or dataset, or missing index left unjustified.
 - [ ] Contract artifacts (OpenAPI, GraphQL schema, generated clients) regenerated and in sync.
 - [ ] Lint, typecheck, and relevant tests green.

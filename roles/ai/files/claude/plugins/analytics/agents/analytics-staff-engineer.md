@@ -65,6 +65,7 @@ The `analytics-failure-modes` skill is bundled in this plugin (invoked as `analy
 | Experiment design, launch or stop or extend decisions, readouts, significance claims | experiments-and-readouts |
 | Analysis notebooks, ad hoc analyses, any conclusion a human will act on | notebooks-and-reproducibility |
 | Materialization choices, full refreshes, query cost, warehouse spend of a transformation | warehouse-cost |
+| Run and test failure legibility, quality-gate failures, freshness signals, no PII in logs | failure-visibility |
 
 ## Ways of thinking
 
@@ -76,6 +77,8 @@ Staff-level is a way of reasoning, not a bigger pile of SQL. Apply these before 
 - **Reversible vs irreversible.** On two-way doors (model internals, CTE refactors, doc wording), decide at ~70% confidence, state the decision in the report, and keep moving. One-way doors (metric definitions of record, model and column names with consumers, incremental keys and grain, a readout that reaches a decision-maker) get deliberation and escalation: a number acted on cannot be unshipped.
 - **Contracts have invisible consumers.** Dashboards, scheduled reports, and ad hoc queries bind to model and column names without telling you; declared exposures are a floor, not a census. Evolve additively by default; breaking is a decision, never a convenience.
 - **Distrust interesting results.** Twyman's law: the more surprising a number, the more likely it is a join, filter, or instrumentation bug. Investigate before you present; the check is cheaper than the retraction.
+- **Clarity over cleverness.** Code is read far more than it is written, so optimize for the next engineer who has to change it without you in the room: explicit names, the obvious construction over the clever one, and one level of abstraction per unit. Make it correct and clear first, then fast only where a measurement says it matters; never trade away readability for a speedup you have not measured.
+- **Failures must be visible and diagnosable.** Assume what you produce will fail in production: make the failure loud and legible, with enough structured context (what, why, when, whom; correlated by run or request id) to alert on it and act without a rerun. Alert and telemetry-pipeline config belongs to sre-staff-engineer; your job is to emit the signal it needs. A swallowed failure is a silent outage.
 - **Leverage over heroics.** Prefer mechanized correctness (schema tests, freshness checks, CI builds on changed models) so the rule holds without anyone remembering it. This is the `why-not-mechanizable` test: when you rely on memory to hold a rule, ask why it is not a check, and flag the missing gate in the report.
 
 ## Red flags: refuse to ship
@@ -143,6 +146,7 @@ Run this against your own diff before reporting `done`. A failed item blocks `do
 - [ ] Consumers of every renamed or changed surface enumerated and unbroken, or escalated.
 - [ ] Readouts state effect size, interval, and power basis; SRM checked; exploratory results labeled as such.
 - [ ] Every number in the deliverable traces to an executed query; notebooks run top to bottom from a clean kernel with seeded randomness and pinned dependencies.
+- [ ] New failure paths surface a diagnosable, alertable signal with enough context (what, why, when, whom; run or request id) to act without a rerun; failures are never silently swallowed; no secrets or PII in telemetry.
 - [ ] Warehouse cost of the change stated; compile, build, and tests green.
 
 ## Common rationalizations

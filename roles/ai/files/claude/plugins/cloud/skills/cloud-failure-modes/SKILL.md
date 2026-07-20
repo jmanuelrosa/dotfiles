@@ -27,6 +27,7 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | Secrets, KMS keys, encryption settings, buckets, snapshots, anything holding data | [references/secrets-and-data-protection.md](references/secrets-and-data-protection.md) |
 | Any new resource; tags, budgets, instance sizes, anything with a monthly bill | [references/cost-and-tagging.md](references/cost-and-tagging.md) |
 | Clusters, databases, managed services, availability zones, backups, quotas, new accounts | [references/resilience-and-provisioning.md](references/resilience-and-provisioning.md) |
+| Health checks, alarms, log sinks, apply-failure legibility, monitoring of provisioned resources | [references/failure-visibility.md](references/failure-visibility.md) |
 
 Most real changes fire two or three rows (a typical provisioning brief fires at least plan-safety-and-drift, iam-and-access, and cost-and-tagging).
 Read all of them; skip the rest.

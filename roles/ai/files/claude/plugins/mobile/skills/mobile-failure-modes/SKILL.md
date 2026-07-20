@@ -28,6 +28,7 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | App lifecycle, backgrounding, process death, push notification handling, background tasks and schedulers | [references/lifecycle-and-background.md](references/lifecycle-and-background.md) |
 | New or changed screens, text and layout, localization, inputs and keyboards, custom controls | [references/ui-adaptivity-and-accessibility.md](references/ui-adaptivity-and-accessibility.md) |
 | Secrets and tokens, sensitive data at rest, webviews, exported entry points, transport security | [references/mobile-security.md](references/mobile-security.md) |
+| Crash and error reporting, error handling, breadcrumbs, symbolication, offline error capture | [references/errors-and-observability.md](references/errors-and-observability.md) |
 
 Most real changes fire two or three rows (a typical feature-screen brief fires at least offline-and-network, lifecycle-and-background, and ui-adaptivity-and-accessibility).
 Read all of them; skip the rest.

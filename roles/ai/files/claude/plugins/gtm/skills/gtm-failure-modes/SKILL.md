@@ -26,6 +26,7 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | Server-to-server destinations (Meta CAPI, Google Ads, GA4 Measurement Protocol): event dedup, PII hashing, API versions, auth | [references/conversion-apis.md](references/conversion-apis.md) |
 | GA4 tags, events, and parameters, client and session identity, cross-domain, Measurement Protocol, GA4 consent wiring | [references/ga4-integration.md](references/ga4-integration.md) |
 | Publishing a container version, cross-path double-counting, attribution and identity continuity, QA before publish, tag monitoring | [references/measurement-integrity-and-release.md](references/measurement-integrity-and-release.md) |
+| Error handling, failed or dropped sends, server-side error tracking, tag health monitoring | [references/errors-and-observability.md](references/errors-and-observability.md) |
 
 Most real changes fire two or three rows (a typical conversion-tag brief fires at least datalayer-contract, consent-and-privacy, and conversion-apis).
 Read all of them; skip the rest.
