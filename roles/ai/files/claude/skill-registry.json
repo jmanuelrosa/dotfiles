@@ -723,6 +723,20 @@
       "note": "Locally authored"
     },
     {
+      "name": "research",
+      "groups": [
+        "engineering",
+        "research",
+        "documentation",
+        "architecture",
+        "workflow"
+      ],
+      "dependencies": [
+        "jira"
+      ],
+      "note": "Locally authored"
+    },
+    {
       "name": "weekly-recap",
       "groups": [
         "productivity",
