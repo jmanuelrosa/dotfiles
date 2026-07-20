@@ -8,6 +8,7 @@
   },
   "groups": [
     "engineering",
-    "designer"
+    "designer",
+    "observability"
   ]
 }
