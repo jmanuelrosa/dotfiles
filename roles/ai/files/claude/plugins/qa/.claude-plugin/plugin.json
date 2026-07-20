@@ -9,6 +9,7 @@
   "groups": [
     "quality",
     "qa",
-    "testing"
+    "testing",
+    "observability"
   ]
 }

@@ -9,6 +9,7 @@
   "groups": [
     "engineering",
     "devops",
-    "ci"
+    "ci",
+    "observability"
   ]
 }
