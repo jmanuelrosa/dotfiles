@@ -61,7 +61,7 @@ Configs are linked from the repo with `ansible.builtin.file state=link force=tru
 ### Roles of note
 
 - [roles/coreutils/](roles/coreutils/) — modern Unix replacements (bat, eza, fd, ripgrep, television, btop, …). **Not** the GNU `coreutils` package. Domain-specific CLIs (awscli, gh, docker, lazygit, …) live in `apps`, next to their configs.
-- [roles/ai/](roles/ai/) — Claude Code / Gemini / Pi tooling. Skills under `files/claude/skills/` are shared with Pi via symlink.
+- [roles/ai/](roles/ai/) — Claude Code / Gemini / Pi tooling. Skills under `files/claude/skills/` are shared with Pi via symlink. [rtk](https://www.rtk-ai.app/) (token-optimizing CLI proxy) ships here too: it is opt-in per shell, so the Claude `PreToolUse` hook only rewrites commands when `RTK_ENABLE` is exported in the terminal (`RTK_HOOK_AUDIT` in [settings.json](roles/ai/files/claude/settings.json) records rewrite metrics). Its config is symlinked from `files/rtk/config.toml` to `~/Library/Application Support/rtk/config.toml`, which is the only path rtk reads (it ignores `XDG_CONFIG_HOME`).
 - [roles/shell/](roles/shell/) — fish, Ghostty, Starship, Television. Custom fish functions live here (e.g. `claude-skill`, `claude-agent`, `tv_change_dir`). Manages the television config + vendored cables under `files/television/`, plus the `TV_CABLE_ALLOWLIST` that prunes upstream cables after `tv update-channels`.
 - [roles/ssh/](roles/ssh/) — drives off `SSH_KEYS + SSH_KEYS_EXTRA`. Per-profile keys go in `host_vars/<profile>.yml` as `SSH_KEYS_EXTRA`.
 - [roles/macos/](roles/macos/) — `osx_defaults` plus nvram/pmset firmware tweaks.

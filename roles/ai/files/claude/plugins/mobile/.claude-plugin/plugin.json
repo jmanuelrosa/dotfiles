@@ -1,0 +1,14 @@
+{
+  "name": "mobile",
+  "description": "Mobile staff-engineer seat bundled with its mobile-failure-modes checklists.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Jose Manuel Rosa",
+    "email": "josemanuel.rosamoncayo@gmail.com"
+  },
+  "groups": [
+    "engineering",
+    "mobile",
+    "observability"
+  ]
+}

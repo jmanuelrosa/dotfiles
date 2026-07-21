@@ -298,9 +298,5 @@ gaps.outer.right =      0
     run= ["layout tiling", 'move-node-to-workspace TradingView']
 
 [[on-window-detected]]
-    if.app-id = 'com.bitwarden.desktop'
-    run= ["layout floating", 'move-node-to-workspace Vault']
-
-[[on-window-detected]]
-    if.app-id = 'dev.davidrosa.gitpulse'
-    run= ["layout floating", 'move-node-to-workspace Git']
+if.app-id = 'com.bitwarden.desktop'
+run= ["layout floating", 'move-node-to-workspace Vault']

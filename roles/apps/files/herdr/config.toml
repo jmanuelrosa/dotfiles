@@ -65,13 +65,13 @@ prefix = "ctrl+d"
 # help = "prefix+?"
 # settings = "prefix+s"
 # detach = "prefix+q"
-# reload_config = "prefix+shift+r"
+reload_config = "prefix+r"
 # open_notification_target = "prefix+o"
 
 workspace_picker = "prefix+shift+w"
 goto = "prefix+shift+g"
 new_workspace = "prefix+w"
-rename_workspace = "prefix+ctrl+shift+r"
+rename_workspace = "prefix+shift+r"
 # close_workspace = "prefix+shift+d"
 # previous_workspace = "" # optional, unset by default
 # next_workspace = ""     # optional, unset by default
@@ -85,8 +85,7 @@ remove_worktree = "prefix+ctrl+shift+d"
 
 # previous_agent = ""     # optional, unset by default
 # next_agent = ""         # optional, unset by default
-# focus_agent = ""        # optional indexed binding, e.g. "prefix+alt+1..9"
-# remote_image_paste = "ctrl+v" # only active in herdr --remote; empty disables raw-key image paste
+focus_agent = "prefix+shift+1..9"
 
 new_tab = "prefix+t"
 rename_tab = "prefix+ctrl+t"
@@ -94,6 +93,8 @@ previous_tab = "prefix+shift+tab"
 next_tab = "prefix+tab"
 switch_tab = "prefix+1..9"
 # close_tab = "prefix+shift+x"
+
+# remote_image_paste = "ctrl+v" # only active in herdr --remote; empty disables raw-key image paste
 
 # rename_pane = "prefix+shift+p"
 # edit_scrollback = "prefix+e"
@@ -104,12 +105,13 @@ focus_pane_right = "prefix+l"
 cycle_pane_next = ""
 cycle_pane_previous = ""
 # last_pane = ""          # optional, unset by default; bind e.g. "prefix+tab" for global back-and-forth
-split_vertical = "prefix+v"
-split_horizontal = "prefix+h"
 close_pane = "prefix+x"
 
+split_vertical = "prefix+v"
+split_horizontal = "prefix+h"
+
 zoom = "prefix+z"       # legacy alias: fullscreen
-# resize_mode = "prefix+r"
+resize_mode = ""
 toggle_sidebar = "prefix+s"
 
 # Navigate-mode movement. These local shortcuts win while navigate mode is open.
@@ -129,16 +131,6 @@ toggle_sidebar = "prefix+s"
 # key = "prefix+alt+g"
 # type = "pane"
 # command = "lazygit"
-
-# Create a git worktree through the wt fish helper (base-branch resolution,
-# env/.vscode/.claude copy, frozen dep install) and open it as a focused herdr
-# workspace. --herdr opts into the workspace open and --focus focuses it (wt add
-# is otherwise git-only and background); it scopes to the current session via
-# HERDR_SOCKET_PATH. Assumes $SHELL is fish, where wt is an autoloaded function.
-[[keys.command]]
-key = "prefix+g"
-type = "pane"
-command = "read -P 'worktree slug: ' s; and wt add --herdr --focus $s"
 
 # Legacy indexed shortcut config is still parsed for compatibility.
 # Prefer switch_tab, switch_workspace, and focus_agent for new configs.
@@ -239,6 +231,7 @@ row_gap = 1
 # accent = "cyan"
 
 # Background notification popup delivery
+
 [ui.toast]
 # off = disable pop-up notifications
 # herdr = show in-app toasts

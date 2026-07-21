@@ -12,7 +12,7 @@ command = [
 output = "{split: :0}"
 
 [preview]
-command = "bat --color=always --plain --language=markdown $DOTFILES_DIR/roles/ai/files/claude/agents/{split: :0}.md 2>/dev/null; or echo 'Not downloaded — Enter to install via claude-agent add'"
+command = "fish -c 'set b $DOTFILES_DIR/roles/ai/files/claude; set p $b/agents/{split: :0}.md; test -f $p; or set p $b/plugins/{split: :0}/agents/{split: :0}-staff-engineer.md; test -f $p; and bat --color=always --plain --language=markdown $p; or echo \"Not downloaded: press Enter to install via claude-agent add\"'"
 
 [ui]
 layout = "portrait"
@@ -43,5 +43,5 @@ separator = " "
 
 [actions.edit]
 description = "Open agent .md in $EDITOR"
-command = "$EDITOR $DOTFILES_DIR/roles/ai/files/claude/agents/{split: :0}.md"
+command = "fish -c 'set b $DOTFILES_DIR/roles/ai/files/claude; set p $b/agents/{split: :0}.md; test -f $p; or set p $b/plugins/{split: :0}/agents/{split: :0}-staff-engineer.md; $EDITOR $p'"
 mode = "execute"
