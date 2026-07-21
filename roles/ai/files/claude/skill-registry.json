@@ -372,7 +372,8 @@
           "groups": [
             "product",
             "pm",
-            "workflow"
+            "workflow",
+            "global"
           ],
           "updated_at": "2026-07-17T04:40:52Z"
         },
@@ -382,7 +383,8 @@
             "product",
             "pm",
             "idea-refinement",
-            "planning"
+            "planning",
+            "global"
           ],
           "dependencies": [
             "grilling"
@@ -395,7 +397,8 @@
             "product",
             "pm",
             "idea-refinement",
-            "planning"
+            "planning",
+            "global"
           ],
           "dependencies": [
             "grilling",
@@ -626,7 +629,8 @@
           "groups": [
             "ai",
             "prompt engineering",
-            "claude"
+            "claude",
+            "global"
           ],
           "updated_at": "2026-07-17T04:40:51Z"
         }
@@ -639,7 +643,8 @@
       "groups": [
         "ai",
         "prompt engineering",
-        "claude"
+        "claude",
+        "global"
       ],
       "note": "Locally authored"
     },
@@ -648,7 +653,8 @@
       "groups": [
         "productivity",
         "workflow",
-        "ai"
+        "ai",
+        "global"
       ],
       "note": "Locally authored"
     },
@@ -657,7 +663,8 @@
       "groups": [
         "ai",
         "prompt engineering",
-        "claude"
+        "claude",
+        "global"
       ],
       "note": "No external source"
     },
@@ -666,7 +673,8 @@
       "groups": [
         "productivity",
         "workflow",
-        "git"
+        "git",
+        "global"
       ],
       "note": "Locally authored"
     },
@@ -675,7 +683,8 @@
       "groups": [
         "productivity",
         "workflow",
-        "git"
+        "git",
+        "global"
       ],
       "note": "Locally authored"
     },
@@ -704,7 +713,8 @@
         "research",
         "documentation",
         "architecture",
-        "workflow"
+        "workflow",
+        "global"
       ],
       "dependencies": [
         "jira"
@@ -725,7 +735,8 @@
       "groups": [
         "ai",
         "prompt engineering",
-        "claude"
+        "claude",
+        "global"
       ],
       "dependencies": [
         "skill-writer"
@@ -737,7 +748,8 @@
       "groups": [
         "ai",
         "prompt engineering",
-        "claude"
+        "claude",
+        "global"
       ],
       "note": "Locally authored"
     },
@@ -746,7 +758,8 @@
       "groups": [
         "engineering",
         "workflow",
-        "ai"
+        "ai",
+        "global"
       ],
       "note": "Locally authored"
     },
@@ -756,7 +769,8 @@
         "product",
         "pm",
         "workflow",
-        "documentation"
+        "documentation",
+        "global"
       ],
       "note": "Locally authored"
     },
@@ -765,7 +779,8 @@
       "groups": [
         "product",
         "pm",
-        "planning"
+        "planning",
+        "global"
       ],
       "dependencies": [
         "product-lead",
@@ -779,7 +794,8 @@
       "groups": [
         "product",
         "pm",
-        "planning"
+        "planning",
+        "global"
       ],
       "dependencies": [
         "product-lead",
@@ -793,7 +809,8 @@
       "groups": [
         "product",
         "pm",
-        "research"
+        "research",
+        "global"
       ],
       "dependencies": [
         "product-lead"
@@ -806,7 +823,8 @@
         "product",
         "pm",
         "writing",
-        "documentation"
+        "documentation",
+        "global"
       ],
       "dependencies": [
         "product-lead"
@@ -818,7 +836,8 @@
       "groups": [
         "product",
         "pm",
-        "review"
+        "review",
+        "global"
       ],
       "dependencies": [
         "product-lead"
@@ -831,7 +850,8 @@
         "product",
         "pm",
         "architecture",
-        "documentation"
+        "documentation",
+        "global"
       ],
       "dependencies": [
         "product-lead"
@@ -843,7 +863,8 @@
       "groups": [
         "product",
         "pm",
-        "planning"
+        "planning",
+        "global"
       ],
       "dependencies": [
         "product-lead"
@@ -855,7 +876,8 @@
       "groups": [
         "product",
         "pm",
-        "review"
+        "review",
+        "global"
       ],
       "dependencies": [
         "product-lead"
@@ -867,7 +889,8 @@
       "groups": [
         "product",
         "pm",
-        "workflow"
+        "workflow",
+        "global"
       ],
       "dependencies": [
         "product-lead"
