@@ -5,7 +5,8 @@
     {
       "name": "cc-staff-reviewer",
       "groups": [
-        "productivity"
+        "productivity",
+        "global"
       ],
       "note": "No external source"
     },
@@ -13,7 +14,8 @@
       "name": "architect",
       "groups": [
         "engineering",
-        "architecture"
+        "architecture",
+        "global"
       ],
       "note": "Locally authored",
       "dependencies": [
@@ -26,7 +28,8 @@
       "name": "competitive-researcher",
       "groups": [
         "product",
-        "research"
+        "research",
+        "global"
       ],
       "note": "Locally authored"
     },
@@ -34,7 +37,8 @@
       "name": "user-evidence-researcher",
       "groups": [
         "product",
-        "research"
+        "research",
+        "global"
       ],
       "note": "Locally authored"
     },
@@ -42,7 +46,8 @@
       "name": "market-sizer",
       "groups": [
         "product",
-        "research"
+        "research",
+        "global"
       ],
       "note": "Locally authored"
     },
@@ -50,7 +55,8 @@
       "name": "strategy-checker",
       "groups": [
         "product",
-        "strategy"
+        "strategy",
+        "global"
       ],
       "note": "Locally authored"
     },
@@ -58,7 +64,8 @@
       "name": "pm-red-team",
       "groups": [
         "product",
-        "review"
+        "review",
+        "global"
       ],
       "note": "Locally authored"
     },
@@ -66,7 +73,8 @@
       "name": "adr-scribe",
       "groups": [
         "engineering",
-        "documentation"
+        "documentation",
+        "global"
       ],
       "note": "Locally authored"
     },
@@ -74,7 +82,8 @@
       "name": "ac-writer",
       "groups": [
         "quality",
-        "testing"
+        "testing",
+        "global"
       ],
       "note": "Locally authored"
     }

@@ -132,6 +132,32 @@
   loop_control:
     label: "{{ item.upstream_path | default('?') }}"
 
+# The `global` group tag in the registries is the single source of truth for
+# which skills/agents are symlinked into ~/.claude. Derive the root sets here
+# rather than hardcoding them: tag an entry `"global"` to add it to the set.
+- name: Derive global agents from the `global` group tag
+  ansible.builtin.set_fact:
+    GLOBAL_CLAUDE_AGENTS: >-
+      {{ (
+            ((_claude_agent_registry_raw.content | b64decode | from_json).local_agents | default([]))
+            + ((_claude_agent_registry_raw.content | b64decode | from_json).repos.values()
+               | map(attribute='agents') | flatten)
+         )
+         | selectattr('groups', 'defined')
+         | selectattr('groups', 'contains', 'global')
+         | map(attribute='name') | unique }}
+
+- name: Derive global skills from the `global` group tag
+  ansible.builtin.set_fact:
+    GLOBAL_CLAUDE_SKILLS: >-
+      {{ (
+            (_named_repo_skills | default([]))
+            + ((_claude_skill_registry_raw.content | b64decode | from_json).local_skills | default([]))
+         )
+         | selectattr('groups', 'defined')
+         | selectattr('groups', 'contains', 'global')
+         | map(attribute='name') | unique }}
+
 # Global agents may declare skill dependencies in agent-registry.json; treat
 # those skills as extra roots so a global agent (e.g. architect) never ships
 # without the method skills it invokes.

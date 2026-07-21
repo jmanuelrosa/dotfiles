@@ -2,45 +2,12 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-# Skills symlinked into ~/.claude/skills/ so they are available to Claude Code
-# in every project (no per-project `claude-skill add` needed).
-GLOBAL_CLAUDE_SKILLS:
-  - cc-review
-  - skill-writer
-  - skill-scout
-  - agent-audit
-  - agent-writer
-  - grill-me
-  - grill-with-docs
-  - handoff
-  - commit
-  - pr
-  - humanizer
-  - research
-  - feature-team
-  - product-lead
-  - setup-strategy
-  - 0-refine-idea
-  - 1-research
-  - 2-write-prd
-  - 3-red-team
-  - 4-tech-shape
-  - 5-decompose
-  - 6-gate-check
-  - 7-push-to-board
-
-# Agents symlinked into ~/.claude/agents/ so they are available to Claude Code
-# in every project (no per-project `claude-agent add` needed).
-GLOBAL_CLAUDE_AGENTS:
-  - cc-staff-reviewer
-  - architect
-  - competitive-researcher
-  - user-evidence-researcher
-  - market-sizer
-  - strategy-checker
-  - pm-red-team
-  - adr-scribe
-  - ac-writer
+# GLOBAL_CLAUDE_SKILLS and GLOBAL_CLAUDE_AGENTS (the sets symlinked into
+# ~/.claude so they are available in every project without a per-project
+# `claude-skill`/`claude-agent add`) are not hardcoded here: the ai role
+# derives them from the `global` group tag in skill-registry.json and
+# agent-registry.json, which is the single source of truth. Tag an entry
+# `"global"` to add it to the set; see tasks/main.yml.
 
 BREW_PACKAGES:
   taps:

@@ -8,6 +8,7 @@ command = [
   { name = "All",       run = "fish -c '_tv_claude_list agent'" },
   { name = "Linked",    run = "fish -c '_tv_claude_list agent linked'" },
   { name = "Available", run = "fish -c '_tv_claude_list agent available'" },
+  { name = "No global", run = "fish -c '_tv_claude_list agent noglobal'" },
 ]
 output = "{split: :0}"
 
