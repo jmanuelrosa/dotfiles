@@ -28,12 +28,15 @@ function _tv_claude_list --description "Television source: list claude skills or
     set -l jqlib 'def dn($r): (.upstream_path // "") as $p | if ($p == "" or $p == "." or $p == "/") then ($r | split("/")[1]) else ($p | sub("/+$";"") | split("/") | last) end; def allskills: [ (.repos | to_entries[] | .key as $r | .value.skills[] | . + {name: dn($r), repo: $r}), (.local_skills[]? | . + {repo: null}) ]; def visibleskills: allskills | map(select((.dependency_only // false) | not));'
 
     set -l group_map
+    set -l global_names
     if command -q jq; and test -f "$registry"
         switch $kind
             case skill skills
                 set group_map (jq -r $jqlib' visibleskills | .[] | "\(.name)|\(.groups // [] | join(", "))"' $registry)
+                set global_names (jq -r $jqlib' visibleskills | map(select(.groups | index("global"))) | .[].name' $registry)
             case agent agents
                 set group_map (jq -r '[.repos[].agents[]?, .local_agents[]?] | .[] | "\(.name)|\(.groups // [] | join(", "))"' $registry)
+                set global_names (jq -r '[.repos[].agents[]?, .local_agents[]?] | .[] | select(.groups | index("global")) | .name' $registry)
         end
     end
 
@@ -109,8 +112,16 @@ function _tv_claude_list --description "Television source: list claude skills or
             string match -er -- '\[(?:available|not downloaded)\]' $lines | sort
         case '' all
             printf '%s\n' $lines | sort
+        case noglobal
+            begin
+                for line in $lines
+                    set -l lname (string split -f1 ' ' -- $line)
+                    contains -- $lname $global_names; and continue
+                    echo $line
+                end
+            end | sort
         case '*'
-            echo "_tv_claude_list: filter must be 'linked', 'available', or empty" >&2
+            echo "_tv_claude_list: filter must be 'linked', 'available', 'noglobal', or empty" >&2
             return 1
     end
 end
