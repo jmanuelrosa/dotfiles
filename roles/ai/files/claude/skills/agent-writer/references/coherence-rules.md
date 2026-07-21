@@ -3,12 +3,12 @@
 When to read: while authoring the pair, and again when briefing the audit subagent.
 Every rule here was a real audit finding once; apply them during writing, not as a cleanup pass.
 
-## Trigger tables are one artifact in two files
+## Trigger tables are one artifact in two renderings
 
-The agent's Step 3 table and the skill's SKILL.md table have byte-identical rows, in the same order.
-Every `references/<file>.md` path in either table exists on disk with exactly that filename.
-The "a typical <discipline> brief fires at least..." example names the same files in both.
-The safest workflow is to write the table once and paste it into both files, then never edit one without the other.
+The agent's Step 3 table and the skill's SKILL.md router cover the same domains, in the same order.
+The agent names each domain in bare form (`api-design`); the skill router links it (`[references/api-design.md](references/api-design.md)`), and every linked file exists on disk with exactly that name.
+The "a typical <discipline> brief fires at least..." example names the same domains in both.
+The safest workflow is to fix the domain list once, then render it the two ways and never add a domain to one without the other.
 
 ## Annotation breadth
 

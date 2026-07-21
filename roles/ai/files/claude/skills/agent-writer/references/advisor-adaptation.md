@@ -1,7 +1,8 @@
 # Advisor adaptation
 
 When to read: the agent is read-only and produces an assessment instead of a diff.
-The shipped example is `security-staff-engineer.md` + `security-failure-modes/`; read that pair alongside this file.
+An advisor seat still ships as a plugin (see `packaging.md`); only its agent body and skill semantics differ from an implementer seat.
+The shipped example is the `plugins/security/` plugin (`agents/security-staff-engineer.md` + `skills/security-failure-modes/`); read that pair alongside this file.
 Blindly applying the implementer template to an advisor seat produces nonsense; these are the locked swaps.
 
 ## What the failure modes mean
@@ -16,7 +17,7 @@ Assessment-quality traps (stale-training-data claims, forwarding scanner output 
 - **The escalation heading.** "Escalation triggers (report immediately)": conditions that interrupt or lead the assessment rather than queueing in the ranked list (a live secret, evidence of active compromise, an actively exploitable critical finding, the brief drifting out of the seat's scope).
 - **Boundary tiers.** The seat keeps Hard rules instead of ✅/⚠️/🚫: a read-only seat has nothing to ask permission for, so do NOT manufacture an ask-first tier. Reference annotations say "(also a hard rule)" where relevant.
 - **The report.** The seat keeps its own output contract (for security: posture header, threat-model table, ranked findings with owner routing, paved-path recommendations, Not assessed). It gains a "### Self-check" section, and does not gain "Decisions and trade-offs" or "Pending ask-first items": an assessor makes no implementation decisions.
-- **The trigger table.** Grows out of whatever lens or scope section the seat already has; loop step 3 becomes "Open the failure-mode checklists". Byte-identical between agent and SKILL.md as usual.
+- **The trigger table.** Grows out of whatever lens or scope section the seat already has; loop step 3 becomes "Open the failure-mode checklists". Same domains between agent and SKILL.md router as usual (agent bare, router linked; see `coherence-rules.md`).
 - **Loop step 1.** Scope honesty replaces blast radius: state what the assessment can and cannot reach, and what the Not assessed section will therefore carry.
 
 ## The overriding coherence rule

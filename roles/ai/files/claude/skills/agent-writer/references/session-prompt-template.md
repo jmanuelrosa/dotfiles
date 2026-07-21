@@ -1,14 +1,14 @@
 # Session prompt template
 
 When to read: the user wants a reusable prompt for a future session instead of the work done now.
-Fill every <PLACEHOLDER>; ground each one in the actual seat file and registry state first (read the seat, scan both registries for adjacent skills and shipped sibling pairs) so the prompt states facts, not guesses.
+Fill every <PLACEHOLDER>; ground each one in the actual seat file and current state first (read the seat, scan `plugins/` and both registries for adjacent skills and shipped sibling pairs) so the prompt states facts, not guesses.
 
 ```markdown
 Upgrade the <SEAT> subagent to the failure-modes architecture already shipped for backend-staff-engineer, frontend-staff-engineer, and platform-staff-engineer. The shipped pairs are the source of truth for structure; read them first and do not re-derive or reinvent the pattern.
 
 Templates to read before anything else:
-- roles/ai/files/claude/agents/backend-staff-engineer.md + roles/ai/files/claude/skills/backend-failure-modes/ (SKILL.md and all references)
-- roles/ai/files/claude/agents/platform-staff-engineer.md + roles/ai/files/claude/skills/platform-failure-modes/ (second exemplar)
+- roles/ai/files/claude/plugins/backend/ (agents/backend-staff-engineer.md + skills/backend-failure-modes/, the plugin exemplar)
+- roles/ai/files/claude/plugins/platform/ (second exemplar)
 - roles/ai/files/claude/agents/<SEAT>.md (the seat under upgrade)
 - <THE ADJACENT SIBLING FILES THAT DEFINE THE DEMARCATION RISK>
 
@@ -22,13 +22,13 @@ Known gaps in the current file (it predates the pattern; currently <N> lines):
 - Seat-specific keeps: <REPORT SECTIONS, GATE WORDING, AND MECHANICS THAT SURVIVE, POSSIBLY RENAMED TO FAMILY CASING>; the static gate gains "If anything fails: fix it, or report the failure honestly with its output. Never report done over a red check."
 
 Coherence rules, apply from the start:
-- Agent Step 3 trigger table rows byte-identical to SKILL.md's, same order, every path exists, same "typical brief fires..." example in both.
+- Agent Step 3 trigger table lists the same domains as SKILL.md's router, same order (agent bare names like `api-design`, router links references/<domain>.md), same "typical brief fires..." example in both.
 - "(also an ask-first boundary in the agent)" annotations match the boundary's exact breadth; a reference never escalates what its own Check treats as routine.
 - An approved ask-first item must never authorize what the never tier forbids; for this seat: <THE EXECUTION-VS-AUTHORSHIP SPLIT>.
 
 Locked decisions, do not re-ask:
 - New skill `<SEAT-SHORT>-failure-modes`: thin-router SKILL.md + ~8 references (~40-55 lines each) with the exact section template ("When to read", "Failure modes to rule out" with the two intro sentences, bold name + `Check:` pairs, "Escalation triggers (`needs-decision`)", "What good looks like").
-- skill-registry.json: local_skills entry, `dependency_only: true`, groups ["<DISCIPLINE>", "<PERSONA>", "review"], note "Locally authored". <TAG-COINING CLAUSE IF THE PERSONA TAG IS NEW, INCLUDING THE CLAUDE.MD VOCABULARY UPDATE>. agent-registry.json: the <SEAT> entry gains `dependencies: ["<SEAT-SHORT>-failure-modes"]`. Edit both registries via python3 JSON round-trip with indent 2.
+- Package as a skills-dir plugin: `git mv` the agent and skill into `roles/ai/files/claude/plugins/<DISCIPLINE>/agents/` and `.../skills/`, and write `.claude-plugin/plugin.json` (name <DISCIPLINE>, description, version 0.1.0, author, groups ["<DISCIPLINE>", "<PERSONA>"]). No registry rows, no `dependency_only`. <TAG-COINING CLAUSE IF THE PERSONA TAG IS NEW, INCLUDING THE CLAUDE.MD VOCABULARY UPDATE>.
 - Agent edits: insert Step 3 "Open the failure-mode checklists" with the trigger table; renumber the loop and add the blast-radius clause to step 1 (<WHAT THE BLAST RADIUS ENUMERATES FOR THIS SEAT>); self-check gains a first item gating on the opened references; the "Skills used" report line mentions failure-mode references read; the rationalizations intro carries the letter-vs-spirit clause. Hard cap ~200-205 lines; pay for additions by consolidating.
 - Demarcation with the sibling skills: <THE SHARPEST OVERLAP AND THE VERB THAT SPLITS IT>. <INSTALLED ADJACENT SKILLS THAT STAY AUTHORITATIVE>; <SKILLS NAMED IN STEP 2 THAT ARE NOT REGISTERED: name them as gaps, not coverage>.
 - Keep `model: opus` and per-project scope. Commit nothing (I drive /commit). No research doc is committed.
@@ -38,15 +38,15 @@ Process:
     (a) <SEAT-SHORT>-ladder-researcher: staff-level expectations from public ladders (GitLab, Dropbox, staffeng.com, progression.fyi) and current postings at <8-12 DISCIPLINE-RESPECTED COMPANIES>. Deliverable: discipline-specific judgment themes with behavioral translations for a coding agent, plus 2025-2026 shifts (<THE SHIFTS>). Skip generic staff themes.
     (b) <SEAT-SHORT>-pack-researcher: community packs (wshobson/agents, VoltAgent/awesome-claude-code-subagents, anthropics/claude-plugins-official) plus checklist-rich non-Claude sources (<THE RULE CATALOGS AND OFFICIAL DOCS>), mined for concrete checks a strong model still skips under completion pressure (e.g. <10-15 SEED TRAPS>). Have it flag redundancy with the sibling failure-modes skills explicitly (<THE SPECIFIC SIBLING REFERENCES>). Reject tutorials, tool-version-specific API usage, and arbitrary numeric gates; keep published standards with their source named.
 2. While research runs, propose the ~8 reference domains with a one-line scope each and ask me to confirm. This is the only question; everything else proceeds autonomously. Starting suggestion to refine: <8 DOMAINS WITH ONE-LINE SCOPES>.
-3. Author the skill, edit the agent, wire both registries. Fold research deltas in when the researchers report; note in the final summary what was adopted and what was deliberately rejected.
+3. Author the skill, edit the agent, package them as a plugin (per the packaging step above). Fold research deltas in when the researchers report; note in the final summary what was adopted and what was deliberately rejected.
 4. Run a synchronous fresh-eyes audit subagent over the new pair + registries + one sibling pair (<THE SIBLING WITH THE DEMARCATION RISK>), checking in priority order: contradictions between agent and references (including annotation breadth and never-vs-ask-first coherence), wiring (trigger tables vs actual filenames, registry entries), technical wrongness (<THE SEAT'S FACT-CHECK TRAP CLASS>), family consistency, style. Apply its must-fix and should-fix findings.
 5. Verification sweep, all must pass:
     - agent line count <= ~205 and in family with the siblings
     - zero em/en dashes in every touched file (grep -rnP '[\x{2013}\x{2014}]')
     - frontmatter of the agent and SKILL.md uses `description: >-` and parses under strict YAML (awk-extract the frontmatter block, pipe to ruby -ryaml)
     - ANSIBLE_LOCAL_TEMP="$TMPDIR/ansible-tmp" ansible-lint exits 0
-    - both registries parse as JSON
-    - `claude-agent list` (via fish) shows `<SEAT> (needs: <SEAT-SHORT>-failure-modes)`
+    - plugin.json parses and `claude plugin validate roles/ai/files/claude/plugins/<DISCIPLINE>` passes (benign groups warning)
+    - `claude-agent list` (via fish) shows `<DISCIPLINE> (plugin) [groups]`
 6. Final message: what shipped with paths and line counts, research evidence adopted vs rejected, audit findings and fixes, verification results, git status. Remind me nothing was committed.
 
 Style, non-negotiable: no em or en dashes anywhere; semantic line breaks (one sentence per line, no hard wrap); reference content is checks against a diff, never tutorials; checks stay stack-agnostic because tool-specific guidance belongs to the installed stack skills.

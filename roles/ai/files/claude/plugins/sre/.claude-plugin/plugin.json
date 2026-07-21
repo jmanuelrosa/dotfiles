@@ -1,0 +1,14 @@
+{
+  "name": "sre",
+  "description": "SRE staff-engineer seat bundled with its sre-failure-modes checklists.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Jose Manuel Rosa",
+    "email": "josemanuel.rosamoncayo@gmail.com"
+  },
+  "groups": [
+    "engineering",
+    "devops",
+    "observability"
+  ]
+}

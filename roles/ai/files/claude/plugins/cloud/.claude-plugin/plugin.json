@@ -1,0 +1,15 @@
+{
+  "name": "cloud",
+  "description": "Cloud staff-engineer seat bundled with its cloud-failure-modes checklists.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Jose Manuel Rosa",
+    "email": "josemanuel.rosamoncayo@gmail.com"
+  },
+  "groups": [
+    "engineering",
+    "devops",
+    "deployment",
+    "observability"
+  ]
+}
