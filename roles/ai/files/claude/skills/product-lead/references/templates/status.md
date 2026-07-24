@@ -6,7 +6,7 @@
 |---|---|
 | Initiative | {initiative name} |
 | Slug | {slug} |
-| Branch | docs/{slug} |
+| Branches | docs/{slug}-gate-{n}-… (one per gate; see conventions.md) |
 | Created | {YYYY-MM-DD} |
 | Owner | {human} |
 

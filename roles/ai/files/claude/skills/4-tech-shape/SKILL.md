@@ -14,6 +14,7 @@ allowed-tools:
   - Bash(git status *)
   - Bash(git branch *)
   - Bash(git switch *)
+  - Bash(git fetch *)
   - Bash(gh pr list *)
   - Bash(gh pr view *)
 ---
@@ -27,7 +28,7 @@ First read `../product-lead/references/conventions.md` (sibling of this skill's 
 ## Preflight
 
 1. Resolve the initiative (ARGUMENTS, branch, or ask). Precondition: Gate 1 `approved` in STATUS.md (reconcile per conventions.md). A Gate 2 PR already open -> revision mode per conventions.md.
-2. On branch `docs/{slug}`; mark stage 4 `in-progress`.
+2. Enter the Gate 2 branch per conventions.md Branching (this is Gate 2's first stage: `docs/{slug}-gate-2-design`, cut fresh from the updated default branch); mark stage 4 `in-progress`.
 3. Read `02-prd.md` fully.
 
 ## Explore (read-only)

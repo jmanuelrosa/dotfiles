@@ -2,7 +2,7 @@
 
 ## Product Team
 
-This repo runs the Product Team pipeline (run `/product-lead` for the guide and current status). `docs/initiatives/{slug}/STATUS.md` is the state machine: stage skills refuse to run unless the predecessor gate is `approved` there. Each initiative lives on branch `docs/{slug}`; every gate is a PR reviewed by the owners below.
+This repo runs the Product Team pipeline (run `/product-lead` for the guide and current status). `docs/initiatives/{slug}/STATUS.md` is the state machine: stage skills refuse to run unless the predecessor gate is `approved` there. Each gate is a PR on its own `docs/{slug}-gate-{n}-…` branch, cut fresh from the default branch, reviewed by the owners below.
 
 ### Config
 
