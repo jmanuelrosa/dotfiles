@@ -169,6 +169,19 @@ Product Team hands off a backlog; then `/feature-team "<brief>"` runs the build 
 
 The parallel wave runs in **isolated git worktrees** by default (2+ independent slices; pass `--no-isolate` to keep it in the main checkout). One-file-one-owner stays the primary guarantee against source collisions; the worktree is the mechanism underneath it, fencing each seat's build/test side effects (`node_modules`, build output, generated files) and turning any ownership slip into a visible diff instead of a silent clobber. The architect marks each slice `Parallel: yes|no` and `Depends on:`; the wave (all `Parallel: yes`) dispatches with the Agent tool's `isolation: "worktree"`, and the team lead copies each seat's owned files back into the main checkout (seats never commit, so there is nothing to merge). Held/dependent slices run afterward in the main checkout so they read the integrated work. This relies on `worktree.baseRef: "head"` in [settings.json](settings.json) so seats branch from the current feature tip rather than `origin/main`. It is deliberately **not** wired to the `wt` fish helper: the Agent tool can only isolate subagents into `.claude/worktrees/`, and `wt`'s sibling worktrees fall outside the sandbox write root, so `wt` stays the tool you drive by hand.
 
+### From backlog to build
+
+Once an initiative clears Gate 3, the durable handoff is `docs/initiatives/{slug}/05-backlog/story-{n.m}.md` (backed by the GitHub Project issues `/7-push-to-board` created), each story a vertical tracer-bullet slice with `AC-*` criteria tracing to a PRD `R#` and marked PASS in `06-dor-report.md`. Work **one story at a time**: a story is already the unit `/feature-team` and `architect` are built around, so feed one story per run rather than a whole epic.
+
+The per-story loop:
+
+1. Take the lowest-id PASS story from `06-dor-report.md`.
+2. Run `/feature-team "<story title + goal>"`, giving the architect three anchors: the story file (its `AC-*` are the acceptance bar), `02-prd.md` (the `R#` source of truth), and `docs/adr/` (immutable constraints).
+3. `architect` writes `docs/specs/<feature>.md` with the owner-split work breakdown; you approve at the gate; the seats implement in isolated waves and the skill returns an integration report.
+4. `/code-review`, then `/commit`, then move the issue to Done and pick the next PASS story.
+
+**Two design docs, one decision record.** `/4-tech-shape` already wrote `04-design-doc.md`, and `architect` writes its own `docs/specs/<feature>.md`. Either point the architect at `04-design-doc.md` so it inherits those decisions, or let it design fresh from the PRD for an independent check. Whichever you choose, `docs/adr/` is the shared, immutable tie-breaker: the spec honors accepted ADRs and supersedes (never edits) if it diverges, continuing the same global numbering both pipelines use.
+
 ## The Tracked/Local Rule
 
 Every skill and agent in this repo is either:
