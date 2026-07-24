@@ -1,4 +1,10 @@
 prSections:
+  - title: Addingwell
+    filters: is:open org:addingwell
+  - title: Personal
+    filters: is:open org:jmanuelrosa
+  - title: 3Bitslost
+    filters: is:open org:3bitslost-team
   - title: My Pull Requests
     filters: is:open author:@me
   - title: 📝 My draft PRs
@@ -7,8 +13,6 @@ prSections:
     filters: is:open review-requested:@me
   - title: Involved
     filters: is:open involves:@me -author:@me
-  - title: Addingwell
-    filters: is:open org:addingwell
 
 issuesSections:
   - title: My Issues
