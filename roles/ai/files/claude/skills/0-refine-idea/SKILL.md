@@ -15,6 +15,7 @@ allowed-tools:
   - Bash(git status *)
   - Bash(git branch *)
   - Bash(git switch *)
+  - Bash(git fetch *)
   - Bash(gh pr list *)
   - Bash(gh pr view *)
   - Bash(gh api *)
@@ -30,8 +31,8 @@ First read `../product-lead/references/conventions.md` (sibling of this skill's 
 
 1. `docs/strategy/strategy.md` must exist; otherwise stop and point at `/setup-strategy "<the raw idea>"` - passing the idea along so ideation happens there with the idea in hand.
 2. ARGUMENTS empty -> ask for the raw idea before anything else.
-3. Slugify the idea. `docs/initiatives/{slug}/` already exists -> this is a **revision** of an existing brief: switch to its branch and follow the revision flow in conventions.md against the Gate 0 PR.
-4. New initiative: from the default branch, `git switch -c docs/{slug}`. Dirty tree with unrelated changes -> stop and ask.
+3. Slugify the idea. `docs/initiatives/{slug}/` already exists -> this is a **revision** of an existing brief: switch to its Gate 0 branch (`docs/{slug}-gate-0-brief`) and follow the revision flow in conventions.md against the Gate 0 PR.
+4. New initiative: enter the Gate 0 branch per conventions.md Branching (cut `docs/{slug}-gate-0-brief` fresh from the default branch). Dirty tree with unrelated changes -> stop and ask.
 5. Instantiate `docs/initiatives/{slug}/STATUS.md` from `../product-lead/references/templates/status.md`.
 
 ## Ideation pre-work (optional)

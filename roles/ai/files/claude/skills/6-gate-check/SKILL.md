@@ -26,7 +26,7 @@ First read `../product-lead/references/conventions.md` (sibling of this skill's 
 ## Preflight
 
 1. Resolve the initiative (ARGUMENTS, branch, or ask). Precondition: stage 5 `approved` in STATUS.md and `05-backlog/` non-empty. A Gate 3 PR already open -> revision mode per conventions.md (typically re-checking after fixes).
-2. On branch `docs/{slug}`; mark stage 6 `in-progress`.
+2. Switch to the existing Gate 3 branch (`docs/{slug}-gate-3-dor`, created by 5-decompose) per conventions.md Branching; mark stage 6 `in-progress`.
 
 ## Check
 

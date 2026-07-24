@@ -41,9 +41,22 @@ Statuses per stage: `pending | in-progress | gate-open | approved | killed`.
 
 ## Branching
 
-All work for an initiative happens on `docs/{slug}` (initiative artifacts are all docs, hence the `docs` prefix). Stage 0 creates it from the default branch with `git switch -c`. Later stages verify they are on it (`git branch --show-current`) and switch to it if not; if the working tree is dirty with unrelated changes, stop and ask. Strategy work uses `chore/product-strategy`.
+Each gate gets its own branch, cut fresh from the up-to-date default branch when the gate begins. A gate PR must never carry the previous gate's already-merged commits: repos that squash-merge collapse each merged gate into a new commit that is not an ancestor of a reused branch, so a shared branch diverges and every later gate PR conflicts. A fresh branch off current `default` avoids this entirely. Branch names are deterministic per gate (`docs` prefix because initiative artifacts are all docs):
 
-Gate PRs all originate from this one branch: each gate is a new PR containing the commits since the previous gate merged.
+| Gate | Branch | Cut by (first stage) | Later stages on it |
+|---|---|---|---|
+| 0 | `docs/{slug}-gate-0-brief` | 0-refine-idea | - |
+| 1 | `docs/{slug}-gate-1-prd` | 1-research (or 2-write-prd if research skipped) | 2-write-prd, 3-red-team |
+| 2 | `docs/{slug}-gate-2-design` | 4-tech-shape | - |
+| 3 | `docs/{slug}-gate-3-dor` | 5-decompose | 6-gate-check |
+| board export | `docs/{slug}-board` | 7-push-to-board | - |
+
+Every stage enters its gate's branch after its precondition passes: derive the name from the table. If it already exists (this gate's PR is open, or you are revising) switch to it. Otherwise cut it fresh from the default branch (resolve the default branch from the remote HEAD, e.g. `git remote show origin` / `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`):
+
+    git fetch origin
+    git switch -c docs/{slug}-gate-{n}-{label} origin/{default-branch}
+
+If the working tree is dirty with unrelated changes, stop and ask. The fresh cut is safe only because a gate's first stage runs only after the previous gate is `approved` (see reconciliation), so `origin/{default-branch}` already holds every prior gate's merged artifacts. Never rebase or reset an existing gate branch; superseded branches from merged gates are left in place (delete them by hand if you like). Strategy work uses `chore/product-strategy`.
 
 ## Gate protocol (stop before commit)
 
@@ -53,7 +66,7 @@ Gated stages NEVER run `git commit`, `git push`, or `gh pr create`; the human ow
 2. Printing a handoff block:
    - files written this stage (paths);
    - suggested commit subject: `docs({slug}): gate {n} {stage name}`;
-   - PR title: the same string as the commit subject above (the initiative branch is shared across gates, so the title must carry the gate; pass it explicitly because `/pr` otherwise derives a generic branch-based title);
+   - PR title: the same string as the commit subject above; pass it explicitly (`/pr --title "..."`) so the PR carries the clean gate-labelled subject rather than one derived from the branch name;
    - suggested PR body: what to review, the decision being gated (including "kill" as a first-class option), and a 3-5 item reviewer checklist;
    - the instruction: run `/commit`, then `/pr --title "<the commit subject above>"`, then have the gate owner review. Merge = gate passed.
 3. Stopping. Do not continue to the next stage.
@@ -62,8 +75,8 @@ Gated stages NEVER run `git commit`, `git push`, or `gh pr create`; the human ow
 
 STATUS.md lags GitHub by design (the human merges outside the session). When a stage's precondition row says `gate-open`:
 
-1. Find the PR: `gh pr list --head docs/{slug} --state all --json url,title,state,mergedAt`, matching the one whose title contains `gate {n}`.
-2. Merged -> update the row to `approved`, fill gate PR URL, decided by (PR merger), date, then proceed.
+1. Find the PR by that gate's branch (names in the Branching table): `gh pr list --head docs/{slug}-gate-{n}-{label} --state all --json url,title,state,mergedAt`, matching the one whose title contains `gate {n}`.
+2. Merged -> the gate passed. Enter THIS stage's own gate branch first (per Branching: cut it fresh from the updated default branch), then on that fresh branch update the merged gate's row to `approved`, fill gate PR URL, decided by (PR merger), date, and proceed. Recording on the fresh branch carries the approval into the next gate's PR.
 3. Open -> the gate is still under review; stop and say so. The human may instead say "record approval" explicitly (e.g. approved out-of-band); note `approved by <name> without merge` and proceed.
 4. Closed unmerged -> treat as a kill signal; ask the human whether to record `killed` and the reason.
 
@@ -73,6 +86,7 @@ A repo with no `origin` remote (or a Product Team config whose `github_repo` is 
 
 - Gated stages end with the same handoff block minus the `/pr` step: instead of a PR review, ask the human for the gate decision directly (AskUserQuestion: proceed / kill / not yet) and record it in STATUS.md as `approved by {name} without merge (local mode)`, or `killed` with the reason. Still suggest `/commit`; local history matters.
 - Skip every `gh` call (gate reconciliation, PR lookups); STATUS.md is the only record.
+- Branching stays single-branch: with no remote there are no squash merges to diverge from, so every stage works on one `docs/{slug}` branch that stage 0 creates. Do not cut per-gate branches or `git fetch` (there is nothing to fetch, and a fresh cut from an unadvanced local main would drop prior gates' artifacts).
 - Stage 7 needs a real `github_repo` and Project number; in local mode it refuses and says what is missing.
 
 ## Expedited path (small features)
@@ -85,7 +99,7 @@ For a small, low-risk feature the human may skip stage 1 (research) and stage 3 
 
 ## Revision flow
 
-Re-running a stage whose gate PR is open means "address the review". Read the comments with `gh pr view <url> --comments` (and `gh api repos/{owner}/{repo}/pulls/{n}/comments` for inline ones), address every comment in the artifact, list what changed per comment, and end with the gate protocol again (same branch: `/commit` + `/pr` update the open PR). Never dismiss or resolve review threads yourself.
+Re-running a stage whose gate PR is open means "address the review". Read the comments with `gh pr view <url> --comments` (and `gh api repos/{owner}/{repo}/pulls/{n}/comments` for inline ones), address every comment in the artifact, list what changed per comment, and end with the gate protocol again (switch to that gate's existing branch per the Branching table; `/commit` + `/pr` update the open PR). Never dismiss or resolve review threads yourself.
 
 ## Interview style (setup-strategy, 0-refine-idea)
 

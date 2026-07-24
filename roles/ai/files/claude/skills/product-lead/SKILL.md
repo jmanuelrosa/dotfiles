@@ -40,8 +40,8 @@ Two documented variations live in conventions.md: **local mode** (no `origin` re
 ## When invoked
 
 1. **No `docs/strategy/strategy.md` in this repo:** print the pipeline map and tell the user to start with `/setup-strategy`. Stop.
-2. **Otherwise, report status.** Read every `docs/initiatives/*/STATUS.md` (or just the slug given in ARGUMENTS; if the current branch is `docs/{slug}`, focus that one). For each initiative print: name, current stage, status, and the exact next command.
-3. **Reconcile stale gates.** For any stage row marked `gate-open`, check the PR with `gh pr list --head docs/{slug} --state all` and `gh pr view <url> --json state,mergedAt`. Report merged-but-unrecorded gates; the next stage skill records them, or update STATUS.md now if the user asks. In local mode (no `origin` remote) skip the `gh` checks entirely; STATUS.md is the only record.
+2. **Otherwise, report status.** Read every `docs/initiatives/*/STATUS.md` (or just the slug given in ARGUMENTS; if the current branch is `docs/{slug}-…`, focus that one). For each initiative print: name, current stage, status, and the exact next command.
+3. **Reconcile stale gates.** For any stage row marked `gate-open`, check the PR with `gh pr list --head docs/{slug}-gate-{n}-{label} --state all` (that gate's branch, per conventions.md Branching) and `gh pr view <url> --json state,mergedAt`. Report merged-but-unrecorded gates; the next stage skill records them, or update STATUS.md now if the user asks. In local mode (no `origin` remote) skip the `gh` checks entirely; STATUS.md is the only record.
 4. **Answer questions** about the flow from conventions.md and the templates; never paraphrase a template from memory, read it.
 
 ## Boundaries

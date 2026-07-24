@@ -13,6 +13,7 @@ allowed-tools:
   - Bash(git status *)
   - Bash(git branch *)
   - Bash(git switch *)
+  - Bash(git fetch *)
   - Bash(gh auth status)
   - Bash(gh pr list *)
   - Bash(gh pr view *)
@@ -35,7 +36,7 @@ First read `../product-lead/references/conventions.md` (sibling of this skill's 
 2. `06-dor-report.md` says ALL PASS. Any FAIL -> refuse, point at the fix list, stop. No exceptions.
 3. Read the Product Team config from this repo's CLAUDE.md: `github_repo`, `project_number`, labels. `github_repo` UNSET (local mode) -> refuse: this stage needs a real GitHub repo and Project; say what to configure. `project_number` UNSET -> ask for it and offer to record it in CLAUDE.md.
 4. `gh auth status` must show the `project` scope; missing -> print `gh auth refresh -s project` for the user to run in a terminal, then stop.
-5. On branch `docs/{slug}`; mark stage 7 `in-progress`.
+5. Enter the board-export branch per conventions.md Branching (`docs/{slug}-board`, cut fresh from the updated default branch); mark stage 7 `in-progress`.
 
 ## Dry-run (mandatory)
 
