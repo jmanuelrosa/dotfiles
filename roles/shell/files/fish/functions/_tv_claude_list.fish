@@ -3,15 +3,17 @@ function _tv_claude_list --description "Television source: list claude skills or
     set -l target
     set -l registry
     set -l ext ""
-    # Anchor link-status checks to the repo root (matching claude-agent), so the
-    # picker reports the same state Claude Code will see regardless of CWD.
+    # Skills anchor link-status to the CWD (matching `claude-skill add` and the Enter
+    # toggle, which link into ./.claude/skills), so the picker agrees with them in a
+    # monorepo subdir. Agents anchor to the git root ($proot), matching claude-agent:
+    # its seat plugins need workspace trust at the repo root.
     set -l proot (git rev-parse --show-toplevel 2>/dev/null)
     test -n "$proot"; or set proot (pwd)
 
     switch $kind
         case skill skills
             set source $DOTFILES_DIR/roles/ai/files/claude/skills
-            set target "$proot/.claude/skills"
+            set target ".claude/skills"
             set registry $DOTFILES_DIR/roles/ai/files/claude/skill-registry.json
         case agent agents
             set source $DOTFILES_DIR/roles/ai/files/claude/agents
