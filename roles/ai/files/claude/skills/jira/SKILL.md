@@ -1,6 +1,6 @@
 ---
 name: jira
-description: Interact with Jira via acli. Create, update, view, transition, and comment on issues. Defaults to the SER project and produces descriptions that both product and engineering can follow, in proper ADF (Atlassian Document Format).
+description: Interact with Jira via acli. Create, update, view, transition, and comment on issues. Defaults to the SER project and produces descriptions in proper ADF (Atlassian Document Format) that follow the squad's agreed template: Context, Gherkin acceptance criteria, a link back to the source, and Design, each under a colored status-lozenge header.
 disable-model-invocation: true
 allowed-tools:
   - Bash(acli jira *)
@@ -124,6 +124,7 @@ Always pass ADF JSON via `--description-file`. The file is the bare ADF doc:
 | Inline code | text node with `"marks":[{"type":"code"}]` |
 | Italic | text node with `"marks":[{"type":"em"}]` |
 | Link | text node with `"marks":[{"type":"link","attrs":{"href":"https://..."}}]` |
+| Status lozenge | `{"type":"status","attrs":{"text":"Context","color":"blue","style":""}}` (colors used by the template: `blue` `green` `yellow` `red`) |
 
 ### ADF gotchas (learned the hard way)
 
@@ -131,6 +132,18 @@ Always pass ADF JSON via `--description-file`. The file is the bare ADF doc:
   - ❌ `{"text":".gitignore","marks":[{"type":"strong"},{"type":"code"}]}`
   - ✅ Two nodes: `{"text":"Simplify ","marks":[{"type":"strong"}]}` then `{"text":".gitignore","marks":[{"type":"code"}]}`
 - `listItem` content must be wrapped in a `paragraph` node, not raw text.
+- **Colored section headers** (the template below) are a level-2 `heading` whose content is a `status` lozenge followed by a single space text node; the section's `paragraph` nodes are then siblings of the heading, not nested inside it:
+
+  ```json
+  {
+    "type": "heading",
+    "attrs": { "level": 2 },
+    "content": [
+      { "type": "status", "attrs": { "text": "Context", "color": "blue", "style": "" } },
+      { "type": "text", "text": " " }
+    ]
+  }
+  ```
 - Use `acli jira workitem edit --generate-json` to inspect the schema for any field.
 
 ## Humanization (required)
@@ -190,28 +203,39 @@ Write the body as the person reporting the problem, before the fix and investiga
 
 ### Standard structure
 
+The description is four sections, in this order, each headed by a colored ADF status lozenge (see the "Colored section headers" gotcha above for the heading node). Section title strings and colors are fixed - use them exactly, in sentence case:
+
+| Section | Lozenge color | Contents |
+|---|---|---|
+| Context | `blue` | 2-4 sentences in your own words: what is happening, who raised it, why it matters. No large verbatim quotes. |
+| Acceptance criteria | `green` | Gherkin scenarios (see the rule below). |
+| Resource / sources | `yellow` | A link back to the originating discussion. Always present when a source exists. |
+| Design | `red` | Only when the source has design assets (mockups, Figma links, UI screenshots). Omit the whole section otherwise. |
+
+**Acceptance criteria are strict Gherkin, no exceptions.** Each criterion is its own scenario: a bold `Scenario: <name>` paragraph, then `GIVEN` / `WHEN` / `THEN` on the following lines using those exact capitalized keywords, one scenario per distinct behavior. Add `AND` lines under any of them when a scenario genuinely needs more than one condition, action, or outcome. Never fall back to plain bullets, even for a criterion that feels too small or obvious. Each `THEN` must be concrete enough that an engineer could verify it without asking "what does done look like?" - never soften it to "it works correctly".
+
+If the source does not state an explicit expected outcome (it only describes a symptom, or multiple directions are discussed without a decision), stop and ask the user the specific open questions before drafting acceptance criteria. Do not invent scope.
+
+**Resource / sources vs the PR conventions below:** the link here is the *originating discussion* (Slack thread, Notion doc, incident), not the implementing PR. The "don't reference PR numbers" and "don't paste raw GitHub URLs" conventions still hold for the implementing PR. When a PR-driven ticket has no discussion source, follow those conventions and leave the raw PR URL out of the body unless the user asks for it.
+
+Example of the Acceptance criteria section content:
+
 ```text
-**Goal**
-One paragraph: the outcome and the reason in plain language.
-
-**Scope**
-Numbered list. Each item leads with a bold action phrase, then a dash and a plain-language explanation. Mention concrete file names / package names in `code` font.
-
-**Why it matters**
-Bulleted list of business-flavored benefits (faster shipping, less maintenance, fewer incidents, faster onboarding, lower costs). One line each.
-
-**Out of scope**
-What is explicitly NOT covered, with a pointer to where it lives instead (other ticket, separate concern).
+**Scenario: GBP invoice export succeeds**
+GIVEN a partner account with currency set to GBP
+WHEN the user exports the monthly invoice from the partner portal
+THEN the export completes
+AND the totals are formatted in GBP
 ```
 
 ### Investigation tickets (vs implementation)
 
-When the work is research / decision-making and implementation is deferred:
+When the work is research / decision-making and implementation is deferred, use the same four-section structure with these adjustments:
 
 - Title: category emoji + `Investigate ...` (e.g. `🧠 Investigate geoip-lite usage and shrink Docker image`).
-- Add a `**Note**` heading right after `**Goal**`: "This ticket is for investigation only - implementation will be tracked in a separate follow-up ticket once we agree on a direction."
-- Section heading: `**Scope (investigation only)**`.
-- `**Out of scope**` must explicitly call out implementation as separate.
+- In the **Context** section, end with a plain sentence flagging it: "This ticket is for investigation only, implementation will be tracked in a separate follow-up once we agree on a direction."
+- **Acceptance criteria** describe the investigation outcome, not a code change. Scenarios assert that a decision or recommendation is reached and written down, e.g. `Scenario: image-size options are compared` -> `THEN the ticket records each option with its trade-offs and a recommended direction`.
+- **Design** is omitted unless the investigation itself involves design assets.
 
 ### Conventions
 
@@ -250,7 +274,7 @@ User says: "update <PROJECT>-875 with context from these PRs: <urls>"
 
 1. `acli jira workitem view <PROJECT>-875` - read the existing description.
 2. `gh pr view <num> --repo <owner>/<repo> --json title,body,files,state,mergedAt` for each PR.
-3. Draft a new description in the standard structure (Goal / Scope / Why it matters / Out of scope). Show the user as plain text and ask to push.
+3. Draft a new description in the standard structure (Context / Acceptance criteria / Resource / sources / Design). Show the user as plain text and ask to push.
 4. On confirmation: build ADF JSON, write to `/tmp/<topic>-adf.json`, then run:
 
    ```bash
@@ -264,7 +288,7 @@ User says: "update <PROJECT>-875 with context from these PRs: <urls>"
 User says: "make a ticket in the same epic from <pr-urls>"
 
 1. Fetch PR(s) with `gh pr view`.
-2. Draft title (with the matching category emoji - 🧠 for backend, 💿 for infra, etc.), type (usually `Task`), parent (usually `<TECH-DEBT-EPIC>` for tech debt), and ADF description using the standard structure. The PR is only the source of context - write the description as a current, unfixed problem (present-tense symptoms, future-tense fix, no PR reference in the body).
+2. Draft title (with the matching category emoji - 🧠 for backend, 💿 for infra, etc.), type (usually `Task`), parent (usually `<TECH-DEBT-EPIC>` for tech debt), and ADF description using the standard structure (Context / Acceptance criteria / Resource / sources / Design). The PR is only the source of context - write the Context as a current, unfixed problem (present-tense symptoms) and the acceptance criteria as the behavior that must hold once fixed, with no PR reference in the body.
 3. Show the user, ask to push.
 4. On confirmation: write ADF to `/tmp/<topic>-adf.json` and create:
 
@@ -292,9 +316,10 @@ User says: "make a ticket in the same epic from <pr-urls>"
 Same as B, but:
 
 - Title is `<category-emoji> Investigate ...` (e.g. `🧠 Investigate ...` for backend, `💿 Investigate ...` for infra).
-- Body includes a `**Note**` heading flagging investigation-only.
-- `**Scope**` heading reads `**Scope (investigation only)**`.
-- `**Out of scope**` explicitly lists implementation as a separate follow-up.
+- Context ends with the investigation-only sentence flagging a separate implementation follow-up.
+- Acceptance criteria describe the investigation outcome (a decision or recommendation is reached and recorded), not a code change.
+
+See the "Investigation tickets (vs implementation)" convention above for the full adjustments.
 
 ## Branch / commit / PR naming
 
