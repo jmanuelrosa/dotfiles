@@ -27,7 +27,7 @@ First read `../product-lead/references/conventions.md` (sibling of this skill's 
 ## Preflight
 
 1. Resolve the initiative (ARGUMENTS, branch, or ask). `02-prd.md` must exist and stage 2 must be `gate-open` or `approved`; otherwise stop.
-2. On branch `docs/{slug}`; mark stage 3 `in-progress`.
+2. Switch to the existing Gate 1 branch (`docs/{slug}-gate-1-prd`, the open Gate 1 PR's branch) per conventions.md Branching; mark stage 3 `in-progress`.
 
 ## Attack
 

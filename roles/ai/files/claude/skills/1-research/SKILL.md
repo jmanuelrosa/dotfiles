@@ -14,6 +14,7 @@ allowed-tools:
   - Bash(git status *)
   - Bash(git branch *)
   - Bash(git switch *)
+  - Bash(git fetch *)
   - Bash(gh pr list *)
   - Bash(gh pr view *)
 ---
@@ -26,9 +27,9 @@ First read `../product-lead/references/conventions.md` (sibling of this skill's 
 
 ## Preflight
 
-1. Resolve the initiative: ARGUMENTS slug, or the current `docs/{slug}` branch, or ask.
+1. Resolve the initiative: ARGUMENTS slug, or the slug inferred from the current `docs/{slug}-…` branch, or ask.
 2. Precondition per conventions.md: STATUS.md stage 0 must be `approved` (reconcile a `gate-open` row against the merged Gate 0 PR first). Not approved -> stop and say what unblocks it.
-3. Ensure you are on `docs/{slug}`; mark stage 1 `in-progress`.
+3. Enter the Gate 1 branch per conventions.md Branching (this is Gate 1's first stage: `docs/{slug}-gate-1-prd`, cut fresh from the updated default branch); mark stage 1 `in-progress`.
 4. Read `docs/initiatives/{slug}/00-brief.md` fully; create `docs/initiatives/{slug}/01-research/`.
 
 ## Fan-out
