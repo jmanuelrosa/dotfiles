@@ -13,7 +13,7 @@ Anything under [Not worth doing](#not-worth-doing) was considered and rejected w
 
 ## Ordering constraint
 
-**T1 must land before T5.** A global scope rule in `CLAUDE.md` cannot win against a project memory that tells Claude the opposite in a 54-session repo. Everything else is independent.
+~~**T1 must land before T5.**~~ Discharged 2026-07-25: T1 was a no-op (the conflicting memory does not exist on disk), so there is nothing for a `CLAUDE.md` scope rule to lose against and T5 is unblocked. Every task is now independent.
 
 ## P0
 
@@ -31,19 +31,6 @@ It also contradicts two sibling memories in the same directory (`feedback_no_aut
 
 Change: rewrite `reference_pr_push_path.md` to keep the literal push command as reference material for the skill, drop the "don't hand off" claim, and state that when the branch is ready Claude stops and tells the user to run `/pr`.
 Then delete `feedback_no_autonomous_push.md`, which the corrected version subsumes.
-
-### T2. Cap nested subagent spawn depth
-
-- [ ] Applied
-- **Files:** `roles/ai/files/claude/settings.json` (`env` block, around line 4)
-- **Scope:** user
-- **Effort:** S
-
-Changelog 2.1.219 (2026-07-24) raised the default nested-subagent depth from 1 to 3. The `env` block has no cap, so the new default is live.
-Agent fan-out is the largest friction class in the facets (29 `user_rejected_action` plus 22 `wrong_approach`), with fan-out named directly in at least one transcript.
-Three surfaces fan out today: `research` (has `Agent` in allowed-tools, `model: opus`), `1-research` (three parallel researchers), and `feature-team` (dispatches to every installed seat, which is 13 in `addingwell`). A 13-way dispatch that can now nest two levels deeper on opus is a spend multiplier, and spend limits already cut investigations short.
-
-Change: add `"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "1"` to the `env` block, restoring the depth the fleet was designed against.
 
 ## P1
 
@@ -93,7 +80,6 @@ Leave `humanizer`, `skill-writer`, and `documentation-and-adrs` alone: their tri
 - **Files:** `roles/ai/files/claude/CLAUDE.md`
 - **Scope:** user
 - **Effort:** S
-- **Blocked by:** T1
 
 Scope over-reach is the dominant friction class at 51 events (29 `user_rejected_action` plus 22 `wrong_approach`), more than double the next class, and `/insights` names it the defining pattern.
 The correction is already written down, in `~/.claude/projects/-Users-jmanuelrosa-Developer/memory/feedback_respect_scope.md`, but that memory loads only for the 6 sessions whose cwd maps to `-Users-jmanuelrosa-Developer`. It does not load for dotfiles (230), addingwell-front (54), or addingwell (50).
@@ -228,6 +214,7 @@ Considered and rejected. Do not redo without new evidence.
 - **Project-scope artifacts in dotfiles**, despite it being the top repo at 230 sessions. The global set (`agent-writer`, `skill-writer`, `agent-audit`, `cc-review`, `skill-scout`, `cc-staff-reviewer`) is exactly the authoring loop this repo needs, and this repo is where that set is authored. A project copy would shadow the thing it copies.
 - **Touching the 14 seat plugins.** They look inert (absent from `enabledPlugins` and `installed_plugins.json`) but they are project-installed by design via `claude-agent add`, and 13 are live in `work/addingwell/` and `3bitslost/pickleballontime/`.
 - **Touching the em-dash gate.** One rejection in 150 sessions is a correctly tuned hook, not friction.
+- **`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=1`** (was T2, rejected 2026-07-25 after checking it against the 2.1.220 binary and the official changelog). `=1` disables *nesting*, not subagents, and all three fan-out surfaces dispatch from the main conversation at depth 1: `research`, `1-research`, and `feature-team`, whose own text says "You (the main conversation) are the team lead: you dispatch". The 13-way seat dispatch the task worried about is breadth, not depth, so the cap does not touch it. Nothing in the fleet exercises depth 2 either: `architect` already declares `disallowedTools: Agent`, the 9 registry agents carry narrow `tools:` lists without `Agent`, and no seat prompt mentions spawning or delegating. The task's evidence is also T5's event pool re-counted (the same 29 `user_rejected_action` plus 22 `wrong_approach`), with exactly one transcript naming fan-out. The one measurable effect would be a context regression: hitting the cap prints "Subagent nesting limit reached (depth N). Complete this task directly using your tools instead of spawning another agent.", so a subagent that would offload a wide read sweep to `Explore` reads inline in its own window instead. Breadth, the actual spend driver, is governed by `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` (default 20) and `CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION`. If a bound is ever wanted, the surgical version is `disallowedTools: Agent` on the seats that should never delegate, matching `architect`, not a global env kill switch.
 - **`sandbox.network.strictAllowlist`** (2.1.219). It denies non-allowlisted hosts without prompting, which would convert ~40 sandbox prompts into hard failures.
 - **`Notification` hooks** (2.1.198). They add nothing over the existing `agentPushNotifEnabled` plus `preferredNotifChannel: ghostty`.
 - **A git dry-run hook** (suggested by `/insights`). `git-skill-gate.sh`, `pre-commit-verify.sh`, and `/commit`'s own staging gate already cover it, and both real failures live inside `/commit`'s logic. T6 fixes one in three lines; a hook would be a second enforcement layer for a problem the first layer should catch.
