@@ -1,7 +1,8 @@
 #!/usr/bin/env fish
 
-# Script to create a git branch from a Jira issue
+# Script to create a git branch from a Jira issue or a GitHub issue
 # Usage: s-task JIRA-123
+#        s-task 456
 
 # Colors for output
 set -g RED (set_color red)
@@ -15,7 +16,7 @@ set -g MAX_BRANCH_LENGTH 50
 # Allowed branch type set — must match the regex in roles/ai/files/claude/skills/commit/SKILL.md step 2
 set -g ALLOWED_BRANCH_TYPES feature fix chore docs refactor test perf ci build style revert
 
-# Configuration - authentication handled by acli (run `acli auth login` for initial setup)
+# Configuration - authentication handled by acli (`acli auth login`) and gh (`gh auth login`)
 
 # Function to display error and exit
 function die
@@ -25,17 +26,35 @@ end
 
 # Function to display usage
 function usage
-    echo "Usage: s-task [--dry] [--type TYPE] <JIRA_ID>"
+    echo "Usage: s-task [--dry] [--type TYPE] [--jira|--github] <ISSUE>"
     echo "Example: s-task JIRA-123"
+    echo "         s-task 456"
+    echo "         s-task https://github.com/owner/repo/issues/456"
     echo "         s-task --dry JIRA-123"
-    echo "         s-task --type chore JIRA-123"
+    echo "         s-task --type chore --github 456"
     echo ""
     echo "Options:"
     echo "  -d, --dry         Print the branch name that would be created and exit"
     echo "  -t, --type TYPE   Override the branch type (one of: $ALLOWED_BRANCH_TYPES)"
+    echo "  -j, --jira        Treat ISSUE as a Jira key (default for KEY-123 shapes)"
+    echo "  -g, --github      Treat ISSUE as a GitHub issue of the current repo"
+    echo "  -n, --no-push     Keep the branch local (a GitHub issue then gets no linked branch)"
+    echo ""
+    echo "Provider is auto-detected when neither --jira nor --github is passed:"
+    echo "  KEY-123                          → Jira"
+    echo "  456, #456, or a GitHub issue URL → GitHub"
+    echo ""
+    echo "The branch is pushed to origin so the issue can link back to it:"
+    echo "  GitHub: created through 'gh issue develop', which registers it as a linked"
+    echo "          branch in the issue's Development panel. A linked branch is a remote"
+    echo "          ref, so --no-push means no link."
+    echo "  Jira:   the Development panel discovers the branch from the issue key in its"
+    echo "          name, via the Jira git integration. Nothing to call, it just has to"
+    echo "          be on origin. --no-push defers that until the branch is pushed."
     echo ""
     echo "Prerequisites:"
-    echo "  Run 'acli auth login' to authenticate with Atlassian"
+    echo "  Jira:   run 'acli auth login' to authenticate with Atlassian"
+    echo "  GitHub: run 'gh auth login' to authenticate with GitHub"
     exit 1
 end
 
@@ -46,7 +65,7 @@ end
 
 # Function to map Jira issue type to branch prefix
 function get_branch_prefix
-    set issue_type (echo $argv[1] | tr '[:upper:]' '[:lower:]')
+    set issue_type (string lower -- $argv[1])
     switch $issue_type
         case bug defect
             echo "fix"
@@ -61,18 +80,99 @@ function get_branch_prefix
     end
 end
 
+# Function to map a GitHub issue type (Bug / Feature / Task, or a custom org type)
+# to a branch prefix. Echoes nothing when the type is unknown so the caller can
+# fall back to labels.
+function github_prefix_from_type
+    switch (string lower -- $argv[1])
+        case bug defect regression
+            echo "fix"
+        case feature story enhancement improvement task
+            echo "feature"
+        case '*'
+            echo ""
+    end
+end
+
+# Function to map GitHub labels to a branch prefix, first match in label order wins.
+# Echoes nothing when no label matches.
+function github_prefix_from_labels
+    for label in $argv
+        switch (string lower -- $label)
+            case bug defect regression
+                echo "fix"
+                return
+            case enhancement feature story improvement
+                echo "feature"
+                return
+            case chore dependencies deps
+                echo "chore"
+                return
+            case documentation docs
+                echo "docs"
+                return
+            case refactor refactoring
+                echo "refactor"
+                return
+            case test tests testing
+                echo "test"
+                return
+            case performance perf
+                echo "perf"
+                return
+            case ci
+                echo "ci"
+                return
+            case build
+                echo "build"
+                return
+            case style styling
+                echo "style"
+                return
+        end
+    end
+    echo ""
+end
+
+# Create the branch off an up-to-date default branch, or switch to it if it already exists.
+# Sets BRANCH_WAS_CREATED, which decides whether pushing is safe: a branch we just cut
+# carries no commits, while a pre-existing one may hold work that belongs to /pr.
+function create_local_branch
+    if git rev-parse --verify --quiet "refs/heads/$BRANCH_NAME" >/dev/null
+        echo -e "$YELLOW↩️  Branch already exists locally, switching to it$NC"
+        git switch "$BRANCH_NAME" >/dev/null 2>&1
+        or die "Could not switch to existing branch $BRANCH_NAME"
+        set -g BRANCH_WAS_CREATED 0
+        return 0
+    end
+
+    echo -e "$YELLOW🔀 Updating $DEFAULT_BRANCH...$NC"
+    git switch "$DEFAULT_BRANCH" >/dev/null 2>&1
+    or die "Could not switch to $DEFAULT_BRANCH branch"
+    git pull origin "$DEFAULT_BRANCH" --quiet
+
+    echo -e "$YELLOW🌱 Creating new branch...$NC"
+    git switch -c "$BRANCH_NAME" >/dev/null 2>&1
+    or die "Could not create branch $BRANCH_NAME"
+    set -g BRANCH_WAS_CREATED 1
+end
+
 # Validate dependencies
 if not command -v jq >/dev/null 2>&1
     die "jq is required but not installed. Install it with: brew install jq"
 end
 
-if not command -v acli >/dev/null 2>&1
-    die "acli is required but not installed. Install it with: brew tap atlassian/homebrew-acli && brew install acli"
+# Parse arguments
+argparse 'd/dry' 't/type=' 'j/jira' 'g/github' 'n/no-push' -- $argv 2>/dev/null
+or usage
+
+if set -q _flag_no_push
+    set -g DO_PUSH 0
+else
+    set -g DO_PUSH 1
 end
 
-# Parse arguments
-argparse 'd/dry' 't/type=' -- $argv 2>/dev/null
-or usage
+set -g BRANCH_WAS_CREATED 0
 
 # Validate --type override against the allowed branch type set
 if set -q _flag_type
@@ -81,54 +181,126 @@ if set -q _flag_type
     end
 end
 
+if set -q _flag_jira; and set -q _flag_github
+    die "--jira and --github are mutually exclusive"
+end
+
 if test (count $argv) -ne 1
     usage
 end
 
-set -g JIRA_ID $argv[1]
+set -g ISSUE_REF $argv[1]
+
+# Resolve the provider: explicit flag wins, otherwise infer from the reference shape
+if set -q _flag_jira
+    set -g PROVIDER jira
+else if set -q _flag_github
+    set -g PROVIDER github
+else if string match -qr '^#?[0-9]+$' -- $ISSUE_REF
+    set -g PROVIDER github
+else if string match -qr '^https?://github\.com/[^/]+/[^/]+/issues/[0-9]+' -- $ISSUE_REF
+    set -g PROVIDER github
+else if string match -qr '^[A-Za-z][A-Za-z0-9]*-[0-9]+$' -- $ISSUE_REF
+    set -g PROVIDER jira
+else
+    die "Could not tell whether '$ISSUE_REF' is a Jira key or a GitHub issue. Pass --jira or --github."
+end
 
 # Check if current directory is a git repo
 if not git rev-parse --is-inside-work-tree >/dev/null 2>&1
     die "Current directory is not a git repository"
 end
 
-echo -e "$YELLOW📥 Fetching issue details from Jira...$NC"
-
-# Fetch issue details using acli
-set -g RESPONSE (acli jira workitem view $JIRA_ID --fields summary,issuetype --json 2>&1)
-if test $status -ne 0
-    if string match -q "*auth*" -- "$RESPONSE"; or string match -q "*unauthorized*" -- "$RESPONSE"; or string match -q "*login*" -- "$RESPONSE"
-        die "Not authenticated with Atlassian. Run 'acli auth login' first."
+if test "$PROVIDER" = jira
+    if not command -v acli >/dev/null 2>&1
+        die "acli is required but not installed. Install it with: brew tap atlassian/homebrew-acli && brew install acli"
     end
-    die "Failed to fetch issue from Jira: $RESPONSE"
+
+    echo -e "$YELLOW📥 Fetching issue details from Jira...$NC"
+
+    set -g RESPONSE (acli jira workitem view $ISSUE_REF --fields summary,issuetype --json 2>&1)
+    if test $status -ne 0
+        if string match -q "*auth*" -- "$RESPONSE"; or string match -q "*unauthorized*" -- "$RESPONSE"; or string match -q "*login*" -- "$RESPONSE"
+            die "Not authenticated with Atlassian. Run 'acli auth login' first."
+        end
+        die "Failed to fetch issue from Jira: $RESPONSE"
+    end
+
+    set -g ISSUE_TYPE (echo "$RESPONSE" | jq -r '.fields.issuetype.name // empty')
+    set -g ISSUE_SUMMARY (echo "$RESPONSE" | jq -r '.fields.summary // empty')
+    set -g TICKET $ISSUE_REF
+
+    if test -z "$ISSUE_TYPE" -o -z "$ISSUE_SUMMARY"
+        die "Could not parse issue details"
+    end
+
+    echo -e "$GREEN✓ Issue found:$NC"
+    echo "  📋 Type: $ISSUE_TYPE"
+    echo "  📝 Summary: $ISSUE_SUMMARY"
+else
+    if not command -v gh >/dev/null 2>&1
+        die "gh is required but not installed. Install it with: brew install gh"
+    end
+
+    set -g ISSUE_NUMBER (string replace -r '^#' '' -- $ISSUE_REF)
+
+    echo -e "$YELLOW📥 Fetching issue details from GitHub...$NC"
+
+    set -g RESPONSE (gh issue view $ISSUE_NUMBER --json number,title,labels,issueType 2>&1)
+    if test $status -ne 0
+        if string match -q "*auth*" -- "$RESPONSE"; or string match -q "*log in*" -- "$RESPONSE"; or string match -q "*login*" -- "$RESPONSE"
+            die "Not authenticated with GitHub. Run 'gh auth login' first."
+        end
+        die "Failed to fetch issue from GitHub: $RESPONSE"
+    end
+
+    set -g ISSUE_TYPE (echo "$RESPONSE" | jq -r '.issueType.name // empty')
+    set -g ISSUE_SUMMARY (echo "$RESPONSE" | jq -r '.title // empty')
+    set -g ISSUE_LABELS (echo "$RESPONSE" | jq -r '.labels[]?.name // empty')
+    set -g TICKET "gh-"(echo "$RESPONSE" | jq -r '.number // empty')
+
+    if test -z "$ISSUE_SUMMARY" -o "$TICKET" = "gh-"
+        die "Could not parse issue details"
+    end
+
+    echo -e "$GREEN✓ Issue found:$NC"
+    if test -n "$ISSUE_TYPE"
+        echo "  📋 Type: $ISSUE_TYPE"
+    end
+    if test (count $ISSUE_LABELS) -gt 0
+        echo "  🏷️  Labels: "(string join ", " $ISSUE_LABELS)
+    end
+    echo "  📝 Summary: $ISSUE_SUMMARY"
 end
-
-# Parse issue type and summary with jq
-set -g ISSUE_TYPE (echo "$RESPONSE" | jq -r '.fields.issuetype.name // empty')
-set -g ISSUE_SUMMARY (echo "$RESPONSE" | jq -r '.fields.summary // empty')
-
-if test -z "$ISSUE_TYPE" -o -z "$ISSUE_SUMMARY"
-    die "Could not parse issue details"
-end
-
-echo -e "$GREEN✓ Issue found:$NC"
-echo "  📋 Type: $ISSUE_TYPE"
-echo "  📝 Summary: $ISSUE_SUMMARY"
 
 # Create branch name (cap total length at MAX_BRANCH_LENGTH — matches commitlint header-max-length)
 if set -q _flag_type
     set -g BRANCH_PREFIX $_flag_type
-    echo "  🏷️  Branch type: $BRANCH_PREFIX (from --type override)"
-else
+    echo "  🌿 Branch type: $BRANCH_PREFIX (from --type override)"
+else if test "$PROVIDER" = jira
     set -g BRANCH_PREFIX (get_branch_prefix "$ISSUE_TYPE")
-    echo "  🏷️  Branch type: $BRANCH_PREFIX (from issue type $ISSUE_TYPE)"
+    echo "  🌿 Branch type: $BRANCH_PREFIX (from issue type $ISSUE_TYPE)"
+else
+    set -g BRANCH_PREFIX (github_prefix_from_type "$ISSUE_TYPE")
+    if test -n "$BRANCH_PREFIX"
+        echo "  🌿 Branch type: $BRANCH_PREFIX (from issue type $ISSUE_TYPE)"
+    else
+        set BRANCH_PREFIX (github_prefix_from_labels $ISSUE_LABELS)
+        if test -n "$BRANCH_PREFIX"
+            echo "  🌿 Branch type: $BRANCH_PREFIX (from labels)"
+        else
+            set BRANCH_PREFIX feature
+            echo "  🌿 Branch type: $BRANCH_PREFIX (default, no issue type or label matched)"
+        end
+    end
 end
+
 set -g TITLE_SLUG (create_slug "$ISSUE_SUMMARY")
-set -g BRANCH_BASE "$BRANCH_PREFIX/$JIRA_ID-"
+set -g BRANCH_BASE "$BRANCH_PREFIX/$TICKET-"
 set -g MAX_SLUG_LENGTH (math $MAX_BRANCH_LENGTH - (string length -- $BRANCH_BASE))
 
 if test $MAX_SLUG_LENGTH -lt 1
-    die "JIRA_ID + prefix already exceeds $MAX_BRANCH_LENGTH characters"
+    die "Issue reference + prefix already exceeds $MAX_BRANCH_LENGTH characters"
 end
 
 if test (string length -- $TITLE_SLUG) -gt $MAX_SLUG_LENGTH
@@ -173,16 +345,61 @@ end
 
 echo -e "$GREEN✓ Using default branch: $DEFAULT_BRANCH$NC"
 
-# Checkout and update default branch, then create new branch
-echo -e "$YELLOW🔀 Updating $DEFAULT_BRANCH...$NC"
-if not git checkout "$DEFAULT_BRANCH" 2>/dev/null
-    die "Could not checkout $DEFAULT_BRANCH branch"
-end
-git pull origin "$DEFAULT_BRANCH" --quiet
+# A GitHub linked branch is a remote ref, so `gh issue develop` is the only way to get
+# one: it creates the branch and registers it on the issue in a single call. Everything
+# else (Jira, or --no-push) creates the branch locally and pushes it separately.
+if test "$PROVIDER" = github -a $DO_PUSH -eq 1
+    if git rev-parse --verify --quiet "refs/heads/$BRANCH_NAME" >/dev/null
+        echo -e "$YELLOW↩️  Branch already exists locally, switching to it$NC"
+        git switch "$BRANCH_NAME" >/dev/null 2>&1
+        or die "Could not switch to existing branch $BRANCH_NAME"
 
-# Create and checkout new branch
-echo -e "$YELLOW🌱 Creating new branch...$NC"
-git checkout -b "$BRANCH_NAME" >/dev/null 2>&1
+        if string match -q "*$BRANCH_NAME*" -- (gh issue develop $ISSUE_NUMBER --list 2>/dev/null | string collect)
+            echo -e "$GREEN🔗 Already a linked branch on issue #$ISSUE_NUMBER$NC"
+        else
+            echo -e "$YELLOW⚠️  Not linked to issue #$ISSUE_NUMBER. GitHub registers a linked branch only when it creates the branch, so link this one from the issue's Development panel.$NC"
+        end
+    else
+        echo -e "$YELLOW🔗 Creating linked branch on issue #$ISSUE_NUMBER...$NC"
+        set -g DEVELOP_OUT (gh issue develop $ISSUE_NUMBER --name "$BRANCH_NAME" --base "$DEFAULT_BRANCH" --checkout 2>&1)
+        if test $status -ne 0
+            echo -e "$RED⚠️  Could not create the linked branch: $DEVELOP_OUT$NC" >&2
+            echo -e "$YELLOW↪️  Creating the branch locally instead; issue #$ISSUE_NUMBER gets no linked branch.$NC" >&2
+            create_local_branch
+        else
+            echo -e "$GREEN✓ Linked branch registered on issue #$ISSUE_NUMBER$NC"
+        end
+    end
+else
+    create_local_branch
+
+    if test $DO_PUSH -eq 0
+        echo -e "$YELLOW📴 Branch kept local (--no-push)$NC"
+        if test "$PROVIDER" = github
+            echo -e "$YELLOW   Issue #$ISSUE_NUMBER has no linked branch; run 'gh issue develop $ISSUE_NUMBER --name $BRANCH_NAME' after pushing if you want one.$NC"
+        end
+    else if test $BRANCH_WAS_CREATED -eq 0
+        # Pushing here could carry commits made since the branch was cut, which is /pr's
+        # job and its confirmation gate. Only ever push a branch created moments ago.
+        echo -e "$YELLOW⏭️  Branch already existed, so it is not being pushed. Open the PR with /pr when the work is ready.$NC"
+    else
+        echo -e "$YELLOW⬆️  Pushing to origin...$NC"
+        git push -u origin "$BRANCH_NAME" --quiet
+        or die "Could not push $BRANCH_NAME to origin"
+        if test "$PROVIDER" = jira
+            echo -e "$GREEN✓ Pushed. $ISSUE_REF's Development panel picks the branch up from the issue key in its name.$NC"
+        else
+            echo -e "$GREEN✓ Pushed$NC"
+        end
+    end
+end
+
+# The old `git checkout -b` swallowed its own failure and still reported success, so
+# confirm where we actually landed before claiming the branch is ready.
+set -g CURRENT_BRANCH (git branch --show-current)
+if test "$CURRENT_BRANCH" != "$BRANCH_NAME"
+    die "Expected to be on $BRANCH_NAME but the current branch is '$CURRENT_BRANCH'"
+end
 
 echo ""
 echo -e "$GREEN✨ Successfully created and checked out branch: $BRANCH_NAME$NC"

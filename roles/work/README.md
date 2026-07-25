@@ -6,9 +6,29 @@ Work-only role. Runs only when `profile=work`.
 
 - Installs `acli` (Atlassian) and the `fossa` cask via `BREW_PACKAGES` (with the `atlassian/homebrew-acli` tap). Relies on `shell` / `coreutils` (which run before `work` in `profile_roles[work]`) for `fish` and `television`.
 - Renders `~/.config/fish/conf.d/work-secrets.fish` from `templates/exports.fish.j2` (work tokens, mode 0600).
-- Symlinks every script under `files/scripts/` into `~/.local/bin/`.
+- Symlinks every script under `files/scripts/` into `~/.local/bin/`. See [Scripts](#scripts).
 - Renders `~/Library/Application Support/glab-cli/config.yml` from `templates/glab/config.yml.j2` (personal + work GitLab hosts) and verifies each host is authenticated. See [GitLab auth (glab)](#gitlab-auth-glab).
 - Symlinks the Jira Television cable (`files/television/cable/jira.toml`) and its helper fish function (`files/fish/functions/_tv_jira.fish`) into `~/.config/`. Both depend on `acli` so they live here rather than in `shell`.
+
+## Scripts
+
+Both are symlinked into `~/.local/bin/`, so editing them here takes effect without re-running the playbook.
+
+- `s-task <ref>`: creates a git branch from an issue, off an up-to-date default branch, and pushes it so the issue links back to it. It is dual-provider and infers which from the reference shape: `PROJ-123` goes to Jira via `acli`, while `456`, `#456`, or a GitHub issue URL goes to GitHub via `gh` (installed by the `apps` role). Force either with `--jira` / `--github`. Branch names are `<type>/PROJ-123-<slug>` for Jira and `<type>/gh-456-<slug>` for GitHub, capped at 50 chars to stay under commitlint's `header-max-length`, truncating the slug at a hyphen boundary. The branch type comes from the Jira issue type, or for GitHub from the issue's native type first and its labels second; `--type` overrides it and `--dry` prints the branch name without creating anything. The `commit` and `pr` skills parse both ticket shapes back out of the branch name, so keep the three in sync. See [Issue linking](#issue-linking) for the push behavior and `--no-push`.
+- `s-db [production|staging]`: connects to cloud-sql-proxy for the given environment.
+
+### Issue linking
+
+`s-task` ends by putting the branch on `origin`, because that is what makes the issue show it. The two providers get there differently, and only one of them is an API call:
+
+- **GitHub** has a real linked-branch object, and `gh issue develop <n> --name <branch> --base <default> --checkout` is the only thing that creates one. It creates the remote ref and registers it on the issue in a single call, so `s-task` uses it instead of creating the branch locally. A linked branch **is** a remote ref, so there is no local-only version of this. GitHub registers the link only at creation time: if the branch already exists, `s-task` says so and leaves linking to the issue's Development panel.
+- **Jira has no API for this.** `acli jira workitem link` creates issue-to-issue links (blocks, relates to), not source-code links. The Development panel is filled in by the Jira git integration app, which finds branches by scanning their names for the issue key. `s-task` already puts the key in the branch name, so the only requirement is that the branch exists on `origin`; the panel picks it up on the integration's next sync. Writing it directly would need `/rest/devinfo/0.10/bulk`, which authenticates as a Connect app (JWT), not as a user.
+
+`--no-push` keeps the branch local. On the Jira path the Development panel then fills in later, whenever the branch gets pushed. On the GitHub path there is no linked branch at all, and the script prints the `gh issue develop` command to run after pushing.
+
+**The push only ever covers a branch `s-task` just created**, off the default branch's tip, with no commits on it. Re-run it on a branch that already exists and it switches to the branch and pushes nothing, because that branch may hold work, and pushing work is `/pr`'s job and its confirmation gate. This is the property that lets `git-skill-gate.sh` leave `s-task` alone: the hook sees Bash commands, not the subprocesses they spawn, so `s-task` could push whatever it wanted, and the script is what keeps that narrow. Its docstring records the exception.
+
+Because the script pushes, running it creates a remote ref before `/pr` does. Branch-push CI will fire on an empty branch, and abandoning the work leaves a ref on the remote.
 
 ## Vars
 

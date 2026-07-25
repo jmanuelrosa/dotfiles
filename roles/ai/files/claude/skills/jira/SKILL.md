@@ -329,6 +329,10 @@ Tickets created or referenced here flow into branches, commits, and PRs that fol
 - **Commit subject:** `<type>(<scope>): <subject>` (Conventional Commits; see commit skill, Step 6).
 - **PR title:** `<type>(<scope>): <subject> (<TICKET>)` (see pr skill, Step 6).
 
+`s-task` pushes the branch to `origin` on creation (pass `--no-push` to keep it local). That push is what makes the branch appear in the ticket's **Development** panel: the Jira git integration finds it by scanning branch names for the issue key, which `s-task` always includes. There is nothing to call for this. `acli jira workitem link` creates issue-to-issue links (blocks, relates to), not source-code links, and the endpoint that writes development information (`/rest/devinfo/0.10/bulk`) authenticates as a Connect app rather than as a user. If the panel stays empty, the integration app is missing or has not synced yet, not something a command here can fix.
+
+`s-task` is dual-provider: it also branches from a GitHub issue (`s-task 456`, `s-task '#456'`, an issue URL, or `--github` to force it), producing `<type>/gh-456-<slug>`. The branch shape and the commit subject carry over unchanged; the PR title does not. A GitHub issue gets **no** `(<TICKET>)` suffix, and the pr skill links it as `Closes #456` in the body instead. Its branch type is inferred from the issue's GitHub type or labels rather than a Jira issue type, and it is created through `gh issue develop` so the issue gets a real linked branch. Issues tracked on a GitHub board are outside this skill's scope; `acli` never sees them.
+
 The Jira category emoji (🧠, 💻, 💿, …) belongs only in the **Jira summary**, never in branch names, commit subjects, or PR titles.
 
 ## Authentication troubleshooting
