@@ -17,8 +17,8 @@ In scope:
 Out of scope:
 
 - Any code, config, or `.gitignore` modification.
-- Market/user/competitive research for product initiatives (that is `/1-research`).
-- Design docs and ADRs (that is `/4-tech-shape`).
+- Market/user/competitive research for product initiatives (that is `/product-team:1-research`).
+- Design docs and ADRs (that is `/product-team:4-tech-shape`).
 
 ## Users And Trigger Context
 

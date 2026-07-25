@@ -23,69 +23,6 @@
         "documentation-and-adrs",
         "domain-modeling"
       ]
-    },
-    {
-      "name": "competitive-researcher",
-      "groups": [
-        "product",
-        "research",
-        "global"
-      ],
-      "note": "Locally authored"
-    },
-    {
-      "name": "user-evidence-researcher",
-      "groups": [
-        "product",
-        "research",
-        "global"
-      ],
-      "note": "Locally authored"
-    },
-    {
-      "name": "market-sizer",
-      "groups": [
-        "product",
-        "research",
-        "global"
-      ],
-      "note": "Locally authored"
-    },
-    {
-      "name": "strategy-checker",
-      "groups": [
-        "product",
-        "strategy",
-        "global"
-      ],
-      "note": "Locally authored"
-    },
-    {
-      "name": "pm-red-team",
-      "groups": [
-        "product",
-        "review",
-        "global"
-      ],
-      "note": "Locally authored"
-    },
-    {
-      "name": "adr-scribe",
-      "groups": [
-        "engineering",
-        "documentation",
-        "global"
-      ],
-      "note": "Locally authored"
-    },
-    {
-      "name": "ac-writer",
-      "groups": [
-        "quality",
-        "testing",
-        "global"
-      ],
-      "note": "Locally authored"
     }
   ]
 }
