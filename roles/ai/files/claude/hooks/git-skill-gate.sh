@@ -31,6 +31,24 @@ Fail-open on transcript errors so harness replay or compaction can't
 lock the user out. To swap to fail-closed, change the `sys.exit(0)`
 lines in the transcript-handling path to `sys.exit(2)`.
 
+Wrapper scripts that run git in a subprocess are invisible here: the hook
+receives the Bash command, not what that command spawns. Two are known,
+and they are handled in opposite directions on purpose.
+
+`skills/commit/scripts/apply.py` commits without a `git commit` token, so
+it is gated by path (APPLY_PY_RE) and needs /commit like any other commit.
+
+`s-task` (~/.local/bin/s-task, from this repo's `work` role) pushes, and
+that push is deliberately allowed rather than gated. It exists so a
+GitHub issue gets a linked branch and a Jira ticket's Development panel
+can see the branch, both of which require the branch to be on the remote,
+and it happens at the start of the work rather than the end, so requiring
+/pr would be backwards. What keeps it narrow: it pushes only a branch it
+created moments earlier, off the default branch's tip, with no commits on
+it, and it refuses to push a branch that already existed. So it cannot
+push work, and /pr stays the only path that pushes commits. `s-task
+--no-push` skips the push entirely.
+
 Acknowledged limitations: the matcher does not parse subshells, command
 substitution, `eval`, or shell aliases, and for gh/glab it does not
 recognize flags placed before the subcommand (`gh -R o/r pr create`).
