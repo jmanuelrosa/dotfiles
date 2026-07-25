@@ -1,4 +1,4 @@
-# Errors and observability
+# Errors and resilience
 
 When to read: any new or changed component, especially one that fetches data, renders user content, or owns an interactive flow; and whenever the diff touches error boundaries or the error-tracking wiring.
 

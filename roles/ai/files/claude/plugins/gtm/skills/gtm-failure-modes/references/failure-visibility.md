@@ -1,4 +1,4 @@
-# Errors and observability
+# Failure visibility
 
 When to read: any new or changed tag, trigger, variable, template, or server client; and whenever the brief or diff touches error handling, failed sends, or tag health monitoring.
 

@@ -1,4 +1,4 @@
-# Observability
+# Failure visibility
 
 When to read: always for new endpoints, jobs, and consumers; and whenever the brief or diff touches logging, metrics, tracing, alerts, or error tracking.
 
