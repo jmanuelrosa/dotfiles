@@ -1,4 +1,4 @@
-# Errors and observability
+# Failure visibility
 
 When to read: any new screen, flow, network call, or background task; and whenever the brief or diff touches crash reporting, error handling, logging, or the analytics and crash SDKs.
 
