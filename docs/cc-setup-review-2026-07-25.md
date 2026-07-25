@@ -13,7 +13,7 @@ Anything under [Not worth doing](#not-worth-doing) was considered and rejected w
 
 ## Ordering constraint
 
-**T1 must land before T5.** A global scope rule in `CLAUDE.md` cannot win against a project memory that tells Claude the opposite in a 54-session repo. Everything else is independent.
+~~**T1 must land before T5.**~~ Discharged 2026-07-25: T1 was a no-op (the conflicting memory does not exist on disk), so there is nothing for a `CLAUDE.md` scope rule to lose against and T5 is unblocked. Every task is now independent.
 
 ## P0
 
@@ -32,24 +32,29 @@ It also contradicts two sibling memories in the same directory (`feedback_no_aut
 Change: rewrite `reference_pr_push_path.md` to keep the literal push command as reference material for the skill, drop the "don't hand off" claim, and state that when the branch is ready Claude stops and tells the user to run `/pr`.
 Then delete `feedback_no_autonomous_push.md`, which the corrected version subsumes.
 
-### T2. Cap nested subagent spawn depth
-
-- [ ] Applied
-- **Files:** `roles/ai/files/claude/settings.json` (`env` block, around line 4)
-- **Scope:** user
-- **Effort:** S
-
-Changelog 2.1.219 (2026-07-24) raised the default nested-subagent depth from 1 to 3. The `env` block has no cap, so the new default is live.
-Agent fan-out is the largest friction class in the facets (29 `user_rejected_action` plus 22 `wrong_approach`), with fan-out named directly in at least one transcript.
-Three surfaces fan out today: `research` (has `Agent` in allowed-tools, `model: opus`), `1-research` (three parallel researchers), and `feature-team` (dispatches to every installed seat, which is 13 in `addingwell`). A 13-way dispatch that can now nest two levels deeper on opus is a spend multiplier, and spend limits already cut investigations short.
-
-Change: add `"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "1"` to the `env` block, restoring the depth the fleet was designed against.
-
 ## P1
 
 ### T3. Convert the Product Team pipeline into a plugin
 
-- [ ] Applied
+- [x] Applied 2026-07-25 on `refactor/product-team-plugin`, with the corrections below.
+
+**The "unused" premise was false and is not why this landed.** The pipeline has run end to end twice, with 8 merged gate PRs: `personal/shrnk` / `url-shortening` (stages 0-6 approved, PRs #2, #3, #4, #6, on 2026-07-09) and `3bitslost/pickleballontime` / `game-finder` (stages 0-6 approved, PRs #6, #7, #8, #11, on 2026-07-22 to 07-23). `game-finder`'s `STATUS.md` was modified 2026-07-24, the day before this review, and sits at stage 6 of 8. The memory `project_product_team` recording the dogfood as pending is stale. What justifies the move is the surviving half of the argument: the pipeline is per-repo by nature, and only 2 of ~20 repos carry the `docs/initiatives/` and `docs/strategy/` scaffolding it needs.
+
+**Inventory was undercounted.** 11 skills in scope, not 10: `idea-refine` reaches the global set as a declared dependency of `setup-strategy` and `0-refine-idea`. 7 agents, not 5: `ac-writer` ("Use ONLY from `/5-decompose`") and `adr-scribe` ("Use ONLY from `/4-tech-shape`") are pipeline-exclusive and were missed. Re-measured on name + description, what actually enters context: skills 2,584 / 7,123 bytes (36%, not 43%), agents 2,058 / 3,355 bytes (61%, not 46%) since only `cc-staff-reviewer` and `architect` are not pipeline.
+
+**Vendored skills stay out of the bundle.** Of the 11, only 10 moved in. `idea-refine` is vendored from `addyosmani/agent-skills`, and `claude-skill update` syncs it by `upstream_path` into `skills/idea-refine/`, so a copy inside the plugin would fork from upstream on the next sync. It stays under `skills/` and is declared in `plugin.json` under a new `skillDependencies` key, which `claude-agent add product-team` now installs alongside the plugin symlink via `_claude_agent_install_plugin_deps` (mirroring the existing agent-dependency path). It keeps its bare `/idea-refine` command, since it is not a plugin artifact.
+
+**Trap found while building this, worth its own note:** the obvious key name, `dependencies`, is reserved by Claude Code, and an array of skill names there makes the plugin register **nothing**. All 7 agents and 10 skills silently stop loading while `claude plugin details` still inventories every one of them, so the manifest looks fine. Isolated by bisecting a headless `--plugin-dir` run against a clean config: key present, 0 agents; key removed, 7 agents; renamed to `skillDependencies`, 7 agents. Unknown keys such as `groups` are ignored safely, so this is specific to `dependencies`. Vendored status is only visible as an `upstream_path` under `repos`: those entries carry **no `name` key**, so a `.name ==` query over the registry misses every vendored skill. Worth knowing before auditing this file.
+
+**`product-lead` went into the plugin, not left global.** It owns the pipeline's shared library (`references/conventions.md` plus 10 templates) that all 10 stages read via `../product-lead/references/`, 17 relative paths in total, and its own `SKILL.md` reads those templates ("never paraphrase a template from memory, read it"), so it cannot be reduced to a thin hub. Leaving it global would have meant rewriting all 17 paths to a hardcoded `~/.claude/skills/...` and giving up the plugin's self-containment. Instead it moved in (all 17 paths keep resolving unchanged) and a thin signpost skill of the same name stays at `skills/product-lead/`, carrying the bundle's only registry row.
+
+**Plugin artifacts are namespaced**, verified with a headless run against the real plugin: bundled skills load as `product-team:<skill>` and agents as `product-team:<agent>`. So 80 command invocations and 47 agent references were rewritten to the `product-team:` form across the bundle, the README, `agent-writer`'s references, and `research/SPEC.md`. Frontmatter `name:` fields stay bare, file paths were untouched, and the STATUS-table stage labels were left alone because the two live initiatives depend on them.
+
+**No side effect on `grilling`,** contrary to a first pass at this task: `grill-me` and `grill-with-docs` are themselves `global` and already declare `dependencies: ["grilling"]`, so it reaches the global set independently of anything moved here. The registry needed no compensating change.
+
+Verified: all 18 moved artifacts parse as valid YAML with pyyaml (the rewrite inserts colons into 12 `description:` fields, so this was not assumed); the Ansible global-skill assert passes against all 19 effective global skills; 33 files moved as exact renames (`R100`); no Ansible YAML touched. `make syntax` and `make lint` could not run in the sandbox (interactive vault prompt, and `ansible-galaxy` needs denied network) so **both still need a run outside it**.
+
+Follow-up, not blocking: after this merges, `~/.claude/skills/` and `~/.claude/agents/` keep 17 now-stale symlinks, since the `ai` role symlinks but never prunes (`roles/ai/tasks/main.yml`).
 - **Files:** new `roles/ai/files/claude/plugins/product-team/`, plus `skill-registry.json` and `agent-registry.json` row removals, plus `CLAUDE.md` if the seat-plugin section needs a companion note
 - **Scope:** user
 - **Effort:** L
@@ -64,36 +69,12 @@ Keep `product-lead` global: it is the hub that reads `STATUS.md` and names the n
 Side benefit: the registries express agent-to-skill dependencies but not skill-to-agent, so `1-research` currently cannot declare that it needs `competitive-researcher`. Bundling them dissolves that gap.
 Net effect: global routing surface drops ~44%, and this is a deletion rather than an addition.
 
-### T4. Stop four dependency-only skills from auto-firing
-
-- [ ] Applied
-- **Files:** `roles/ai/files/claude/skills/{grilling,idea-refine,domain-modeling,planning-and-task-breakdown}/SKILL.md`
-- **Scope:** user
-- **Effort:** S
-
-Seven of 30 global skills lack `disable-model-invocation`. Four of those are `dependency_only` or agent-invoked, so auto-firing is pure downside:
-
-| Skill | Auto-trigger | Explicit caller |
-|---|---|---|
-| `grilling` | "stress-test their thinking, or uses any 'grill' trigger phrases" | `/grill-me`, `/grill-with-docs` (both manual) |
-| `idea-refine` | "Triggers on 'ideate', 'refine this idea', 'stress-test my plan'" | `setup-strategy`, `/0-refine-idea` |
-| `domain-modeling` | "record an architectural decision" | `architect` agent (declared dependency) |
-| `planning-and-task-breakdown` | "when a task feels too large to start" | `architect` agent (declared dependency) |
-
-`grilling` and `idea-refine` collide head-on: both auto-fire on "stress-test my plan" while the real entry point is `/grill-me`.
-`domain-modeling` auto-firing on "record an architectural decision" contradicts the recorded decision in `project_adr_convention_owned_locally`, which puts ADR authority in `product-lead` and `architect`, never in vendored `domain-modeling`.
-`planning-and-task-breakdown` firing on "a task feels too large to start" matches ordinary work.
-
-Change: add `disable-model-invocation: true` to those four `SKILL.md` files.
-Leave `humanizer`, `skill-writer`, and `documentation-and-adrs` alone: their triggers are wanted, and `documentation-and-adrs` is not the ADR-convention authority the memory is about.
-
 ### T5. Add a scope-control section to the global CLAUDE.md
 
 - [ ] Applied
 - **Files:** `roles/ai/files/claude/CLAUDE.md`
 - **Scope:** user
 - **Effort:** S
-- **Blocked by:** T1
 
 Scope over-reach is the dominant friction class at 51 events (29 `user_rejected_action` plus 22 `wrong_approach`), more than double the next class, and `/insights` names it the defining pattern.
 The correction is already written down, in `~/.claude/projects/-Users-jmanuelrosa-Developer/memory/feedback_respect_scope.md`, but that memory loads only for the 6 sessions whose cwd maps to `-Users-jmanuelrosa-Developer`. It does not load for dotfiles (230), addingwell-front (54), or addingwell (50).
@@ -228,6 +209,8 @@ Considered and rejected. Do not redo without new evidence.
 - **Project-scope artifacts in dotfiles**, despite it being the top repo at 230 sessions. The global set (`agent-writer`, `skill-writer`, `agent-audit`, `cc-review`, `skill-scout`, `cc-staff-reviewer`) is exactly the authoring loop this repo needs, and this repo is where that set is authored. A project copy would shadow the thing it copies.
 - **Touching the 14 seat plugins.** They look inert (absent from `enabledPlugins` and `installed_plugins.json`) but they are project-installed by design via `claude-agent add`, and 13 are live in `work/addingwell/` and `3bitslost/pickleballontime/`.
 - **Touching the em-dash gate.** One rejection in 150 sessions is a correctly tuned hook, not friction.
+- **`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=1`** (was T2, rejected 2026-07-25 after checking it against the 2.1.220 binary and the official changelog). `=1` disables *nesting*, not subagents, and all three fan-out surfaces dispatch from the main conversation at depth 1: `research`, `1-research`, and `feature-team`, whose own text says "You (the main conversation) are the team lead: you dispatch". The 13-way seat dispatch the task worried about is breadth, not depth, so the cap does not touch it. Nothing in the fleet exercises depth 2 either: `architect` already declares `disallowedTools: Agent`, the registry agents carry narrow `tools:` lists without `Agent`, and no seat prompt mentions spawning or delegating. The task's evidence is also T5's event pool re-counted (the same 29 `user_rejected_action` plus 22 `wrong_approach`), with exactly one transcript naming fan-out. The one measurable effect would be a context regression: hitting the cap prints "Subagent nesting limit reached (depth N). Complete this task directly using your tools instead of spawning another agent.", so a subagent that would offload a wide read sweep to `Explore` reads inline in its own window instead. Breadth, the actual spend driver, is governed by `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` (default 20) and `CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION`. If a bound is ever wanted, the surgical version is `disallowedTools: Agent` on the seats that should never delegate, matching `architect`, not a global env kill switch.
+- **`disable-model-invocation: true` on `grilling`, `idea-refine`, `domain-modeling`, `planning-and-task-breakdown`** (was T4, rejected 2026-07-25). The diagnosis is fine but the change is not applicable: all four are vendored, two from `mattpocock/skills` and two from `addyosmani/agent-skills`, and `_claude_skill_update` syncs with `rm -rf "$dst"` followed by `rsync`, a full replace, so the next `claude-skill update` silently reverts the edit. Worse, `claude-skill outdated` decides "behind" by running `diff -rq` between upstream and the local copy, so a local frontmatter line would make all four report behind permanently, degrading the one signal that says when upstream actually moved. There is no way to set it from outside the file either: 2.1.220 reads `disable-model-invocation` only from `SKILL.md` frontmatter, with no `disabledSkills` or `skillSettings` key anywhere in the binary. The task's framing is also off. Recomputing the effective global set the way `roles/ai/tasks/main.yml` does gives 19 skills, not 30: `grilling`, `domain-modeling`, and `planning-and-task-breakdown` are in it (pulled in as declared dependencies of `grill-me`, `grill-with-docs`, and `architect`), but `idea-refine` is not, and after T3 it is a project-scoped `product-team` plugin dependency rather than a global skill. The durable fix was considered and dropped: a `frontmatter_overrides` field on registry entries, applied after rsync, with the diff run against an overlaid copy of upstream so `outdated` stays honest. That adds an override layer to shared sync tooling to serve four entries, and 51 of the 54 vendored skills lack the flag precisely because auto-firing is the point for a tech skill. If the `grilling` / `idea-refine` collision ever actually bites, upstream it: `grilling` and `domain-modeling` are the only two vendored skills carrying `dependency_only: true`, which is exactly the argument a PR to those repos would make. Do not fork a vendored skill locally.
 - **`sandbox.network.strictAllowlist`** (2.1.219). It denies non-allowlisted hosts without prompting, which would convert ~40 sandbox prompts into hard failures.
 - **`Notification` hooks** (2.1.198). They add nothing over the existing `agentPushNotifEnabled` plus `preferredNotifChannel: ghostty`.
 - **A git dry-run hook** (suggested by `/insights`). `git-skill-gate.sh`, `pre-commit-verify.sh`, and `/commit`'s own staging gate already cover it, and both real failures live inside `/commit`'s logic. T6 fixes one in three lines; a hook would be a second enforcement layer for a problem the first layer should catch.
