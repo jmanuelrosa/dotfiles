@@ -175,6 +175,7 @@ function claude-agent --description "Manage Claude Code agents for the current p
                         mkdir -p $plugins_target
                         for pname in $group_plugins
                             ln -sfn "$plugins_source/$pname" "$plugins_target/$pname"
+                            _claude_agent_install_plugin_deps $plugins_source $pname $plugins_target
                             set count (math $count + 1)
                         end
                     end
@@ -190,6 +191,7 @@ function claude-agent --description "Manage Claude Code agents for the current p
                         end
                         ln -sfn "$plugins_source/$name" "$plugins_target/$name"
                         echo "$c_green✓$c_reset Linked plugin seat '$name' into $plugins_target/ $c_dim(loads as $name@skills-dir)$c_reset"
+                        _claude_agent_install_plugin_deps $plugins_source $name $plugins_target
                         _claude_agent_plugin_load_hint
                         continue
                     end
@@ -555,6 +557,45 @@ end
 
 function _claude_agent_plugin_groups --description "Print a seat plugin's groups, comma-joined"
     jq -r '[.groups // [] | .[]] | unique | join(", ")' "$argv[1]/$argv[2]/.claude-plugin/plugin.json" 2>/dev/null
+end
+
+# A plugin bundles what it owns, but a skill vendored from an upstream repo must
+# stay under skills/ so `claude-skill update` keeps syncing it by upstream_path.
+# Those go in plugin.json's `skillDependencies` instead and are installed alongside.
+# NOT `dependencies`: Claude Code reserves that key, and an array of skill names
+# there makes it silently drop every agent and skill the plugin ships (verified on
+# 2.1.220 - `claude plugin details` still inventories them, but nothing registers).
+function _claude_agent_plugin_skill_deps --description "Print the skills a plugin declares as dependencies"
+    jq -r '.skillDependencies // [] | .[]' "$argv[1]/$argv[2]/.claude-plugin/plugin.json" 2>/dev/null
+end
+
+function _claude_agent_install_plugin_deps --description "Install the skills a plugin declares as dependencies into the project skills dir"
+    set -l plugins_source $argv[1]
+    set -l pname $argv[2]
+    set -l skills_target $argv[3]
+    if test -z "$skills_target"
+        set -l root (git rev-parse --show-toplevel 2>/dev/null)
+        test -n "$root"; or set root (pwd)
+        set skills_target "$root/.claude/skills"
+    end
+
+    set -l deps (_claude_agent_plugin_skill_deps $plugins_source $pname)
+    test (count $deps) -eq 0; and return 0
+
+    if not functions -q _claude_skill_ensure_linked
+        source (dirname (status --current-filename))/claude-skill.fish
+    end
+
+    set -l base_dir "$DOTFILES_DIR/roles/ai/files/claude"
+    set -l skills_source "$base_dir/skills"
+    set -l skill_registry "$base_dir/skill-registry.json"
+
+    for d in $deps
+        for sub in (_claude_skill_deps $skill_registry $d)
+            _claude_skill_ensure_linked $skills_source $skills_target $skill_registry $base_dir $sub "required by $d"
+        end
+        _claude_skill_ensure_linked $skills_source $skills_target $skill_registry $base_dir $d "required by plugin $pname"
+    end
 end
 
 function _claude_agent_plugin_all_groups --description "Print every group any seat plugin declares"
