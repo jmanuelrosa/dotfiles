@@ -19,7 +19,7 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | Outbound HTTP/gRPC calls, service clients, gateway or LB config, health checks, connection pools, shutdown | [references/service-resilience.md](references/service-resilience.md) |
 | Any new endpoint, permission checks, tokens or sessions, tenant scoping, user-supplied IDs | [references/authn-authz.md](references/authn-authz.md) |
 | Adding or touching any cache layer, or mutating data that something else caches | [references/caching.md](references/caching.md) |
-| Any new endpoint, job, or consumer; logging, metrics, tracing, alerts, error tracking | [references/observability.md](references/observability.md) |
+| Any new endpoint, job, or consumer; logging, metrics, tracing, alerts, error tracking | [references/failure-visibility.md](references/failure-visibility.md) |
 | Queries, serialization of large collections, request-path IO, long-lived memory, anything labeled "slow" | [references/performance.md](references/performance.md) |
 
 Most real changes fire two or three rows (a new endpoint fires at least api-design, authn-authz, and observability).

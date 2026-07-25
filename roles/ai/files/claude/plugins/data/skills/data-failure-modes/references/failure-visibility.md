@@ -1,4 +1,4 @@
-# Errors and observability
+# Failure visibility
 
 When to read: any new or changed pipeline, task, job, or consumer; and whenever the brief or diff touches error handling, logging, run alerting, or the error tracker.
 
