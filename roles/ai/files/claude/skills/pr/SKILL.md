@@ -77,7 +77,7 @@ Fill the platform's PR template from the current branch's changes, push the bran
      Excluded files still show in `--stat`; mention them in the description when relevant.
 
 4. **Fill the template**:
-   - **Free-text sections**: clear, concise content on what the changes do and *why*. Extract Jira tickets from the branch name (`[A-Z]+-[0-9]+`) and link them where relevant.
+   - **Free-text sections**: clear, concise content on what the changes do and *why*. Extract the ticket from the branch name and link it where relevant. Two shapes exist, both scaffolded by `s-task`: a Jira key (`[A-Z]+-[0-9]+`) is linked as text; a GitHub issue (`gh-[0-9]+`) gets a `Closes #<n>` line, so merging closes the issue and advances its board card. Write that line even when `s-task` created the branch through `gh issue develop`: a linked branch already closes its issue on merge, but the keyword states the link in the body where a reviewer sees it, and it is the only mechanism when the branch was not created that way.
    - **Checkbox sections**: check `[x]` only when the diff clearly supports it; leave `[ ]` for items not verifiable from code (e.g. "tested locally").
    - **Type/category selections**: infer from commit prefixes (`feat:`, `fix:`, `chore:`, `ci:`, `refactor:`, …) and check all that apply.
 
@@ -109,12 +109,15 @@ Fill the platform's PR template from the current branch's changes, push the bran
    - Otherwise, build it from the branch name:
    - Split the branch on the first `/`: left side is the **branch type**, right side is everything else.
    - Map branch type → commit type: `feature` → `feat`; every other type passes through unchanged.
-   - From the right side, strip a leading Jira ticket (`^[A-Z]+-[0-9]+`) and its trailing `-`; the rest is the slug. Replace remaining `-`/`_` with spaces and trim.
+   - From the right side, strip a leading ticket reference and its trailing `-`; the rest is the slug. Replace remaining `-`/`_` with spaces and trim.
+   - Two ticket shapes match here: a Jira key (`^[A-Z]+-[0-9]+`) and a GitHub issue (`^gh-[0-9]+`). Remember which one matched; they compose differently below. Miss the GitHub shape and `gh-456-` leaks into the title as prose.
    - Derive the **scope** from the diff per step 6a.
    - Compose: `<commit-type>(<scope>): <slug-as-prose> (<TICKET>)`. Omit `(<scope>)` if repo-wide; omit `(<TICKET>)` if missing.
+   - A **GitHub issue never becomes a title suffix**. GitHub appends its own `(#<pr-number>)` on squash merge, so `(#456)` in the title reads as a PR number. Its link lives in the body as `Closes #456` (step 4).
 
    Examples:
    - `feature/PROJ-123-add-auth`, files under `apps/auth/**` → `feat(auth): add auth (PROJ-123)`
+   - `fix/gh-456-banner-not-persisting`, files under `src/consent/**` → `fix(consent): banner not persisting`, with `Closes #456` in the body
    - `chore/bump-deps`, only root `package.json` → `chore: bump deps`
 
 6a. **Derive the scope from the diff.** Take `git diff --name-only "$BASE"...HEAD` and pick, in order:
@@ -152,5 +155,5 @@ Every word in the title or description must read like a teammate wrote it: speci
 
 ## Rules
 
-- The `(<TICKET>)` title suffix is required whenever any commit in the branch references a Jira ticket. An explicit `--title` override is authoritative: used verbatim, exempt from derivation and this suffix rule.
+- The `(<TICKET>)` title suffix is required whenever any commit in the branch references a Jira ticket, and is never used for a GitHub issue (`Closes #<n>` in the body carries that link instead). An explicit `--title` override is authoritative: used verbatim, exempt from derivation and this suffix rule.
 - Use `--body-file` (or HEREDOC) so newlines and code fences in the description survive.

@@ -35,6 +35,6 @@ CLI-first for these domains, never WebFetch or MCP for them. If a CLI is missing
 ## Git & sandbox
 
 - Commits and pushes go through `/commit` and `/pr`; a hook enforces this, and `/pr` carries the only working push path.
-- Branch names follow `<type>/<slug>` or `<type>/<TICKET>-<slug>` using the Conventional Branch set (`feature`, `fix`, `chore`, `docs`, `refactor`, `test`, `perf`, `ci`, `build`, `style`, `revert`); create with `git switch -c`, never `git checkout -b`. If an existing branch doesn't follow this convention, don't derive commit types or PR titles from its name: stop and ask the user (rename it, or pass an explicit value like `/pr --title`).
+- Branch names follow `<type>/<slug>` or `<type>/<TICKET>-<slug>` using the Conventional Branch set (`feature`, `fix`, `chore`, `docs`, `refactor`, `test`, `perf`, `ci`, `build`, `style`, `revert`); create with `git switch -c`, never `git checkout -b`. `<TICKET>` is a Jira key (`PROJ-123`) or a GitHub issue (`gh-456`); `s-task <ref>` scaffolds either from the issue itself, auto-detecting the provider. If an existing branch doesn't follow this convention, don't derive commit types or PR titles from its name: stop and ask the user (rename it, or pass an explicit value like `/pr --title`).
 - Only force-push, branch deletion, and lockfile writes are genuinely denied: hand the user the exact command instead of retrying.
 - `acli` runs outside the sandbox. Run it before declaring it blocked; a real auth error means the user runs `acli auth login`, never a guess that the sandbox forbids it.
