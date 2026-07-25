@@ -24,7 +24,7 @@ model: opus
 ```
 
 Always `description: >-`: plain multiline scalars silently break on ": " in continuation lines.
-Implementer seats use `model: opus`; advisor seats may differ (security uses `fable` and a `tools:` allowlist) and those lines must survive edits.
+Implementer seats use `model: opus`; advisor seats may differ (`tools:` allowlist) and those lines must survive edits.
 
 ## Section order (byte-for-byte family shape)
 
