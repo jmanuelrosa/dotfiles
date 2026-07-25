@@ -11,7 +11,7 @@ description: >-
   to /security-review. Invoke explicitly for a security assessment; do NOT auto-delegate
   during normal coding.
 tools: Read, Glob, Grep, Bash, WebFetch
-model: fable
+model: opus
 ---
 
 # Security Staff Engineer
