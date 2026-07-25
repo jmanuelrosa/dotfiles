@@ -12,7 +12,7 @@
             "designer",
             "ui"
           ],
-          "updated_at": "2026-07-17T04:40:43Z"
+          "updated_at": "2026-07-25T09:44:07Z"
         }
       ]
     },
@@ -26,7 +26,7 @@
             "pm",
             "planning"
           ],
-          "updated_at": "2026-07-17T04:40:42Z"
+          "updated_at": "2026-07-25T09:44:06Z"
         },
         {
           "upstream_path": "skills/documentation-and-adrs",
@@ -35,7 +35,7 @@
             "pm",
             "documentation"
           ],
-          "updated_at": "2026-07-17T04:40:42Z"
+          "updated_at": "2026-07-25T09:44:06Z"
         },
         {
           "upstream_path": "skills/test-driven-development",
@@ -45,7 +45,7 @@
             "backend",
             "testing"
           ],
-          "updated_at": "2026-07-17T04:40:42Z"
+          "updated_at": "2026-07-25T09:44:06Z"
         },
         {
           "upstream_path": "skills/spec-driven-development",
@@ -60,7 +60,7 @@
             "test-driven-development",
             "context-engineering"
           ],
-          "updated_at": "2026-07-17T04:40:42Z"
+          "updated_at": "2026-07-25T09:44:06Z"
         },
         {
           "upstream_path": "skills/planning-and-task-breakdown",
@@ -69,7 +69,7 @@
             "pm",
             "planning"
           ],
-          "updated_at": "2026-07-17T04:40:42Z"
+          "updated_at": "2026-07-25T09:44:06Z"
         },
         {
           "upstream_path": "skills/code-simplification",
@@ -79,7 +79,7 @@
             "frontend",
             "review"
           ],
-          "updated_at": "2026-07-17T04:40:42Z"
+          "updated_at": "2026-07-25T09:44:06Z"
         },
         {
           "upstream_path": "skills/code-review-and-quality",
@@ -89,7 +89,7 @@
             "frontend",
             "review"
           ],
-          "updated_at": "2026-07-17T04:40:42Z"
+          "updated_at": "2026-07-25T09:44:06Z"
         },
         {
           "upstream_path": "skills/performance-optimization",
@@ -99,7 +99,7 @@
             "frontend",
             "review"
           ],
-          "updated_at": "2026-07-17T04:40:42Z"
+          "updated_at": "2026-07-25T09:44:06Z"
         },
         {
           "upstream_path": "skills/incremental-implementation",
@@ -109,7 +109,7 @@
             "frontend",
             "workflow"
           ],
-          "updated_at": "2026-07-17T04:40:42Z"
+          "updated_at": "2026-07-25T09:44:06Z"
         },
         {
           "upstream_path": "skills/ci-cd-and-automation",
@@ -118,7 +118,7 @@
             "devops",
             "ci"
           ],
-          "updated_at": "2026-07-17T04:40:42Z"
+          "updated_at": "2026-07-25T09:44:06Z"
         },
         {
           "upstream_path": "skills/context-engineering",
@@ -127,7 +127,7 @@
             "prompt engineering",
             "claude"
           ],
-          "updated_at": "2026-07-17T04:40:42Z"
+          "updated_at": "2026-07-25T09:44:06Z"
         }
       ]
     },
@@ -141,7 +141,7 @@
             "backend",
             "fastify"
           ],
-          "updated_at": "2026-07-17T04:40:53Z"
+          "updated_at": "2026-07-25T09:44:18Z"
         },
         {
           "upstream_path": "skills/node",
@@ -150,7 +150,7 @@
             "backend",
             "node"
           ],
-          "updated_at": "2026-07-17T04:40:53Z"
+          "updated_at": "2026-07-25T09:44:18Z"
         },
         {
           "upstream_path": "skills/typescript-magician",
@@ -160,7 +160,7 @@
             "backend",
             "typescript"
           ],
-          "updated_at": "2026-07-17T04:40:53Z"
+          "updated_at": "2026-07-25T09:44:18Z"
         }
       ]
     },
@@ -174,7 +174,7 @@
             "frontend",
             "graphql"
           ],
-          "updated_at": "2026-07-17T04:40:43Z"
+          "updated_at": "2026-07-25T09:44:08Z"
         },
         {
           "upstream_path": "skills/graphql-operations",
@@ -183,7 +183,7 @@
             "backend",
             "graphql"
           ],
-          "updated_at": "2026-07-17T04:40:43Z"
+          "updated_at": "2026-07-25T09:44:08Z"
         }
       ]
     },
@@ -196,7 +196,7 @@
             "marketing",
             "seo"
           ],
-          "updated_at": "2026-07-17T04:40:48Z"
+          "updated_at": "2026-07-25T09:44:12Z"
         },
         {
           "upstream_path": "skills/cro",
@@ -204,7 +204,7 @@
             "marketing",
             "seo"
           ],
-          "updated_at": "2026-07-17T04:40:48Z"
+          "updated_at": "2026-07-25T09:44:13Z"
         },
         {
           "upstream_path": "skills/seo-audit",
@@ -212,7 +212,7 @@
             "marketing",
             "seo"
           ],
-          "updated_at": "2026-07-17T04:40:48Z"
+          "updated_at": "2026-07-25T09:44:13Z"
         },
         {
           "upstream_path": "skills/ai-seo",
@@ -220,7 +220,7 @@
             "marketing",
             "seo"
           ],
-          "updated_at": "2026-07-17T04:40:48Z"
+          "updated_at": "2026-07-25T09:44:13Z"
         }
       ]
     },
@@ -234,7 +234,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-07-17T04:41:11Z"
+          "updated_at": "2026-07-25T09:44:35Z"
         },
         {
           "upstream_path": "skills/react-best-practices",
@@ -243,7 +243,7 @@
             "frontend",
             "react"
           ],
-          "updated_at": "2026-07-17T04:41:11Z"
+          "updated_at": "2026-07-25T09:44:35Z"
         },
         {
           "upstream_path": "skills/composition-patterns",
@@ -252,7 +252,7 @@
             "frontend",
             "react"
           ],
-          "updated_at": "2026-07-17T04:41:11Z"
+          "updated_at": "2026-07-25T09:44:35Z"
         }
       ]
     },
@@ -266,7 +266,7 @@
             "frontend",
             "astro"
           ],
-          "updated_at": "2026-07-17T04:40:44Z"
+          "updated_at": "2026-07-25T09:44:09Z"
         }
       ]
     },
@@ -280,7 +280,7 @@
             "backend",
             "hono"
           ],
-          "updated_at": "2026-07-17T04:41:16Z"
+          "updated_at": "2026-07-25T09:44:37Z"
         }
       ]
     },
@@ -288,13 +288,13 @@
       "branch": "main",
       "skills": [
         {
-          "upstream_path": ".",
+          "upstream_path": "skills/nestjs-best-practices",
           "groups": [
             "engineering",
             "backend",
             "nestjs"
           ],
-          "updated_at": "2026-07-17T04:40:52Z"
+          "updated_at": "2026-07-25T09:44:17Z"
         }
       ]
     },
@@ -308,7 +308,7 @@
             "backend",
             "database"
           ],
-          "updated_at": "2026-07-17T04:41:11Z"
+          "updated_at": "2026-07-25T09:44:34Z"
         }
       ]
     },
@@ -322,7 +322,7 @@
             "frontend",
             "tailwind"
           ],
-          "updated_at": "2026-07-17T04:41:15Z"
+          "updated_at": "2026-07-25T09:44:36Z"
         },
         {
           "upstream_path": "plugins/javascript-typescript/skills/nodejs-backend-patterns",
@@ -331,7 +331,7 @@
             "backend",
             "node"
           ],
-          "updated_at": "2026-07-17T04:41:15Z"
+          "updated_at": "2026-07-25T09:44:36Z"
         }
       ]
     },
@@ -345,7 +345,7 @@
             "prompt engineering",
             "claude"
           ],
-          "updated_at": "2026-07-17T04:40:41Z"
+          "updated_at": "2026-07-25T09:44:05Z"
         }
       ]
     },
@@ -353,14 +353,14 @@
       "branch": "main",
       "skills": [
         {
-          "upstream_path": ".",
+          "upstream_path": "playwright-best-practices",
           "groups": [
             "engineering",
             "frontend",
             "testing",
             "playwright"
           ],
-          "updated_at": "2026-07-17T04:40:48Z"
+          "updated_at": "2026-07-25T09:44:13Z"
         }
       ]
     },
@@ -375,7 +375,7 @@
             "workflow",
             "global"
           ],
-          "updated_at": "2026-07-17T04:40:52Z"
+          "updated_at": "2026-07-25T09:44:17Z"
         },
         {
           "upstream_path": "skills/productivity/grill-me",
@@ -389,7 +389,7 @@
           "dependencies": [
             "grilling"
           ],
-          "updated_at": "2026-07-17T04:40:52Z"
+          "updated_at": "2026-07-25T09:44:17Z"
         },
         {
           "upstream_path": "skills/engineering/grill-with-docs",
@@ -404,7 +404,7 @@
             "grilling",
             "domain-modeling"
           ],
-          "updated_at": "2026-07-17T04:40:52Z"
+          "updated_at": "2026-07-25T09:44:18Z"
         },
         {
           "upstream_path": "skills/productivity/grilling",
@@ -415,7 +415,7 @@
             "planning"
           ],
           "dependency_only": true,
-          "updated_at": "2026-07-17T04:40:52Z"
+          "updated_at": "2026-07-25T09:44:18Z"
         },
         {
           "upstream_path": "skills/engineering/domain-modeling",
@@ -425,7 +425,7 @@
             "documentation"
           ],
           "dependency_only": true,
-          "updated_at": "2026-07-17T04:40:52Z"
+          "updated_at": "2026-07-25T09:44:18Z"
         }
       ]
     },
@@ -440,7 +440,7 @@
             "frontend",
             "review"
           ],
-          "updated_at": "2026-07-17T04:40:47Z"
+          "updated_at": "2026-07-25T09:44:12Z"
         },
         {
           "upstream_path": "skills/fix-sentry-issues",
@@ -451,7 +451,7 @@
             "observability",
             "sentry"
           ],
-          "updated_at": "2026-07-17T04:40:47Z"
+          "updated_at": "2026-07-25T09:44:12Z"
         }
       ]
     },
@@ -465,7 +465,7 @@
             "frontend",
             "react-router"
           ],
-          "updated_at": "2026-07-17T04:40:54Z"
+          "updated_at": "2026-07-25T09:44:19Z"
         }
       ]
     },
@@ -479,7 +479,7 @@
             "frontend",
             "react-tanstack"
           ],
-          "updated_at": "2026-07-21T17:55:35Z"
+          "updated_at": "2026-07-25T09:44:03Z"
         }
       ]
     },
@@ -494,7 +494,7 @@
             "ios",
             "swift"
           ],
-          "updated_at": "2026-07-17T04:40:46Z"
+          "updated_at": "2026-07-25T09:44:11Z"
         }
       ]
     },
@@ -509,7 +509,7 @@
             "ios",
             "swift"
           ],
-          "updated_at": "2026-07-17T04:40:45Z"
+          "updated_at": "2026-07-25T09:44:10Z"
         }
       ]
     },
@@ -525,7 +525,7 @@
             "swift",
             "testing"
           ],
-          "updated_at": "2026-07-17T04:40:45Z"
+          "updated_at": "2026-07-25T09:44:10Z"
         }
       ]
     },
@@ -540,7 +540,7 @@
             "designer",
             "design"
           ],
-          "updated_at": "2026-07-17T04:40:49Z"
+          "updated_at": "2026-07-25T09:44:14Z"
         }
       ]
     },
@@ -554,7 +554,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-07-17T04:40:50Z"
+          "updated_at": "2026-07-25T09:44:15Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-brownfield",
@@ -563,7 +563,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-07-17T04:40:50Z"
+          "updated_at": "2026-07-25T09:44:15Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-dev-client",
@@ -572,7 +572,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-07-17T04:40:50Z"
+          "updated_at": "2026-07-25T09:44:15Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-tailwind-setup",
@@ -581,7 +581,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-07-17T04:40:50Z"
+          "updated_at": "2026-07-25T09:44:15Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-data-fetching",
@@ -590,7 +590,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-07-17T04:40:50Z"
+          "updated_at": "2026-07-25T09:44:15Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-upgrade",
@@ -599,7 +599,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-07-17T04:40:50Z"
+          "updated_at": "2026-07-25T09:44:15Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-dom",
@@ -608,7 +608,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-07-17T04:40:50Z"
+          "updated_at": "2026-07-25T09:44:15Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-router",
@@ -617,7 +617,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-07-17T04:40:50Z"
+          "updated_at": "2026-07-25T09:44:15Z"
         }
       ]
     },
@@ -632,7 +632,7 @@
             "claude",
             "global"
           ],
-          "updated_at": "2026-07-17T04:40:51Z"
+          "updated_at": "2026-07-25T09:44:16Z"
         }
       ]
     }
