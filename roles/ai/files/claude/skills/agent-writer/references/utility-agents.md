@@ -1,7 +1,7 @@
 # Utility agents
 
 When to read: the request is a narrow single-purpose agent, not a discipline seat.
-Shipped examples: `pm-red-team.md`, `adr-scribe.md`, `ac-writer.md`, `competitive-researcher.md`, `strategy-checker.md`.
+Shipped examples all live in the `product-team` plugin, under `plugins/product-team/agents/`: `pm-red-team.md`, `adr-scribe.md`, `ac-writer.md`, `competitive-researcher.md`, `strategy-checker.md`. They are bundled rather than registered, so they carry no `agent-registry.json` row and load namespaced as `product-team:<name>`.
 
 ## The light path
 

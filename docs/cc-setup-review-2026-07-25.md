@@ -3,7 +3,7 @@
 Date: 2026-07-25.
 Source: `/cc-review` run (cc-staff-reviewer) against user scope `~/.claude/` (real files at `roles/ai/files/claude/`) and project scope `dotfiles/.claude/`, on Claude Code 2.1.220.
 Evidence base: 150 `/insights` facet files (`~/.claude/usage-data/facets/`) plus the 2026-07-25 report, covering 538 sessions and ~394 commits since 2026-05-11.
-Status: nothing below has been applied. Each task is self-contained so it can be picked up in its own session.
+Status: T1 (applied as a no-op, since its target memory files do not exist on disk) and T3 have landed on `main` and were deleted per the rule below; T2 and T4 were rejected and are recorded under [Not worth doing](#not-worth-doing). T5 onward are open and none of them block each other. Each task is self-contained so it can be picked up in its own session.
 
 ## How to use this file
 
@@ -11,63 +11,7 @@ Work one task per session. Each carries the files to touch, the change, and the 
 Tick the checkbox and add the commit sha when done. Delete the task once it has landed on `main`.
 Anything under [Not worth doing](#not-worth-doing) was considered and rejected with reasons: do not re-litigate it without new evidence.
 
-## Ordering constraint
-
-~~**T1 must land before T5.**~~ Discharged 2026-07-25: T1 was a no-op (the conflicting memory does not exist on disk), so there is nothing for a `CLAUDE.md` scope rule to lose against and T5 is unblocked. Every task is now independent.
-
-## P0
-
-### T1. Fix the push-path memory in addingwell-front
-
-- [x] Applied - no-op, 2026-07-25. The targets do not exist: there is no `~/.claude/projects/-Users-jmanuelrosa-Developer-work-addingwell-front/` project directory (only the `front-e2e`, `front-sentry`, ... worktree slugs), no `reference_pr_push_path.md` / `feedback_no_autonomous_push.md` / `feedback_commit_via_skill.md` anywhere under `~/.claude/projects/*/memory/`, and the phrase "pre-emptively hand off" is in no memory file. The addingwell `CLAUDE.md` files carry no push-handoff guidance either. The only surviving push memory, `-Users-jmanuelrosa-Developer-personal-brick/memory/commit-pr-handoff.md`, is already correct (skills are `disable-model-invocation`, hand off to the user, never attempt raw `git push`). T5's blocker is lifted.
-- **Files:** `~/.claude/projects/-Users-jmanuelrosa-Developer-work-addingwell-front/memory/reference_pr_push_path.md`, `~/.claude/projects/-Users-jmanuelrosa-Developer-work-addingwell-front/memory/feedback_no_autonomous_push.md`
-- **Scope:** user (project memory, outside the dotfiles repo)
-- **Effort:** S
-
-The memory currently says: *"just run `/pr` and let it push. Don't pre-emptively hand off pushing to the user (that supersedes the old 'Claude can't push' guidance here)."*
-That instructs an impossible action. `roles/ai/files/claude/skills/pr/SKILL.md:6` carries `disable-model-invocation: true`, so Claude cannot invoke `/pr`, and `hooks/git-skill-gate.sh:50` gates `git push` behind skill attribution in the transcript.
-The fallback behaviour is to attempt the push directly, get blocked, and flail. Three facets record exactly that, including one where the MR shipped without the latest local commit (`b3ca809`).
-It also contradicts two sibling memories in the same directory (`feedback_no_autonomous_push.md`, `feedback_commit_via_skill.md`), and with three conflicting memories the resolution is arbitrary.
-
-Change: rewrite `reference_pr_push_path.md` to keep the literal push command as reference material for the skill, drop the "don't hand off" claim, and state that when the branch is ready Claude stops and tells the user to run `/pr`.
-Then delete `feedback_no_autonomous_push.md`, which the corrected version subsumes.
-
 ## P1
-
-### T3. Convert the Product Team pipeline into a plugin
-
-- [x] Applied 2026-07-25 on `refactor/product-team-plugin`, with the corrections below.
-
-**The "unused" premise was false and is not why this landed.** The pipeline has run end to end twice, with 8 merged gate PRs: `personal/shrnk` / `url-shortening` (stages 0-6 approved, PRs #2, #3, #4, #6, on 2026-07-09) and `3bitslost/pickleballontime` / `game-finder` (stages 0-6 approved, PRs #6, #7, #8, #11, on 2026-07-22 to 07-23). `game-finder`'s `STATUS.md` was modified 2026-07-24, the day before this review, and sits at stage 6 of 8. The memory `project_product_team` recording the dogfood as pending is stale. What justifies the move is the surviving half of the argument: the pipeline is per-repo by nature, and only 2 of ~20 repos carry the `docs/initiatives/` and `docs/strategy/` scaffolding it needs.
-
-**Inventory was undercounted.** 11 skills in scope, not 10: `idea-refine` reaches the global set as a declared dependency of `setup-strategy` and `0-refine-idea`. 7 agents, not 5: `ac-writer` ("Use ONLY from `/5-decompose`") and `adr-scribe` ("Use ONLY from `/4-tech-shape`") are pipeline-exclusive and were missed. Re-measured on name + description, what actually enters context: skills 2,584 / 7,123 bytes (36%, not 43%), agents 2,058 / 3,355 bytes (61%, not 46%) since only `cc-staff-reviewer` and `architect` are not pipeline.
-
-**Vendored skills stay out of the bundle.** Of the 11, only 10 moved in. `idea-refine` is vendored from `addyosmani/agent-skills`, and `claude-skill update` syncs it by `upstream_path` into `skills/idea-refine/`, so a copy inside the plugin would fork from upstream on the next sync. It stays under `skills/` and is declared in `plugin.json` under a new `skillDependencies` key, which `claude-agent add product-team` now installs alongside the plugin symlink via `_claude_agent_install_plugin_deps` (mirroring the existing agent-dependency path). It keeps its bare `/idea-refine` command, since it is not a plugin artifact.
-
-**Trap found while building this, worth its own note:** the obvious key name, `dependencies`, is reserved by Claude Code, and an array of skill names there makes the plugin register **nothing**. All 7 agents and 10 skills silently stop loading while `claude plugin details` still inventories every one of them, so the manifest looks fine. Isolated by bisecting a headless `--plugin-dir` run against a clean config: key present, 0 agents; key removed, 7 agents; renamed to `skillDependencies`, 7 agents. Unknown keys such as `groups` are ignored safely, so this is specific to `dependencies`. Vendored status is only visible as an `upstream_path` under `repos`: those entries carry **no `name` key**, so a `.name ==` query over the registry misses every vendored skill. Worth knowing before auditing this file.
-
-**`product-lead` went into the plugin, not left global.** It owns the pipeline's shared library (`references/conventions.md` plus 10 templates) that all 10 stages read via `../product-lead/references/`, 17 relative paths in total, and its own `SKILL.md` reads those templates ("never paraphrase a template from memory, read it"), so it cannot be reduced to a thin hub. Leaving it global would have meant rewriting all 17 paths to a hardcoded `~/.claude/skills/...` and giving up the plugin's self-containment. Instead it moved in (all 17 paths keep resolving unchanged) and a thin signpost skill of the same name stays at `skills/product-lead/`, carrying the bundle's only registry row.
-
-**Plugin artifacts are namespaced**, verified with a headless run against the real plugin: bundled skills load as `product-team:<skill>` and agents as `product-team:<agent>`. So 80 command invocations and 47 agent references were rewritten to the `product-team:` form across the bundle, the README, `agent-writer`'s references, and `research/SPEC.md`. Frontmatter `name:` fields stay bare, file paths were untouched, and the STATUS-table stage labels were left alone because the two live initiatives depend on them.
-
-**No side effect on `grilling`,** contrary to a first pass at this task: `grill-me` and `grill-with-docs` are themselves `global` and already declare `dependencies: ["grilling"]`, so it reaches the global set independently of anything moved here. The registry needed no compensating change.
-
-Verified: all 18 moved artifacts parse as valid YAML with pyyaml (the rewrite inserts colons into 12 `description:` fields, so this was not assumed); the Ansible global-skill assert passes against all 19 effective global skills; 33 files moved as exact renames (`R100`); no Ansible YAML touched. `make syntax` and `make lint` could not run in the sandbox (interactive vault prompt, and `ansible-galaxy` needs denied network) so **both still need a run outside it**.
-
-Follow-up, not blocking: after this merges, `~/.claude/skills/` and `~/.claude/agents/` keep 17 now-stale symlinks, since the `ai` role symlinks but never prunes (`roles/ai/tasks/main.yml`).
-- **Files:** new `roles/ai/files/claude/plugins/product-team/`, plus `skill-registry.json` and `agent-registry.json` row removals, plus `CLAUDE.md` if the seat-plugin section needs a companion note
-- **Scope:** user
-- **Effort:** L
-
-All 8 numbered stage skills plus `setup-strategy`, `idea-refine`, `product-lead`, and 5 product agents (`competitive-researcher`, `user-evidence-researcher`, `market-sizer`, `strategy-checker`, `pm-red-team`) carry `groups: ["global"]`, so they load in every session in every repo.
-Measured cost: the 10 stage-and-setup skills are 5,708 of 13,250 bytes (43%) of global skill frontmatter, and the 5 product agents are 1,831 of 4,003 bytes (46%) of global agent frontmatter.
-No facet shows the pipeline being used. The top-40 goal categories contain no product, PRD, or strategy entry (`project_management` = 3), and the 18 pipeline sessions were spent building it. The memory `project_product_team` still records the E2E dogfood as pending, 18 days on.
-The pipeline is also inherently per-repo: it writes `docs/initiatives/`, needs `setup-strategy` scaffolding, and reads `STATUS.md` from the current repo. Globally loaded and locally applicable is backwards.
-
-Change: package it as a plugin exactly like the staff-engineer seats (`.claude-plugin/plugin.json`, `agents/`, `skills/`), per the seat-plugin convention in `CLAUDE.md`. Drop the `global` tag from the 13 entries and remove their registry rows, since seat plugins carry no registry rows.
-Keep `product-lead` global: it is the hub that reads `STATUS.md` and names the next command, so it should stay discoverable everywhere and is the correct entry point for `claude-agent add product-team`.
-Side benefit: the registries express agent-to-skill dependencies but not skill-to-agent, so `1-research` currently cannot declare that it needs `competitive-researcher`. Bundling them dissolves that gap.
-Net effect: global routing surface drops ~44%, and this is a deletion rather than an addition.
 
 ### T5. Add a scope-control section to the global CLAUDE.md
 

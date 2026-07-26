@@ -1,0 +1,3 @@
+function _claude_skill_jqlib --description "jq prelude: dn() derives a repos skill's directory name from upstream_path; allskills augments every entry with it (local skills keep their own name); visibleskills drops dependency_only entries for browsing"
+    echo 'def dn($r): (.upstream_path // "") as $p | if ($p == "" or $p == "." or $p == "/") then ($r | split("/")[1]) else ($p | sub("/+$";"") | split("/") | last) end; def allskills: [ (.repos | to_entries[] | .key as $r | .value.skills[] | . + {name: dn($r), repo: $r}), (.local_skills[]? | . + {repo: null}) ]; def visibleskills: allskills | map(select((.dependency_only // false) | not));'
+end
