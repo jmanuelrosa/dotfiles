@@ -1,23 +1,22 @@
 function _tv_claude_list --description "Television source: list claude skills or agents with groups and link status" --argument-names kind filter
     set -l source
-    set -l target
+    set -l leaf
     set -l registry
     set -l ext ""
-    # Skills anchor link-status to the CWD (matching `claude-skill add` and the Enter
-    # toggle, which link into ./.claude/skills), so the picker agrees with them in a
-    # monorepo subdir. Agents anchor to the git root ($proot), matching claude-agent:
-    # its seat plugins need workspace trust at the repo root.
+    # Link status follows the artifact's own scope, not the cwd: a `global`-tagged skill
+    # or agent lives in ~/.claude (which the ai role owns), everything else in the
+    # project. _claude_scope_target is the authority for that rule; this reproduces it
+    # from $global_names below so rendering ~70 rows does not spawn a jq per row.
     set -l proot (git rev-parse --show-toplevel 2>/dev/null)
-    test -n "$proot"; or set proot (pwd)
 
     switch $kind
         case skill skills
             set source $DOTFILES_DIR/roles/ai/files/claude/skills
-            set target ".claude/skills"
+            set leaf skills
             set registry $DOTFILES_DIR/roles/ai/files/claude/skill-registry.json
         case agent agents
             set source $DOTFILES_DIR/roles/ai/files/claude/agents
-            set target "$proot/.claude/agents"
+            set leaf agents
             set registry $DOTFILES_DIR/roles/ai/files/claude/agent-registry.json
             set ext .md
         case '*'
@@ -25,9 +24,13 @@ function _tv_claude_list --description "Television source: list claude skills or
             return 1
     end
 
-    # Derive a repos skill's directory name from upstream_path (basename, or repo name for
-    # root skills); local skills keep their own name. Kept in sync with claude-skill.fish.
-    set -l jqlib 'def dn($r): (.upstream_path // "") as $p | if ($p == "" or $p == "." or $p == "/") then ($r | split("/")[1]) else ($p | sub("/+$";"") | split("/") | last) end; def allskills: [ (.repos | to_entries[] | .key as $r | .value.skills[] | . + {name: dn($r), repo: $r}), (.local_skills[]? | . + {repo: null}) ]; def visibleskills: allskills | map(select((.dependency_only // false) | not));'
+    set -l global_target "$HOME/.claude/$leaf"
+    set -l project_target ""
+    if test -n "$proot"; and test "$proot" != "$HOME"
+        set project_target "$proot/.claude/$leaf"
+    end
+
+    set -l jqlib (_claude_skill_jqlib)
 
     set -l group_map
     set -l global_names
@@ -35,7 +38,10 @@ function _tv_claude_list --description "Television source: list claude skills or
         switch $kind
             case skill skills
                 set group_map (jq -r $jqlib' visibleskills | .[] | "\(.name)|\(.groups // [] | join(", "))"' $registry)
-                set global_names (jq -r $jqlib' visibleskills | map(select(.groups | index("global"))) | .[].name' $registry)
+                # The effective set, not just the tagged one: the `noglobal` source is
+                # meant to hide what is already installed everywhere, and dependency
+                # expansion puts more in ~/.claude than the tag alone.
+                set global_names (_claude_scope_global_skills)
             case agent agents
                 set group_map (jq -r '[.repos[].agents[]?, .local_agents[]?] | .[] | "\(.name)|\(.groups // [] | join(", "))"' $registry)
                 set global_names (jq -r '[.repos[].agents[]?, .local_agents[]?] | .[] | select(.groups | index("global")) | .name' $registry)
@@ -59,7 +65,9 @@ function _tv_claude_list --description "Television source: list claude skills or
                 end
                 set -a seen $name
                 set -l state available
-                test -L "$target/$name$ext"; and set state linked
+                set -l t $project_target
+                contains -- $name $global_names; and set t $global_target
+                test -n "$t"; and test -L "$t/$name$ext"; and set state linked
                 set -a lines (_tv_claude_fmt $name $state $group_map)
             end
         else
@@ -68,7 +76,9 @@ function _tv_claude_list --description "Television source: list claude skills or
                 set -l name (basename $entry $ext)
                 set -a seen $name
                 set -l state available
-                test -L "$target/$name$ext"; and set state linked
+                set -l t $project_target
+                contains -- $name $global_names; and set t $global_target
+                test -n "$t"; and test -L "$t/$name$ext"; and set state linked
                 set -a lines (_tv_claude_fmt $name $state $group_map)
             end
         end
@@ -101,7 +111,10 @@ function _tv_claude_list --description "Television source: list claude skills or
                 set -a seen $pname
                 set -l pgrp (jq -r '[.groups // [] | .[]] | join(", ")' "$pdir.claude-plugin/plugin.json" 2>/dev/null)
                 set -l pstate available
-                test -L "$proot/.claude/skills/$pname"; and set pstate linked
+                # Plugin scope comes from plugin.json, not the registry, so $global_names
+                # does not cover it. Few enough plugins to ask the resolver directly.
+                set -l ptarget (_claude_scope_target plugin $pname)
+                test -n "$ptarget"; and test -L "$ptarget/$pname"; and set pstate linked
                 set -a lines (_tv_claude_fmt $pname $pstate "$pname|$pgrp")
             end
         end
