@@ -225,11 +225,74 @@
     force: true
   loop: "{{ GLOBAL_CLAUDE_SKILLS_EFFECTIVE | default([]) }}"
 
+# The symlink task above only ever adds. A skill that gets renamed, folded into a
+# plugin, or loses its `global` tag leaves its link behind, and a stale link that
+# still RESOLVES is the worse case: it keeps auto-firing in every project with
+# nothing broken to notice. So ~/.claude/skills is role-owned territory and the
+# registry is the whole truth about what belongs there.
+#
+# Runs after the symlink task deliberately: the assert above has already proven
+# every effective skill exists on disk and the links have just been remade, so
+# "on disk" minus "effective" is exactly the stale set. Pruning first would risk
+# deleting links and then aborting on a registry typo before recreating them.
+- name: Refuse to prune when the effective global skill set is empty
+  ansible.builtin.assert:
+    that:
+      - (GLOBAL_CLAUDE_SKILLS_EFFECTIVE | default([]) | length) > 0
+    fail_msg: >-
+      GLOBAL_CLAUDE_SKILLS_EFFECTIVE resolved to an empty list, so pruning would
+      remove every symlink in ~/.claude/skills. skill-registry.json has lost its
+      'global' group tags or changed shape. Fix the registry.
+
+- name: Discover symlinks in the global claude skills dir
+  ansible.builtin.find:
+    paths: "{{ HOME }}/.claude/skills"
+    file_type: link
+  register: _global_skill_links
+
+# `file_type: link` above is the ownership discriminator, so a real directory a
+# user hand-made here is never a candidate (state=absent would rmtree it). The
+# realpath test keeps seat plugins out: `claude-agent add backend` links into
+# files/claude/plugins/, which resolves elsewhere. Idempotent: state=absent
+# reports changed only while a stale link still exists.
+- name: Prune global skill symlinks no longer in the effective set
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ _global_skill_links.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  when:
+    - (item.path | realpath | dirname) == ((role_path ~ '/files/claude/skills') | realpath)
+    - (item.path | basename) not in (GLOBAL_CLAUDE_SKILLS_EFFECTIVE | default([]))
+
 - name: Ensure global claude agents directory exists
   ansible.builtin.file:
     path: "{{ HOME }}/.claude/agents"
     state: directory
     mode: "0755"
+
+# Same reasoning as the skills assert above: force=true never validates its target,
+# so a registry typo would become a dangling link the prune cannot reach (it resolves
+# into agents/ and IS in GLOBAL_CLAUDE_AGENTS).
+- name: Stat every global agent on disk
+  ansible.builtin.stat:
+    path: "{{ role_path }}/files/claude/agents/{{ item }}.md"
+  register: _global_agent_stat
+  loop: "{{ GLOBAL_CLAUDE_AGENTS | default([]) }}"
+
+- name: Fail loudly if a declared global agent is missing on disk
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+      - item.stat.isreg
+    fail_msg: >-
+      Agent '{{ item.item }}' is tagged 'global' in agent-registry.json but is not
+      present under roles/ai/files/claude/agents/. Fix the registry name or run
+      'claude-agent update {{ item.item }}'.
+  loop: "{{ _global_agent_stat.results }}"
+  loop_control:
+    label: "{{ item.item }}"
 
 - name: Symlink selected agents into global claude agents dir
   ansible.builtin.file:
@@ -238,6 +301,35 @@
     state: link
     force: true
   loop: "{{ GLOBAL_CLAUDE_AGENTS | default([]) }}"
+
+- name: Refuse to prune when the global agent set is empty
+  ansible.builtin.assert:
+    that:
+      - (GLOBAL_CLAUDE_AGENTS | default([]) | length) > 0
+    fail_msg: >-
+      GLOBAL_CLAUDE_AGENTS resolved to an empty list, so pruning would remove every
+      symlink in ~/.claude/agents. agent-registry.json has lost its 'global' group
+      tags or changed shape. Fix the registry.
+
+- name: Discover symlinks in the global claude agents dir
+  ansible.builtin.find:
+    paths: "{{ HOME }}/.claude/agents"
+    patterns: "*.md"
+    file_type: link
+  register: _global_agent_links
+
+# Agent links are .md files while the symlink loop iterates bare names, so strip the
+# suffix before the membership test.
+- name: Prune global agent symlinks no longer in the global set
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ _global_agent_links.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  when:
+    - (item.path | realpath | dirname) == ((role_path ~ '/files/claude/agents') | realpath)
+    - (item.path | basename | regex_replace('\.md$', '')) not in (GLOBAL_CLAUDE_AGENTS | default([]))
 
 - name: Ensure pi agent config directory exists
   ansible.builtin.file:
