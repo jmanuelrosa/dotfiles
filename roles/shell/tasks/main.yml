@@ -138,17 +138,18 @@
     - fish/config.fish
     - fish/conf.d/aliases.fish
     - fish/conf.d/exports.fish
-    - fish/functions/clean_claude.fish
-    - fish/functions/clean_docker.fish
-    - fish/functions/clean_node.fish
-    - fish/functions/create_gitconfig.fish
-    - fish/functions/claude-skill.fish
-    - fish/functions/claude-mcp.fish
-    - fish/functions/claude-agent.fish
-    - fish/functions/_tv_claude_list.fish
-    - fish/functions/_tv_claude_toggle.fish
-    - fish/functions/tv_change_dir.fish
-    - fish/functions/tv_history.fish
+
+# Globbed rather than listed: fish autoloads by filename, so a hand-maintained list
+# silently leaves any new function dead in the shell. It had already drifted by six
+# files (clean_all and wt were never linked at all).
+- name: Symlink fish functions
+  ansible.builtin.file:
+    src: "{{ item }}"
+    dest: "{{ HOME }}/.config/fish/functions/{{ item | basename }}"
+    state: link
+    force: true
+  with_fileglob:
+    - "{{ role_path }}/files/fish/functions/*.fish"
 
 - name: Symlink television custom channels
   ansible.builtin.file:

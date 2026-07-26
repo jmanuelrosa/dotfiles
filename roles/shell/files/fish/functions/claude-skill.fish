@@ -1,8 +1,9 @@
 function claude-skill --description "Manage Claude Code skills for the current project"
     set -l base_dir "$DOTFILES_DIR/roles/ai/files/claude"
     set -l skills_source "$base_dir/skills"
-    set -l skills_target ".claude/skills"
     set -l registry "$base_dir/skill-registry.json"
+    # No single skills_target: the `global` tag decides scope per skill, so every
+    # call site resolves its own via _claude_scope_target.
 
     set -l c_green (set_color green)
     set -l c_yellow (set_color yellow)
@@ -61,10 +62,13 @@ function claude-skill --description "Manage Claude Code skills for the current p
                         set -l deps (_claude_skill_direct_deps $registry $sname)
                         set -l dep_suffix ""
                         test -n "$deps"; and set dep_suffix " $c_dim(needs: $deps)$c_reset"
-                        if test -L "$skills_target/$sname"
-                            echo "    $c_green✓$c_reset $sname $c_green(linked)$c_reset$dep_suffix"
+                        set -l target (_claude_scope_target skill $sname)
+                        set -l scope_suffix ""
+                        _claude_scope_is_global skill $sname; and set scope_suffix " $c_dim(global)$c_reset"
+                        if test -n "$target"; and test -L "$target/$sname"
+                            echo "    $c_green✓$c_reset $sname $c_green(linked)$c_reset$scope_suffix$dep_suffix"
                         else if test -d "$skills_source/$sname"
-                            echo "    $c_dim·$c_reset $sname$dep_suffix"
+                            echo "    $c_dim·$c_reset $sname$scope_suffix$dep_suffix"
                         else
                             echo "    $c_dim↓ $sname (not downloaded)$c_reset$dep_suffix"
                         end
@@ -87,7 +91,9 @@ function claude-skill --description "Manage Claude Code skills for the current p
                         set -l grp (_claude_skill_groups $registry $sname)
                         set -l grp_suffix ""
                         test -n "$grp"; and set grp_suffix " $c_cyan""[$grp]""$c_reset"
-                        if test -L "$skills_target/$sname"
+                        # The groups suffix already shows `global`, so no extra scope marker here.
+                        set -l target (_claude_scope_target skill $sname)
+                        if test -n "$target"; and test -L "$target/$sname"
                             echo "  $c_green✓$c_reset $sname $c_green(linked)$c_reset$grp_suffix$dep_suffix"
                         else
                             echo "  $c_dim·$c_reset $sname$grp_suffix$dep_suffix"
@@ -140,11 +146,16 @@ function claude-skill --description "Manage Claude Code skills for the current p
                         if not contains -- $sname $group_skills
                             set label "required by group '$name'"
                         end
-                        if _claude_skill_ensure_linked $skills_source $skills_target $registry $base_dir $sname $label
+                        set -l target (_claude_scope_target skill $sname)
+                        if test -z "$target"
+                            _claude_scope_refuse $sname
+                            continue
+                        end
+                        if _claude_skill_ensure_linked $skills_source $target $registry $base_dir $sname $label
                             set count (math $count + 1)
                         end
                     end
-                    echo "$c_green✓$c_reset Linked $count skills for group '$name' into $skills_target/"
+                    echo "$c_green✓$c_reset Linked $count skills for group '$name'"
                 end
             else
                 for name in $names
@@ -152,10 +163,22 @@ function claude-skill --description "Manage Claude Code skills for the current p
                         echo "$c_magenta✗$c_reset '$name' is a dependency-only skill (installed automatically with the skill that requires it). Add the parent skill instead."
                         continue
                     end
+                    # Resolve per dependency, not once for the parent: a project-scoped
+                    # skill can depend on a global one and vice versa.
                     for d in (_claude_skill_deps $registry $name)
-                        _claude_skill_ensure_linked $skills_source $skills_target $registry $base_dir $d "required by $name"
+                        set -l dtarget (_claude_scope_target skill $d)
+                        if test -z "$dtarget"
+                            _claude_scope_refuse $d
+                            continue
+                        end
+                        _claude_skill_ensure_linked $skills_source $dtarget $registry $base_dir $d "required by $name"
                     end
-                    _claude_skill_ensure_linked $skills_source $skills_target $registry $base_dir $name
+                    set -l target (_claude_scope_target skill $name)
+                    if test -z "$target"
+                        _claude_scope_refuse $name
+                        continue
+                    end
+                    _claude_skill_ensure_linked $skills_source $target $registry $base_dir $name
                 end
             end
 
@@ -175,22 +198,43 @@ function claude-skill --description "Manage Claude Code skills for the current p
                     end
 
                     set -l count 0
+                    set -l global_hit 0
                     for sname in $group_skills
-                        if test -L "$skills_target/$sname"
-                            command rm "$skills_target/$sname"
+                        set -l target (_claude_scope_target skill $sname)
+                        test -n "$target"; or continue
+                        if test -L "$target/$sname"; and command rm "$target/$sname" 2>/dev/null
                             set count (math $count + 1)
+                            _claude_scope_is_global skill $sname; and set global_hit 1
                         end
                     end
                     echo "$c_green✓$c_reset Removed $count skills from group '$name'"
+                    if test $global_hit -eq 1
+                        echo "  $c_yellow⚠$c_reset Some were global links in ~/.claude, which the ai role owns."
+                        echo "  $c_dim""'make run-role ROLE=ai' restores them. To drop one for good, remove its"
+                        echo "  'global' tag from skill-registry.json.$c_reset"
+                    end
                 end
             else
                 for name in $names
-                    if not test -L "$skills_target/$name"
-                        echo "$c_yellow⚠$c_reset Skill '$name' is not linked in this project."
+                    set -l target (_claude_scope_target skill $name)
+                    if test -z "$target"
+                        _claude_scope_refuse $name
                         continue
                     end
-                    command rm "$skills_target/$name"
-                    echo "$c_green✓$c_reset Removed '$name' from $skills_target/"
+                    if not test -L "$target/$name"
+                        echo "$c_yellow⚠$c_reset Skill '$name' is not linked in $target/."
+                        continue
+                    end
+                    if not command rm "$target/$name" 2>/dev/null
+                        echo "$c_magenta✗$c_reset Failed to remove '$name' from $target/: permission denied. Run this outside the sandbox."
+                        continue
+                    end
+                    echo "$c_green✓$c_reset Removed '$name' from $target/"
+                    if _claude_scope_is_global skill $name
+                        echo "  $c_yellow⚠$c_reset That was a global link in ~/.claude, which the ai role owns."
+                        echo "  $c_dim""'make run-role ROLE=ai' restores it. To drop it for good, remove its"
+                        echo "  'global' tag from skill-registry.json.$c_reset"
+                    end
                 end
             end
 
@@ -388,10 +432,6 @@ function _claude_skill_update --description "Sync (or check) skills against upst
     end
 end
 
-function _claude_skill_jqlib --description "jq prelude: dn() derives a repos skill's directory name from upstream_path; allskills augments every entry with it (local skills keep their own name); visibleskills drops dependency_only entries for browsing"
-    echo 'def dn($r): (.upstream_path // "") as $p | if ($p == "" or $p == "." or $p == "/") then ($r | split("/")[1]) else ($p | sub("/+$";"") | split("/") | last) end; def allskills: [ (.repos | to_entries[] | .key as $r | .value.skills[] | . + {name: dn($r), repo: $r}), (.local_skills[]? | . + {repo: null}) ]; def visibleskills: allskills | map(select((.dependency_only // false) | not));'
-end
-
 function _claude_skill_check_collisions --description "Fail if two skills resolve to the same directory name"
     set -l registry $argv[1]
     set -l prog (_claude_skill_jqlib)' [allskills | .[].name] | group_by(.) | map(select(length > 1) | .[0]) | .[]'
@@ -506,11 +546,11 @@ function _claude_skill_ensure_linked --description "Ensure a skill is on disk (d
     end
 
     if not mkdir -p $skills_target 2>/dev/null
-        echo "$c_magenta✗$c_reset Cannot create $skills_target/ — permission denied. Run this outside the sandbox."
+        echo "$c_magenta✗$c_reset Cannot create $skills_target/: permission denied. Run this outside the sandbox."
         return 1
     end
     if not ln -sfn "$skills_source/$name" "$skills_target/$name" 2>/dev/null; or not test -L "$skills_target/$name"
-        echo "$c_magenta✗$c_reset Failed to link '$name' into $skills_target/ — permission denied. Run this outside the sandbox."
+        echo "$c_magenta✗$c_reset Failed to link '$name' into $skills_target/: permission denied. Run this outside the sandbox."
         return 1
     end
     if test -n "$label"
