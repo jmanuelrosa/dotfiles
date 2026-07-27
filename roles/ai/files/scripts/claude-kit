@@ -1,0 +1,323 @@
+#!/usr/bin/env python3
+"""Manage Claude Code skills, agents and plugins.
+
+Scope is decided by the `global` group tag, never by the working directory. A
+tagged artifact belongs in ~/.claude and nowhere else; everything else belongs
+in the enclosing git project and nowhere else. `--global` overrides the second
+half for one artifact and records a machine-local pin, so reconciliation keeps
+the link instead of pruning it as unrecognised.
+
+Dependencies resolve their own scope rather than inheriting the parent's: a
+project skill may depend on a global one and vice versa.
+"""
+
+import argparse
+import json
+import os
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+
+EXIT_OK = 0
+# Generic failure: bad usage, or an unwritable target. Distinct from the
+# refusals below, which each describe a specific, expected situation.
+EXIT_USAGE = 1
+EXIT_NOT_FOUND = 2
+EXIT_DEPENDENCY_ONLY = 3
+EXIT_NEEDS_GLOBAL = 4
+EXIT_ALREADY_LOCAL = 5
+EXIT_ALREADY_GLOBAL = 6
+EXIT_NO_PROJECT = 7
+
+CLAUDE_SUBDIR = "roles/ai/files/claude"
+PIN_FILE = "claude-kit.json"
+# The playbook marks the repo root. Searching for it beats counting parent
+# directories, which silently breaks whenever this script moves.
+REPO_MARKER = "dotfiles.yml"
+
+
+@dataclass(frozen=True)
+class Artifact:
+    name: str
+    type: str
+    groups: tuple
+    dependencies: tuple
+    dependency_only: bool
+    source: Path
+    leaf: str
+    basename: str
+
+
+def repo_root():
+    """Locate the dotfiles checkout. resolve() follows the ~/.local/bin symlink
+    back into the repo, so this works whether invoked from PATH or in place."""
+    override = os.environ.get("DOTFILES_DIR")
+    if override:
+        return Path(override)
+    here = Path(__file__).resolve()
+    for directory in here.parents:
+        if (directory / REPO_MARKER).is_file():
+            return directory
+    raise SystemExit(
+        f"✗ cannot locate the dotfiles repo from {here}. Set DOTFILES_DIR."
+    )
+
+
+def _read_json(path):
+    return json.loads(path.read_text())
+
+
+def _entry_name(entry, repo_key):
+    """Basename of upstream_path, falling back to the repo name when the path
+    is empty or refers to the repo root."""
+    if "name" in entry:
+        return entry["name"]
+    path = (entry.get("upstream_path") or "").rstrip("/")
+    if path in ("", "."):
+        return repo_key.split("/")[-1]
+    return path.split("/")[-1]
+
+
+def _registry_entries(registry, collection_key):
+    """Yield (name, entry) across both a registry's `repos` and its local list."""
+    for repo_key, repo in registry.get("repos", {}).items():
+        for entry in repo.get(collection_key, []):
+            yield _entry_name(entry, repo_key), entry
+    for entry in registry.get(f"local_{collection_key}", []):
+        yield entry["name"], entry
+
+
+def build_catalog(root):
+    """Every addable artifact by name. Names are unique across all three types,
+    which is what lets `add` infer the type from the name alone."""
+    claude = root / CLAUDE_SUBDIR
+    catalog = {}
+
+    for kind, registry_file, collection, leaf, suffix in (
+        ("skill", "skill-registry.json", "skills", "skills", ""),
+        ("agent", "agent-registry.json", "agents", "agents", ".md"),
+    ):
+        registry = _read_json(claude / registry_file)
+        for name, entry in _registry_entries(registry, collection):
+            catalog[name] = Artifact(
+                name=name,
+                type=kind,
+                groups=tuple(entry.get("groups", [])),
+                dependencies=tuple(entry.get("dependencies") or []),
+                dependency_only=bool(entry.get("dependency_only")),
+                source=claude / collection / f"{name}{suffix}",
+                leaf=leaf,
+                basename=f"{name}{suffix}",
+            )
+
+    plugins = claude / "plugins"
+    if plugins.is_dir():
+        for directory in sorted(plugins.iterdir()):
+            manifest = directory / ".claude-plugin/plugin.json"
+            if not manifest.is_file():
+                continue
+            data = _read_json(manifest)
+            # A plugin bundles only what it owns; skills vendored from upstream
+            # stay under skills/ and are named here instead. The key is not
+            # `dependencies`, which Claude Code reserves for plugin-to-plugin.
+            catalog[directory.name] = Artifact(
+                name=directory.name,
+                type="plugin",
+                groups=tuple(data.get("groups", [])),
+                dependencies=tuple(data.get("skillDependencies") or []),
+                dependency_only=False,
+                source=directory,
+                # Plugins share the skills leaf because that is how Claude Code
+                # loads one, as <name>@skills-dir.
+                leaf="skills",
+                basename=directory.name,
+            )
+
+    return catalog
+
+
+def global_set(catalog):
+    """Names that belong in ~/.claude: tagged entries plus their declared
+    dependencies. A global agent's skill dependencies expand one level further,
+    because those skills may themselves depend on others the agent needs."""
+    tagged = {name for name, art in catalog.items() if "global" in art.groups}
+    effective = set(tagged)
+    for name in tagged:
+        art = catalog[name]
+        for dep in art.dependencies:
+            if dep not in catalog:
+                continue
+            effective.add(dep)
+            if art.type == "agent":
+                effective.update(d for d in catalog[dep].dependencies if d in catalog)
+    return effective
+
+
+def project_root(cwd):
+    start = Path(cwd).resolve()
+    for directory in (start, *start.parents):
+        if (directory / ".git").exists():
+            return directory
+    return None
+
+
+def pin_path(home):
+    return home / ".claude" / PIN_FILE
+
+
+def read_pins(home):
+    path = pin_path(home)
+    if not path.exists():
+        return {}
+    return _read_json(path).get("pinned", {})
+
+
+def add_pin(home, art):
+    path = pin_path(home)
+    data = _read_json(path) if path.exists() else {}
+    bucket = data.setdefault("pinned", {}).setdefault(f"{art.type}s", [])
+    if art.name not in bucket:
+        bucket.append(art.name)
+        bucket.sort()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2) + "\n")
+
+
+def link_path(art, scope, home, project):
+    root = home if scope == "global" else project
+    return root / ".claude" / art.leaf / art.basename
+
+
+def install(art, scope, home, project):
+    destination = link_path(art, scope, home, project)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.symlink_to(art.source)
+    return destination
+
+
+def fail(code, message):
+    print(f"✗ {message}", file=sys.stderr)
+    return code
+
+
+def add_one(catalog, effective, home, cwd, name, want_global):
+    art = catalog.get(name)
+    if art is None:
+        return fail(EXIT_NOT_FOUND, f"'{name}' is not a known skill, agent or plugin.")
+    if art.dependency_only:
+        return fail(
+            EXIT_DEPENDENCY_ONLY,
+            f"'{name}' is a dependency-only skill, installed automatically with "
+            f"the skill that requires it. Add that skill instead.",
+        )
+    if name in effective and not want_global:
+        return fail(
+            EXIT_NEEDS_GLOBAL,
+            f"'{name}' is a global {art.type} and belongs in ~/.claude. "
+            f"Run: claude-kit add {name} --global",
+        )
+    if not art.source.exists():
+        return fail(
+            EXIT_NOT_FOUND,
+            f"'{name}' is registered but missing from the repo at {art.source}.",
+        )
+
+    project = project_root(cwd)
+    if not want_global and project is None:
+        return fail(
+            EXIT_NO_PROJECT,
+            f"'{name}' is project-scoped but there is no git repo here. "
+            f"Run it from inside a project, or use --global.",
+        )
+
+    # Both refusals are about the named artifact only. A dependency that is
+    # already present is normal and never aborts the parent.
+    if os.path.lexists(link_path(art, "global", home, project)):
+        return fail(EXIT_ALREADY_GLOBAL, f"'{name}' is already installed globally.")
+    if not want_global and os.path.lexists(link_path(art, "project", home, project)):
+        return fail(EXIT_ALREADY_LOCAL, f"'{name}' is already installed in this project.")
+
+    for dep in art.dependencies:
+        dependency = catalog.get(dep)
+        if dependency is None:
+            print(
+                f"⚠ '{name}' declares an unknown dependency '{dep}'.",
+                file=sys.stderr,
+            )
+            continue
+        dep_scope = "global" if dep in effective else "project"
+        if dep_scope == "project" and project is None:
+            print(
+                f"⚠ skipped '{dep}', required by '{name}': no project here.",
+                file=sys.stderr,
+            )
+            continue
+        if os.path.lexists(link_path(dependency, dep_scope, home, project)):
+            continue
+        destination = install(dependency, dep_scope, home, project)
+        print(f"✓ Linked '{dep}' into {destination.parent} (required by {name})")
+
+    scope = "global" if want_global else "project"
+    destination = install(art, scope, home, project)
+    print(f"✓ Linked '{name}' into {destination.parent}")
+
+    if want_global and name not in effective:
+        add_pin(home, art)
+        print(
+            f"  Pinned '{name}' as a machine-local global override. "
+            f"Tag it `global` in the registry to make that the default everywhere."
+        )
+    if art.type == "plugin":
+        print(
+            f"  Restart Claude Code from the project root to load "
+            f"'{name}@skills-dir'; the workspace must be trusted."
+        )
+    return EXIT_OK
+
+
+def cmd_add(args):
+    root = repo_root()
+    catalog = build_catalog(root)
+    effective = global_set(catalog)
+    home = Path.home()
+    cwd = Path.cwd()
+    for name in args.names:
+        code = add_one(catalog, effective, home, cwd, name, args.want_global)
+        if code != EXIT_OK:
+            return code
+    return EXIT_OK
+
+
+class Parser(argparse.ArgumentParser):
+    """argparse exits 2 on a usage error, which is EXIT_NOT_FOUND here."""
+
+    def error(self, message):
+        self.print_usage(sys.stderr)
+        self.exit(EXIT_USAGE, f"✗ {message}\n")
+
+
+def main(argv=None):
+    parser = Parser(
+        prog="claude-kit", description="Manage Claude Code skills, agents and plugins."
+    )
+    subcommands = parser.add_subparsers(dest="command", required=True)
+
+    add = subcommands.add_parser("add", help="Install a skill, agent or plugin")
+    add.add_argument("names", nargs="+", metavar="NAME")
+    add.add_argument(
+        "--global",
+        dest="want_global",
+        action="store_true",
+        help="Install into ~/.claude instead of the current project",
+    )
+    add.set_defaults(func=cmd_add)
+
+    args = parser.parse_args(argv)
+    try:
+        return args.func(args)
+    except OSError as exc:
+        return fail(EXIT_USAGE, f"{exc.strerror}: {exc.filename}")
+
+
+if __name__ == "__main__":
+    sys.exit(main())
