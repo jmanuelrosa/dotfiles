@@ -1,6 +1,10 @@
 ---
 name: jira
-description: Interact with Jira via acli. Create, update, view, transition, and comment on issues. Defaults to the SER project and produces descriptions in proper ADF (Atlassian Document Format) that follow the squad's agreed template: Context, Gherkin acceptance criteria, a link back to the source, and Design, each under a colored status-lozenge header.
+description: >-
+  Interact with Jira via acli. Create, update, view, transition, and comment on issues. Defaults to
+  the SER project and produces descriptions in proper ADF (Atlassian Document Format) that follow
+  the squad's agreed template: Context, Gherkin acceptance criteria, a link back to the source, and
+  Design, each under a colored status-lozenge header.
 disable-model-invocation: true
 allowed-tools:
   - Bash(acli jira *)
