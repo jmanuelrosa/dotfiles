@@ -1,7 +1,10 @@
-.PHONY: deps lint syntax check check-role run run-role verify vm-create vm-start vm-ssh vm-destroy
+.PHONY: deps lint syntax check check-role run run-role test verify vm-create vm-start vm-ssh vm-destroy
 
 # Active profile. Override at the CLI: `make run PROFILE=work`.
 PROFILE ?= personal
+
+# Test deps are resolved per-run by uv, so there is no venv to create or refresh.
+PYTEST = uv run --with pytest --with pyyaml pytest
 
 # Install / refresh pinned Ansible collections
 deps:
@@ -10,6 +13,10 @@ deps:
 # Static analysis
 lint:
 	ansible-lint
+
+# Registry integrity + fish behaviour. Fast, hermetic, no vault or become password.
+test:
+	$(PYTEST) tests/ -q
 
 syntax:
 	ansible-playbook --syntax-check --inventory inventory.yml --ask-vault-password --extra-vars "profile=$(PROFILE)" dotfiles.yml

@@ -27,11 +27,23 @@
     state: present
   when: BREW_PACKAGES.casks | default([]) | length > 0
 
-- name: Ensure gemini config directory exists
+# Every destination directory up front, because `state: link` does not create
+# parents the way `state: directory` does. ~/.claude in particular was only
+# ever created as a side effect of making ~/.claude/hooks, one task too late.
+- name: Ensure AI config directories exist
   ansible.builtin.file:
-    path: "{{ HOME }}/.gemini"
+    path: "{{ item }}"
     state: directory
     mode: "0755"
+  loop:
+    - "{{ HOME }}/.gemini"
+    - "{{ HOME }}/.claude"
+    - "{{ HOME }}/.claude/hooks"
+    - "{{ HOME }}/.claude/skills"
+    - "{{ HOME }}/.claude/agents"
+    - "{{ HOME }}/.local/bin"
+    - "{{ HOME }}/.pi/agent"
+    - "{{ HOME }}/Library/Application Support/rtk"
 
 - name: Symlink gemini config
   ansible.builtin.file:
@@ -40,338 +52,53 @@
     state: link
     force: true
 
-- name: Symlink claude config
+# Listed rather than globbed: files/claude/ also holds README.md and the two
+# registries, which are repo data and must not appear in ~/.claude.
+- name: Symlink claude config files
   ansible.builtin.file:
-    src: "{{ role_path }}/files/claude/settings.json"
-    dest: "{{ HOME }}/.claude/settings.json"
+    src: "{{ role_path }}/files/claude/{{ item }}"
+    dest: "{{ HOME }}/.claude/{{ item }}"
     state: link
     force: true
+  loop:
+    - settings.json
+    - CLAUDE.md
+    - statusline.sh
 
-- name: Symlink global claude instructions
+# Globbed because every hook in the directory is meant to be active, so adding
+# one should not also mean editing this file.
+- name: Symlink claude hooks
   ansible.builtin.file:
-    src: "{{ role_path }}/files/claude/CLAUDE.md"
-    dest: "{{ HOME }}/.claude/CLAUDE.md"
+    src: "{{ role_path }}/files/claude/hooks/{{ item | basename }}"
+    dest: "{{ HOME }}/.claude/hooks/{{ item | basename }}"
     state: link
     force: true
+  with_fileglob:
+    - "{{ role_path }}/files/claude/hooks/*"
 
-- name: Ensure claude hooks directory exists
+- name: Link AI scripts into the user bin directory
   ansible.builtin.file:
-    path: "{{ HOME }}/.claude/hooks"
-    state: directory
-    mode: "0755"
-
-- name: Symlink claude git-skill-gate hook
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/claude/hooks/git-skill-gate.sh"
-    dest: "{{ HOME }}/.claude/hooks/git-skill-gate.sh"
+    src: "{{ role_path }}/files/scripts/{{ item | basename }}"
+    dest: "{{ HOME }}/.local/bin/{{ item | basename }}"
     state: link
     force: true
+  with_fileglob:
+    - "{{ role_path }}/files/scripts/*"
 
-- name: Symlink claude skill-recap hook
+- name: Symlink pi agent config
   ansible.builtin.file:
-    src: "{{ role_path }}/files/claude/hooks/skill-recap.sh"
-    dest: "{{ HOME }}/.claude/hooks/skill-recap.sh"
+    src: "{{ role_path }}/files/{{ item }}"
+    dest: "{{ HOME }}/.pi/agent/{{ item | basename }}"
     state: link
     force: true
-
-- name: Symlink claude pre-commit-verify hook
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/claude/hooks/pre-commit-verify.sh"
-    dest: "{{ HOME }}/.claude/hooks/pre-commit-verify.sh"
-    state: link
-    force: true
-
-- name: Symlink claude em-dash-gate hook
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/claude/hooks/em-dash-gate.sh"
-    dest: "{{ HOME }}/.claude/hooks/em-dash-gate.sh"
-    state: link
-    force: true
-
-- name: Symlink claude cloud-readonly-gate hook
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/claude/hooks/cloud-readonly-gate.sh"
-    dest: "{{ HOME }}/.claude/hooks/cloud-readonly-gate.sh"
-    state: link
-    force: true
-
-- name: Symlink claude status line script
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/claude/statusline.sh"
-    dest: "{{ HOME }}/.claude/statusline.sh"
-    state: link
-    force: true
-
-- name: Ensure global claude skills directory exists
-  ansible.builtin.file:
-    path: "{{ HOME }}/.claude/skills"
-    state: directory
-    mode: "0755"
-
-- name: Read claude skill registry
-  ansible.builtin.slurp:
-    src: "{{ role_path }}/files/claude/skill-registry.json"
-  register: _claude_skill_registry_raw
-
-- name: Read claude agent registry
-  ansible.builtin.slurp:
-    src: "{{ role_path }}/files/claude/agent-registry.json"
-  register: _claude_agent_registry_raw
-
-# The registry no longer stores a `name` for repos skills; derive each one's directory
-# name from upstream_path (basename, or repo name for root skills) so the dependency
-# filter below can still match by name. local_skills keep their explicit `name`.
-- name: Derive repos skill names from upstream_path
-  ansible.builtin.set_fact:
-    _named_repo_skills: >-
-      {{ _named_repo_skills | default([])
-         + [item | combine({'name': (item.upstream_path | default('') | regex_replace('^.*/', ''))})] }}
-  loop: >-
-    {{ (_claude_skill_registry_raw.content | b64decode | from_json).repos.values()
-       | map(attribute='skills') | flatten }}
-  loop_control:
-    label: "{{ item.upstream_path | default('?') }}"
-
-# The `global` group tag in the registries is the single source of truth for
-# which skills/agents are symlinked into ~/.claude. Derive the root sets here
-# rather than hardcoding them: tag an entry `"global"` to add it to the set.
-- name: Derive global agents from the `global` group tag
-  ansible.builtin.set_fact:
-    GLOBAL_CLAUDE_AGENTS: >-
-      {{ (
-            ((_claude_agent_registry_raw.content | b64decode | from_json).local_agents | default([]))
-            + ((_claude_agent_registry_raw.content | b64decode | from_json).repos.values()
-               | map(attribute='agents') | flatten)
-         )
-         | selectattr('groups', 'defined')
-         | selectattr('groups', 'contains', 'global')
-         | map(attribute='name') | unique }}
-
-- name: Derive global skills from the `global` group tag
-  ansible.builtin.set_fact:
-    GLOBAL_CLAUDE_SKILLS: >-
-      {{ (
-            (_named_repo_skills | default([]))
-            + ((_claude_skill_registry_raw.content | b64decode | from_json).local_skills | default([]))
-         )
-         | selectattr('groups', 'defined')
-         | selectattr('groups', 'contains', 'global')
-         | map(attribute='name') | unique }}
-
-# Global agents may declare skill dependencies in agent-registry.json; treat
-# those skills as extra roots so a global agent (e.g. architect) never ships
-# without the method skills it invokes.
-- name: Collect skill dependencies of global agents
-  ansible.builtin.set_fact:
-    _global_agent_skill_deps: >-
-      {{ (
-            ((_claude_agent_registry_raw.content | b64decode | from_json).local_agents | default([]))
-            + ((_claude_agent_registry_raw.content | b64decode | from_json).repos.values()
-               | map(attribute='agents') | flatten)
-         )
-         | selectattr('name', 'in', GLOBAL_CLAUDE_AGENTS | default([]))
-         | selectattr('dependencies', 'defined')
-         | map(attribute='dependencies') | flatten | unique }}
-
-# Expand the global skill list with each skill's registry-declared dependencies
-# so a dispatcher skill (e.g. grill-me -> grilling) never ships without the
-# skills it invokes. One level of expansion over the combined roots
-# (GLOBAL_CLAUDE_SKILLS + global agents' skill deps); deps must themselves
-# be registered.
-- name: Build effective global skills (with declared skill and agent dependencies)
-  ansible.builtin.set_fact:
-    GLOBAL_CLAUDE_SKILLS_EFFECTIVE: >-
-      {{ (
-            (GLOBAL_CLAUDE_SKILLS | default([]))
-            + (_global_agent_skill_deps | default([]))
-            + (
-                (
-                  (_named_repo_skills | default([]))
-                  + ((_claude_skill_registry_raw.content | b64decode | from_json).local_skills | default([]))
-                )
-                | selectattr('name', 'in', (GLOBAL_CLAUDE_SKILLS | default([])) + (_global_agent_skill_deps | default([])))
-                | selectattr('dependencies', 'defined')
-                | map(attribute='dependencies') | flatten
-              )
-         ) | unique }}
-
-# A registry typo would otherwise become a dangling symlink (file state=link
-# force=true never validates its target).
-- name: Stat every effective global skill on disk
-  ansible.builtin.stat:
-    path: "{{ role_path }}/files/claude/skills/{{ item }}"
-  register: _eff_skill_stat
-  loop: "{{ GLOBAL_CLAUDE_SKILLS_EFFECTIVE | default([]) }}"
-
-- name: Fail loudly if a declared global skill is missing on disk
-  ansible.builtin.assert:
-    that:
-      - item.stat.exists
-      - item.stat.isdir
-    fail_msg: >-
-      Skill '{{ item.item }}' is required globally (in GLOBAL_CLAUDE_SKILLS or
-      declared as a dependency by a global skill/agent) but is not present under
-      roles/ai/files/claude/skills/. Fix the registry name or run
-      'claude-skill update {{ item.item }}'.
-  loop: "{{ _eff_skill_stat.results }}"
-  loop_control:
-    label: "{{ item.item }}"
-
-- name: Symlink selected skills into global claude skills dir
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/claude/skills/{{ item }}"
-    dest: "{{ HOME }}/.claude/skills/{{ item }}"
-    state: link
-    force: true
-  loop: "{{ GLOBAL_CLAUDE_SKILLS_EFFECTIVE | default([]) }}"
-
-# The symlink task above only ever adds. A skill that gets renamed, folded into a
-# plugin, or loses its `global` tag leaves its link behind, and a stale link that
-# still RESOLVES is the worse case: it keeps auto-firing in every project with
-# nothing broken to notice. So ~/.claude/skills is role-owned territory and the
-# registry is the whole truth about what belongs there.
-#
-# Runs after the symlink task deliberately: the assert above has already proven
-# every effective skill exists on disk and the links have just been remade, so
-# "on disk" minus "effective" is exactly the stale set. Pruning first would risk
-# deleting links and then aborting on a registry typo before recreating them.
-- name: Refuse to prune when the effective global skill set is empty
-  ansible.builtin.assert:
-    that:
-      - (GLOBAL_CLAUDE_SKILLS_EFFECTIVE | default([]) | length) > 0
-    fail_msg: >-
-      GLOBAL_CLAUDE_SKILLS_EFFECTIVE resolved to an empty list, so pruning would
-      remove every symlink in ~/.claude/skills. skill-registry.json has lost its
-      'global' group tags or changed shape. Fix the registry.
-
-- name: Discover symlinks in the global claude skills dir
-  ansible.builtin.find:
-    paths: "{{ HOME }}/.claude/skills"
-    file_type: link
-  register: _global_skill_links
-
-# `file_type: link` above is the ownership discriminator, so a real directory a
-# user hand-made here is never a candidate (state=absent would rmtree it). The
-# realpath test keeps seat plugins out: `claude-agent add backend` links into
-# files/claude/plugins/, which resolves elsewhere. Idempotent: state=absent
-# reports changed only while a stale link still exists.
-- name: Prune global skill symlinks no longer in the effective set
-  ansible.builtin.file:
-    path: "{{ item.path }}"
-    state: absent
-  loop: "{{ _global_skill_links.files }}"
-  loop_control:
-    label: "{{ item.path | basename }}"
-  when:
-    - (item.path | realpath | dirname) == ((role_path ~ '/files/claude/skills') | realpath)
-    - (item.path | basename) not in (GLOBAL_CLAUDE_SKILLS_EFFECTIVE | default([]))
-
-- name: Ensure global claude agents directory exists
-  ansible.builtin.file:
-    path: "{{ HOME }}/.claude/agents"
-    state: directory
-    mode: "0755"
-
-# Same reasoning as the skills assert above: force=true never validates its target,
-# so a registry typo would become a dangling link the prune cannot reach (it resolves
-# into agents/ and IS in GLOBAL_CLAUDE_AGENTS).
-- name: Stat every global agent on disk
-  ansible.builtin.stat:
-    path: "{{ role_path }}/files/claude/agents/{{ item }}.md"
-  register: _global_agent_stat
-  loop: "{{ GLOBAL_CLAUDE_AGENTS | default([]) }}"
-
-- name: Fail loudly if a declared global agent is missing on disk
-  ansible.builtin.assert:
-    that:
-      - item.stat.exists
-      - item.stat.isreg
-    fail_msg: >-
-      Agent '{{ item.item }}' is tagged 'global' in agent-registry.json but is not
-      present under roles/ai/files/claude/agents/. Fix the registry name or run
-      'claude-agent update {{ item.item }}'.
-  loop: "{{ _global_agent_stat.results }}"
-  loop_control:
-    label: "{{ item.item }}"
-
-- name: Symlink selected agents into global claude agents dir
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/claude/agents/{{ item }}.md"
-    dest: "{{ HOME }}/.claude/agents/{{ item }}.md"
-    state: link
-    force: true
-  loop: "{{ GLOBAL_CLAUDE_AGENTS | default([]) }}"
-
-- name: Refuse to prune when the global agent set is empty
-  ansible.builtin.assert:
-    that:
-      - (GLOBAL_CLAUDE_AGENTS | default([]) | length) > 0
-    fail_msg: >-
-      GLOBAL_CLAUDE_AGENTS resolved to an empty list, so pruning would remove every
-      symlink in ~/.claude/agents. agent-registry.json has lost its 'global' group
-      tags or changed shape. Fix the registry.
-
-- name: Discover symlinks in the global claude agents dir
-  ansible.builtin.find:
-    paths: "{{ HOME }}/.claude/agents"
-    patterns: "*.md"
-    file_type: link
-  register: _global_agent_links
-
-# Agent links are .md files while the symlink loop iterates bare names, so strip the
-# suffix before the membership test.
-- name: Prune global agent symlinks no longer in the global set
-  ansible.builtin.file:
-    path: "{{ item.path }}"
-    state: absent
-  loop: "{{ _global_agent_links.files }}"
-  loop_control:
-    label: "{{ item.path | basename }}"
-  when:
-    - (item.path | realpath | dirname) == ((role_path ~ '/files/claude/agents') | realpath)
-    - (item.path | basename | regex_replace('\.md$', '')) not in (GLOBAL_CLAUDE_AGENTS | default([]))
-
-- name: Ensure pi agent config directory exists
-  ansible.builtin.file:
-    path: "{{ HOME }}/.pi/agent"
-    state: directory
-    mode: "0755"
-
-- name: Symlink pi settings
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/pi/settings.json"
-    dest: "{{ HOME }}/.pi/agent/settings.json"
-    state: link
-    force: true
-
-- name: Symlink pi models
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/pi/models.json"
-    dest: "{{ HOME }}/.pi/agent/models.json"
-    state: link
-    force: true
-
-- name: Symlink pi system prompt
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/pi/SYSTEM.md"
-    dest: "{{ HOME }}/.pi/agent/SYSTEM.md"
-    state: link
-    force: true
-
-- name: Symlink claude skills into pi agent
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/claude/skills"
-    dest: "{{ HOME }}/.pi/agent/skills"
-    state: link
-    force: true
+  loop:
+    - pi/settings.json
+    - pi/models.json
+    - pi/SYSTEM.md
+    # Pi reads Claude's skills directly rather than keeping a second copy.
+    - claude/skills
 
 # rtk ignores XDG_CONFIG_HOME and only reads the macOS Application Support path.
-- name: Ensure rtk config directory exists
-  ansible.builtin.file:
-    path: "{{ HOME }}/Library/Application Support/rtk"
-    state: directory
-    mode: "0755"
-
 - name: Symlink rtk config
   ansible.builtin.file:
     src: "{{ role_path }}/files/rtk/config.toml"
