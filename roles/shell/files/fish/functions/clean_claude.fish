@@ -1,10 +1,17 @@
-function clean_claude --description "Clean project Claude Code artifacts: skills/agents keep dotfiles symlinks, all wipes .claude"
+function clean_claude --description "Clean Claude Code artifacts: skills/agents keep dotfiles symlinks, all wipes .claude, sweep goes machine-wide"
   set -l mode $argv[1]
   test -z "$mode"; and set mode all
 
-  if not contains -- $mode skills agents all
-    echo "Usage: clean_claude [skills|agents|all]"
+  if not contains -- $mode skills agents all sweep
+    echo "Usage: clean_claude [skills|agents|all]              # current project"
+    echo "       clean_claude sweep [root] [--dry-run] [--exclude PATTERN]"
     return 1
+  end
+
+  # sweep: every .claude on the machine, not just this project
+  if test "$mode" = sweep
+    _clean_claude_sweep $argv[2..-1]
+    return $status
   end
 
   # all: remove the whole .claude, including the dotfiles symlinks

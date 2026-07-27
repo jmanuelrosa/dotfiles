@@ -26,7 +26,7 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 
 ## Files
 
-- `files/fish/` — `config.fish`, `conf.d/{aliases,exports}.fish`, plus functions: `clean_claude`, `clean_docker`, `clean_node`, `create_gitconfig`, `claude-skill`, `claude-mcp`, `claude-agent`, `_tv_claude_list`, `_tv_claude_toggle`, `tv_change_dir`. (Work-only helpers like `_tv_jira` live in the `work` role.)
+- `files/fish/` — `config.fish`, `conf.d/{aliases,exports}.fish`, plus functions: `clean_claude` (+ `_clean_claude_sweep`, `_clean_claude_pretty`), `clean_docker`, `clean_node`, `create_gitconfig`, `claude-skill`, `claude-mcp`, `claude-agent`, `_tv_claude_list`, `_tv_claude_toggle`, `tv_change_dir`. (Work-only helpers like `_tv_jira` live in the `work` role.)
 - `files/ghostty/config` — Ghostty terminal config.
 - `files/starship.toml` — Starship prompt config.
 - `files/television/config.toml` — top-level television config (keybindings, theme, shell-integration channel triggers).
@@ -40,6 +40,8 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 
 - `claude-skill {list|add|remove|outdated|update}` and `claude-agent …` — project-scoped management of Claude Code skills and agents.
 - `claude-mcp` — wrapper for the Claude MCP CLI.
+- `clean_claude {skills|agents|all}` — cleans the **current project**: `skills`/`agents` drop everything that isn't a dotfiles-managed symlink, `all` wipes `.claude` outright.
+- `clean_claude sweep [root] [--dry-run] [--exclude PATTERN]` (alias `clean:claude:sweep`) — walks `$HOME` (or `root`) with `fd` and removes **every** `.claude` it finds, skipping vendored and app-owned trees: `node_modules`, `~/Library`, the bun/npm/yarn/cargo/gradle caches, `.venv`, `Pods`, `.git`, … Add more with `--exclude`, or permanently via `CLEAN_CLAUDE_EXCLUDES`. Workspace dirs (`apps/*`, `packages/*`) are *not* exempt — a `.claude` you authored there is a hit. Candidates are listed before anything is touched, git-tracked ones are flagged, and `~/.claude` is gated separately (it holds credentials, history and the `ai` role's symlinks; restoring it is `make run-role ROLE=ai` plus a re-login).
 - `tv_change_dir` — bound to `alt-c` in `config.fish`. Pipes the `dirs` television channel into `tv` and `cd`s to the pick.
 
 ## Side effects
