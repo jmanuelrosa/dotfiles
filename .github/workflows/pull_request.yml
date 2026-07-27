@@ -34,6 +34,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  test:
+    name: Registry & Fish Tests
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          brew install fish jq
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      # No vault password needed: these tests read registries and drive the fish
+      # functions against a throwaway HOME, never the playbook.
+      - name: Run tests
+        run: make test
+
   lint:
     name: Ansible Lint & Syntax Check
     runs-on: macos-latest
