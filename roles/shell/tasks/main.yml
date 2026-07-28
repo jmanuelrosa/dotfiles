@@ -151,6 +151,30 @@
   with_fileglob:
     - "{{ role_path }}/files/fish/functions/*.fish"
 
+- name: Discover linked fish functions
+  ansible.builtin.find:
+    paths: "{{ HOME }}/.config/fish/functions"
+    patterns: "*.fish"
+    file_type: link
+  register: fish_function_links
+
+# Renaming or folding away a function leaves its symlink dangling, and fish keeps
+# autoloading by filename, so the dead name stays tab-completable forever. Only links
+# pointing back into this role are candidates, so the work role's helpers and anything
+# you linked by hand are left alone.
+- name: Prune fish function symlinks whose source is gone
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ fish_function_links.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  vars:
+    functions_dir: "{{ role_path }}/files/fish/functions"
+  when:
+    - (item.lnk_target | default('', true)).startswith(functions_dir ~ '/')
+    - not (functions_dir ~ '/' ~ (item.path | basename)) is exists
+
 - name: Symlink television custom channels
   ansible.builtin.file:
     src: "{{ item }}"
