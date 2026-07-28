@@ -39,12 +39,11 @@ alias brew:update='brew update --force && brew upgrade --greedy --force && brew 
 alias clean:brew='brew autoremove && brew cleanup --prune=all --scrub'
 alias clean:docker=clean_docker
 alias clean:node=clean_node
-alias clean:claude='claude project purge'
+alias clean:claude='clean_claude project'
 alias clean:claude:skills='clean_claude skills'
 alias clean:claude:agents='clean_claude agents'
-alias clean:claude-project=clean_claude
-alias clean:claude:sweep='clean_claude sweep'
-alias clean:system='mo clean; and mo optimize'
+alias clean:claude:purge='clean_claude purge'
+alias clean:system='mo clean; mo optimize'
 alias clean:all=clean_all
 
 # docker

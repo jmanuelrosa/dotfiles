@@ -1,0 +1,25 @@
+function _clean_claude_usage --description "Print clean_claude usage"
+  echo "Usage: clean_claude [MODE] [ROOT] [options]"
+  echo
+  echo "Modes (default: project)"
+  echo "  project   remove every .claude under ROOT, then purge those projects' Claude state"
+  echo "  skills    remove every .claude/skills under ROOT"
+  echo "  agents    remove every .claude/agents under ROOT"
+  echo "  purge     remove ~/.claude and every .claude on the machine, purge all project state"
+  echo
+  echo "Options"
+  echo "  -n, --dry-run          list what would go, remove nothing"
+  echo "  -e, --exclude PATTERN  skip an extra directory name (repeatable)"
+  echo "  -i, --include PATTERN  stop skipping a default-excluded name, e.g. --include packages"
+  echo "  -w, --worktree-config  let a linked git worktree purge its main repo's config entry"
+  echo "  -h, --help             this text"
+  echo
+  echo "ROOT defaults to the current directory, or to \$HOME for purge."
+  echo "project mode purges state for the whole tree in one call (the CLI prefix-matches"
+  echo "transcripts), plus an exact call per ~/.claude.json project at or below ROOT. A"
+  echo "linked worktree is skipped by default: purging one deletes its MAIN repo's config"
+  echo "entry (trust, MCP servers), which -w opts into."
+  echo "Dependency, cache and build trees (node_modules, packages, apps, dist, Library, ...) are"
+  echo "always skipped; CLEAN_CLAUDE_EXCLUDES extends that list permanently."
+  echo "Only purge may touch ~/.claude: every other mode leaves the global config alone."
+end
