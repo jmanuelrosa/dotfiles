@@ -1,4 +1,5 @@
 {
+  "$schema": "https://www.schemastore.org/claude-code-plugin-manifest.json",
   "name": "frontend",
   "description": "Frontend staff-engineer seat bundled with its frontend-failure-modes checklists.",
   "version": "0.1.0",

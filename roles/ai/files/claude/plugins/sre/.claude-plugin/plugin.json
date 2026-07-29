@@ -1,4 +1,5 @@
 {
+  "$schema": "https://www.schemastore.org/claude-code-plugin-manifest.json",
   "name": "sre",
   "description": "SRE staff-engineer seat bundled with its sre-failure-modes checklists.",
   "version": "0.1.0",

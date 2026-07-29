@@ -1,4 +1,5 @@
 {
+  "$schema": "https://www.schemastore.org/claude-code-plugin-manifest.json",
   "name": "gtm",
   "description": "GTM staff-engineer seat bundled with its gtm-failure-modes checklists.",
   "version": "0.1.0",
