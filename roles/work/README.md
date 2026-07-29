@@ -87,9 +87,9 @@ host, so the `pr` and `commit` skills create MRs as the work account with no
 personal key and `glab` uses the personal token — wrong account. Fix an existing
 clone with `git remote set-url origin git@gitlab.com-work:group/project.git`.
 
-Skills that query GitLab **outside** a repo (e.g. `weekly-recap`) can't infer the
-host from a remote, so they enumerate every authenticated host and pass
-`--hostname` per host to cover both accounts.
+Tooling that queries GitLab **outside** a repo (e.g. the `weekly-recap` script)
+can't infer the host from a remote, so it enumerates every authenticated host and
+passes `--hostname` per host to cover both accounts.
 
 ## Profile gating
 
