@@ -1,4 +1,5 @@
 {
+  "$schema": "https://www.schemastore.org/claude-code-plugin-manifest.json",
   "name": "analytics",
   "description": "Analytics staff-engineer seat bundled with its analytics-failure-modes checklists.",
   "version": "0.1.0",

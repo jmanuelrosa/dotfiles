@@ -5,6 +5,7 @@ PROFILE ?= personal
 
 # Test deps are resolved per-run by uv, so there is no venv to create or refresh.
 PYTEST = uv run --with pytest --with pyyaml pytest
+CLAUDE_KIT = roles/ai/files/scripts/claude_kit
 
 # Install / refresh pinned Ansible collections
 deps:
@@ -14,9 +15,10 @@ deps:
 lint:
 	ansible-lint
 
-# Registry integrity + fish behaviour. Fast, hermetic, no vault or become password.
+# claude-kit + registry integrity. Fast, hermetic, no vault or become password.
+# The suite lives beside the package it exercises, not in a top-level tests/.
 test:
-	$(PYTEST) tests/ -q
+	$(PYTEST) $(CLAUDE_KIT)/tests -q
 
 syntax:
 	ansible-playbook --syntax-check --inventory inventory.yml --ask-vault-password --extra-vars "profile=$(PROFILE)" dotfiles.yml

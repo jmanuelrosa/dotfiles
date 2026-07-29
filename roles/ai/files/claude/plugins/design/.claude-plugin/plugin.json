@@ -1,4 +1,5 @@
 {
+  "$schema": "https://www.schemastore.org/claude-code-plugin-manifest.json",
   "name": "design",
   "description": "Design staff-engineer seat bundled with its design-failure-modes checklists.",
   "version": "0.1.0",

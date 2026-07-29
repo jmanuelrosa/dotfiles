@@ -82,6 +82,11 @@
     dest: "{{ HOME }}/.local/bin/{{ item | basename }}"
     state: link
     force: true
+  # Documentation lives beside the scripts it documents, so skip .md: the glob would
+  # otherwise put a README on PATH. The claude_kit package next to the shim needs no
+  # guard because fileglob filters its matches through os.path.isfile, so a directory
+  # is never a candidate.
+  when: not (item | basename).endswith('.md')
   with_fileglob:
     - "{{ role_path }}/files/scripts/*"
 
