@@ -1,9 +1,13 @@
 function _claude_scope_global_skills --description "Print the effective global skill names: those tagged 'global' plus one level of dependencies declared by global skills and global agents"
-    # Mirrors GLOBAL_CLAUDE_SKILLS_EFFECTIVE in roles/ai/tasks/main.yml, which is what
-    # the ai role actually symlinks into ~/.claude/skills. Tag membership alone is not
-    # enough: grilling, jira, domain-modeling, documentation-and-adrs and
-    # planning-and-task-breakdown reach ~/.claude only as declared dependencies.
-    # Keep the two in sync; the role is the authority.
+    # Tag membership alone is not enough: grilling, jira, domain-modeling,
+    # documentation-and-adrs and planning-and-task-breakdown reach ~/.claude only as
+    # declared dependencies.
+    #
+    # This used to name GLOBAL_CLAUDE_SKILLS_EFFECTIVE in roles/ai/tasks/main.yml as the
+    # authority, but commit 0624d1c deleted that block, so the authority is now
+    # global_set() in roles/ai/files/scripts/claude_kit/scope.py. Keep the two in sync;
+    # the Python version is under test (claude_kit/tests/test_catalog.py pins the
+    # resulting set) and this one is not.
     set -l base "$DOTFILES_DIR/roles/ai/files/claude"
 
     set -l agent_deps (jq -c '
