@@ -1,4 +1,5 @@
 {
+  "$schema": "https://www.schemastore.org/claude-code-plugin-manifest.json",
   "name": "mobile",
   "description": "Mobile staff-engineer seat bundled with its mobile-failure-modes checklists.",
   "version": "0.1.0",

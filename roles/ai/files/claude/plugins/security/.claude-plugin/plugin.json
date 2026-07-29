@@ -1,4 +1,5 @@
 {
+  "$schema": "https://www.schemastore.org/claude-code-plugin-manifest.json",
   "name": "security",
   "description": "Security staff-engineer seat bundled with its security-failure-modes checklists.",
   "version": "0.1.0",
