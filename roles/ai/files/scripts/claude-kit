@@ -9,12 +9,17 @@ the link instead of pruning it as unrecognised.
 
 Dependencies resolve their own scope rather than inheriting the parent's: a
 project skill may depend on a global one and vice versa.
+
+`scout` reads the same catalogue from the other end: it fingerprints the current
+project and ranks the skills not already available to it.
 """
 
 import argparse
 import json
 import os
+import re
 import sys
+import textwrap
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -34,6 +39,132 @@ PIN_FILE = "claude-kit.json"
 # The playbook marks the repo root. Searching for it beats counting parent
 # directories, which silently breaks whenever this script moves.
 REPO_MARKER = "dotfiles.yml"
+
+SHORTLIST_CAP = 12
+
+# Tags every second skill carries. Matching on them ranks the whole catalogue as
+# relevant, which is the same as ranking nothing.
+BROAD_TAGS = frozenset({"engineering", "global"})
+
+# Dependency to tag, for the two ecosystems the catalogue actually has skills
+# for. Cargo.toml, go.mod and pyproject.toml are deliberately not probed: a hit
+# there implies nothing installable.
+DEP_TAGS = {
+    "react": ("react",),
+    "react-dom": ("react",),
+    "react-native": ("mobile",),
+    "react-router": ("react-router",),
+    "react-router-dom": ("react-router",),
+    "expo": ("expo",),
+    "astro": ("astro",),
+    "tailwindcss": ("tailwind",),
+    "typescript": ("typescript",),
+    "graphql": ("graphql",),
+    "fastify": ("fastify",),
+    "hono": ("hono",),
+    "prisma": ("database",),
+    "playwright": ("playwright", "testing"),
+    "vitest": ("testing",),
+    "jest": ("testing",),
+}
+
+# Scoped families, matched by prefix so a new member needs no entry.
+DEP_PREFIX_TAGS = {
+    "@nestjs/": ("nestjs", "node"),
+    "@apollo/": ("graphql",),
+    "@prisma/": ("database",),
+    "@playwright/": ("playwright", "testing"),
+    "@tanstack/": ("react-tanstack",),
+    "@sentry/": ("sentry", "observability"),
+}
+
+# A direct hit also makes its neighbours plausible, which is what separates the
+# two report tiers: direct evidence is a strong match, these are worth a look.
+IMPLIED_TAGS = {
+    "react": ("frontend", "ui"),
+    "react-router": ("frontend",),
+    "react-tanstack": ("frontend",),
+    "astro": ("frontend",),
+    "tailwind": ("frontend", "designer", "design", "ui"),
+    "expo": ("mobile",),
+    "mobile": ("expo",),
+    "nestjs": ("backend",),
+    "fastify": ("backend", "node"),
+    "hono": ("backend", "node"),
+    "graphql": ("backend", "frontend"),
+    "database": ("backend",),
+    "sentry": ("observability", "devops"),
+    "playwright": ("testing",),
+    "swift": ("ios", "mobile"),
+    "ci": ("devops",),
+}
+
+# Read when nothing in the project maps to a tech tag, so the report is never
+# empty for a Rust, Go, Python or Ruby codebase.
+AGNOSTIC_TAGS = (
+    "workflow",
+    "review",
+    "testing",
+    "git",
+    "planning",
+    "productivity",
+    "documentation",
+    "refactoring",
+)
+
+# Evidence of absence. Real, but it says nothing about the project's stack, so it
+# does not count as "this ecosystem is represented in the catalogue".
+GAP_TAGS = frozenset({"testing", "ci", "documentation"})
+
+# Descriptions are written for a model's benefit and run long; a few of them are
+# a paragraph. The report needs a gist, not the contract.
+DESCRIPTION_CAP = 220
+
+# A coarse stand-in for reading a project's prose. It recovers the common cases
+# and nothing subtler; the retired skill could infer intent, a script cannot.
+INTENT_KEYWORDS = {
+    "domain-driven": ("architecture",),
+    "domain model": ("architecture",),
+    "ddd": ("architecture",),
+    "tdd": ("testing",),
+    "test-driven": ("testing",),
+    "adr": ("documentation",),
+}
+
+# Tags that name a specific framework, library or platform. A skill carrying one
+# of these is only ever relevant if the project actually uses it, which is what
+# keeps an Astro or Apollo skill out of a plain React project's report.
+TECH_TAGS = frozenset(
+    {
+        "apollo",
+        "astro",
+        "database",
+        "expo",
+        "fastify",
+        "graphql",
+        "hono",
+        "ios",
+        "mobile",
+        "nestjs",
+        "node",
+        "playwright",
+        "react",
+        "react-router",
+        "react-tanstack",
+        "sentry",
+        "swift",
+        "tailwind",
+        "typescript",
+    }
+)
+
+SWIFT_FILES = ("Package.swift", "Podfile")
+SWIFT_GLOBS = ("*.xcodeproj", "*.xcworkspace")
+TEST_DIRS = ("tests", "test", "__tests__", "spec")
+TEST_FILE = re.compile(r"\.(test|spec)\.[jt]sx?$|Tests?\.swift$|^test_.+\.py$")
+# Pruned from the test-file walk: a dependency's own tests say nothing about
+# whether this project is tested, and node_modules makes the walk unbounded.
+NOISE_DIRS = frozenset({"node_modules", "dist", "build", "vendor", "target"})
 
 
 @dataclass(frozen=True)
@@ -288,6 +419,280 @@ def cmd_add(args):
     return EXIT_OK
 
 
+@dataclass(frozen=True)
+class Match:
+    name: str
+    groups: tuple
+    description: str
+    why: str
+    score: int
+
+
+def read_description(source):
+    """A skill's frontmatter description, block scalars included.
+
+    `grep -m1 '^description:'` returns empty for the `description: >-` form, and
+    those skills then reach a report with no description at all.
+    """
+    path = source / "SKILL.md"
+    try:
+        lines = path.read_text(errors="replace").splitlines()
+    except OSError:
+        return ""
+    if not lines or lines[0].strip() != "---":
+        return ""
+    for index, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            break
+        if not line.startswith("description:"):
+            continue
+        inline = line[len("description:"):].strip()
+        if inline and inline[0] not in "|>":
+            return " ".join(inline.strip("'\"").split())
+        folded = []
+        for continuation in lines[index + 1:]:
+            if continuation.strip() == "---":
+                break
+            if continuation.strip() and not continuation.startswith((" ", "\t")):
+                break
+            folded.append(continuation.strip())
+        return " ".join(" ".join(folded).split())
+    return ""
+
+
+def _has_tests(project):
+    if any((project / name).is_dir() for name in TEST_DIRS):
+        return True
+    for root, dirs, files in os.walk(project):
+        dirs[:] = [d for d in dirs if d not in NOISE_DIRS and not d.startswith(".")]
+        if any(TEST_FILE.search(name) for name in files):
+            return True
+    return False
+
+
+def fingerprint(project):
+    """Tags with direct evidence in the project, each mapped to the evidence
+    string the report prints as its `Why`. First evidence for a tag wins."""
+    direct = {}
+
+    def note(tags, evidence):
+        for tag in tags:
+            direct.setdefault(tag, evidence)
+
+    manifest = project / "package.json"
+    if manifest.is_file():
+        try:
+            package = _read_json(manifest)
+        except (OSError, ValueError):
+            package = {}
+        declared = {
+            **(package.get("dependencies") or {}),
+            **(package.get("devDependencies") or {}),
+        }
+        for name in sorted(declared):
+            evidence = f"{name}@{str(declared[name]).lstrip('^~>=< ')} in package.json"
+            if name in DEP_TAGS:
+                note(DEP_TAGS[name], evidence)
+            for prefix, tags in DEP_PREFIX_TAGS.items():
+                if name.startswith(prefix):
+                    note(tags, evidence)
+
+    markers = [name for name in SWIFT_FILES if (project / name).is_file()]
+    markers += sorted(path.name for pattern in SWIFT_GLOBS for path in project.glob(pattern))
+    if markers:
+        note(("swift", "ios"), f"{markers[0]} in the project root")
+
+    if not _has_tests(project):
+        note(("testing",), "no test directory and no test files")
+    if not (project / ".github/workflows").is_dir():
+        note(("ci",), "no .github/workflows")
+    if not (project / "docs").is_dir():
+        note(("documentation",), "no docs/ directory")
+
+    for filename in ("CLAUDE.md", "README.md"):
+        document = project / filename
+        if not document.is_file():
+            continue
+        try:
+            text = document.read_text(errors="replace").lower()
+        except OSError:
+            continue
+        for keyword, tags in INTENT_KEYWORDS.items():
+            if keyword in text:
+                note(tags, f"{filename} mentions '{keyword}'")
+
+    return direct
+
+
+def implied_tags(direct):
+    """Neighbours of the directly-evidenced tags, minus anything already direct."""
+    indirect = {}
+    for tag, evidence in direct.items():
+        for neighbour in IMPLIED_TAGS.get(tag, ()):
+            if neighbour not in direct:
+                indirect.setdefault(neighbour, f"implied by {tag} ({evidence})")
+    return indirect
+
+
+def _linked(directory):
+    try:
+        return {path.name for path in directory.iterdir()}
+    except OSError:
+        return set()
+
+
+def rank(candidates, direct, indirect, focus):
+    """Split candidates into the two report tiers.
+
+    A tag with direct project evidence is a strong match; a merely implied tag is
+    worth considering. Focus, when given, sorts its own matches to the front.
+    """
+    strong, consider = [], []
+    for art, description in candidates:
+        tags = set(art.groups) - BROAD_TAGS
+        # A skill built for a framework the project does not use is noise, however
+        # well its broader tags match. Persona tags like `frontend` are shared by
+        # every framework's skills, so without this an implied `frontend` hit
+        # pulls in Astro and Apollo alongside React.
+        wanted_tech = tags & TECH_TAGS
+        if wanted_tech and not wanted_tech & set(direct):
+            continue
+        hits = sorted(tags & set(direct))
+        soft = sorted(tags & set(indirect))
+        if hits:
+            bucket, matched, source = strong, hits, direct
+        elif soft:
+            bucket, matched, source = consider, soft, indirect
+        else:
+            continue
+        bucket.append(
+            Match(
+                name=art.name,
+                groups=art.groups,
+                description=description,
+                why=source[matched[0]],
+                score=len(matched),
+            )
+        )
+
+    def order(match):
+        return (0 if focus and focus in match.groups else 1, -match.score, match.name)
+
+    return sorted(strong, key=order), sorted(consider, key=order)
+
+
+def render_scout(strong, consider, already, focus):
+    lines = []
+    shown = []
+    matches = [*strong, *consider]
+    width = max((len(m.name) for m in matches), default=0)
+
+    # Without this, a focus that matches nothing installable reads as a normal
+    # report and the unrelated fallback picks look like the answer to it.
+    if focus and matches and not any(focus in match.groups for match in matches):
+        lines.append(f"Nothing available carries the '{focus}' tag. Showing the rest.")
+        lines.append("")
+
+    for title, matches in (("STRONG MATCH", strong), ("WORTH CONSIDERING", consider)):
+        if not matches:
+            continue
+        lines.append(title)
+        for match in matches:
+            shown.append(match.name)
+            lines.append(f"{len(shown):2}. {match.name.ljust(width)}  [{', '.join(match.groups)}]")
+            lines.append(f"    Why:  {match.why}")
+            if match.description:
+                lines.append(
+                    textwrap.fill(
+                        textwrap.shorten(match.description, DESCRIPTION_CAP, placeholder=" ..."),
+                        width=100,
+                        initial_indent="    What: ",
+                        subsequent_indent="          ",
+                    )
+                )
+        lines.append("")
+
+    if already:
+        lines.append("ALREADY IN THIS PROJECT (skipped)")
+        lines.extend(f" ✓ {name}" for name in already)
+        lines.append("")
+
+    if not shown:
+        reason = f"No skill matches the focus '{focus}'." if focus else "Nothing left to add."
+        lines.append(reason)
+    else:
+        lines.append(f"To install: claude-kit add {' '.join(shown)}")
+
+    return "\n".join(lines), shown
+
+
+def cmd_scout(args):
+    root = repo_root()
+    catalog = build_catalog(root)
+    effective = global_set(catalog)
+    home = Path.home()
+
+    project = project_root(Path.cwd())
+    if project is None:
+        return fail(
+            EXIT_NO_PROJECT,
+            "scout recommends skills for a project, and there is no git repo here. "
+            "Run it from inside a project.",
+        )
+
+    # The derived set covers tagged skills and their dependencies; the directory
+    # listing and the pin file cover anything made global on this machine only.
+    global_names = (
+        effective
+        | _linked(home / ".claude" / "skills")
+        | set(read_pins(home).get("skills", []))
+    )
+    project_names = _linked(project / ".claude" / "skills")
+
+    candidates = []
+    for name, art in sorted(catalog.items()):
+        if art.type != "skill" or art.dependency_only:
+            continue
+        if name in global_names or name in project_names:
+            continue
+        candidates.append((art, read_description(art.source)))
+
+    direct = fingerprint(project)
+    indirect = implied_tags(direct)
+    if not set(direct) - GAP_TAGS:
+        # Nothing here maps to a tech tag, so the stack is one the catalogue has
+        # no skills for. These are guesses, not evidence, so they land in the
+        # weaker tier rather than inflating it to a strong match.
+        for tag in AGNOSTIC_TAGS:
+            if tag not in direct:
+                indirect.setdefault(tag, f"no catalogue tech detected, {tag} is stack-agnostic")
+    if args.focus:
+        direct.setdefault(args.focus, f"requested focus '{args.focus}'")
+        indirect.pop(args.focus, None)
+
+    strong, consider = rank(candidates, direct, indirect, args.focus)
+    budget = max(SHORTLIST_CAP - len(strong), 0)
+    strong, consider = strong[:SHORTLIST_CAP], consider[:budget]
+
+    installed = sorted(
+        name
+        for name in project_names & set(catalog)
+        if catalog[name].type == "skill"
+    )
+    report, shown = render_scout(strong, consider, installed, args.focus)
+    print(report)
+
+    if not args.add or not strong:
+        return EXIT_OK
+
+    print()
+    for match in strong:
+        code = add_one(catalog, effective, home, Path.cwd(), match.name, False)
+        if code != EXIT_OK:
+            return code
+    return EXIT_OK
+
+
 class Parser(argparse.ArgumentParser):
     """argparse exits 2 on a usage error, which is EXIT_NOT_FOUND here."""
 
@@ -311,6 +716,17 @@ def main(argv=None):
         help="Install into ~/.claude instead of the current project",
     )
     add.set_defaults(func=cmd_add)
+
+    scout = subcommands.add_parser(
+        "scout", help="Recommend skills for the current project, matched to its stack"
+    )
+    scout.add_argument(
+        "--focus", metavar="TAG", help="Promote skills carrying this group tag (e.g. testing)"
+    )
+    scout.add_argument(
+        "--add", action="store_true", help="Install the strong matches instead of only listing them"
+    )
+    scout.set_defaults(func=cmd_scout)
 
     args = parser.parse_args(argv)
     try:

@@ -4,12 +4,10 @@ description: Walk open CodeRabbit review threads on a GitHub PR, investigate eac
 argument-hint: "[pr-number]"
 disable-model-invocation: true
 allowed-tools:
-  - Bash(git remote *)
-  - Bash(gh repo view *)
-  - Bash(gh pr view *)
-  - Bash(gh api *)
+  - Bash(python3 *skills/coderabbit/scripts/context.py)
+  - Bash(python3 *skills/coderabbit/scripts/context.py *)
+  - Bash(python3 *skills/coderabbit/scripts/apply.py *)
   - Read
-  - Write
   - Edit
   - Grep
   - Glob
@@ -22,90 +20,28 @@ Walk every open CodeRabbit thread on a PR, investigate each one in the code, tri
 Resolve each thread once handled.
 Never commit or push, that is `/commit` and `/pr`'s job.
 
-If invoked with an argument, treat it as the PR number to work on instead of the current branch's PR.
+Two bundled scripts do the mechanical work in one call each; don't run `gh` yourself for anything they already cover.
+Global install: `~/.claude/skills/coderabbit/scripts/`; project install: `.claude/skills/coderabbit/scripts/`.
 
 ## Steps
 
-1. **Resolve host and PR**. CodeRabbit is a GitHub bot, so fail loudly on any non-GitHub remote.
-   ```sh
-   REMOTE=$(git remote get-url origin 2>/dev/null) || { echo "No origin remote"; exit 1; }
-   case "$REMOTE" in
-     *github*) : ;;
-     *) echo "coderabbit only supports GitHub remotes (got: $REMOTE)"; exit 1 ;;
-   esac
+1. **Gather context** (single call): `python3 ~/.claude/skills/coderabbit/scripts/context.py [pr-number]`.
+   Pass the skill's argument through as `[pr-number]`; with no argument the script resolves the current branch's PR.
 
-   REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
-   PR=$(gh pr view --json number --jq '.number' 2>/dev/null)
-   ```
-   If the skill was invoked with a PR number argument, use it as `$PR` instead of the current-branch detection.
-   If neither an argument nor a current-branch PR is found, stop and tell the user to pass a PR number or run `/pr` first.
+   It has already done all of this, so take its output as given: refused any non-GitHub remote, resolved the repo and PR, fetched every review thread with its resolved and outdated state, dropped the threads a previous run handled, stripped CodeRabbit's collapsed boilerplate, and grouped what survives by file path.
+   For each surviving thread it prints `path:line`, a `severity`, the `thread=` node id, the `reply-to=` root comment id, the cleaned body, and the diff hunk CodeRabbit saw.
+   It also prints the PR title, description, and the bot's latest walkthrough: read the walkthrough once for context, do not triage its bullets as tasks.
 
-   The gh alias `pr = pr create --web` shadows only the bare first token, so `gh pr view`, `gh pr create`, and `gh api` are all safe to call.
+   Stop and report if it exits non-zero (no origin, a non-GitHub remote, or no PR: tell the user to pass a PR number or run `/pr` first).
+   If it prints `No open CodeRabbit threads on PR #<n>.`, say so and stop.
+   That is the normal steady state, not an error.
 
-2. **Fetch the threads and the walkthrough**. The PR-level walkthrough comes from a native subcommand.
-   Read it once for context, do not triage its bullets as tasks:
-   ```sh
-   gh pr view "$PR" --json title,body,reviews
-   ```
-   The actionable inline threads need resolved/outdated state, which no `gh` subcommand and no REST endpoint exposes.
-   Only the GraphQL `reviewThreads` connection has it, so this one fetch uses `gh api graphql`.
-   It is the source of truth for what to process and what to skip.
-
-   GraphQL type signatures contain `!` (non-null markers: `String!`, `Int!`, `ID!`).
-   **Never put a GraphQL document in a Bash command**: the shell escapes `!` to `\!` even inside single quotes and heredocs, which GitHub rejects with `Expected VAR_SIGN, actual: UNKNOWN_CHAR ("!")`.
-   Instead **create the query file with the Write tool** (it writes literal bytes, bypassing the shell), then pass it with `-F query=@file`.
-
-   Write this to `/tmp/cr-threads.graphql` with the Write tool, verbatim (use a literal absolute path; the Write tool does not expand `$TMPDIR`):
-   ```graphql
-   query($owner:String!,$name:String!,$pr:Int!,$endCursor:String){
-     repository(owner:$owner,name:$name){
-       pullRequest(number:$pr){
-         reviewThreads(first:100, after:$endCursor){
-           pageInfo{ hasNextPage endCursor }
-           nodes{
-             id isResolved isOutdated
-             comments(first:100){ nodes{ databaseId author{login} body path line originalLine diffHunk } }
-           }
-         }
-       }
-     }
-   }
-   ```
-   Then run (no `!` in this command, so it is shell-safe):
-   ```sh
-   OWNER=${REPO%/*}; NAME=${REPO#*/}
-   gh api graphql --paginate \
-     -f owner="$OWNER" -f name="$NAME" -F pr="$PR" \
-     -F query=@/tmp/cr-threads.graphql
-   ```
-   `--paginate` walks the `reviewThreads` pages via the `$endCursor` variable.
-   A CodeRabbit thread is one whose **first** comment author is `coderabbitai[bot]`.
-   Each comment's `databaseId` equals the REST comment id, used for replies in step 8.
-   Each thread's `id` is the node id, used to resolve it in step 8.
-
-3. **Skip already-handled threads** (idempotency). Skip a CodeRabbit thread when any of:
-   - `isResolved == true`: the primary signal.
-     Step 8 resolves every thread this skill acts on, so anything handled in a prior run drops out here.
-     Also covers threads resolved by hand or auto-resolved by CodeRabbit on re-review.
-   - `isOutdated == true`: the line no longer exists, the suggestion is stale.
-   - the thread already has a reply by a human or the PR author.
-   - the thread already has a reply carrying this skill's hidden marker (`<!-- cr-skill -->`), a backup signal if a resolve call failed mid-run.
-
-   If zero actionable threads remain, print `No open CodeRabbit threads on PR #<n>.` and stop.
-   This is the normal steady state, not an error.
-
-4. **Strip noise from each comment body** before triage. Drop:
-   - collapsed `<details>` blocks, especially "Nitpick comments" and "Outside diff range" sections,
-   - the "🤖 Prompt for AI Agents" block (read it as a hint, never paste it into a reply),
-   - `<summary>` wrappers and committable-suggestion diff fences.
-
-   Treat `nitpick` items as low priority.
-   Treat items flagged `potential issue` or `warning` as the real candidates.
-
-5. **Investigate each comment in the code**. For each kept comment: open `path` at `line` (fall back to `originalLine` when `line` is null on an outdated hunk), read enough surrounding context to judge it, use Grep/Glob to confirm whether the concern is real (is the null actually unguarded, is the export actually unused), and read the `diffHunk` to see exactly what CodeRabbit saw.
+2. **Investigate each thread in the code**. This is the actual work, and it is the one part no script can do.
+   For each thread: open `path` at the printed line, read enough surrounding context to judge it, use Grep/Glob to confirm whether the concern is real (is the null actually unguarded, is the export actually unused), and read the diff hunk to see exactly what CodeRabbit saw.
    Form a one-line, code-grounded verdict.
+   Never take the comment's word for it: CodeRabbit reads a diff, you can read the whole repo.
 
-6. **Triage into three buckets**:
+3. **Triage into three buckets**:
    - **FIX**: the suggestion is correct and worth doing now.
      Note the exact edit.
    - **REPLY-AND-SKIP** (declined): wrong, out of scope, intentional, or a nitpick not worth it.
@@ -113,7 +49,9 @@ If invoked with an argument, treat it as the PR number to work on instead of the
    - **ASK-USER**: a judgment call, or a real change in behavior or public API the user should decide.
      Carries a specific question.
 
-7. **Single batched approval gate** (mandatory). Print **one** verdict table for the whole PR:
+   Weigh the `severity` the script prints: `nitpick` and `outside-diff` are low priority, `potential` and `warning` are the real candidates.
+
+4. **Single batched approval gate** (mandatory). Print **one** verdict table for the whole PR:
    ```
    # | path:line             | severity  | verdict        | action
    1 | src/auth/token.ts:42  | warning   | FIX            | guard null session before decode
@@ -141,39 +79,34 @@ If invoked with an argument, treat it as the PR number to work on instead of the
    The structured question is the gate.
    Free-form confirmations break `attributionSkill` in the transcript and would cause `git-skill-gate.sh` to block a later `/commit`.
 
-8. **Execute, then resolve each handled thread**:
-   - **FIX**: make the edits with Edit.
-     Do **not** commit or push.
-     The `git-skill-gate.sh` hook blocks `git commit` / `git push` outside `/commit` and `/pr`, and that is intended.
-     After edits, tell the user to run `/commit` then `/pr`.
-   - **REPLY-AND-SKIP**: reply into the correct thread by replying to the thread's **first** CodeRabbit comment `databaseId` (the thread root), so the `in_reply_to` chain stays attached to the right thread.
-     No `gh pr` subcommand posts a threaded reply to an inline review comment (`gh pr comment` only adds top-level issue comments), so this uses `gh api`:
-     ```sh
-     gh api "repos/$REPO/pulls/$PR/comments" \
-       -f body="$REPLY_BODY" \
-       -F in_reply_to="$ROOT_COMMENT_ID"
-     ```
-     Append the hidden marker `<!-- cr-skill -->` to each reply body for traceability on later runs.
-   - **Resolve the thread** once its action succeeds, for both FIX (edit applied) and REPLY-AND-SKIP (reply posted).
-     No `gh` subcommand resolves threads, so use the GraphQL `resolveReviewThread` mutation against the thread node `id` from step 2.
-     It has an `ID!` marker, so the same rule applies: write the mutation to a file with the **Write tool** (once, then reuse for every thread), never inline it.
-     Write this to `/tmp/cr-resolve.graphql` with the Write tool, verbatim:
-     ```graphql
-     mutation($threadId:ID!){
-       resolveReviewThread(input:{threadId:$threadId}){ thread{ id isResolved } }
-     }
-     ```
-     Then resolve each thread (shell-safe, no `!`):
-     ```sh
-     gh api graphql -f threadId="$THREAD_NODE_ID" -F query=@/tmp/cr-resolve.graphql
-     ```
-     Resolve only the threads acted on by the chosen gate option.
-     If a resolve call fails, report it and continue; the hidden marker and the `isResolved` check in step 3 still keep the next run idempotent.
+5. **Apply the FIX edits** with Edit, before running the executor.
+   Do **not** commit or push.
+   The `git-skill-gate.sh` hook blocks `git commit` / `git push` outside `/commit` and `/pr`, and that is intended.
 
-9. **Print a summary**: N fixed (files touched), N replied (with thread links), N threads resolved, N asked, N skipped as already resolved or outdated.
-   Remind the user to run `/commit` then `/pr` to push the fixes.
+6. **Post the replies and resolve the threads** (single call). **Write** the approved plan to `/tmp/claude/coderabbit-plan-<repo>-<suffix>.json` (`<suffix>` random once per run), carrying only the verdicts the chosen gate option covers:
+   ```json
+   {
+     "repo": "owner/name",
+     "pr": 42,
+     "threads": [
+       {"thread": "PRRT_a", "verdict": "fix", "files": ["src/auth/token.ts"]},
+       {"thread": "PRRT_b", "verdict": "reply", "reply_to": 1001, "body": "@coderabbitai\n\n> Suggestion: ...\n\nThe reason."},
+       {"thread": "PRRT_c", "verdict": "ask"}
+     ],
+     "skipped": {"resolved": 4, "outdated": 1}
+   }
+   ```
+   Copy `repo`, `pr` and the `skipped` counts from step 1's output, and `thread` / `reply_to` verbatim from the thread you are acting on.
+   Newlines inside `body` are `\n` escapes.
+   Then run `python3 ~/.claude/skills/coderabbit/scripts/apply.py <plan path>`.
+
+   It validates every reply up front (attribution lines, long dashes, emoji, an echoed "Prompt for AI Agents" block, a missing `reply_to`), posts each reply into the right thread, appends the `<!-- cr-skill -->` marker for you, resolves each thread only once its action succeeded, and prints the counters.
+   A `fix` entry resolves its thread without posting anything; an `ask` entry resolves nothing, because an unanswered question must stay visible.
+   It exits non-zero if any call failed and names the thread; report that and move on, the next run stays idempotent either way.
+
+7. **Report** the summary line apply.py printed (N fixed, N replied, N resolved, N asked, N skipped) and remind the user to run `/commit` then `/pr`.
    The threads are resolved, but the code is not pushed yet, and resolving does not push for them.
-   Multiple rounds are normal: re-run `/coderabbit` after each push and step 3 keeps it idempotent.
+   Multiple rounds are normal: re-run `/coderabbit` after each push and step 1 keeps it idempotent.
 
 ## Reply format
 
@@ -187,7 +120,7 @@ Restate the suggestion in a blockquote, then give the reason in plain prose:
 > The session is guaranteed non-null here.
 > `requireAuth` runs before this handler and 401s otherwise, so leaving it as is.
 
-End the body with the marker on its own line: `<!-- cr-skill -->`.
+`apply.py` appends the `<!-- cr-skill -->` marker; don't write it yourself.
 
 ## Reply voice (required)
 
@@ -200,7 +133,7 @@ Use plain English.
 **Constructions to avoid:**
 
 - Sycophancy: "Great catch!", "You're absolutely right!". State the reason.
-- Em dashes between clauses. Use commas or periods.
+- Long dashes between clauses. Use commas or periods.
 - Emojis. Anywhere.
 - Curly quotes. Use straight quotes.
 - Title Case headings.
@@ -228,19 +161,15 @@ Bad:
 ## Rules
 
 - GitHub only.
-  Fail loudly on any other host.
-- Prefer native `gh` subcommands.
-  Use `gh api` / `gh api graphql` only for the three things with no subcommand: review-thread resolved/outdated state, posting a threaded reply, and resolving a thread.
-  Never WebFetch, MCP, or `curl`.
-- Never put a GraphQL document in a Bash command.
-  The shell escapes `!` to `\!` even inside single quotes and heredocs, corrupting the `Type!` non-null markers (`Expected VAR_SIGN, actual "!"`).
-  Create the `.graphql` file with the **Write tool** (literal bytes, no shell), then pass it with `gh api graphql -F query=@file`.
+  `context.py` fails loudly on any other host; don't work around it.
+- The two scripts own every `gh` call.
+  Never WebFetch, MCP, or `curl`, and don't hand-roll a `gh api graphql` call: the scripts pass their documents as JSON request bodies, which is what keeps the `Type!` non-null markers intact.
 - Nothing mutates before the approval gate.
   Edits and replies happen only after `Go` / `Fixes only` / `Replies only`.
 - Never commit or push.
   Hand off to `/commit` then `/pr`.
   The hook enforces this.
 - Resolve every thread the skill acts on once the action succeeds.
-  Never resolve a thread that was not fixed or replied to.
+  Never resolve a thread that was not fixed or replied to, and never one left as ASK-USER.
 - Never auto-pick an ASK-USER verdict.
-- Skip resolved, outdated, and already-answered threads so re-running is safe.
+- Re-running is safe: resolved, outdated, and already-answered threads never reach triage.

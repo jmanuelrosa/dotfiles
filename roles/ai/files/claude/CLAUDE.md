@@ -17,7 +17,7 @@ CLI-first for these domains, never WebFetch or MCP for them. If a CLI is missing
 | Library/framework/SDK docs | `bunx ctx7` |
 
 - IMPORTANT: for any library/framework/SDK/API question, fetch current docs BEFORE answering (training data is stale): `bunx ctx7 library <name> "<q>"`, then `bunx ctx7 docs <id> "<q>"` (free anonymous tier; `npx -y ctx7` if bun is missing). Never the Context7 MCP server or WebFetch for this.
-- glab has multiple authenticated hosts: inside a repo it auto-selects; repo-agnostic `glab api` calls must iterate every host (recipes live in the `pr` and `weekly-recap` skills).
+- glab has multiple authenticated hosts: inside a repo it auto-selects; repo-agnostic `glab api` calls must iterate every host (recipes live in the `pr` skill and the `weekly-recap` script).
 - JS package manager: match the lockfile (`pnpm-lock.yaml`→pnpm, `bun.lockb`→bun, `yarn.lock`→yarn, `package-lock.json` or none→npm). No lockfile but the README names one → follow the README.
 
 ## Code standards
