@@ -32,11 +32,13 @@ lock the user out. To swap to fail-closed, change the `sys.exit(0)`
 lines in the transcript-handling path to `sys.exit(2)`.
 
 Wrapper scripts that run git in a subprocess are invisible here: the hook
-receives the Bash command, not what that command spawns. Two are known,
-and they are handled in opposite directions on purpose.
+receives the Bash command, not what that command spawns. Three are known,
+and they are not all handled in the same direction.
 
-`skills/commit/scripts/apply.py` commits without a `git commit` token, so
-it is gated by path (APPLY_PY_RE) and needs /commit like any other commit.
+`skills/commit/scripts/apply.py` commits and `skills/pr/scripts/apply.py`
+pushes, neither carrying the token that would name it, so both are gated
+by path (WRAPPER_SCRIPTS) and need their owning skill like any other
+commit or push.
 
 `s-task` (~/.local/bin/s-task, from this repo's `work` role) pushes, and
 that push is deliberately allowed rather than gated. It exists so a
@@ -70,11 +72,14 @@ SKILLS_FOR_SUBCOMMAND = {
     "glab mr create": {"pr"},
 }
 
-# The commit skill's apply.py commits without a `git commit` in the command
-# string, so executing it (directly or via an interpreter) gets the same
-# gate by path. Only execution positions are checked: a `wc -c .../apply.py`
-# must not trip the gate.
-APPLY_PY_RE = re.compile(r"(^|/)skills/commit/scripts/apply\.py$")
+# A skill's apply.py runs the gated command in a subprocess, with no `git
+# commit` or `git push` in the command string, so executing it (directly or
+# via an interpreter) gets the same gate by path. Only execution positions
+# are checked: a `wc -c .../apply.py` must not trip the gate.
+WRAPPER_SCRIPTS = (
+    (re.compile(r"(^|/)skills/commit/scripts/apply\.py$"), "git commit"),
+    (re.compile(r"(^|/)skills/pr/scripts/apply\.py$"), "git push"),
+)
 INTERPRETERS = {"bash", "sh", "zsh", "python", "python3"}
 
 OPTIONS_WITH_SEPARATE_ARG = {
@@ -111,6 +116,13 @@ def split_subcommands(line):
     return chunks
 
 
+def wrapper_subcommand(token):
+    for pattern, subcommand in WRAPPER_SCRIPTS:
+        if pattern.search(token):
+            return subcommand
+    return None
+
+
 def gated_subcommand(tokens):
     i = 0
     while i < len(tokens) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", tokens[i]):
@@ -118,14 +130,16 @@ def gated_subcommand(tokens):
     if i >= len(tokens):
         return None
     binary = tokens[i]
-    if APPLY_PY_RE.search(binary):
-        return "git commit"
+    wrapper = wrapper_subcommand(binary)
+    if wrapper:
+        return wrapper
     if binary in INTERPRETERS:
         for tok in tokens[i + 1:]:
             if tok.startswith("-"):
                 continue
-            if APPLY_PY_RE.search(tok):
-                return "git commit"
+            wrapper = wrapper_subcommand(tok)
+            if wrapper:
+                return wrapper
             break
     if binary == "git":
         i += 1

@@ -14,8 +14,8 @@ allowed-tools:
   - Bash(git switch *)
   - Bash(bash *skills/commit/scripts/context.sh)
   - Bash(python3 *skills/commit/scripts/apply.py *)
-  - Write(//tmp/claude/**)
-  - Write(//private/tmp/claude/**)
+  - Edit(//tmp/claude/**)
+  - Edit(//private/tmp/claude/**)
   - AskUserQuestion
 ---
 
