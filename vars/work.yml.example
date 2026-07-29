@@ -39,6 +39,17 @@ SSH_DIDOMI_KEY: |
 # Consumed by: roles/work/templates/glab/config.yml.j2
 GLAB_WORK_USER: "your-work-gitlab-username"
 
+# --- Jira -----------------------------------------------------------------
+
+# Default Jira project key (e.g. "ENG"), the project the `jira` skill files
+# tickets into. acli has no config entry for this, which is why it comes from
+# here. Only the work profile renders the export below, so the skill treats it as
+# optional and falls back to asking.
+# Consumed by: roles/work/templates/exports.fish.j2 (exported as JIRA_PROJECT)
+#              roles/ai/files/claude/skills/jira/SKILL.md (read at runtime as
+#              $JIRA_PROJECT, the second step of its project-resolution chain)
+JIRA_PROJECT: "your-jira-project-key"
+
 # --- Tokens ---------------------------------------------------------------
 
 # NPM token for the Didomi GitLab package registry.
