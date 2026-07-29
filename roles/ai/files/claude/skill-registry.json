@@ -649,16 +649,6 @@
       "note": "Locally authored"
     },
     {
-      "name": "skill-scout",
-      "groups": [
-        "productivity",
-        "workflow",
-        "ai",
-        "global"
-      ],
-      "note": "Locally authored"
-    },
-    {
       "name": "humanizer",
       "groups": [
         "ai",
@@ -718,15 +708,6 @@
       ],
       "dependencies": [
         "jira"
-      ],
-      "note": "Locally authored"
-    },
-    {
-      "name": "weekly-recap",
-      "groups": [
-        "productivity",
-        "workflow",
-        "tasks"
       ],
       "note": "Locally authored"
     },
