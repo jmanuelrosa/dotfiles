@@ -20,4 +20,4 @@ Installs and configures AI tooling: Claude Code, Gemini CLI, Pi (mariozechner), 
 
 The herdr integration is the one thing in `~/.claude/hooks/` this role does not symlink from the repo: herdr writes `herdr-agent-state.sh` there as a real file and appends its own `SessionStart` entry to `settings.json`, keyed on the absolute hook path. The `herdr` formula comes from the apps role, which runs before this one.
 
-Claude Code fetches up-to-date library docs with the Context7 CLI, run on demand via `bunx ctx7` (bun is installed by the apps role) on the free anonymous tier — nothing is installed by this role and no API key is configured. The usage rule lives in `files/claude/CLAUDE.md`; the `CTX7_TELEMETRY_DISABLED` opt-out is exported by the shell role.
+Claude Code fetches up-to-date docs for libraries, frameworks, SDKs, APIs, CLI tools and cloud services with the Context7 CLI, run on demand via `bunx ctx7` (bun is installed by the apps role) on the free anonymous tier — nothing is installed by this role and no API key is configured. The usage rule lives in `files/claude/CLAUDE.md`; the `CTX7_TELEMETRY_DISABLED` opt-out is exported by the shell role.

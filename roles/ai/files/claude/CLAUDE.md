@@ -14,9 +14,10 @@ CLI-first for these domains, never WebFetch or MCP for them. If a CLI is missing
 | Sentry | `sentry` |
 | Bruno API tests | `bru-cli` |
 | Notion | `ntn` |
-| Library/framework/SDK docs | `bunx ctx7` |
+| Library / framework / SDK / API / CLI / cloud service docs | `bunx ctx7` |
 
-- IMPORTANT: for any library/framework/SDK/API question, fetch current docs BEFORE answering (training data is stale): `bunx ctx7 library <name> "<q>"`, then `bunx ctx7 docs <id> "<q>"` (free anonymous tier; `npx -y ctx7` if bun is missing). Never the Context7 MCP server or WebFetch for this.
+- IMPORTANT: any question about a library, framework, SDK, API, CLI tool, or cloud service is a docs question. Fetch current docs BEFORE answering, because training data is stale: `bunx ctx7 library <name> "<q>"`, then `bunx ctx7 docs <id> "<q>"` (free anonymous tier; `npx -y ctx7` if bun is missing). Pick the id by benchmark score among high-reputation results, preferring a `/websites/...` vendor docs site over a bare repo when both appear, since the repo usually carries a fraction of the snippets. Never the Context7 MCP server, and never WebFetch as the first move. If ctx7 returns no usable match, say so, then fall back to WebSearch/WebFetch.
+- Three things take precedence over that rule. The domain CLIs above are for *doing* (fetch the ticket, list the PRs) while ctx7 is for *how it works*, so "list my open PRs" is `gh` and "what does `gh pr list --search` accept" is a docs question. For a CLI installed on this machine, `cmd --help` / `man` beats ctx7 on flags and syntax; ctx7 owns concepts, version differences, and CLIs that aren't installed. Claude Code, the Agent SDK and the Anthropic API belong to the `claude-api` skill and the `claude-code-guide` agent, not to ctx7.
 - glab has multiple authenticated hosts: inside a repo it auto-selects; repo-agnostic `glab api` calls must iterate every host (recipes live in the `pr` skill and the `weekly-recap` script).
 - JS package manager: match the lockfile (`pnpm-lock.yaml`→pnpm, `bun.lockb`→bun, `yarn.lock`→yarn, `package-lock.json` or none→npm). No lockfile but the README names one → follow the README.
 
