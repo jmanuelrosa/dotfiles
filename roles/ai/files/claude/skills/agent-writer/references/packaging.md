@@ -35,7 +35,7 @@ Move the authored files in with `git mv` so history follows them; never leave a 
 ### No registry rows
 
 A seat carries no `agent-registry.json` or `skill-registry.json` entry and no `dependency_only` flag: the skill ships with the agent because they share the folder, not because a resolver pulls it.
-Do not add the discipline to `GLOBAL_CLAUDE_AGENTS`; seats are per-project.
+Do not tag the discipline `global`; seats are per-project.
 
 ### How it loads and installs
 
@@ -57,7 +57,7 @@ A utility agent (no paired skill) stays a flat file with a registry entry, uncha
 }
 ```
 
-Add `dependencies: ["<skill>"]` only if it invokes a skill at runtime; add it to `GLOBAL_CLAUDE_AGENTS` in `roles/ai/defaults/main.yml` only if every project needs it.
+Add `dependencies: ["<skill>"]` only if it invokes a skill at runtime; add `"global"` to its `groups` only if every project needs it, which is what makes `claude-kit sync` link it into `~/.claude/agents/`.
 Always edit the registry via a python3 round-trip with `json.dump(..., indent=2)`; never hand-edit.
 
 ## Groups vocabulary

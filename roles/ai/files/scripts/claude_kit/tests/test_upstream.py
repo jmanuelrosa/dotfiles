@@ -13,7 +13,7 @@ import pytest
 
 from claude_kit import catalog as cat
 from claude_kit import errors, registry, upstream
-from claude_kit.commands import sync
+from claude_kit.commands import pull
 
 
 # --- building fixture upstreams ---------------------------------------------
@@ -145,7 +145,7 @@ def test_differs_detects_changed_contents(tmp_path):
 
 def test_differs_compares_bytes_not_mtimes(tmp_path):
     """filecmp.dircmp defaults to shallow, calling two files equal when size and
-    mtime match. A same-length edit would then read as up to date and never sync."""
+    mtime match. A same-length edit would then read as up to date and never re-fetch."""
     source = write_tree(tmp_path / "s", {"SKILL.md": "aaaa"})
     destination = write_tree(tmp_path / "d", {"SKILL.md": "bbbb"})
     stat = (source / "SKILL.md").stat()
@@ -386,14 +386,14 @@ def at(fixture_repo, monkeypatch):
 
 
 def test_e1_a_behind_skill_is_synced(at, upstream_files, capsys):
-    code = sync.run(_Args("update"), fetcher=fetcher_for(upstream_files))
+    code = pull.run(_Args("update"), fetcher=fetcher_for(upstream_files))
     assert code == errors.OK
     assert (at / "skills" / "alpha" / "SKILL.md").read_text() == "new alpha"
 
 
 def test_e7_a_current_skill_is_not_rewritten(at, upstream_files, capsys):
     before = (at / "skills" / "beta" / "SKILL.md").stat().st_mtime_ns
-    sync.run(_Args("update"), fetcher=fetcher_for(upstream_files))
+    pull.run(_Args("update"), fetcher=fetcher_for(upstream_files))
     after = (at / "skills" / "beta" / "SKILL.md").stat().st_mtime_ns
     assert before == after, "an up-to-date skill should not be touched"
     out = capsys.readouterr().out
@@ -401,7 +401,7 @@ def test_e7_a_current_skill_is_not_rewritten(at, upstream_files, capsys):
 
 
 def test_e4_update_stamps_only_what_it_synced(at, upstream_files, capsys):
-    sync.run(_Args("update"), fetcher=fetcher_for(upstream_files))
+    pull.run(_Args("update"), fetcher=fetcher_for(upstream_files))
     after = json.loads((at / "skill-registry.json").read_text())
     entries = {e["upstream_path"]: e for e in after["repos"]["owner/one"]["skills"]}
     assert entries["skills/alpha"]["updated_at"] != "2020-01-01T00:00:00Z"
@@ -412,7 +412,7 @@ def test_absent_skills_are_installed(at, upstream_files, capsys):
     import shutil
 
     shutil.rmtree(at / "skills" / "alpha")
-    sync.run(_Args("update"), fetcher=fetcher_for(upstream_files))
+    pull.run(_Args("update"), fetcher=fetcher_for(upstream_files))
     assert (at / "skills" / "alpha" / "SKILL.md").read_text() == "new alpha"
     assert "installed" in capsys.readouterr().out
 
@@ -421,20 +421,20 @@ def test_absent_skills_are_installed(at, upstream_files, capsys):
 
 
 def test_e5_a_local_skill_is_reported_not_failed(at, upstream_files, capsys):
-    code = sync.run(_Args("update", names=["mine"]), fetcher=fetcher_for(upstream_files))
+    code = pull.run(_Args("update", names=["mine"]), fetcher=fetcher_for(upstream_files))
     assert code == errors.OK
     assert "no upstream to sync" in capsys.readouterr().out
 
 
 def test_e5_a_local_skill_is_never_modified(at, upstream_files, capsys):
-    sync.run(_Args("update"), fetcher=fetcher_for(upstream_files))
+    pull.run(_Args("update"), fetcher=fetcher_for(upstream_files))
     assert (at / "skills" / "mine" / "SKILL.md").read_text() == "local"
 
 
 def test_a_bare_run_says_nothing_about_local_skills(at, upstream_files, capsys):
     """Naming one deserves an explanation; listing every one on a bare run is a wall
     of warnings about nothing being wrong."""
-    sync.run(_Args("outdated"), fetcher=fetcher_for(upstream_files))
+    pull.run(_Args("outdated"), fetcher=fetcher_for(upstream_files))
     assert "mine" not in capsys.readouterr().out
 
 
@@ -467,7 +467,7 @@ def test_e6_one_failing_repo_still_syncs_the_others(tmp_path, monkeypatch, capsy
     monkeypatch.setattr(paths, "claude_dir", lambda root=None: claude)
 
     files = {"skills/alpha/SKILL.md": "new", "skills/gamma/SKILL.md": "unused"}
-    code = sync.run(_Args("update"), fetcher=fetcher_for(files, fail_repos={"owner/bad"}))
+    code = pull.run(_Args("update"), fetcher=fetcher_for(files, fail_repos={"owner/bad"}))
 
     assert code == errors.FETCH_FAILED
     assert (claude / "skills" / "alpha" / "SKILL.md").read_text() == "new", "the good repo should sync"
@@ -483,7 +483,7 @@ def test_e8_a_missing_upstream_path_fails_without_deleting(at, capsys):
     destination must survive: an upstream reorganisation should not delete a skill.
     """
     files = {"skills/beta/SKILL.md": "current beta"}
-    code = sync.run(_Args("update"), fetcher=fetcher_for(files))
+    code = pull.run(_Args("update"), fetcher=fetcher_for(files))
     assert code == errors.FETCH_FAILED
     assert (at / "skills" / "alpha" / "SKILL.md").read_text() == "old alpha"
     assert "not in the tarball" in capsys.readouterr().out
@@ -506,7 +506,7 @@ def test_e10_agents_and_plugins_are_refused(kind, command, capsys):
     exploding fetcher pins that ordering, and keeps a guard regression from turning
     the suite into a network client.
     """
-    code = sync.run(_Args(command, kind=kind), fetcher=_never_fetch)
+    code = pull.run(_Args(command, kind=kind), fetcher=_never_fetch)
     assert code == errors.USAGE
     assert "only skills have upstreams" in capsys.readouterr().err
 
@@ -524,7 +524,7 @@ def test_e11_update_needs_no_project(at, upstream_files, tmp_path, monkeypatch, 
     elsewhere = tmp_path / "elsewhere"
     elsewhere.mkdir()
     monkeypatch.chdir(elsewhere)
-    assert sync.run(_Args("update"), fetcher=fetcher_for(upstream_files)) == errors.OK
+    assert pull.run(_Args("update"), fetcher=fetcher_for(upstream_files)) == errors.OK
 
 
 # --- F1 to F5: outdated -----------------------------------------------------
@@ -534,7 +534,7 @@ def test_f1_outdated_reports_behind_and_writes_nothing(at, upstream_files, capsy
     before = (at / "skills" / "alpha" / "SKILL.md").read_text()
     registry_before = (at / "skill-registry.json").read_text()
 
-    code = sync.run(_Args("outdated"), fetcher=fetcher_for(upstream_files))
+    code = pull.run(_Args("outdated"), fetcher=fetcher_for(upstream_files))
 
     assert code == errors.OK
     assert "alpha: behind" in capsys.readouterr().out
@@ -543,7 +543,7 @@ def test_f1_outdated_reports_behind_and_writes_nothing(at, upstream_files, capsy
 
 
 def test_f2_a_current_skill_is_reported_up_to_date(at, upstream_files, capsys):
-    sync.run(_Args("outdated"), fetcher=fetcher_for(upstream_files))
+    pull.run(_Args("outdated"), fetcher=fetcher_for(upstream_files))
     assert "beta: up to date" in capsys.readouterr().out
 
 
@@ -551,7 +551,7 @@ def test_f3_an_absent_skill_reads_differently_from_behind(at, upstream_files, ca
     import shutil
 
     shutil.rmtree(at / "skills" / "alpha")
-    sync.run(_Args("outdated"), fetcher=fetcher_for(upstream_files))
+    pull.run(_Args("outdated"), fetcher=fetcher_for(upstream_files))
     out = capsys.readouterr().out
     assert "alpha: not downloaded" in out
     assert "alpha: behind" not in out
@@ -560,21 +560,21 @@ def test_f3_an_absent_skill_reads_differently_from_behind(at, upstream_files, ca
 def test_f4_being_behind_exits_ok(at, upstream_files, capsys):
     """Behind is information, not failure. Exiting non-zero would leave `outdated`
     usable only as a gate."""
-    assert sync.run(_Args("outdated"), fetcher=fetcher_for(upstream_files)) == errors.OK
+    assert pull.run(_Args("outdated"), fetcher=fetcher_for(upstream_files)) == errors.OK
 
 
 def test_f5_a_fetch_failure_exits_fetch_failed(at, upstream_files, capsys):
-    code = sync.run(_Args("outdated"), fetcher=fetcher_for(upstream_files, fail_repos={"owner/one"}))
+    code = pull.run(_Args("outdated"), fetcher=fetcher_for(upstream_files, fail_repos={"owner/one"}))
     assert code == errors.FETCH_FAILED
 
 
 def test_outdated_and_update_agree_on_what_is_behind(at, upstream_files, capsys):
     """A separate implementation could disagree, and then the report would not
-    predict the sync. Same traversal, writes switched off."""
-    sync.run(_Args("outdated"), fetcher=fetcher_for(upstream_files))
+    predict the update. Same traversal, writes switched off."""
+    pull.run(_Args("outdated"), fetcher=fetcher_for(upstream_files))
     reported_behind = "alpha: behind" in capsys.readouterr().out
 
-    sync.run(_Args("update"), fetcher=fetcher_for(upstream_files))
+    pull.run(_Args("update"), fetcher=fetcher_for(upstream_files))
     actually_synced = "alpha: ✓ synced." in capsys.readouterr().out
 
     assert reported_behind == actually_synced is True
@@ -584,21 +584,21 @@ def test_outdated_and_update_agree_on_what_is_behind(at, upstream_files, capsys)
 
 
 def test_naming_one_skill_leaves_the_others_alone(at, upstream_files, capsys):
-    sync.run(_Args("update", names=["alpha"]), fetcher=fetcher_for(upstream_files))
+    pull.run(_Args("update", names=["alpha"]), fetcher=fetcher_for(upstream_files))
     out = capsys.readouterr().out
     assert "alpha" in out
     assert "beta" not in out
 
 
 def test_an_unknown_name_is_not_found(at, upstream_files, capsys):
-    code = sync.run(_Args("update", names=["no-such-skill"]), fetcher=fetcher_for(upstream_files))
+    code = pull.run(_Args("update", names=["no-such-skill"]), fetcher=fetcher_for(upstream_files))
     assert code == errors.NOT_FOUND
     assert "not a known skill" in capsys.readouterr().err
 
 
 def test_targets_groups_by_repo(at):
     catalog = cat.build_catalog(at)
-    by_repo, local, unknown = sync.targets(catalog, [])
+    by_repo, local, unknown = pull.targets(catalog, [])
     assert set(by_repo) == {"owner/one"}
     assert {s.name for s in by_repo["owner/one"]} == {"alpha", "beta"}
     assert {s.name for s in local} == {"mine"}
@@ -607,7 +607,7 @@ def test_targets_groups_by_repo(at):
 
 def test_targets_reports_unknown_names(at):
     catalog = cat.build_catalog(at)
-    _, _, unknown = sync.targets(catalog, ["alpha", "ghost"])
+    _, _, unknown = pull.targets(catalog, ["alpha", "ghost"])
     assert unknown == ["ghost"]
 
 

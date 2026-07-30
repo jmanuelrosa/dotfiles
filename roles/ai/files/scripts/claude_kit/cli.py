@@ -33,7 +33,8 @@ COMMANDS = {
     "list": "Show artifacts and where they are installed",
     "add": "Install a skill, agent or plugin",
     "remove": "Uninstall a skill, agent or plugin",
-    "update": "Sync skills from their upstream repos",
+    "sync": "Converge ~/.claude on the artifacts tagged global",
+    "update": "Fetch skills from their upstream repos",
     "outdated": "Report which skills are behind upstream",
     "doctor": "Report drift between registries and disk",
     "adopt": "Rebuild claude-kit.json from what is installed",
@@ -42,22 +43,35 @@ COMMANDS = {
 # Which module runs each command. `update` and `outdated` share one: they are the same
 # traversal with writes switched off. Adding a command means adding it here, to
 # COMMANDS, to FAMILIES and to SCOPE, and test_help.py fails on three of the four.
+#
+# Two names do not match their module. `list` shadows a builtin, and `sync` would have
+# collided with the module that had the name first: commands/pull.py serves `update` and
+# `outdated`, and fetching from upstream is a different act from converging ~/.claude.
 MODULE = {
     "list": "listing",
     "add": "add",
     "remove": "remove",
-    "update": "sync",
-    "outdated": "sync",
+    "sync": "provision",
+    "update": "pull",
+    "outdated": "pull",
     "doctor": "doctor",
     "adopt": "adopt",
 }
 
-# The two families differ in what they touch, which is what decides whether
-# --global is even a question. Grouping them is the whole point of the epilog.
+# The families differ in what they touch, which is what decides whether --global is
+# even a question. Grouping them is the whole point of the epilog.
+#
+# `sync` earns the third one rather than joining the first: it acts on ~/.claude and
+# only ever on ~/.claude, so --global is not an option there but the implied and only
+# scope. Listing it as scope-aware would suggest a project run that does not exist.
 FAMILIES = (
     (
         "Scope-aware (a project's .claude/, or ~/.claude with --global)",
         ("add", "remove", "list", "doctor", "adopt"),
+    ),
+    (
+        "Global (~/.claude only; the scope is implied, so --global does not apply)",
+        ("sync",),
     ),
     (
         "Registry-wide (this repo's sources against upstream; --global does not apply)",
@@ -74,6 +88,11 @@ SCOPE = {
     "remove": (
         "Acts on <cwd>/.claude, or on ~/.claude with --global. A removal never "
         "leaves the scope it starts in."
+    ),
+    "sync": (
+        "Acts on ~/.claude alone, whatever the cwd: it links every artifact tagged "
+        "global and unlinks the ones no longer tagged, so the directory is owned by "
+        "the registries rather than by whoever ran a command there last."
     ),
     "update": (
         "Acts on this repo's skill sources against upstream. Tied to neither a "
@@ -280,6 +299,18 @@ def build_parser():
         help="Remove only what is named, leaving its dependencies in place",
     )
     _add_group(remove, "Act on")
+
+    # --type is optional for the same reason as doctor's: converging ~/.claude is
+    # cross-type by nature, and a required --type would make a partial run the only
+    # thing the `ai` role could ask for. Given, it narrows both halves of the run.
+    sync = _command(sub, "sync")
+    _add_type(sync, required=False)
+    sync.add_argument(
+        "--dry-run",
+        dest="dry_run",
+        action="store_true",
+        help="Show what would be linked and unlinked without touching anything",
+    )
 
     update = _command(sub, "update")
     _add_type(update)

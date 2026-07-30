@@ -90,6 +90,37 @@
   with_fileglob:
     - "{{ role_path }}/files/scripts/*"
 
+# The `global` group tag in the two registries is the single source of truth for what
+# belongs in ~/.claude, and claude-kit already derives that set to answer "does this
+# need --global?". This task is the only consumer of it here, deliberately: the same
+# derivation once lived in this file as ~130 lines of Jinja, which nothing could
+# unit-test and which drifted from the tool's copy the moment either changed.
+#
+# It converges rather than adds, so a skill that loses its `global` tag is unlinked on
+# the next run. Only symlinks pointing into files/claude/ are candidates, so a
+# hand-made directory in ~/.claude/skills survives untouched.
+- name: Converge global claude skills, agents and plugins
+  ansible.builtin.command:
+    cmd: "{{ role_path }}/files/scripts/claude-kit sync{{ ' --dry-run' if ansible_check_mode else '' }}"
+  environment:
+    # Both of claude-kit's environmental inputs, pinned rather than inherited: the
+    # playbook's HOME is the right one, and DOTFILES_DIR keeps the tool reading this
+    # checkout instead of walking up from wherever the symlink on PATH resolved to.
+    HOME: "{{ HOME }}"
+    DOTFILES_DIR: "{{ role_path | dirname | dirname }}"
+    NO_COLOR: "1"
+  register: claude_kit_sync
+  # A dry run is the whole task under --check, so it must not be skipped there.
+  check_mode: false
+  changed_when: claude_kit_sync.stdout is not search(', 0 changes')
+
+# Worth seeing: this is the one task that deletes something nobody named, and its
+# report is the only place a prune or a missing artifact is explained.
+- name: Show what the global sync did
+  ansible.builtin.debug:
+    var: claude_kit_sync.stdout_lines
+  when: claude_kit_sync is changed or claude_kit_sync.stderr | length > 0
+
 - name: Symlink pi agent config
   ansible.builtin.file:
     src: "{{ role_path }}/files/{{ item }}"

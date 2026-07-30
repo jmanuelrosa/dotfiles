@@ -7,12 +7,12 @@ Installs and configures AI tooling: Claude Code, Gemini CLI, Pi (mariozechner), 
 - Installs gemini-cli, pi-coding-agent, and casks for ChatGPT/Claude/Claude Code/Cursor/CodexBar via `BREW_PACKAGES`.
 - Symlinks per-tool configs into `~/.claude/`, `~/.gemini/`, `~/.pi/agent/`.
 - Symlinks `files/claude/skills/` into `~/.pi/agent/skills/` so Claude skills are reusable from the Pi agent.
-- Symlinks the global skills and agents into `~/.claude/skills/` and `~/.claude/agents/` so they are available to Claude Code in every project without a per-project `add`, and **prunes** any link there that is no longer in the derived set. Those two directories are role-owned: what belongs in them is decided by the `global` group tag, not by where you ran a command from.
+- Runs `claude-kit sync`, which links every artifact tagged `global` into `~/.claude/skills/` and `~/.claude/agents/` so it is available to Claude Code in every project without a per-project `add`, and **unlinks** any link there that is no longer in the derived set. Those directories are role-owned: what belongs in them is decided by the `global` group tag, not by where you ran a command from. Under `make check` the task passes `--dry-run`, so a check reports what it would change without changing it.
 
 ## Vars
 
 - `BREW_PACKAGES` (defaults/main.yml) — taps (`steipete/tap`), formulas (gemini-cli, pi-coding-agent), casks (chatgpt, claude, claude-code, cursor, codexbar).
-- `GLOBAL_CLAUDE_SKILLS` / `GLOBAL_CLAUDE_AGENTS` are **not** vars you set: `tasks/main.yml` derives them from the `global` group tag in `skill-registry.json` and `agent-registry.json`. `GLOBAL_CLAUDE_SKILLS_EFFECTIVE` then expands the skills by one level of declared dependencies, which is why `~/.claude/skills/` holds more than the tagged set (`grilling` and `jira` arrive that way). Tag an entry `global` to add it; there is no list to maintain.
+- **There is no var for the global set, and nothing to maintain by hand.** `claude-kit sync` derives it from the `global` group tag in `skill-registry.json`, `agent-registry.json` and the plugin manifests, then expands the skills by one level of declared dependencies, which is why `~/.claude/skills/` holds more than the tagged set (`grilling` and `jira` arrive that way). Tag an entry `global` to add it. This role once derived the same set itself, in about 130 lines of Jinja; it is now one `command` task, because the tool already had to compute the set to answer "does this need `--global`?" and two copies of that rule drifted.
 
 ## Notes
 

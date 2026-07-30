@@ -34,11 +34,12 @@ identifies a link by its filename alone.
 
 ## `--type` is required
 
-Every command except `doctor` and `adopt` requires `--type skill|agent|plugin`. Nothing is
+Every command except `doctor`, `adopt` and `sync` requires `--type skill|agent|plugin`. Nothing is
 inferred from a name, so the three namespaces are allowed to overlap and a collision is a
-`doctor` note rather than an error. Those two take `--type` as an optional filter, because their
-result spans all three types: `doctor`'s cross-type checks cannot run inside a single type, and
-one `claude-kit.json` holds all three.
+`doctor` note rather than an error. Those three take `--type` as an optional filter, because their
+result spans all three types: `doctor`'s cross-type checks cannot run inside a single type, one
+`claude-kit.json` holds all three, and `sync` converges a directory that holds all three, so a
+required `--type` could only ever ask it for a partial job.
 
 ## Scope: the `global` tag decides, not your shell
 
@@ -63,6 +64,11 @@ without carrying the tag themselves. To check rather than guess, use
 `claude-kit list --type skill --group`, which prints `(global)` on every such entry. The flat
 listing does not, for the reason given under `list` below.
 
+`sync` is where that tag stops being advice and becomes the state of the machine: it links
+everything the tag reaches and unlinks everything it does not, so `~/.claude` holds exactly the
+derived set and nothing else. `--global` is how you write there deliberately; the tag is how you
+write there durably.
+
 `update` and `outdated` sit outside all of this. They rewrite the skill sources in this repo and
 touch no install, so neither scope applies and neither accepts `--global`.
 
@@ -70,12 +76,17 @@ touch no install, so neither scope applies and neither accepts `--global`.
 
 ## Commands
 
-The two families above are how `claude-kit -h` groups its listing:
+The families above are how `claude-kit -h` groups its listing:
 
 | Family | Commands | Acts on |
 |---|---|---|
 | Scope-aware | `add`, `remove`, `list`, `doctor`, `adopt` | a project's `.claude/`, or `~/.claude` with `--global` |
+| Global | `sync` | `~/.claude` alone, whatever the cwd |
 | Registry-wide | `update`, `outdated` | this repo's skill sources against upstream |
+
+`sync` gets a family of its own rather than joining the scope-aware set, because `~/.claude` is not
+one of two places it might act but the only one. `--global` is therefore not an option there, and
+listing it alongside `add` would imply a project-scoped run that does not exist.
 
 Each command's own `--help` repeats its scope in one sentence, so `claude-kit add --help` says
 where an install lands without a trip back here.
@@ -242,6 +253,66 @@ $ claude-kit remove --group planning --type skill
 ✨ Removed 2 of 5 skills tagged 'planning'
 ```
 
+### `sync`
+
+```
+claude-kit sync [--type {skill,agent,plugin}] [--dry-run]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--type` | Narrow to one type. Narrows both halves of the run, so a `--type agent` sync never reads a global skill as stale |
+| `--dry-run` | Show what would be linked and unlinked without touching anything |
+
+Makes `~/.claude` match what the registries say belongs there: links every artifact that is
+global, unlinks every one that no longer is. This is the command the `ai` role runs, and it
+replaces the derivation, symlink and prune block that commit `0624d1c` removed from
+`roles/ai/tasks/main.yml`.
+
+**It converges rather than installs**, which makes it the one command that deletes something you
+did not name. `~/.claude` is owned by the registries, so a hand-made change there is transient by
+design: removing a global link lasts until the next run, and so does `add --global` on an artifact
+that is not tagged `global`. To make either stick, change the tag.
+
+Three narrowings are what make deleting safe, and all three are tested:
+
+- **Only symlinks.** A real directory in `~/.claude/skills` is hand-authored content and is never
+  a candidate. Neither is a path where a real directory already sits under a name that belongs;
+  that is reported and left alone, and the run exits `1`.
+- **Only links into this repo's `files/claude/`.** A link pointing anywhere else is somebody
+  else's. This is also how a plugin is told apart from a skill, since both live in
+  `.claude/skills/`: the store the link resolves into decides, never the filename.
+- **Only when something is left.** If the derived set comes back empty while links exist, every
+  one of them is stale and the run would empty the directory. That is what a registry with its
+  `global` tags lost looks like, and it is indistinguishable from working correctly until Claude
+  Code loads no skills at all, so it refuses with `9` and touches nothing.
+
+Scope is not a question here: `sync` acts on `~/.claude` and only on `~/.claude`, from any cwd, so
+`--global` neither applies nor exists. Membership is the same tag-plus-dependencies rule described
+above, so `grilling` and `jira` are linked without carrying the tag themselves.
+
+A registered artifact missing from the repo is reported rather than linked, and the run exits `2`.
+The old Ansible used `force: true`, which never validated its target, so a registry typo became a
+symlink resolving nowhere while the play reported success.
+
+```
+$ claude-kit sync
+🔄 Syncing global artifacts in ~/.claude
+✓ Linked 'commit' (skill) into ~/.claude/skills
+✓ Linked 'grilling' (skill) into ~/.claude/skills
+✓ Unlinked 'prisma-expert' from ~/.claude/skills; it no longer belongs here
+✨ 20 global artifacts, 3 changes (2 linked, 0 relinked, 1 pruned)
+
+$ claude-kit sync
+🔄 Syncing global artifacts in ~/.claude
+✨ 20 global artifacts, 0 changes
+```
+
+Silent about what is already correct, because on a steady-state run that is everything and twenty
+lines saying nothing happened is what teaches you to skip the report. The `ai` role matches
+`, 0 changes` on that closing line to decide whether the task was `changed`, and a test pins the
+wording against the task.
+
 ### `update` and `outdated` (skills only)
 
 ```
@@ -327,7 +398,7 @@ Distinct so scripts can branch without matching message text.
 | Code | Name | Meaning |
 |---|---|---|
 | 0 | `OK` | success |
-| 1 | `USAGE` | missing or invalid `--type`, bad flags, an unsupported combination |
+| 1 | `USAGE` | missing or invalid `--type`, bad flags, an unsupported combination, or a real directory where a link belongs |
 | 2 | `NOT_FOUND` | no artifact of that type by that name, or registered but absent on disk |
 | 3 | `DEPENDENCY_ONLY` | named a skill that exists only to satisfy another |
 | 4 | `WRONG_SCOPE` | a global artifact named without `--global` |
@@ -335,7 +406,7 @@ Distinct so scripts can branch without matching message text.
 | 6 | `NO_PROJECT` | project-scoped, but cwd is `$HOME`, the one directory that is not a project |
 | 7 | `NOT_INSTALLED` | `remove` target absent |
 | 8 | `FETCH_FAILED` | `update` / `outdated` could not reach or read an upstream |
-| 9 | `DRIFT` | `doctor` found at least one problem |
+| 9 | `DRIFT` | `doctor` found at least one problem, or `sync` refused to prune every link in `~/.claude` |
 
 ## Environment
 
@@ -388,7 +459,25 @@ $ claude-kit add commit --type skill
   Run: claude-kit add commit --type skill --global
 
 $ claude-kit add commit --type skill --global
-✓ Linked 'commit' into /Users/you/.claude/skills
+✓ Linked 'commit' into ~/.claude/skills
+```
+
+**Provision every global artifact at once, which is what the `ai` role does.**
+
+```console
+$ claude-kit sync --dry-run
+🔄 Checking global artifacts in ~/.claude
+✓ Would link 'architect' (agent) into ~/.claude/agents
+✓ Would link 'commit' (skill) into ~/.claude/skills
+✓ Would unlink 'prisma-expert' from ~/.claude/skills; it no longer belongs here
+✨ 20 global artifacts, 3 changes (2 linked, 0 relinked, 1 pruned, dry run)
+
+$ claude-kit sync
+🔄 Syncing global artifacts in ~/.claude
+✓ Linked 'architect' (agent) into ~/.claude/agents
+✓ Linked 'commit' (skill) into ~/.claude/skills
+✓ Unlinked 'prisma-expert' from ~/.claude/skills; it no longer belongs here
+✨ 20 global artifacts, 3 changes (2 linked, 0 relinked, 1 pruned)
 ```
 
 **Install a plugin and its vendored skill.**
@@ -627,11 +716,21 @@ Yes. Each repo is fetched independently and a failure is reported per repo. The 
 a script can tell, but the reachable repos are already synced. A skill whose fetch failed is
 left exactly as it was, never half-written.
 
-**Where is `claude-kit sync`?**
-Not written yet. Commit `0624d1c` removed the `ai` role's block that symlinked global artifacts
-into `~/.claude` on the promise that `sync` would replace it, so **nothing currently provisions
-`~/.claude` automatically**. Until then, install global artifacts with
-`claude-kit add <name> --type <type> --global`.
+**`sync` deleted a link I made by hand. Why?**
+Because `~/.claude` is owned by the registries, not by whoever ran a command there last, and that
+is the property that lets `make run-role ROLE=ai` be re-runnable. A link is kept only while its
+artifact is tagged `global` or is reached as a dependency of one, so `add --global` on an untagged
+artifact lasts until the next sync and no longer. Tag it in its registry to keep it, or install it
+into the project that actually needs it.
+
+The reverse holds too: deleting a global link by hand is undone on the next run. To drop one for
+good, remove its `global` tag.
+
+**Can I still `add --global` then?**
+Yes, and it is the right move for a one-off: trying something out in every project for an
+afternoon, or reaching for an artifact you have not decided to keep. Just know it is a scratch
+change. Anything you want on the machine permanently belongs behind the tag, which is the only
+durable statement about what `~/.claude` holds.
 
 **Why does `list` look exactly like `claude-skill list`?**
 Because they are often used in the same terminal, and two similar-but-different layouts for the
