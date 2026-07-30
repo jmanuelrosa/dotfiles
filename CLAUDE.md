@@ -43,7 +43,7 @@ roles/<name>/
 └── templates/          # jinja2 (when needed)
 ```
 
-`roles/apps/` further splits installs across `tasks/{browsers,development,editors,infrastructure,system}.yml`, all included from `tasks/main.yml`.
+`roles/apps/` further splits installs across `tasks/{development,editors,infrastructure,system}.yml`, all included from `tasks/main.yml`.
 
 ### Homebrew is per-role
 
