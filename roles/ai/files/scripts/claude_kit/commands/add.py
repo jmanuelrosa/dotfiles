@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .. import catalog as cat
-from .. import errors, paths, scope, state
+from .. import errors, paths, scope, state, ui
 from ..cli import fail
 
 
@@ -161,6 +161,22 @@ def plan(catalog, effective, kind, name, want_global, home, project, provenance)
     return result
 
 
+def expand_group(catalog, kind, tag, want_global, effective):
+    """The members of `tag` belonging in the selected scope, and the rest. Pure.
+
+    Returns (members, elsewhere) as name lists. A tag is a filter rather than a name,
+    so a member that belongs in the other scope is set aside instead of refused:
+    --global picks which half of the tag to act on, and nothing reaches ~/.claude
+    without it. Refusing instead would make WRONG_SCOPE the normal outcome of adding
+    a group, since most tags straddle both scopes.
+    """
+    members, elsewhere = [], []
+    for art in cat.in_group(catalog, kind, tag):
+        here = scope.belongs_global(art, effective) == bool(want_global)
+        (members if here else elsewhere).append(art.name)
+    return members, elsewhere
+
+
 def provenance_entries(plan_):
     """Provenance to record for a plan. Project-scoped installs only.
 
@@ -189,25 +205,49 @@ def apply(plan_, home, project):
 
 def _report(plan_, linked):
     for warning in plan_.warnings:
-        print(f"⚠ {warning}")
+        ui.warn(warning)
     for step, destination in linked:
         if step.is_dependency:
-            print(f"✓ Linked '{step.artifact.name}' into {destination.parent}  (required by {step.required_by})")
+            ui.ok(
+                f"Linked '{step.artifact.name}' into {ui.path(destination.parent)}"
+                f"  (required by {step.required_by})"
+            )
         else:
-            print(f"✓ Linked '{step.artifact.name}' into {destination.parent}")
+            ui.ok(f"Linked '{step.artifact.name}' into {ui.path(destination.parent)}")
     for step in plan_.upgrades:
-        print(f"  Recorded '{step.artifact.name}' as required by {step.required_by}; it was already installed.")
+        ui.note(
+            f"Recorded '{step.artifact.name}' as required by {step.required_by}; "
+            f"it was already installed."
+        )
     for step in plan_.promotions:
-        print(
-            f"✓ '{step.artifact.name}' was already installed as a dependency and is "
+        ui.ok(
+            f"'{step.artifact.name}' was already installed as a dependency and is "
             f"now marked as wanted in its own right; removing its parent will keep it."
         )
     named = plan_.steps[-1].artifact if plan_.steps else None
     if named is not None and named.type == cat.PLUGIN:
-        print(
-            f"  Restart Claude Code from the project root to load "
+        ui.note(
+            f"Restart Claude Code from the project root to load "
             f"'{named.name}@skills-dir'; the workspace must be trusted."
         )
+
+
+def _report_group(kind, tag, want_global, elsewhere, tally):
+    """The asides and the one closing summary of a --group run.
+
+    Each aside names what it skipped, and the summary counts what happened, so
+    neither repeats the other. Already-installed members are summarised here rather
+    than reported one by one: on the second run of a group that is every member.
+    """
+    if tally["already"]:
+        ui.note(f"Already installed: {ui.names_or_count(tally['already'], kind)}")
+    if elsewhere:
+        half = "project" if want_global else "global"
+        flag = "" if want_global else " --global"
+        ui.note(f"The {half} half of '{tag}' is untouched: {ui.names_or_count(elsewhere, kind)}")
+        ui.note(f"Install that half with: claude-kit add --type {kind} --group {tag}{flag}")
+    suffix = f" ({len(tally['failed'])} failed)" if tally["failed"] else ""
+    ui.done(f"Linked {tally['linked']} of {tally['total']} {kind}s tagged '{tag}'{suffix}")
 
 
 def run(args):
@@ -217,17 +257,56 @@ def run(args):
     effective = scope.global_set(catalog)
     project = scope.project_root(Path.cwd(), home)
 
+    names, elsewhere = list(args.names), []
+    grouped = args.group is not None
+    if grouped:
+        if names:
+            return fail(
+                errors.USAGE,
+                f"--group names a set to act on, so it takes no names of its own. "
+                f"Run it alone, then: claude-kit add {' '.join(names)} --type {args.type}",
+            )
+        # Checked once here rather than per member: every member would otherwise
+        # refuse with the same message, and none of them is the one at fault.
+        if not args.want_global and project is None:
+            return fail(
+                errors.NO_PROJECT,
+                f"A group is project-scoped unless --global says otherwise, and $HOME "
+                f"is the one directory that cannot be a project: its .claude is "
+                f"~/.claude, so this would install globally without saying so.\n"
+                f"  cd into any other directory, or: claude-kit add --type {args.type} "
+                f"--group {args.group} --global",
+            )
+        names, elsewhere = expand_group(catalog, args.type, args.group, args.want_global, effective)
+        if not names and not elsewhere:
+            return fail(
+                errors.NOT_FOUND,
+                f"No {args.type} carries the tag '{args.group}'.\n"
+                f"  Run: claude-kit list --type {args.type} --group",
+            )
+    elif not names:
+        return fail(errors.USAGE, f"Name at least one {args.type}, or pass --group TAG.")
+
+    tally = {"total": len(names) + len(elsewhere), "linked": 0, "already": [], "failed": []}
+
     # Continue past a failure so one bad name in a batch does not strand the rest,
     # then exit with the first failure's code. A single code cannot describe
     # several outcomes, so the per-name report carries the detail.
     first_failure = errors.OK
-    for name in args.names:
+    for name in names:
         provenance = state.read(project)
         plan_ = plan(
             catalog, effective, args.type, name, args.want_global, home, project, provenance
         )
         if plan_.refused:
+            # A tag describes a set to converge on, not a list of names somebody
+            # typed, so a member that is already there is the steady state rather
+            # than a refusal. Every other code still fails, and still sets the exit.
+            if grouped and plan_.code == errors.ALREADY:
+                tally["already"].append(name)
+                continue
             fail(plan_.code, plan_.message)
+            tally["failed"].append(name)
             if first_failure == errors.OK:
                 first_failure = plan_.code
             continue
@@ -236,4 +315,8 @@ def run(args):
         if entries:
             state.record(project, entries)
         _report(plan_, linked)
+        tally["linked"] += 1
+
+    if grouped:
+        _report_group(args.type, args.group, args.want_global, elsewhere, tally)
     return first_failure

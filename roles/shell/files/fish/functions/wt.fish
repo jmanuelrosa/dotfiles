@@ -14,7 +14,7 @@ function wt --description "Git worktree workflow helper: add, list, remove, prun
     case '' help -h --help
       _wt_help
     case '*'
-      echo "wt: unknown subcommand '$sub'" >&2
+      _ui err "wt: unknown subcommand '$sub'"
       _wt_help >&2
       return 1
   end
@@ -56,13 +56,13 @@ function _wt_add
 
   set -l dir $argv[1]
   if test -z "$dir"
-    echo "wt add: missing directory name" >&2
+    _ui err "wt add: missing directory name"
     echo "Usage: wt add [-b <branch>] [-h/--herdr] [-f/--focus] <dir>" >&2
     return 1
   end
 
   if not git rev-parse --git-dir >/dev/null 2>&1
-    echo "wt: not inside a git repository" >&2
+    _ui err "wt: not inside a git repository"
     return 1
   end
 
@@ -76,7 +76,7 @@ function _wt_add
   set -l target "$parent_dir/$dir"
 
   if test -e $target
-    echo "wt add: target already exists: $target" >&2
+    _ui err "wt add: target already exists: "(_ui path $target)
     return 1
   end
 
@@ -94,28 +94,28 @@ function _wt_add
   end
 
   if git show-ref --verify --quiet refs/heads/$branch
-    echo "→ Checking out existing branch '$branch' into $dir/"
+    _ui step "Checking out existing branch '$branch' into $dir/"
     git worktree add $target $branch; or return 1
   else if git show-ref --verify --quiet refs/remotes/origin/$branch
-    echo "→ Creating local branch '$branch' tracking origin/$branch into $dir/"
+    _ui step "Creating local branch '$branch' tracking origin/$branch into $dir/"
     git worktree add -b $branch $target origin/$branch; or return 1
   else
-    echo "→ Creating new branch '$branch' from '$base' into $dir/"
+    _ui step "Creating new branch '$branch' from '$base' into $dir/"
     git worktree add -b $branch $target $base; or return 1
   end
 
   for envfile in (command find $main_wt -maxdepth 1 -type f -name '.env*' 2>/dev/null)
-    echo "→ Copying "(basename $envfile)
+    _ui step "Copying "(basename $envfile)
     cp $envfile $target/
   end
 
   if test -d $main_wt/.vscode
-    echo "→ Copying .vscode/"
+    _ui step "Copying .vscode/"
     cp -R $main_wt/.vscode $target/
   end
 
   if test -d $main_wt/.claude
-    echo "→ Copying .claude/"
+    _ui step "Copying .claude/"
     cp -R $main_wt/.claude $target/
   end
 
@@ -123,16 +123,16 @@ function _wt_add
   cd $target
 
   if test -f pnpm-lock.yaml
-    echo "→ pnpm install --frozen-lockfile"
+    _ui step "pnpm install --frozen-lockfile"
     pnpm install --frozen-lockfile
   else if test -f bun.lock; or test -f bun.lockb
-    echo "→ bun install --frozen-lockfile"
+    _ui step "bun install --frozen-lockfile"
     bun install --frozen-lockfile
   else if test -f package-lock.json
-    echo "→ npm ci"
+    _ui step "npm ci"
     npm ci
   else if test -f yarn.lock
-    echo "→ yarn install --frozen-lockfile"
+    _ui step "yarn install --frozen-lockfile"
     yarn install --frozen-lockfile
   end
 
@@ -143,14 +143,16 @@ function _wt_add
 
   if set -q _flag_herdr
     if _wt_in_herdr
-      echo "→ Opening worktree in herdr"
+      _ui step "Opening worktree in herdr"
       if not herdr worktree open --path $target --label $branch $focus_arg
-        echo "wt: herdr worktree open failed (worktree created regardless)" >&2
+        _ui err "wt: herdr worktree open failed (the worktree was created regardless)"
       end
     else
-      echo "wt: --herdr ignored (not inside a herdr session)" >&2
+      _ui warn "wt: --herdr ignored (not inside a herdr session)"
     end
   end
+
+  _ui done "Worktree '$branch' ready at "(_ui path $target)
 
   if not set -q _flag_focus
     cd $prev_dir
@@ -163,7 +165,7 @@ function _wt_remove
 
   set -l target $argv[1]
   if test -z "$target"
-    echo "wt remove: missing worktree name or path" >&2
+    _ui err "wt remove: missing worktree name or path"
     return 1
   end
 
@@ -199,7 +201,7 @@ function _wt_remove
         set ws_id (_wt_herdr_workspace_id $resolved)
       end
     else
-      echo "wt: --herdr ignored (not inside a herdr session)" >&2
+      _ui warn "wt: --herdr ignored (not inside a herdr session)"
     end
   end
 
@@ -207,9 +209,11 @@ function _wt_remove
   or return $status
 
   if test -n "$ws_id"
-    echo "→ Closing herdr workspace $ws_id"
+    _ui step "Closing herdr workspace $ws_id"
     if not herdr workspace close $ws_id
-      echo "wt: herdr workspace close failed (worktree removed regardless)" >&2
+      _ui err "wt: herdr workspace close failed (the worktree was removed regardless)"
     end
   end
+
+  _ui done "Removed worktree "(_ui path $remove_arg)
 end

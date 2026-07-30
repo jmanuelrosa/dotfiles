@@ -5,15 +5,13 @@ function claude-skill --description "Manage Claude Code skills for the current p
     # No single skills_target: the `global` tag decides scope per skill, so every
     # call site resolves its own via _claude_scope_target.
 
-    set -l c_green (set_color green)
-    set -l c_yellow (set_color yellow)
-    set -l c_red (set_color red)
-    set -l c_blue (set_color blue)
-    set -l c_magenta (set_color magenta)
-    set -l c_cyan (set_color cyan)
-    set -l c_dim (set_color brblack)
-    set -l c_bold (set_color --bold)
-    set -l c_reset (set_color normal)
+    # Rows are assembled by hand rather than through `_ui`, because a row is a name
+    # plus up to three suffixes and only its glyph is coloured. The palette is the
+    # shared one all the same, so colour switches off when stdout is not a terminal.
+    set -l c_green (_ui color green)
+    set -l c_dim (_ui color dim)
+    set -l c_cyan (_ui color cyan)
+    set -l c_reset (_ui color reset)
 
     if test (count $argv) -lt 1
         echo "Usage: claude-skill <list|add|remove|update|outdated> [--group] [name]..."
@@ -33,12 +31,12 @@ function claude-skill --description "Manage Claude Code skills for the current p
     end
 
     if not command -q jq
-        echo "$c_magenta✗$c_reset Error: jq is required. Install with: brew install jq"
+        _ui err "jq is required. Install it with: brew install jq"
         return 1
     end
 
     if not test -f "$registry"
-        echo "$c_magenta✗$c_reset Error: Registry not found at $registry"
+        _ui err "Registry not found at $registry"
         return 1
     end
 
@@ -49,7 +47,7 @@ function claude-skill --description "Manage Claude Code skills for the current p
     switch $cmd
         case list
             if test "$use_group" = true
-                echo $c_bold"Available groups:"$c_reset
+                _ui title "📚 Available groups:"
 
                 set -l prog (_claude_skill_jqlib)' [ visibleskills[] | .groups[]? ] | unique | .[]'
                 set -l groups (jq -r $prog $registry)
@@ -75,7 +73,7 @@ function claude-skill --description "Manage Claude Code skills for the current p
                     end
                 end
             else
-                echo $c_bold"Available skills:"$c_reset
+                _ui title "🧩 Available skills:"
                 set -l seen_skills
 
                 if test -d "$skills_source"
@@ -127,7 +125,7 @@ function claude-skill --description "Manage Claude Code skills for the current p
                     set -l group_skills (jq -r --arg g "$name" $prog $registry | sort -u)
 
                     if test (count $group_skills) -eq 0
-                        echo "$c_magenta✗$c_reset Group '$name' not found. Run 'claude-skill list --group' to see available groups."
+                        _ui err "Group '$name' not found. Run 'claude-skill list --group' to see available groups."
                         continue
                     end
 
@@ -155,12 +153,12 @@ function claude-skill --description "Manage Claude Code skills for the current p
                             set count (math $count + 1)
                         end
                     end
-                    echo "$c_green✓$c_reset Linked $count skills for group '$name'"
+                    _ui ok "Linked $count skills for group '$name'"
                 end
             else
                 for name in $names
                     if _claude_skill_is_hidden $registry $name
-                        echo "$c_magenta✗$c_reset '$name' is a dependency-only skill (installed automatically with the skill that requires it). Add the parent skill instead."
+                        _ui err "'$name' is a dependency-only skill (installed automatically with the skill that requires it). Add the parent skill instead."
                         continue
                     end
                     # Resolve per dependency, not once for the parent: a project-scoped
@@ -193,7 +191,7 @@ function claude-skill --description "Manage Claude Code skills for the current p
                     set -l group_skills (jq -r --arg g "$name" $prog $registry | sort -u)
 
                     if test (count $group_skills) -eq 0
-                        echo "$c_magenta✗$c_reset Group '$name' not found. Run 'claude-skill list --group' to see available groups."
+                        _ui err "Group '$name' not found. Run 'claude-skill list --group' to see available groups."
                         continue
                     end
 
@@ -207,11 +205,11 @@ function claude-skill --description "Manage Claude Code skills for the current p
                             _claude_scope_is_global skill $sname; and set global_hit 1
                         end
                     end
-                    echo "$c_green✓$c_reset Removed $count skills from group '$name'"
+                    _ui ok "Removed $count skills from group '$name'"
                     if test $global_hit -eq 1
-                        echo "  $c_yellow⚠$c_reset Some were global links in ~/.claude, which the ai role owns."
-                        echo "  $c_dim""'make run-role ROLE=ai' restores them. To drop one for good, remove its"
-                        echo "  'global' tag from skill-registry.json.$c_reset"
+                        _ui -i 2 warn "Some were global links in ~/.claude, which the ai role owns."
+                        _ui note "'make run-role ROLE=ai' restores them. To drop one for good, remove its"
+                        _ui note "'global' tag from skill-registry.json."
                     end
                 end
             else
@@ -222,18 +220,18 @@ function claude-skill --description "Manage Claude Code skills for the current p
                         continue
                     end
                     if not test -L "$target/$name"
-                        echo "$c_yellow⚠$c_reset Skill '$name' is not linked in $target/."
+                        _ui warn "Skill '$name' is not linked in "(_ui path $target)"/."
                         continue
                     end
                     if not command rm "$target/$name" 2>/dev/null
-                        echo "$c_magenta✗$c_reset Failed to remove '$name' from $target/: permission denied. Run this outside the sandbox."
+                        _ui err "Failed to remove '$name' from "(_ui path $target)"/: permission denied. Run this outside the sandbox."
                         continue
                     end
-                    echo "$c_green✓$c_reset Removed '$name' from $target/"
+                    _ui ok "Removed '$name' from "(_ui path $target)"/"
                     if _claude_scope_is_global skill $name
-                        echo "  $c_yellow⚠$c_reset That was a global link in ~/.claude, which the ai role owns."
-                        echo "  $c_dim""'make run-role ROLE=ai' restores it. To drop it for good, remove its"
-                        echo "  'global' tag from skill-registry.json.$c_reset"
+                        _ui -i 2 warn "That was a global link in ~/.claude, which the ai role owns."
+                        _ui note "'make run-role ROLE=ai' restores it. To drop it for good, remove its"
+                        _ui note "'global' tag from skill-registry.json."
                     end
                 end
             end
@@ -271,25 +269,27 @@ function _claude_skill_update --description "Sync (or check) skills against upst
         set mode sync
     end
 
-    set -l c_green (set_color green)
-    set -l c_yellow (set_color yellow)
-    set -l c_red (set_color red)
-    set -l c_blue (set_color blue)
-    set -l c_magenta (set_color magenta)
-    set -l c_cyan (set_color cyan)
-    set -l c_dim (set_color brblack)
-    set -l c_bold (set_color --bold)
-    set -l c_reset (set_color normal)
+    # Same reasoning as in claude-skill: a sync row is a glyph, a name, a coloured
+    # label and a dim parenthetical, so it is composed rather than printed by `_ui`.
+    set -l c_green (_ui color green)
+    set -l c_yellow (_ui color yellow)
+    set -l c_red (_ui color red)
+    set -l c_blue (_ui color blue)
+    set -l c_magenta (_ui color magenta)
+    set -l c_cyan (_ui color cyan)
+    set -l c_dim (_ui color dim)
+    set -l c_bold (_ui color bold)
+    set -l c_reset (_ui color reset)
 
     set -l exclude_args --exclude=.git --exclude=.github --exclude=node_modules
 
     if not command -q jq
-        echo "$c_magenta✗$c_reset Error: jq is required. Install with: brew install jq"
+        _ui err "jq is required. Install it with: brew install jq"
         return 1
     end
 
     if not test -f "$registry"
-        echo "$c_magenta✗$c_reset Error: Registry not found at $registry"
+        _ui err "Registry not found at $registry"
         return 1
     end
 
@@ -303,11 +303,11 @@ function _claude_skill_update --description "Sync (or check) skills against upst
                 [.local_skills[]? | select(.name == $skill)] | length
             ' $registry)
             if test "$is_local" != "0"
-                echo "$c_yellow⚠$c_reset '$target_skill' is a local skill; no upstream to sync."
+                _ui warn "'$target_skill' is a local skill; no upstream to sync."
                 return 0
             end
-            echo "$c_magenta✗$c_reset Skill '$target_skill' not found in registry."
-            echo "Tracked skills:"
+            _ui err "Skill '$target_skill' not found in registry."
+            _ui title "🧩 Tracked skills:"
             set -l prog (_claude_skill_jqlib)' allskills | map(select(.repo != null)) | .[].name'
             jq -r $prog $registry | sort | sed 's/^/  /'
             return 1
@@ -324,9 +324,9 @@ function _claude_skill_update --description "Sync (or check) skills against upst
     set -l n_repos (count $repos)
 
     if test "$mode" = check
-        echo $c_bold"Checking $n_repos repo(s) for updates..."$c_reset
+        _ui title "🔎 Checking $n_repos repo(s) for updates..."
     else
-        echo $c_bold"Syncing from $n_repos repo(s)..."$c_reset
+        _ui title "🔄 Syncing from $n_repos repo(s)..."
     end
     echo ""
 
@@ -417,14 +417,14 @@ function _claude_skill_update --description "Sync (or check) skills against upst
     rm -rf "$tmpdir"
 
     if test "$mode" = check
-        printf '%sDone:%s %s%d%s behind, %s%d%s up-to-date, %s%d%s not downloaded, %s%d%s failed\n' \
+        printf '✨ %sDone:%s %s%d%s behind, %s%d%s up-to-date, %s%d%s not downloaded, %s%d%s failed\n' \
             $c_bold $c_reset \
             $c_red $updated $c_reset \
             $c_green $skipped $c_reset \
             $c_yellow $missing $c_reset \
             $c_magenta $failed $c_reset
     else
-        printf '%sDone:%s %s%d%s updated, %s%d%s up-to-date, %s%d%s failed\n' \
+        printf '✨ %sDone:%s %s%d%s updated, %s%d%s up-to-date, %s%d%s failed\n' \
             $c_bold $c_reset \
             $c_blue $updated $c_reset \
             $c_green $skipped $c_reset \
@@ -437,12 +437,12 @@ function _claude_skill_check_collisions --description "Fail if two skills resolv
     set -l prog (_claude_skill_jqlib)' [allskills | .[].name] | group_by(.) | map(select(length > 1) | .[0]) | .[]'
     set -l dups (jq -r $prog $registry)
     if test -n "$dups"
-        echo (set_color magenta)"✗ Skill name collision(s) detected:"(set_color normal)
+        _ui err "Skill name collision(s) detected:"
         for d in $dups
-            echo "  $d"
+            _ui item $d
         end
-        echo "  Two skills derive to the same directory name (basename of upstream_path, or repo name for root skills)."
-        echo "  Resolve in $registry before continuing."
+        _ui note "Two skills derive to the same directory name (basename of upstream_path, or repo name for root skills)."
+        _ui note "Resolve in "(_ui path $registry)" before continuing."
         return 1
     end
     return 0
@@ -523,40 +523,37 @@ function _claude_skill_ensure_linked --description "Ensure a skill is on disk (d
     set -l name $argv[5]
     set -l label $argv[6]
 
-    set -l c_green (set_color green)
-    set -l c_magenta (set_color magenta)
-    set -l c_cyan (set_color cyan)
-    set -l c_dim (set_color brblack)
-    set -l c_reset (set_color normal)
+    set -l c_dim (_ui color dim)
+    set -l c_reset (_ui color reset)
 
     if not test -d "$skills_source/$name"
         set -l prog (_claude_skill_jqlib)' [ allskills | .[] | select(.repo != null and .name == $n) | .name ] | .[0] // empty'
         set -l in_registry (jq -r --arg n "$name" $prog $registry)
         if test -n "$in_registry"
-            echo "$c_cyan↓$c_reset Skill '$name' not downloaded. Pulling from registry..."
+            _ui step "Skill '$name' not downloaded. Pulling from registry..."
             _claude_skill_update $registry $base_dir $name
             if not test -d "$skills_source/$name"
-                echo "$c_magenta✗$c_reset Failed to download '$name'."
+                _ui err "Failed to download '$name'."
                 return 1
             end
         else
-            echo "$c_magenta✗$c_reset Skill '$name' not found. Run 'claude-skill list' to see available skills."
+            _ui err "Skill '$name' not found. Run 'claude-skill list' to see available skills."
             return 1
         end
     end
 
     if not mkdir -p $skills_target 2>/dev/null
-        echo "$c_magenta✗$c_reset Cannot create $skills_target/: permission denied. Run this outside the sandbox."
+        _ui err "Cannot create "(_ui path $skills_target)"/: permission denied. Run this outside the sandbox."
         return 1
     end
     if not ln -sfn "$skills_source/$name" "$skills_target/$name" 2>/dev/null; or not test -L "$skills_target/$name"
-        echo "$c_magenta✗$c_reset Failed to link '$name' into $skills_target/: permission denied. Run this outside the sandbox."
+        _ui err "Failed to link '$name' into "(_ui path $skills_target)"/: permission denied. Run this outside the sandbox."
         return 1
     end
     if test -n "$label"
-        echo "$c_green✓$c_reset Linked '$name' $c_dim($label)$c_reset into $skills_target/"
+        _ui ok "Linked '$name' $c_dim($label)$c_reset into "(_ui path $skills_target)"/"
     else
-        echo "$c_green✓$c_reset Linked '$name' into $skills_target/"
+        _ui ok "Linked '$name' into "(_ui path $skills_target)"/"
     end
     return 0
 end

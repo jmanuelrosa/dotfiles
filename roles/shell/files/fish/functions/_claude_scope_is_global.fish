@@ -20,7 +20,7 @@ function _claude_scope_is_global --description "Exit 0 if a claude skill, agent,
             contains -- $name (_claude_scope_global_skills)
 
         case '*'
-            echo "_claude_scope_is_global: kind must be 'skill', 'agent', or 'plugin'" >&2
+            _ui err "_claude_scope_is_global: kind must be 'skill', 'agent', or 'plugin'"
             return 2
     end
 end

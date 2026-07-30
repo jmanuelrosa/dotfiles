@@ -20,7 +20,7 @@ function _tv_claude_list --description "Television source: list claude skills or
             set registry $DOTFILES_DIR/roles/ai/files/claude/agent-registry.json
             set ext .md
         case '*'
-            echo "_tv_claude_list: kind must be 'skill' or 'agent'" >&2
+            _ui err "_tv_claude_list: kind must be 'skill' or 'agent'"
             return 1
     end
 
@@ -136,7 +136,7 @@ function _tv_claude_list --description "Television source: list claude skills or
                 end
             end | sort
         case '*'
-            echo "_tv_claude_list: filter must be 'linked', 'available', 'noglobal', or empty" >&2
+            _ui err "_tv_claude_list: filter must be 'linked', 'available', 'noglobal', or empty"
             return 1
     end
 end

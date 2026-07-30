@@ -1,12 +1,17 @@
 """`claude-kit list`.
 
 Output follows `claude-skill list` exactly: same header, markers, colours and suffix
-order, so the two are indistinguishable side by side. Palette in colors.py.
+order, so the two are indistinguishable side by side. Palette in colors.py, line
+vocabulary in ui.py, and test_list_format diffs the two implementations byte for byte,
+so a header changed here has to change in claude-skill.fish in the same commit.
 
-    Available skills:
+    🧩 Available skills:
       ✓ coderabbit (linked) [productivity, review, workflow]
       · cc-review [ai, claude, global, prompt engineering] (needs: skill-writer)
       ↓ never-fetched (not downloaded) [engineering]
+
+The emoji sits on the heading and nowhere else: rows carry a status glyph, which is
+single-width and keeps the suffix columns aligned.
 
 Read-only, so it never refuses for want of a project: in $HOME, the one directory that
 is not one, it reports global state and says so.
@@ -15,16 +20,18 @@ is not one, it reports global state and says so.
 from pathlib import Path
 
 from .. import catalog as cat
-from .. import colors, errors, paths, scope, state
+from .. import colors, errors, paths, scope, state, ui
 
 LINKED = "linked"
 AVAILABLE = "available"
 MISSING = "missing"
 
+GROUPS_HEADER = "📚 Available groups:"
+
 HEADER = {
-    cat.SKILL: "Available skills:",
-    cat.AGENT: "Available agents:",
-    cat.PLUGIN: "Available plugins:",
+    cat.SKILL: "🧩 Available skills:",
+    cat.AGENT: "🤖 Available agents:",
+    cat.PLUGIN: "🔌 Available plugins:",
 }
 
 
@@ -39,11 +46,9 @@ def rows(catalog, kind, effective, home, project, provenance, group=None, claude
     registry, which puts the two states in separate alphabetical runs.
     """
     present, absent = [], []
-    for art in cat.of_type(catalog, kind):
-        # A dependency-only skill cannot be added directly, so offering it here would be
-        # an invitation to a refusal.
-        if art.dependency_only:
-            continue
+    # cat.visible drops the dependency-only skills: offering one here would be an
+    # invitation to a refusal, since it cannot be added directly.
+    for art in cat.visible(catalog, kind):
         if isinstance(group, str) and group not in art.groups:
             continue
 
@@ -133,28 +138,32 @@ def run(args):
     listed = rows(catalog, args.type, effective, home, project, provenance, args.group, claude)
 
     if project is None:
-        print("Running in $HOME, which is never a project, so only global state is shown.")
+        ui.note(
+            "Running in $HOME, which is never a project, so only global state is shown.",
+            indent=0,
+        )
 
     if args.group is True:
         # `--group` with no tag: the grouped view, as in `claude-skill list --group`.
-        print(colors.paint("Available groups:", "bold"))
+        ui.title(GROUPS_HEADER)
         for tag, members in grouped(listed):
             print(f"  {colors.paint(tag + ':', 'cyan')}")
             for row in members:
                 print(format_row(row, indent="    ", show_groups=False))
         return errors.OK
 
-    print(colors.paint(HEADER[args.type], "bold"))
+    ui.title(HEADER[args.type])
     for row in listed:
         print(format_row(row))
 
-    visible = [a for a in cat.of_type(catalog, args.type) if not a.dependency_only]
+    visible = cat.visible(catalog, args.type)
     installed = sum(1 for row in listed if row["installed"])
+    ui.blank()
     if isinstance(args.group, str):
-        print(
-            f"\n{len(listed)} of {len(visible)} {args.type}s tagged "
+        ui.done(
+            f"{len(listed)} of {len(visible)} {args.type}s tagged "
             f"'{args.group}', {installed} installed"
         )
     else:
-        print(f"\n{len(listed)} {args.type}s, {installed} installed")
+        ui.done(f"{len(listed)} {args.type}s, {installed} installed")
     return errors.OK

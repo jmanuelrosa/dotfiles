@@ -26,7 +26,7 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 
 ## Files
 
-- `files/fish/` — `config.fish`, `conf.d/{aliases,exports}.fish`, plus functions: `clean_claude` (+ `_clean_claude_{usage,excludes,find,confirm,tracked,purge_state,state_roots,worktree_main,pretty}`), `clean_docker`, `clean_node`, `create_gitconfig`, `claude-skill`, `claude-mcp`, `claude-agent`, `_tv_claude_list`, `_tv_claude_toggle`, `tv_change_dir`. (Work-only helpers like `_tv_jira` live in the `work` role.)
+- `files/fish/` — `config.fish`, `conf.d/{aliases,exports}.fish`, plus functions: `clean_claude` (+ `_clean_claude_{usage,excludes,find,confirm,tracked,purge_state,state_roots,worktree_main,pretty}`), `clean_docker`, `clean_node`, `create_gitconfig`, `claude-skill`, `claude-agent`, `_tv_claude_list`, `_tv_claude_toggle`, `tv_change_dir`. (Work-only helpers like `_tv_jira` live in the `work` role.)
 - `files/ghostty/config` — Ghostty terminal config.
 - `files/starship.toml` — Starship prompt config.
 - `files/television/config.toml` — top-level television config (keybindings, theme, shell-integration channel triggers).
@@ -36,10 +36,30 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 
 - `templates/secrets.fish.j2` — exports `NPM_TOKEN` from vault. Mode 0600.
 
+## Output style
+
+Every fish function here prints through `_ui`, the shared line vocabulary in [`files/fish/functions/_ui.fish`](files/fish/functions/_ui.fish). It is one style expressed twice: `claude_kit/ui.py` is the python half, and a differential test renders every kind through both and compares the bytes, so the two cannot drift.
+
+```fish
+_ui title "🧹 Removing Claude artifacts"   # bold; the only line kind that takes a topic emoji
+_ui step  "Fetching upstream"              # cyan →
+_ui ok    "Linked 'commit'"                # green ✓
+_ui warn  "3 were git-tracked"             # yellow ⚠
+_ui err   "Not a directory"                # magenta ✗, to stderr
+_ui item  "~/dev/api/.claude"              # dim ·, indented 2
+_ui note  "restore with make run-role"     # dim aside, indented 2
+_ui done  "Removed 3 of 3"                 # ✨ closing summary
+```
+
+`-i N` overrides the indent (before the kind: `_ui -i 4 ok "…"`). Three helpers compose instead of printing: `_ui color cyan` yields the escape alone, `_ui paint cyan "text"` wraps and resets it, and `_ui path ~/dev/api` collapses `$HOME` back to `~`. Status is always a narrow coloured glyph and an emoji only ever appears on a `title` or a `done`, because a double-width marker knocks every following column out of alignment; the full rationale is in the repo `CLAUDE.md`.
+
+Unlike a bare `set_color`, `_ui` decides colour per stream: `NO_COLOR` beats `FORCE_COLOR` beats the tty check, so piping any of these commands into a file gives plain text.
+
+Two things stay outside the vocabulary on purpose. A **row** in `claude-skill list` (a name plus coloured suffixes) is composed by hand from `_ui color`, because only its glyph is coloured. And **Television cable rows** (`_tv_claude_fmt`) are fixed-width columns a picker lays out and filters, not lines a human reads.
+
 ## Custom fish commands worth knowing
 
-- `claude-skill {list|add|remove|outdated|update}` and `claude-agent …` — project-scoped management of Claude Code skills and agents.
-- `claude-mcp` — wrapper for the Claude MCP CLI.
+- `claude-skill {list|add|remove|outdated|update}` and `claude-agent …` — project-scoped management of Claude Code skills and agents. Reference-only: `claude-kit` is the supported CLI, and the television cables now drive it rather than these.
 - `clean_claude [MODE] [ROOT] [--dry-run] [--exclude PATTERN] [--include PATTERN]` — one recursive cleaner with four modes, always walking `ROOT` (default: cwd) and everything below it with `fd`.
   - `project` (the default, alias `clean:claude`) removes every `.claude` in the tree, then purges Claude Code's stored state for the tree.
     State is scoped from the two real stores, not from `.claude` presence, because a project keeps transcripts and a `~/.claude.json` entry long after its `.claude` is gone: one `claude project purge --yes ROOT` call sweeps transcripts, tasks, file history and `history.jsonl` for the whole tree (the CLI prefix-matches those at path-segment boundaries), then one exact call per `~/.claude.json` project at or below `ROOT` removes its config entry (those are matched exactly, never by prefix, so subprojects would otherwise keep their trust and MCP servers).
@@ -48,8 +68,10 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
   - `skills` / `agents` (aliases `clean:claude:skills`, `clean:claude:agents`) remove just `.claude/skills` or `.claude/agents` at every level and leave the rest of each `.claude` alone.
   - `purge` (alias `clean:claude:purge`) is the machine-wide nuke: every `.claude` under `$HOME` **plus** `~/.claude` itself, plus `claude project purge --all --yes`.
   Every mode takes `--dry-run`, which lists the exact directories and pipes `--dry-run` through to the `claude` CLI so you see the real state plan before committing.
-- `clean_claude` never touches a `.claude` inside a dependency, cache, build or app-owned tree: `node_modules`, `packages`, `apps`, `deps`, `vendor`, `Pods`, `dist`, `build`, `target`, `.next`, `.venv`, `~/Library`, the bun/npm/yarn/cargo/gradle caches, `.git`, and friends (see `_clean_claude_excludes`).
-  Add names for one run with `--exclude`, permanently via `CLEAN_CLAUDE_EXCLUDES`, or opt a default-excluded name back in with `--include` (e.g. `--include packages` when the monorepo workspace really is yours).
+- `clean_claude` never touches a `.claude` inside a dependency, cache, build or app-owned tree: `node_modules`, `deps`, `dependencies`, `submodules`, `vendor`, `Pods`, `dist`, `build`, `target`, `.next`, `.venv`, `~/Library`, the bun/npm/yarn/cargo/gradle caches, `.git`, and friends (see `_clean_claude_excludes`).
+  Every name on that list has to mean "someone else's code" unambiguously, since a false hit is an unrecoverable `rm -rf` of your own settings and history.
+  **Monorepo workspace directories are deliberately not on it.** `packages` and `apps` used to be, and the effect was that a `.claude` in `apps/api/` was reported as "No `.claude` … outside dependency trees" — the walk had never entered the directory. In modern monorepo layout those hold first-party source far more often than vendored sub-projects, so they are candidates like any other directory; `deps`, `dependencies` and `submodules` stay excluded because those names still mean imported code.
+  Add names for one run with `--exclude`, permanently via `CLEAN_CLAUDE_EXCLUDES`, or opt a default-excluded name back in with `--include`.
   Candidates are always listed before anything is touched and git-tracked ones are flagged.
   Only `purge` may touch `~/.claude`: it holds credentials, history, plugins and the `ai` role's symlinks, so other modes skip it with a note even when run from `$HOME`, and `purge` gates it behind typing `purge` (restoring is `make run-role ROLE=ai` plus a re-login).
 - `tv_change_dir` — bound to `alt-c` in `config.fish`. Pipes the `dirs` television channel into `tv` and `cd`s to the pick.

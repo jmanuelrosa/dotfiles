@@ -13,7 +13,7 @@ import argparse
 import importlib
 import sys
 
-from . import colors, errors
+from . import colors, errors, ui
 
 # Python 3.14 paints argparse's own output in its own theme (blue usage, magenta prog,
 # green flags), which would show through ours as nested escapes and a palette the
@@ -157,6 +157,21 @@ def _add_type(parser, required=True):
     )
 
 
+def _add_group(parser, verb):
+    """`--group TAG` for add and remove, which take a tag instead of names.
+
+    Deliberately not `list`'s shape: there a bare --group means "bucket the listing",
+    which has no analogue when the flag has to name a set to act on.
+    """
+    parser.add_argument(
+        "--group",
+        default=None,
+        metavar="TAG",
+        help=f"{verb} every artifact tagged TAG instead of naming them. Members split "
+        f"by scope: --global picks the global half, its absence the project half.",
+    )
+
+
 def _epilog():
     """Render FAMILIES as the command listing argparse cannot produce itself.
 
@@ -235,19 +250,23 @@ def build_parser():
         help="With no value, group the listing by tag. With a tag, show only that tag.",
     )
 
+    # `names` is nargs="*" on add and remove only because --group is the other way to
+    # say what to act on. Neither of them, and both of them, are refused in run():
+    # argparse can express "at least one positional" but not "exactly one of these two".
     add = _command(sub, "add")
     _add_type(add)
-    add.add_argument("names", nargs="+", metavar="NAME")
+    add.add_argument("names", nargs="*", metavar="NAME")
     add.add_argument(
         "--global",
         dest="want_global",
         action="store_true",
         help="Install into ~/.claude. Required for any global artifact.",
     )
+    _add_group(add, "Install")
 
     remove = _command(sub, "remove")
     _add_type(remove)
-    remove.add_argument("names", nargs="+", metavar="NAME")
+    remove.add_argument("names", nargs="*", metavar="NAME")
     remove.add_argument(
         "--global",
         dest="want_global",
@@ -260,6 +279,7 @@ def build_parser():
         action="store_true",
         help="Remove only what is named, leaving its dependencies in place",
     )
+    _add_group(remove, "Act on")
 
     update = _command(sub, "update")
     _add_type(update)
@@ -304,5 +324,5 @@ def main(argv=None):
 
 
 def fail(code, message):
-    print(f"{colors.cross(sys.stderr)} {message}", file=sys.stderr)
+    ui.err(message)
     return code

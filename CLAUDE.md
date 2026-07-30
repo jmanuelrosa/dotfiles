@@ -12,9 +12,9 @@ All workflows go through the [Makefile](Makefile). Every play prompts for two pa
 
 | Command | Purpose |
 |---|---|
-| `make lint` | `ansible-lint` (config in [.ansible-lint](.ansible-lint)) |
-| `make test` | pytest over `claude-kit` and the registries. No vault, no become password, no network |
-| `make syntax` | Playbook syntax check, no vault needed |
+| `make lint` | `ansible-lint` (config in [.ansible-lint](.ansible-lint)). Needs the vault password to load `vars_files`, so it can't run unattended |
+| `make test` | pytest over `claude-kit` and the registries. No vault, no become password, no network — the only unattended target |
+| `make syntax` | Playbook syntax check. Prompts for the vault password (but not the become password) |
 | `make check` | Full dry-run with `--check --diff` |
 | `make check-role ROLE=shell` | Dry-run a single role by tag |
 | `make run` | Apply the full playbook (personal profile) |
@@ -88,6 +88,8 @@ Two rules carry most of the design:
 - **`--global` is mandatory whenever an artifact lands in `~/.claude` by direct request.** For a `global`-tagged artifact the flag is confirmation and its absence exits `WRONG_SCOPE`; for an untagged one it is an override. Dependencies are exempt: they resolve their own scope and never need the flag, or `add grill-me` would be impossible since `grilling` is both `dependency_only` and effectively global.
 - **`remove` cascades, but never leaves the project it starts in.** A global dependency is always kept and removing a global artifact cascades nothing, because claude-kit standing in one project cannot see the others and would break them. Getting cross-scope removal right would need a machine-wide index of every project, which goes stale the moment a checkout moves.
 
+`add` and `remove` also take **`--group <tag>`** instead of names, which is where those two rules meet. A tag is a filter rather than a name, so `--global` **partitions** it instead of confirming it: without the flag only the project members install and the global half is named in an aside, with it only the global half. Refusing each global member would make `WRONG_SCOPE` the normal outcome of adding a group, since most tags straddle both scopes, and installing them anyway would write into `~/.claude` unasked. Group mode is therefore **idempotent** rather than strict: an already-installed member (or, on `remove`, one that is not installed) is an aside and the run still exits `OK`, so a tag is a set to converge on. An unknown tag is `NOT_FOUND`, and `--group` **excludes names** in the same call, because the closing `✨ Linked N of M` counts a tag's members and has no honest form when the call also carried unrelated names. `cat.in_group` is the one membership view, so a `dependency_only` skill is never a member and still arrives through its parent. On `remove`, expansion reads what is **linked in the selected scope** and consults no global tag, mirroring why `remove.plan` takes no `effective` set. This is a third **divergence from the fish tooling**: `claude-skill add --group` writes into both scopes in one run with no flag, `claude-skill remove --group` cannot cascade because it never wrote a manifest to cascade from, and an unknown tag there prints an error but exits `0`.
+
 The cascade needs `<project>/.claude/claude-kit.json`, which records **why** each project-scoped artifact is present (`direct` or `dep-of:<parent>`). Reading the directory cannot substitute: `add tdd` then `add sdd` leaves byte-identical links to `add sdd` alone, yet `remove sdd` must keep `test-driven-development` in the first case and delete it in the second. The distinguishing fact is history. Eight of the ten dependency edges in the registry point at ordinary addable skills, so that ambiguity is the common case. There is deliberately **no pin file**: an untagged artifact in `~/.claude` can only have arrived via `--global`, so the symlink is the record.
 
 `claude-kit adopt` rebuilds that file from disk, for a cloned repo that ships `.claude/` without the manifest and for every project the `claude-skill` fish functions set up before claude-kit existed. Without it those projects lose the cascade silently: `state.read` returns `{}`, `remove` takes its "no record, so keep it" branch, and the project collects dependencies nothing needs. What *is* recoverable is whether something installed **declares** an artifact, which is a fact about the registry read against the current directory rather than about history; what is lost is whether a declared skill was also named directly. So a declared skill is recorded `dep-of:<parent>` (what a clean `add <parent>` would have written, and what usually did happen), and `add`-ing it again promotes it back to `direct`. Adoption is idempotent and additive: an artifact already recorded is skipped, so a re-run tops up a partial file and can never demote a `direct` record. When several installed artifacts declare the same skill the alphabetically first is stored, which is safe rather than arbitrary because `remove.cascade` recomputes dependants from the registry and reads the record only through `state.is_direct` — **the recorded parent name reaches display and nothing else**.
@@ -154,6 +156,43 @@ The key name is load-bearing: `dependencies` is reserved by Claude Code, and an 
 `product-team` uses this for `idea-refine`, which is vendored from `addyosmani/agent-skills` and seeds the `setup-strategy` and `0-refine-idea` interviews.
 Because the dependency is a normal skill rather than a plugin artifact, it keeps its bare name: the command is `/idea-refine`, not `/product-team:idea-refine`.
 
+### Script output style
+
+Every script here prints through **one vocabulary, expressed twice**: [_ui.fish](roles/shell/files/fish/functions/_ui.fish) for fish and [claude_kit/ui.py](roles/ai/files/scripts/claude_kit/ui.py) for python. Same kinds, same glyphs, same palette, same reset bytes. **Never hand-roll `set_color` / ANSI escapes in a new script**, and never invent a glyph: if a line does not fit a kind below, the kind is missing and belongs in both files.
+
+| kind | renders | for |
+|---|---|---|
+| `title` | bold text | a section heading, and the only line that may carry a topic emoji |
+| `step` | cyan `→` | an action being taken |
+| `ok` | green `✓` | it worked |
+| `warn` | yellow `⚠` | worth reading, not fatal |
+| `err` | magenta `✗`, on **stderr** | a refusal |
+| `item` | dim `·`, indent 2 | one entry of a list |
+| `note` | dim text, indent 2 | an aside under the line above it |
+| `done` | `✨` + text | the closing summary, one per run |
+
+```fish
+_ui title "🧹 Removing Claude artifacts"     # fish: _ui <kind> <text>, -i N to indent
+_ui item (_ui path "$dir")                   # _ui path collapses $HOME to ~
+_ui done "Removed 3 of 3"
+```
+```python
+ui.title("🧩 Available skills:")             # python: ui.<kind>(text, indent=…)
+ui.item(ui.path(destination))                # ui.render(kind, text) returns the string
+ui.done("42 skills, 3 installed")
+```
+
+Two rules carry the style, and both exist for a reason:
+
+- **Status is a coloured glyph; a topic is an emoji, and only on a `title` or a `done`.** Emoji are double-width, so one used as a row marker knocks every following column out of alignment; `✓ ⚠ ✗ · →` are narrow and keep a listing a listing. `test_ui.py` asserts this against `unicodedata`, and `✨` is wide but allowed because `done` starts at column zero with nothing beneath it. Pick a topic emoji with emoji presentation by default (`🧹 📦 🔎 🔄 📋 🧩 🤖 🔌 📚`); anything needing U+FE0F to render as an emoji renders as monochrome text on some terminals.
+- **Colour is decided per stream, not by `set_color`.** `NO_COLOR` beats `FORCE_COLOR`, which beats the tty check, so piping to a file yields plain text and `cmd 2>log` never writes escapes into the log. Both halves agree on the order, which is what lets a test harness force colour on for either.
+
+The two halves are held together by a **differential test**: `test_both_halves_render_identical_bytes` renders every kind through each and compares the bytes, so drift in either fails rather than being noticed by eye. The same technique pins `claude-skill list` against `claude-kit list`. A row (a name plus coloured suffixes) is still composed by hand from `_ui color` / `ui.paint`, because only its glyph is coloured; the palette is shared even there.
+
+Python scripts in `roles/ai/files/scripts/` reach `ui` by putting their own directory on `sys.path`, exactly as the claude-kit shim reaches its package. Fish scripts anywhere, including the work role's, autoload `_ui` from `~/.config/fish/functions`; the `work` profile includes the `shell` role, so it is always present.
+
+**Television cable rows are the one exemption**, and deliberately so: [_tv_claude_fmt](roles/shell/files/fish/functions/_tv_claude_list.fish) and [_tv_jira](roles/work/files/fish/functions/_tv_jira.fish) emit fixed-width columns for a picker to lay out and filter (`string match -e '[linked]'` reads them back), not lines for a human to read, and `_tv_jira` colours from inside a jq program where `_ui` cannot reach. Their emoji are type icons in a fixed column, not status.
+
 ### Secrets
 
 Vault-encrypted vars live in `vars/secrets.yml` (personal) and `vars/work.yml` (work). Both are loaded unconditionally by the playbook. Config files reference env vars as `${NAME}` and resolve at runtime. [vars/work.yml.example](vars/work.yml.example) lists the keys a fork needs to provide.
@@ -163,3 +202,4 @@ Vault-encrypted vars live in `vars/secrets.yml` (personal) and `vars/work.yml` (
 - **Idempotency is mandatory.** Every task must be safe to re-run. If a task isn't naturally idempotent, gate it with a `stat` / `register` check.
 - **Commits and branch names follow the global conventions** (conventional commits via `/commit`, Conventional Branch naming); they are defined in the global CLAUDE.md and the commit skill, not per-repo.
 - **Lint exclusions** ([.ansible-lint](.ansible-lint)) skip `yaml[truthy]` and `var-naming` (uppercase Ansible vars are intentional). Don't fight the linter on those — they're conscious choices.
+- **A new script prints through the shared vocabulary.** See [Script output style](#script-output-style): `_ui` in fish, `claude_kit.ui` in python. No hand-rolled colours, no invented glyphs, emoji only on a heading or the closing summary.

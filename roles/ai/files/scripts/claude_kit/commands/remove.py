@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .. import catalog as cat
-from .. import errors, paths, scope, state
+from .. import errors, paths, scope, state, ui
 from ..cli import fail
 
 
@@ -173,6 +173,22 @@ def plan(catalog, kind, name, want_global, home, project, provenance, no_cascade
     return result
 
 
+def expand_group(catalog, kind, tag, want_global, home, project):
+    """The members of `tag` linked in the selected scope, and the ones that are not.
+
+    Returns (members, absent) as name lists. No global set is consulted, unlike
+    add.expand_group: what is linked here is the fact that matters, and --global alone
+    says where "here" is, for the same reason plan() takes no `effective`. A member
+    that is not installed is not an error either, since a tag is a set to converge on.
+    """
+    target = scope.GLOBAL if want_global else scope.PROJECT
+    members, absent = [], []
+    for art in cat.in_group(catalog, kind, tag):
+        linked = scope.link_path(art, target, home, project).is_symlink()
+        (members if linked else absent).append(art.name)
+    return members, absent
+
+
 def apply(removal, project):
     """Unlink what the plan calls for and drop the matching provenance."""
     forget = []
@@ -186,18 +202,27 @@ def apply(removal, project):
 
 def _report(removal, want_global):
     for art, link in removal.unlink:
-        print(f"✓ Unlinked '{art.name}' from {link.parent}")
+        ui.ok(f"Unlinked '{art.name}' from {ui.path(link.parent)}")
     for art, link in removal.cascaded:
-        print(f"✓ Unlinked '{art.name}' too; nothing installed needs it now")
+        ui.ok(f"Unlinked '{art.name}' too; nothing installed needs it now")
     for name, reasons in removal.kept:
-        print(f"  Kept '{name}': {'; '.join(reasons)}")
+        ui.note(f"Kept '{name}': {'; '.join(reasons)}")
     if want_global and removal.unlink:
         art = removal.unlink[0][0]
         if art.dependencies:
-            print(
-                "  Its dependencies stay in ~/.claude: other projects may still "
+            ui.note(
+                "Its dependencies stay in ~/.claude: other projects may still "
                 "need them, and claude-kit cannot see them from here."
             )
+
+
+def _report_group(kind, tag, want_global, absent, tally):
+    """The aside and the one closing summary of a --group run."""
+    if absent:
+        where = "~/.claude" if want_global else "this project"
+        ui.note(f"Not linked in {where}: {ui.names_or_count(absent, kind)}")
+    suffix = f" ({len(tally['failed'])} failed)" if tally["failed"] else ""
+    ui.done(f"Removed {tally['removed']} of {tally['total']} {kind}s tagged '{tag}'{suffix}")
 
 
 def run(args):
@@ -206,18 +231,64 @@ def run(args):
     catalog = cat.build_catalog(claude)
     project = scope.project_root(Path.cwd(), home)
 
+    names, absent = list(args.names), []
+    grouped = args.group is not None
+    if grouped:
+        if names:
+            return fail(
+                errors.USAGE,
+                f"--group names a set to act on, so it takes no names of its own. "
+                f"Run it alone, then: claude-kit remove {' '.join(names)} --type {args.type}",
+            )
+        # Checked once here rather than per member, since none of them is at fault.
+        if not args.want_global and project is None:
+            return fail(
+                errors.NO_PROJECT,
+                f"$HOME is the one directory that cannot be a project: its .claude is "
+                f"~/.claude, so this would act on the global scope without saying so.\n"
+                f"  cd into any other directory, or: claude-kit remove --type {args.type} "
+                f"--group {args.group} --global",
+            )
+        names, absent = expand_group(
+            catalog, args.type, args.group, args.want_global, home, project
+        )
+        # Every member lands in one list or the other, so both empty means the tag
+        # itself is unknown rather than merely unsatisfied here.
+        if not names and not absent:
+            return fail(
+                errors.NOT_FOUND,
+                f"No {args.type} carries the tag '{args.group}'.\n"
+                f"  Run: claude-kit list --type {args.type} --group",
+            )
+    elif not names:
+        return fail(errors.USAGE, f"Name at least one {args.type}, or pass --group TAG.")
+
+    tally = {"total": len(names) + len(absent), "removed": 0, "failed": []}
+
     first_failure = errors.OK
-    for name in args.names:
+    for name in names:
         provenance = state.read(project)
         removal = plan(
             catalog, args.type, name, args.want_global,
             home, project, provenance, args.no_cascade, claude,
         )
         if removal.refused:
+            # Every member was linked when the group was expanded, so one that has
+            # since gone was taken by an earlier member's cascade. It was removed,
+            # just not by its own turn, which is a note rather than a failure.
+            if grouped and removal.code == errors.NOT_INSTALLED:
+                ui.note(f"'{name}' went with another member's cascade.")
+                tally["removed"] += 1
+                continue
             fail(removal.code, removal.message)
+            tally["failed"].append(name)
             if first_failure == errors.OK:
                 first_failure = removal.code
             continue
         apply(removal, None if args.want_global else project)
         _report(removal, args.want_global)
+        tally["removed"] += 1
+
+    if grouped:
+        _report_group(args.type, args.group, args.want_global, absent, tally)
     return first_failure
