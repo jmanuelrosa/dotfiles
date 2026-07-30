@@ -76,6 +76,26 @@
   with_fileglob:
     - "{{ role_path }}/files/claude/hooks/*"
 
+# herdr owns both halves of this integration: it writes its own
+# hooks/herdr-agent-state.sh (a real file, not a repo symlink, so it is the one
+# thing in ~/.claude/hooks/ this role does not manage) and registers the
+# SessionStart entry that reports agent state back to the workspace manager. The
+# CLI is the only supported installer, so drive it rather than reimplementing it.
+# `integration status` is the gate: it prints `claude: current (v<n>)` only when
+# the installed hook matches the version herdr ships, so a herdr upgrade
+# reinstalls on the next run. It is read-only, hence check_mode: false, which
+# also keeps the install task's condition resolvable under `make check`.
+- name: Check the herdr claude integration status
+  ansible.builtin.command: herdr integration status
+  register: herdr_integration
+  changed_when: false
+  check_mode: false
+
+- name: Install the herdr claude integration
+  ansible.builtin.command: herdr integration install claude
+  when: "'claude: current' not in herdr_integration.stdout"
+  changed_when: true
+
 - name: Link AI scripts into the user bin directory
   ansible.builtin.file:
     src: "{{ role_path }}/files/scripts/{{ item | basename }}"
