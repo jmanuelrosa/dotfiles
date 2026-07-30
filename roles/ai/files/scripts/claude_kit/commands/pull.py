@@ -4,6 +4,10 @@ One module because they are the same traversal with writes switched off. Sharing
 code is the point: a separate `outdated` implementation could disagree with `update`
 about what "behind" means, and then the report would not predict the sync.
 
+Named `pull` rather than `sync`, which it was: `claude-kit sync` is a different
+command, in provision.py, and it converges ~/.claude rather than fetching anything.
+Two unrelated meanings of one word in one CLI is the confusion the rename avoids.
+
 Skills only. agent-registry.json has no repos and plugins are authored here, so
 nothing else has an upstream to compare against.
 
@@ -19,7 +23,7 @@ import tempfile
 from pathlib import Path
 
 from .. import catalog as cat
-from .. import colors, errors, paths, registry, upstream
+from .. import colors, errors, paths, registry, ui, upstream
 from ..cli import fail
 
 BEHIND = "behind"
@@ -124,12 +128,12 @@ def format_result(state, name, detail=None):
 
 
 def format_tally(command, results):
-    """The bold `Done:` line, counting only the states this command reports."""
+    """The closing `✨ Done:` line, counting only the states this command reports."""
     parts = [
         f"{colors.paint(str(sum(1 for _, state, _ in results if state in states)), colour)} {label}"
         for label, colour, states in TALLY[command]
     ]
-    return f"{colors.paint('Done:', 'bold')} " + ", ".join(parts)
+    return ui.render("done", f"{colors.paint('Done:', 'bold')} " + ", ".join(parts))
 
 
 def process_repo(skills, claude, branch, repo, write, fetcher, workspace):
@@ -203,20 +207,19 @@ def run(args, fetcher=None):
 
     count = len(by_repo)
     if write:
-        print(colors.paint(f"Syncing from {count} repo(s)...", "bold"))
+        ui.title(f"🔄 Syncing from {count} repo(s)...")
     else:
-        print(colors.paint(f"Checking {count} repo(s) for updates...", "bold"))
-    print()
+        ui.title(f"🔎 Checking {count} repo(s) for updates...")
+    ui.blank()
 
     # Only when the user named one. On a bare run every locally authored skill is
     # local, and claude-skill says nothing about them: thirteen warnings about
     # nothing being wrong is what teaches a reader to skip the report.
     named_local = local if args.names else []
     for skill in named_local:
-        warn = colors.paint("⚠", "yellow")
-        print(f"  {warn} '{skill.name}' is a local skill; no upstream to sync.")
+        ui.warn(f"'{skill.name}' is a local skill; no upstream to sync.", indent=2)
     if named_local:
-        print()
+        ui.blank()
 
     results = []
     with tempfile.TemporaryDirectory() as workspace:
@@ -228,7 +231,9 @@ def run(args, fetcher=None):
                 skills, claude, branch, repo, write, fetcher, Path(workspace)
             )
             if fetch_error:
-                # One line for the repo rather than the same error once per skill.
+                # One line for the repo rather than the same error once per skill. Not
+                # ui.err: this belongs in the run's report on stdout, next to the rows
+                # for the skills it stranded, rather than on its own on stderr.
                 print("  " + colors.paint(f"✗ FAILED to fetch: {fetch_error}", "magenta"))
             else:
                 for skill, state, detail in outcome:

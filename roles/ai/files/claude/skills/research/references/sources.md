@@ -51,14 +51,16 @@ done
 
 Dedupe results by `web_url`. If one host errors (expired token), record a line for it and continue with the others.
 
-## Library / SDK / API docs (ctx7)
+## Library / SDK / API / CLI / cloud service docs (ctx7)
 
-Training data is stale; fetch current docs before any claim about a library's behavior:
+Training data is stale; fetch current docs before any claim about how a library, framework, SDK, API, CLI tool or cloud service behaves:
 
 ```bash
 bunx ctx7 library <name> "<question>"
 bunx ctx7 docs <id> "<question>"
 ```
+
+Pick the id by benchmark score among high-reputation results. A `/websites/...` vendor docs site normally beats a bare repo of the same name, which often carries a fraction of the snippets.
 
 ## Web (standards, vendors, competitors)
 

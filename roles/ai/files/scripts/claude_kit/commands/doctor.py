@@ -12,7 +12,7 @@ which ones it skipped.
 from pathlib import Path
 
 from .. import catalog as cat
-from .. import checks, errors, paths, scope, state
+from .. import checks, errors, paths, scope, state, ui
 
 
 def collect(catalog, effective, claude, home, project, provenance, kind=None):
@@ -41,26 +41,39 @@ def collect(catalog, effective, claude, home, project, provenance, kind=None):
 
 
 def report(findings, kind, project, emit=print):
-    """Print the findings and return the exit code."""
+    """Print the findings and return the exit code.
+
+    Lines go through ui.render rather than the ui printers because `emit` is the seam
+    the tests capture on, and a helper that could only print would put the palette out
+    of their reach.
+    """
     if project is None:
-        emit("Running in $HOME, which is never a project, so project-scope checks were skipped.\n")
+        emit(
+            ui.render(
+                "note",
+                "Running in $HOME, which is never a project, so project-scope checks "
+                "were skipped.",
+                indent=0,
+            )
+            + "\n"
+        )
 
     problems = [f for f in findings if f.is_problem]
     notes = [f for f in findings if not f.is_problem]
 
-    for group, label in ((problems, "Problems"), (notes, "Notes")):
+    for group, label in ((problems, "🚨 Problems:"), (notes, "📝 Notes:")):
         if not group:
             continue
-        emit(f"{label}:")
+        emit(ui.render("title", label))
         for finding in group:
             emit(f"  {finding.subject}: {finding.detail}  [{finding.check}]")
         emit("")
 
     where = f"{kind}s" if kind else "skills, agents and plugins"
     if not problems and not notes:
-        emit(f"✓ No drift found across {where}.")
+        emit(ui.render("ok", f"No drift found across {where}."))
     else:
-        emit(f"{len(problems)} problem(s), {len(notes)} note(s) across {where}.")
+        emit(ui.render("done", f"{len(problems)} problem(s), {len(notes)} note(s) across {where}."))
 
     return errors.DRIFT if problems else errors.OK
 

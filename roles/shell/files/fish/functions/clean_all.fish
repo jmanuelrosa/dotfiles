@@ -1,12 +1,12 @@
-function clean_all
-  echo '🧹 Cleaning Homebrew ...'
+function clean_all --description "Run every cleaner in turn: Homebrew, system caches, Node artifacts"
+  _ui title "🍺 Cleaning Homebrew ..."
   clean:brew
 
-  echo '🧹 Cleaning system (mole) ...'
+  _ui title "🖥️  Cleaning system (mole) ..."
   clean:system
 
-  echo '🧹 Cleaning Node artifacts (cwd) ...'
+  _ui title "📦 Cleaning Node artifacts (cwd) ..."
   clean:node
 
-  echo '✨ All cleanup complete!'
+  _ui done "All cleanup complete!"
 end

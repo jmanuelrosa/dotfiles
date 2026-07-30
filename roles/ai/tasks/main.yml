@@ -76,6 +76,26 @@
   with_fileglob:
     - "{{ role_path }}/files/claude/hooks/*"
 
+# herdr owns both halves of this integration: it writes its own
+# hooks/herdr-agent-state.sh (a real file, not a repo symlink, so it is the one
+# thing in ~/.claude/hooks/ this role does not manage) and registers the
+# SessionStart entry that reports agent state back to the workspace manager. The
+# CLI is the only supported installer, so drive it rather than reimplementing it.
+# `integration status` is the gate: it prints `claude: current (v<n>)` only when
+# the installed hook matches the version herdr ships, so a herdr upgrade
+# reinstalls on the next run. It is read-only, hence check_mode: false, which
+# also keeps the install task's condition resolvable under `make check`.
+- name: Check the herdr claude integration status
+  ansible.builtin.command: herdr integration status
+  register: herdr_integration
+  changed_when: false
+  check_mode: false
+
+- name: Install the herdr claude integration
+  ansible.builtin.command: herdr integration install claude
+  when: "'claude: current' not in herdr_integration.stdout"
+  changed_when: true
+
 - name: Link AI scripts into the user bin directory
   ansible.builtin.file:
     src: "{{ role_path }}/files/scripts/{{ item | basename }}"
@@ -89,6 +109,37 @@
   when: not (item | basename).endswith('.md')
   with_fileglob:
     - "{{ role_path }}/files/scripts/*"
+
+# The `global` group tag in the two registries is the single source of truth for what
+# belongs in ~/.claude, and claude-kit already derives that set to answer "does this
+# need --global?". This task is the only consumer of it here, deliberately: the same
+# derivation once lived in this file as ~130 lines of Jinja, which nothing could
+# unit-test and which drifted from the tool's copy the moment either changed.
+#
+# It converges rather than adds, so a skill that loses its `global` tag is unlinked on
+# the next run. Only symlinks pointing into files/claude/ are candidates, so a
+# hand-made directory in ~/.claude/skills survives untouched.
+- name: Converge global claude skills, agents and plugins
+  ansible.builtin.command:
+    cmd: "{{ role_path }}/files/scripts/claude-kit sync{{ ' --dry-run' if ansible_check_mode else '' }}"
+  environment:
+    # Both of claude-kit's environmental inputs, pinned rather than inherited: the
+    # playbook's HOME is the right one, and DOTFILES_DIR keeps the tool reading this
+    # checkout instead of walking up from wherever the symlink on PATH resolved to.
+    HOME: "{{ HOME }}"
+    DOTFILES_DIR: "{{ role_path | dirname | dirname }}"
+    NO_COLOR: "1"
+  register: claude_kit_sync
+  # A dry run is the whole task under --check, so it must not be skipped there.
+  check_mode: false
+  changed_when: claude_kit_sync.stdout is not search(', 0 changes')
+
+# Worth seeing: this is the one task that deletes something nobody named, and its
+# report is the only place a prune or a missing artifact is explained.
+- name: Show what the global sync did
+  ansible.builtin.debug:
+    var: claude_kit_sync.stdout_lines
+  when: claude_kit_sync is changed or claude_kit_sync.stderr | length > 0
 
 - name: Symlink pi agent config
   ansible.builtin.file:

@@ -21,6 +21,10 @@ GLOBAL_SKILL = "commit"
 MIXED_PARENT = "spec-driven-development"
 MIXED_GLOBAL_DEP = "planning-and-task-breakdown"
 MIXED_PROJECT_DEPS = ("incremental-implementation", "test-driven-development", "context-engineering")
+# The tag MIXED_PARENT carries, whose other members are global. Its project half is
+# what a --group run acts on.
+MIXED_TAG = "planning"
+MIXED_TAG_MEMBER = MIXED_PARENT
 
 
 # --- a synthetic registry, so cascade cases read at a glance -----------------
@@ -455,6 +459,85 @@ def test_d17_the_state_file_goes_when_nothing_is_left(catalog, effective, home, 
     )
     remove.apply(removal, project)
     assert not state.path_for(project).exists()
+
+
+# --- --group ---------------------------------------------------------------
+
+
+def test_a_group_expands_to_what_is_linked_here(catalog, effective, home, project):
+    """Not installed is not an error, so expansion filters rather than refusing."""
+    install(catalog, effective, SKILL, MIXED_TAG_MEMBER, home, project)
+
+    members, absent = remove.expand_group(catalog, SKILL, MIXED_TAG, False, home, project)
+    assert members == [MIXED_TAG_MEMBER]
+    assert MIXED_TAG_MEMBER not in absent
+    assert absent, "the rest of the tag is not installed"
+
+
+def test_a_group_expansion_reads_the_scope_the_flag_selects(catalog, effective, home, project):
+    install(catalog, effective, SKILL, MIXED_TAG_MEMBER, home, project)
+
+    members, _ = remove.expand_group(catalog, SKILL, MIXED_TAG, True, home, project)
+    assert MIXED_TAG_MEMBER not in members, "the project link is not a global one"
+
+
+def test_a_group_expansion_ignores_a_real_directory(catalog, effective, home, project):
+    """Only links claude-kit made are candidates, as the named path already holds."""
+    (project / ".claude" / "skills" / MIXED_TAG_MEMBER).mkdir(parents=True)
+
+    members, absent = remove.expand_group(catalog, SKILL, MIXED_TAG, False, home, project)
+    assert MIXED_TAG_MEMBER in absent
+    assert members == []
+
+
+def test_end_to_end_a_group_remove_cascades_its_dependencies(kit, project):
+    assert kit("add", "--type", "skill", "--group", MIXED_TAG, cwd=project).returncode == errors.OK
+    skills = project / ".claude" / "skills"
+    assert (skills / MIXED_PARENT).is_symlink()
+
+    result = kit("remove", "--type", "skill", "--group", MIXED_TAG, cwd=project)
+    assert result.returncode == errors.OK, result.stderr
+    for dep in MIXED_PROJECT_DEPS:
+        assert not (skills / dep).exists(), f"{dep} arrived as a dependency and should cascade"
+    assert (kit.home / ".claude" / "skills" / MIXED_GLOBAL_DEP).is_symlink(), (
+        "a global dependency is always kept: other projects may still need it"
+    )
+
+
+def test_end_to_end_no_cascade_composes_with_a_group(kit, project):
+    kit("add", "--type", "skill", "--group", MIXED_TAG, cwd=project)
+    result = kit("remove", "--type", "skill", "--group", MIXED_TAG, "--no-cascade", cwd=project)
+    assert result.returncode == errors.OK, result.stderr
+    for dep in MIXED_PROJECT_DEPS:
+        assert (project / ".claude" / "skills" / dep).is_symlink()
+
+
+def test_end_to_end_removing_a_group_twice_is_not_an_error(kit, project):
+    kit("add", "--type", "skill", "--group", MIXED_TAG, cwd=project)
+    assert kit("remove", "--type", "skill", "--group", MIXED_TAG, cwd=project).returncode == errors.OK
+
+    again = kit("remove", "--type", "skill", "--group", MIXED_TAG, cwd=project)
+    assert again.returncode == errors.OK
+    assert "Removed 0 of" in again.stdout
+
+
+def test_end_to_end_an_unknown_tag_is_not_found(kit, project):
+    result = kit("remove", "--type", "skill", "--group", "no-such-tag", cwd=project)
+    assert result.returncode == errors.NOT_FOUND
+
+
+def test_end_to_end_a_group_and_names_together_are_refused(kit, project):
+    kit("add", PROJECT_SKILL, "--type", "skill", cwd=project)
+    result = kit("remove", PROJECT_SKILL, "--type", "skill", "--group", MIXED_TAG, cwd=project)
+    assert result.returncode == errors.USAGE
+    assert (project / ".claude" / "skills" / PROJECT_SKILL).is_symlink(), "nothing was removed"
+
+
+def test_end_to_end_a_group_in_home_refuses_once(kit):
+    """One refusal, not one per member: none of them is the thing at fault."""
+    result = kit("remove", "--type", "skill", "--group", MIXED_TAG, cwd=kit.home)
+    assert result.returncode == errors.NO_PROJECT
+    assert result.stderr.count("✗") == 1
 
 
 # --- end to end ------------------------------------------------------------

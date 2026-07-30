@@ -14,6 +14,14 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import date, timedelta
+from pathlib import Path
+
+# The shared line vocabulary, reached the same way the claude-kit shim reaches its
+# package: by putting this file's own directory on sys.path. Every python script in
+# this directory does it, which is what keeps one palette across all of them.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from claude_kit import ui  # noqa: E402
 
 EXIT_OK = 0
 EXIT_USAGE = 1
@@ -72,7 +80,7 @@ class Item:
 
 
 def fail(code, message):
-    print(f"✗ {message}", file=sys.stderr)
+    ui.err(message)
     return code
 
 
@@ -351,7 +359,7 @@ class Parser(argparse.ArgumentParser):
 
     def error(self, message):
         self.print_usage(sys.stderr)
-        self.exit(EXIT_USAGE, f"✗ {message}\n")
+        self.exit(EXIT_USAGE, ui.render("err", message, stream=sys.stderr) + "\n")
 
 
 def main(argv=None):

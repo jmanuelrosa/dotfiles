@@ -179,6 +179,25 @@ def skills(catalog):
     return {art.name: art for (t, _), art in catalog.items() if t == SKILL}
 
 
+def visible(catalog, kind):
+    """Artifacts of `kind` that can be named directly, name-ordered.
+
+    A dependency-only skill installs with whichever skill needs it and refuses to be
+    added by name, so every surface that offers a choice starts here.
+    """
+    return [art for art in of_type(catalog, kind) if not art.dependency_only]
+
+
+def in_group(catalog, kind, tag):
+    """Visible artifacts of `kind` carrying `tag`, name-ordered.
+
+    The tag is opaque: exact membership, no case folding and no normalisation, since
+    the vocabulary is whatever the registries say and one tag has a space in it. A
+    tag nothing carries is an empty list, which each caller reads its own way.
+    """
+    return [art for art in visible(catalog, kind) if tag in art.groups]
+
+
 def duplicate_names(catalog):
     """Names used by more than one type, as {name: [types]}.
 

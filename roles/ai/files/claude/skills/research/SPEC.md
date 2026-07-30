@@ -9,7 +9,7 @@ Turn an ad-hoc work question - "can we build X", "how does this area work", "inv
 In scope:
 
 - Feasibility questions, unfamiliar-code deep dives, and general/external investigations.
-- Context pulled from Jira (`acli`), Notion (`ntn`), GitHub (`gh`), GitLab (`glab`), library docs (`ctx7`), the web, and user-pasted Slack threads.
+- Context pulled from Jira (`acli`), Notion (`ntn`), GitHub (`gh`), GitLab (`glab`), library / CLI / cloud service docs (`ctx7`), the web, and user-pasted Slack threads.
 - Read-only code exploration across one repo or a parent dir spanning several.
 - Memos written to `.claude/state/research/YYYY-MM-DD-research-<topic>.md` plus an `INDEX.md` line.
 - Ask-first delivery to Notion or as a Jira comment.
@@ -38,7 +38,7 @@ Out of scope:
 Authoritative sources:
 
 - The code as read (`path:line` citations) via Explore agents.
-- Tool records: Jira issues, Notion pages, PRs/MRs, current library docs via `ctx7`.
+- Tool records: Jira issues, Notion pages, PRs/MRs, current library / CLI / cloud service docs via `ctx7`.
 
 Data that must not be stored:
 

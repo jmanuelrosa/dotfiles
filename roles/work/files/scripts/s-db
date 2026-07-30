@@ -7,11 +7,9 @@
 # Configuration
 # ============================================================================
 
-set -g RED (set_color red)
-set -g GREEN (set_color green)
-set -g YELLOW (set_color yellow)
-set -g BLUE (set_color blue)
-set -g NC (set_color normal)
+# Output goes through `_ui` (roles/shell/files/fish/functions/_ui.fish), the shared
+# vocabulary: a coloured glyph carries the status, and an emoji only ever appears on a
+# heading or on the closing summary.
 
 set -g WORK_DIR "$HOME/Developer/work/addingwell"
 set -g PROXY_BIN "./cloud-sql-proxy"
@@ -26,7 +24,7 @@ set -g INSTANCE ""
 # ============================================================================
 
 function die
-    echo -e "$RED❌ Error: $argv$NC" >&2
+    _ui err "$argv"
     exit 1
 end
 
@@ -89,7 +87,7 @@ function check_existing_connection
     set -l port $argv[1]
     set -l environment $argv[2]
 
-    echo -e "$YELLOW🔍 Checking for existing connection...$NC"
+    _ui step "Checking for an existing connection"
 
     set -l existing_pid (lsof -ti :$port 2>/dev/null)
 
@@ -98,20 +96,20 @@ function check_existing_connection
 
         if string match -q "*cloud-sql-proxy*" -- $process_info
             echo ""
-            echo -e "$YELLOW⚠️  Cloud-sql-proxy is already running for $environment environment$NC"
-            echo -e "$GREEN✓ PID: $existing_pid$NC"
-            echo -e "$GREEN✓ Port: $port$NC"
-            echo -e "$GREEN✓ Connect using: localhost:$port$NC"
+            _ui warn "cloud-sql-proxy is already running for the $environment environment"
+            _ui item "PID: $existing_pid"
+            _ui item "Port: $port"
+            _ui item "Connect on localhost:$port"
             echo ""
-            echo -e "$YELLOW💡 To stop it: kill $existing_pid$NC"
-            echo -e "$YELLOW💡 To view logs: tail -f $WORK_DIR/cloud-sql-proxy-$environment.log$NC"
+            _ui note "Stop it with: kill $existing_pid"
+            _ui note "Follow its logs with: tail -f $WORK_DIR/cloud-sql-proxy-$environment.log"
             exit 0
         else
             die "Port $port is already in use by another process (PID: $existing_pid). Stop it first or use a different port."
         end
     end
 
-    echo -e "$GREEN✓ Port $port is available$NC"
+    _ui ok "Port $port is available"
     echo ""
 end
 
@@ -143,7 +141,7 @@ function prompt_environment_selection
         return
     end
 
-    echo -e "$BLUE""Select environment:$NC"
+    _ui title "🗄️  Select environment:"
     echo "  1) Staging (port 5433)"
     echo "  2) Production (port 5434)"
     echo ""
@@ -169,9 +167,9 @@ function success
     set -l environment $argv[3]
 
     echo ""
-    echo -e "$GREEN✨ Successfully connected to $ENVIRONMENT$NC"
-    echo -e "$GREEN💡 Use:$NC localhost:$PORT$GREEN as server$NC"
-    echo -e "$GREEN⚙️ Instance:$NC $instance"
+    _ui done "Connected to $ENVIRONMENT"
+    _ui item "Server: localhost:$PORT"
+    _ui item "Instance: $instance"
 end
 
 # ============================================================================
@@ -184,7 +182,7 @@ function start_proxy_detached
     set -l environment $argv[3]
     set -l log_file "$WORK_DIR/cloud-sql-proxy-$environment.log"
 
-    echo -e "$GREEN🚀 Connecting to $environment in background...$NC"
+    _ui step "Connecting to $environment in the background"
 
     nohup $PROXY_BIN --port $port $instance > $log_file 2>&1 &
     set -l proxy_pid $last_pid
@@ -193,11 +191,11 @@ function start_proxy_detached
 
     if kill -0 $proxy_pid 2>/dev/null
         success $PORT $INSTANCE $ENVIRONMENT
-        echo -e "$GREEN🌱 PID: $proxy_pid"
-        echo -e "$GREEN📝 Logs:$NC $log_file$NC"
+        _ui item "PID: $proxy_pid"
+        _ui item "Logs: "(_ui path $log_file)
         echo ""
-        echo -e "$YELLOW🛑 To stop: kill $proxy_pid$NC"
-        echo -e "$YELLOW   Or find it: ps aux | grep cloud-sql-proxy$NC"
+        _ui note "Stop it with: kill $proxy_pid"
+        _ui note "Or find it with: ps aux | grep cloud-sql-proxy"
     else
         die "Failed to start cloud-sql-proxy. Check logs: $log_file"
     end
@@ -208,10 +206,10 @@ function start_proxy_foreground
     set -l instance $argv[2]
     set -l environment $argv[3]
 
-    echo -e "$GREEN🚀 Connecting to $environment...$NC"
+    _ui step "Connecting to $environment"
 
     success $PORT $INSTANCE $ENVIRONMENT
-    echo -e "$YELLOW🛑 Press Ctrl+C to stop$NC"
+    _ui note "Press Ctrl+C to stop"
 
     exec $PROXY_BIN --port $port $instance
 

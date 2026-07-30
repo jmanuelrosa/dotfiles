@@ -27,8 +27,6 @@
     state: present
   when: BREW_PACKAGES.casks | default([]) | length > 0
 
-- name: Configure browser apps
-  ansible.builtin.include_tasks: browsers.yml
 - name: Configure development apps
   ansible.builtin.include_tasks: development.yml
 - name: Configure editor apps

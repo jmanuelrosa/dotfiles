@@ -120,6 +120,20 @@ def points_into(link, directory):
     return True
 
 
+def links_to(link, source):
+    """True if this symlink points at exactly `source`.
+
+    Stricter than points_into, which only asks about the containing store. `sync` needs
+    the exact question: a link into skills/ carrying the right name can still point at
+    the wrong skill, and only re-pointing it fixes that.
+
+    Both sides go through normpath because one may come from DOTFILES_DIR, which is
+    whatever the caller exported and need not be normalised.
+    """
+    target = link_target(link)
+    return target is not None and target == Path(os.path.normpath(source))
+
+
 def installed_scope(art, home, project, claude=None):
     """Which scope this artifact is currently linked in, or None.
 

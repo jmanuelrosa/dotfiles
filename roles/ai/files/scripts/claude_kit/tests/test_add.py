@@ -27,6 +27,12 @@ DEP_ONLY_SKILL = "grilling"
 MIXED_PARENT = "spec-driven-development"
 MIXED_GLOBAL_DEP = "planning-and-task-breakdown"
 MIXED_PROJECT_DEPS = ("incremental-implementation", "test-driven-development", "context-engineering")
+# A tag straddling both scopes, which is what makes --group a partition rather than
+# a list of names, and a tag whose whole membership is global.
+MIXED_TAG = "planning"
+MIXED_TAG_PROJECT = ("idea-refine", "spec-driven-development")
+MIXED_TAG_GLOBAL = ("grill-me", "grill-with-docs", "planning-and-task-breakdown")
+GLOBAL_ONLY_TAG = ("architecture", cat.AGENT)
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -43,6 +49,11 @@ def _fixtures_still_valid(catalog, effective):
     assert scope.belongs_global(cat.get(catalog, cat.SKILL, MIXED_GLOBAL_DEP), effective)
     for dep in MIXED_PROJECT_DEPS:
         assert not scope.belongs_global(cat.get(catalog, cat.SKILL, dep), effective)
+    tagged = {a.name for a in cat.in_group(catalog, cat.SKILL, MIXED_TAG)}
+    assert tagged == set(MIXED_TAG_PROJECT) | set(MIXED_TAG_GLOBAL)
+    tag, kind = GLOBAL_ONLY_TAG
+    members = cat.in_group(catalog, kind, tag)
+    assert members and all(scope.belongs_global(a, effective) for a in members)
 
 
 def make_plan(catalog, effective, kind, name, *, want_global=False, home=None, project=None, provenance=None):
@@ -453,15 +464,16 @@ def test_an_already_tracked_dependency_is_not_reclaimed(catalog, effective, home
 
 
 class _Args:
-    def __init__(self, kind, names, want_global=False):
+    def __init__(self, kind, names, want_global=False, group=None):
         self.type = kind
         self.names = names
         self.want_global = want_global
+        self.group = group
         self.command = "add"
 
 
-def _args(kind, names, want_global=False):
-    return _Args(kind, names, want_global)
+def _args(kind, names, want_global=False, group=None):
+    return _Args(kind, names, want_global, group)
 
 
 def _run_in(args, project):
@@ -515,6 +527,105 @@ def test_a_wholly_successful_batch_exits_ok(home, project, capsys):
     assert code == errors.OK
     assert (project / ".claude" / "skills" / PROJECT_SKILL).is_symlink()
     assert (project / ".claude" / "skills" / "frontend-design").is_symlink()
+
+
+# --- --group ---------------------------------------------------------------
+
+
+def test_a_group_expands_to_the_project_half(catalog, effective):
+    members, elsewhere = add.expand_group(catalog, cat.SKILL, MIXED_TAG, False, effective)
+    assert set(members) == set(MIXED_TAG_PROJECT)
+    assert set(elsewhere) == set(MIXED_TAG_GLOBAL)
+
+
+def test_the_global_flag_selects_the_other_half(catalog, effective):
+    """--global picks which half of a tag to act on, so the two runs are disjoint."""
+    members, elsewhere = add.expand_group(catalog, cat.SKILL, MIXED_TAG, True, effective)
+    assert set(members) == set(MIXED_TAG_GLOBAL)
+    assert set(elsewhere) == set(MIXED_TAG_PROJECT)
+
+
+def test_an_unknown_tag_expands_to_nothing(catalog, effective):
+    assert add.expand_group(catalog, cat.SKILL, "no-such-tag", False, effective) == ([], [])
+
+
+def test_a_group_installs_its_project_members_only(home, project):
+    code = _run_in(_args(cat.SKILL, [], group=MIXED_TAG), project)
+    assert code == errors.OK
+    for name in MIXED_TAG_PROJECT:
+        assert (project / ".claude" / "skills" / name).is_symlink()
+    for name in MIXED_TAG_GLOBAL:
+        assert not (project / ".claude" / "skills" / name).exists()
+
+
+def test_the_skipped_half_reaches_home_only_as_a_dependency(home, project):
+    """The one global link a project group add may make, and the reason it may.
+
+    MIXED_GLOBAL_DEP is in the skipped half *and* required by a member, so it is
+    installed while the members beside it are not: a dependency resolves its own
+    scope and consenting to the parent consents to what it needs.
+    """
+    _run_in(_args(cat.SKILL, [], group=MIXED_TAG), project)
+    globals_ = home / ".claude" / "skills"
+    assert (globals_ / MIXED_GLOBAL_DEP).is_symlink()
+    for name in MIXED_TAG_GLOBAL:
+        if name != MIXED_GLOBAL_DEP:
+            assert not (globals_ / name).exists()
+
+
+def test_a_group_member_is_recorded_as_wanted_in_its_own_right(home, project):
+    """Named by tag is still named, so a later cascade must not take it."""
+    _run_in(_args(cat.SKILL, [], group=MIXED_TAG), project)
+    recorded = state.read(project)
+    for name in MIXED_TAG_PROJECT:
+        assert recorded[(cat.SKILL, name)] == state.DIRECT
+    assert recorded[(cat.SKILL, MIXED_PROJECT_DEPS[0])] == state.dep_of(MIXED_PARENT)
+
+
+def test_a_second_group_run_changes_nothing_and_still_succeeds(home, project, capsys):
+    """The idempotence rule: a tag is a set to converge on, not a list of names."""
+    _run_in(_args(cat.SKILL, [], group=MIXED_TAG), project)
+    capsys.readouterr()
+
+    code = _run_in(_args(cat.SKILL, [], group=MIXED_TAG), project)
+    assert code == errors.OK
+    out = capsys.readouterr().out
+    assert "Already installed" in out
+    assert f"Linked 0 of {len(MIXED_TAG_PROJECT) + len(MIXED_TAG_GLOBAL)}" in out
+
+
+def test_a_group_names_the_half_it_left_alone(home, project, capsys):
+    _run_in(_args(cat.SKILL, [], group=MIXED_TAG), project)
+    out = capsys.readouterr().out
+    assert f"The global half of '{MIXED_TAG}' is untouched" in out
+    assert "--global" in out, "the note has to say how to install that half"
+
+
+def test_a_wholly_global_tag_is_a_no_op_rather_than_a_refusal(home, project, capsys):
+    """Nothing to do in this scope is not an error: the other half exists and is named."""
+    tag, kind = GLOBAL_ONLY_TAG
+    code = _run_in(_args(kind, [], group=tag), project)
+    assert code == errors.OK
+    out = capsys.readouterr().out
+    assert f"The global half of '{tag}' is untouched" in out
+    assert not (project / ".claude").exists()
+
+
+def test_a_group_and_names_together_are_refused(home, project, capsys):
+    code = _run_in(_args(cat.SKILL, [PROJECT_SKILL], group=MIXED_TAG), project)
+    assert code == errors.USAGE
+    assert not (project / ".claude").exists(), "a refused call installs nothing"
+
+
+def test_neither_a_name_nor_a_group_is_refused(home, project, capsys):
+    """argparse allowed no names once --group existed, so run() owns this check."""
+    assert _run_in(_args(cat.SKILL, []), project) == errors.USAGE
+
+
+def test_an_unknown_tag_is_not_found(home, project, capsys):
+    code = _run_in(_args(cat.SKILL, [], group="no-such-tag"), project)
+    assert code == errors.NOT_FOUND
+    assert "list --type skill --group" in capsys.readouterr().err
 
 
 # --- end to end ------------------------------------------------------------

@@ -50,6 +50,6 @@ alias clean:all=clean_all
 alias docker:start='systemctl start docker'
 alias docker:stop='systemctl stop docker'
 
-alias claude:skill='claude-skill'
-alias claude:mcp='claude-mcp'
-alias claude:agent='claude-agent'
+alias claude:skill='claude-kit --type skill'
+alias claude:agent='claude-agent --type agent'
+alias claude:plugin='claude-agent --type plugin'

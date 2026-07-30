@@ -8,15 +8,13 @@ function claude-agent --description "Manage Claude Code agents for the current p
     # site resolves its own via _claude_scope_target (which anchors to the repo root
     # for project-scoped artifacts, and refuses when there is no project).
 
-    set -l c_green (set_color green)
-    set -l c_yellow (set_color yellow)
-    set -l c_red (set_color red)
-    set -l c_blue (set_color blue)
-    set -l c_magenta (set_color magenta)
-    set -l c_cyan (set_color cyan)
-    set -l c_dim (set_color brblack)
-    set -l c_bold (set_color --bold)
-    set -l c_reset (set_color normal)
+    # Rows are assembled by hand rather than through `_ui`, because a row is a name
+    # plus up to three suffixes and only its glyph is coloured. The palette is the
+    # shared one all the same, so colour switches off when stdout is not a terminal.
+    set -l c_green (_ui color green)
+    set -l c_cyan (_ui color cyan)
+    set -l c_dim (_ui color dim)
+    set -l c_reset (_ui color reset)
 
     if test (count $argv) -lt 1
         echo "Usage: claude-agent <list|add|remove|update|outdated> [--group] [name]..."
@@ -36,19 +34,19 @@ function claude-agent --description "Manage Claude Code agents for the current p
     end
 
     if not command -q jq
-        echo "$c_magenta✗$c_reset Error: jq is required. Install with: brew install jq"
+        _ui err "jq is required. Install it with: brew install jq"
         return 1
     end
 
     if not test -f "$registry"
-        echo "$c_magenta✗$c_reset Error: Registry not found at $registry"
+        _ui err "Registry not found at $registry"
         return 1
     end
 
     switch $cmd
         case list
             if test "$use_group" = true
-                echo $c_bold"Available groups:"$c_reset
+                _ui title "📚 Available groups:"
 
                 set -l groups (begin
                     jq -r '[.repos[].agents[].groups[]?, .local_agents[]?.groups[]?] | .[]' $registry
@@ -88,7 +86,7 @@ function claude-agent --description "Manage Claude Code agents for the current p
                     end
                 end
             else
-                echo $c_bold"Available agents:"$c_reset
+                _ui title "🤖 Available agents:"
                 set -l seen
 
                 if test -d "$agents_source"
@@ -151,7 +149,7 @@ function claude-agent --description "Manage Claude Code agents for the current p
                     set -l group_plugins (_claude_agent_plugins_in_group $plugins_source $name)
 
                     if test (count $group_agents) -eq 0; and test (count $group_plugins) -eq 0
-                        echo "$c_magenta✗$c_reset Group '$name' not found. Run 'claude-agent list --group' to see available groups."
+                        _ui err "Group '$name' not found. Run 'claude-agent list --group' to see available groups."
                         continue
                     end
 
@@ -160,10 +158,10 @@ function claude-agent --description "Manage Claude Code agents for the current p
                     for aname in $group_agents
                         if not test -f "$agents_source/$aname.md"
                             if contains -- $aname $tracked_names
-                                echo "$c_cyan↓$c_reset Downloading '$aname' from registry..."
+                                _ui step "Downloading '$aname' from registry..."
                                 _claude_agent_update $registry "$agents_source" $aname
                             else
-                                echo "$c_magenta✗$c_reset Local agent '$aname' missing on disk; cannot install."
+                                _ui err "Local agent '$aname' missing on disk; cannot install."
                                 continue
                             end
                         end
@@ -194,7 +192,7 @@ function claude-agent --description "Manage Claude Code agents for the current p
                         _claude_agent_install_plugin_deps $plugins_source $pname
                         set count (math $count + 1)
                     end
-                    echo "$c_green✓$c_reset Linked $count seats from group '$name'"
+                    _ui ok "Linked $count seats from group '$name'"
                     test (count $group_plugins) -gt 0; and _claude_agent_plugin_load_hint
                 end
             else
@@ -206,11 +204,11 @@ function claude-agent --description "Manage Claude Code agents for the current p
                             continue
                         end
                         if not mkdir -p $ptarget 2>/dev/null
-                            echo "$c_magenta✗$c_reset Cannot create $ptarget/: permission denied. Run this outside the sandbox."
+                            _ui err "Cannot create "(_ui path $ptarget)"/: permission denied. Run this outside the sandbox."
                             continue
                         end
                         ln -sfn "$plugins_source/$name" "$ptarget/$name"
-                        echo "$c_green✓$c_reset Linked plugin seat '$name' into $ptarget/ $c_dim(loads as $name@skills-dir)$c_reset"
+                        _ui ok "Linked plugin seat '$name' into "(_ui path $ptarget)"/ $c_dim(loads as $name@skills-dir)$c_reset"
                         _claude_agent_install_plugin_deps $plugins_source $name
                         _claude_agent_plugin_load_hint
                         continue
@@ -223,17 +221,17 @@ function claude-agent --description "Manage Claude Code agents for the current p
                             [.local_agents[]? | select(.name == $n) | .name] | .[0] // empty
                         ' $registry)
                         if test -n "$in_local"
-                            echo "$c_magenta✗$c_reset Local agent '$name' missing on disk; cannot install."
+                            _ui err "Local agent '$name' missing on disk; cannot install."
                             continue
                         else if test -n "$in_registry"
-                            echo "$c_cyan↓$c_reset Agent '$name' not downloaded. Pulling from registry..."
+                            _ui step "Agent '$name' not downloaded. Pulling from registry..."
                             _claude_agent_update $registry "$agents_source" $name
                             if not test -f "$agents_source/$name.md"
-                                echo "$c_magenta✗$c_reset Failed to download '$name'."
+                                _ui err "Failed to download '$name'."
                                 continue
                             end
                         else
-                            echo "$c_magenta✗$c_reset Agent '$name' not found. Run 'claude-agent list' to see available agents."
+                            _ui err "Agent '$name' not found. Run 'claude-agent list' to see available agents."
                             continue
                         end
                     end
@@ -244,7 +242,7 @@ function claude-agent --description "Manage Claude Code agents for the current p
                     end
                     mkdir -p $atarget
                     ln -sfn "$agents_source/$name.md" "$atarget/$name.md"
-                    echo "$c_green✓$c_reset Linked '$name' into $atarget/"
+                    _ui ok "Linked '$name' into "(_ui path $atarget)"/"
                     _claude_agent_install_skill_deps $registry $name
                 end
             end
@@ -265,7 +263,7 @@ function claude-agent --description "Manage Claude Code agents for the current p
                     set -l group_plugins (_claude_agent_plugins_in_group $plugins_source $name)
 
                     if test (count $group_agents) -eq 0; and test (count $group_plugins) -eq 0
-                        echo "$c_magenta✗$c_reset Group '$name' not found. Run 'claude-agent list --group' to see available groups."
+                        _ui err "Group '$name' not found. Run 'claude-agent list --group' to see available groups."
                         continue
                     end
 
@@ -286,11 +284,11 @@ function claude-agent --description "Manage Claude Code agents for the current p
                             set count (math $count + 1)
                         end
                     end
-                    echo "$c_green✓$c_reset Removed $count seats from group '$name'"
+                    _ui ok "Removed $count seats from group '$name'"
                     if test $global_hit -eq 1
-                        echo "  $c_yellow⚠$c_reset Some were global links in ~/.claude, which the ai role owns."
-                        echo "  $c_dim""'make run-role ROLE=ai' restores them. To drop one for good, remove its"
-                        echo "  'global' tag from agent-registry.json.$c_reset"
+                        _ui -i 2 warn "Some were global links in ~/.claude, which the ai role owns."
+                        _ui note "'make run-role ROLE=ai' restores them. To drop one for good, remove its"
+                        _ui note "'global' tag from agent-registry.json."
                     end
                     test (count $group_plugins) -gt 0; and _claude_agent_plugin_unload_hint
                 end
@@ -300,10 +298,10 @@ function claude-agent --description "Manage Claude Code agents for the current p
                         set -l ptarget (_claude_scope_target plugin $name)
                         if test -n "$ptarget"; and test -L "$ptarget/$name"
                             if not command rm "$ptarget/$name" 2>/dev/null
-                                echo "$c_magenta✗$c_reset Failed to remove '$name' from $ptarget/: permission denied. Run this outside the sandbox."
+                                _ui err "Failed to remove '$name' from "(_ui path $ptarget)"/: permission denied. Run this outside the sandbox."
                                 continue
                             end
-                            echo "$c_green✓$c_reset Removed plugin seat '$name' from $ptarget/"
+                            _ui ok "Removed plugin seat '$name' from "(_ui path $ptarget)"/"
                             _claude_agent_plugin_unload_hint
                             continue
                         end
@@ -314,18 +312,18 @@ function claude-agent --description "Manage Claude Code agents for the current p
                         continue
                     end
                     if not test -L "$atarget/$name.md"
-                        echo "$c_yellow⚠$c_reset Agent '$name' is not linked in $atarget/."
+                        _ui warn "Agent '$name' is not linked in "(_ui path $atarget)"/."
                         continue
                     end
                     if not command rm "$atarget/$name.md" 2>/dev/null
-                        echo "$c_magenta✗$c_reset Failed to remove '$name' from $atarget/: permission denied. Run this outside the sandbox."
+                        _ui err "Failed to remove '$name' from "(_ui path $atarget)"/: permission denied. Run this outside the sandbox."
                         continue
                     end
-                    echo "$c_green✓$c_reset Removed '$name' from $atarget/"
+                    _ui ok "Removed '$name' from "(_ui path $atarget)"/"
                     if _claude_scope_is_global agent $name
-                        echo "  $c_yellow⚠$c_reset That was a global link in ~/.claude, which the ai role owns."
-                        echo "  $c_dim""'make run-role ROLE=ai' restores it. To drop it for good, remove its"
-                        echo "  'global' tag from agent-registry.json.$c_reset"
+                        _ui -i 2 warn "That was a global link in ~/.claude, which the ai role owns."
+                        _ui note "'make run-role ROLE=ai' restores it. To drop it for good, remove its"
+                        _ui note "'global' tag from agent-registry.json."
                     end
                 end
             end
@@ -363,23 +361,25 @@ function _claude_agent_update --description "Sync (or check) agents against upst
         set mode sync
     end
 
-    set -l c_green (set_color green)
-    set -l c_yellow (set_color yellow)
-    set -l c_red (set_color red)
-    set -l c_blue (set_color blue)
-    set -l c_magenta (set_color magenta)
-    set -l c_cyan (set_color cyan)
-    set -l c_dim (set_color brblack)
-    set -l c_bold (set_color --bold)
-    set -l c_reset (set_color normal)
+    # Same reasoning as in claude-agent: a sync row is a glyph, a name, a coloured
+    # label and a dim parenthetical, so it is composed rather than printed by `_ui`.
+    set -l c_green (_ui color green)
+    set -l c_yellow (_ui color yellow)
+    set -l c_red (_ui color red)
+    set -l c_blue (_ui color blue)
+    set -l c_magenta (_ui color magenta)
+    set -l c_cyan (_ui color cyan)
+    set -l c_dim (_ui color dim)
+    set -l c_bold (_ui color bold)
+    set -l c_reset (_ui color reset)
 
     if not command -q jq
-        echo "$c_magenta✗$c_reset Error: jq is required. Install with: brew install jq"
+        _ui err "jq is required. Install it with: brew install jq"
         return 1
     end
 
     if not test -f "$registry"
-        echo "$c_magenta✗$c_reset Error: Registry not found at $registry"
+        _ui err "Registry not found at $registry"
         return 1
     end
 
@@ -396,11 +396,11 @@ function _claude_agent_update --description "Sync (or check) agents against upst
                 [.local_agents[]? | select(.name == $agent)] | length
             ' $registry)
             if test "$is_local" != "0"
-                echo "$c_yellow⚠$c_reset '$target_agent' is a local agent; no upstream to sync."
+                _ui warn "'$target_agent' is a local agent; no upstream to sync."
                 return 0
             end
-            echo "$c_magenta✗$c_reset Agent '$target_agent' not found in registry."
-            echo "Tracked agents:"
+            _ui err "Agent '$target_agent' not found in registry."
+            _ui title "🤖 Tracked agents:"
             jq -r '.repos[].agents[].name' $registry | sort | sed 's/^/  /'
             return 1
         end
@@ -409,7 +409,7 @@ function _claude_agent_update --description "Sync (or check) agents against upst
     end
 
     if test (count $repos) -eq 0
-        echo "$c_dim·$c_reset No repos in registry. Nothing to update."
+        _ui -i 0 item "No repos in registry. Nothing to update."
         return 0
     end
 
@@ -421,9 +421,9 @@ function _claude_agent_update --description "Sync (or check) agents against upst
     set -l n_repos (count $repos)
 
     if test "$mode" = check
-        echo $c_bold"Checking $n_repos repo(s) for updates..."$c_reset
+        _ui title "🔎 Checking $n_repos repo(s) for updates..."
     else
-        echo $c_bold"Syncing from $n_repos repo(s)..."$c_reset
+        _ui title "🔄 Syncing from $n_repos repo(s)..."
     end
     echo ""
 
@@ -513,14 +513,14 @@ function _claude_agent_update --description "Sync (or check) agents against upst
     rm -rf "$tmpdir"
 
     if test "$mode" = check
-        printf '%sDone:%s %s%d%s behind, %s%d%s up-to-date, %s%d%s not downloaded, %s%d%s failed\n' \
+        printf '✨ %sDone:%s %s%d%s behind, %s%d%s up-to-date, %s%d%s not downloaded, %s%d%s failed\n' \
             $c_bold $c_reset \
             $c_red $updated $c_reset \
             $c_green $skipped $c_reset \
             $c_yellow $missing $c_reset \
             $c_magenta $failed $c_reset
     else
-        printf '%sDone:%s %s%d%s updated, %s%d%s up-to-date, %s%d%s failed\n' \
+        printf '✨ %sDone:%s %s%d%s updated, %s%d%s up-to-date, %s%d%s failed\n' \
             $c_bold $c_reset \
             $c_blue $updated $c_reset \
             $c_green $skipped $c_reset \
@@ -675,13 +675,9 @@ function _claude_agent_plugins_in_group --description "Print seat-plugin names w
 end
 
 function _claude_agent_plugin_load_hint --description "Reminder that a project seat plugin needs workspace trust + relaunch to load"
-    set -l c_dim (set_color brblack)
-    set -l c_reset (set_color normal)
-    echo "  $c_dim""→ project plugins load only in a trusted workspace: accept the trust dialog (or set hasTrustDialogAccepted in ~/.claude.json), then relaunch claude from the repo root$c_reset"
+    _ui note "project plugins load only in a trusted workspace: accept the trust dialog (or set hasTrustDialogAccepted in ~/.claude.json), then relaunch claude from the repo root"
 end
 
 function _claude_agent_plugin_unload_hint --description "Reminder that removing a seat plugin needs a relaunch to take effect"
-    set -l c_dim (set_color brblack)
-    set -l c_reset (set_color normal)
-    echo "  $c_dim""→ relaunch claude to finish unloading it$c_reset"
+    _ui note "relaunch claude to finish unloading it"
 end
