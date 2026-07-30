@@ -1,7 +1,7 @@
 [metadata]
 name = "claude-agents"
-description = "Manage Claude Code agents (toggle link, check outdated, update)"
-requirements = ["fish", "jq", "bat"]
+description = "Manage Claude Code agents and seat plugins (toggle link, open in $EDITOR)"
+requirements = ["fish", "jq", "bat", "claude-kit"]
 
 [source]
 command = [
@@ -13,32 +13,21 @@ command = [
 output = "{split: :0}"
 
 [preview]
-command = "fish -c 'set b $DOTFILES_DIR/roles/ai/files/claude; set p $b/agents/{split: :0}.md; test -f $p; or set p $b/plugins/{split: :0}/agents/{split: :0}-staff-engineer.md; test -f $p; and bat --color=always --plain --language=markdown $p; or echo \"Not downloaded: press Enter to install via claude-agent add\"'"
+command = "fish -c 'set b $DOTFILES_DIR/roles/ai/files/claude; set p $b/agents/{split: :0}.md; test -f $p; or set p $b/plugins/{split: :0}/agents/{split: :0}-staff-engineer.md; test -f $p; and bat --color=always --plain --language=markdown $p; or echo \"Not downloaded: press Enter to install via claude-kit add --type agent\"'"
 
 [ui]
 layout = "portrait"
 
+# No outdated/update here, unlike the skills cable: agent-registry.json declares no
+# repos and seat plugins are authored in this repo, so nothing on this channel has an
+# upstream to compare against. claude-kit refuses `--type agent` on both commands.
 [keybindings]
 enter = "actions:toggle"
-ctrl-d = "actions:outdated"
-ctrl-u = "actions:update"
 ctrl-o = "actions:edit"
 
 [actions.toggle]
 description = "Toggle the agent link in this project"
 command = "fish -c '_tv_claude_toggle agent {split: :0}'"
-mode = "execute"
-separator = " "
-
-[actions.outdated]
-description = "Check if the agent is up-to-date"
-command = "claude-agent outdated {split: :0}"
-mode = "execute"
-separator = " "
-
-[actions.update]
-description = "Sync the agent from upstream"
-command = "claude-agent update {split: :0}"
 mode = "execute"
 separator = " "
 

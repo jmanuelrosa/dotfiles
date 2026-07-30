@@ -1,7 +1,7 @@
 [metadata]
 name = "claude-skills"
 description = "Manage Claude Code skills (toggle link, check outdated, update)"
-requirements = ["fish", "jq", "bat"]
+requirements = ["fish", "jq", "bat", "claude-kit"]
 
 [source]
 command = [
@@ -13,7 +13,7 @@ command = [
 output = "{split: :0}"
 
 [preview]
-command = "bat --color=always --plain --language=markdown $DOTFILES_DIR/roles/ai/files/claude/skills/{split: :0}/SKILL.md 2>/dev/null; or echo 'Not downloaded — Enter to install via claude-skill add'"
+command = "bat --color=always --plain --language=markdown $DOTFILES_DIR/roles/ai/files/claude/skills/{split: :0}/SKILL.md 2>/dev/null; or echo 'Not downloaded: press Enter to install via claude-kit add --type skill'"
 
 [ui]
 layout = "portrait"
@@ -32,13 +32,13 @@ separator = " "
 
 [actions.outdated]
 description = "Check if the skill is up-to-date"
-command = "claude-skill outdated {split: :0}"
+command = "claude-kit outdated --type skill {split: :0}"
 mode = "execute"
 separator = " "
 
 [actions.update]
 description = "Sync the skill from upstream"
-command = "claude-skill update {split: :0}"
+command = "claude-kit update --type skill {split: :0}"
 mode = "execute"
 separator = " "
 
