@@ -2,12 +2,12 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-# GLOBAL_CLAUDE_SKILLS and GLOBAL_CLAUDE_AGENTS (the sets symlinked into
-# ~/.claude so they are available in every project without a per-project
-# `claude-skill`/`claude-agent add`) are not hardcoded here: the ai role
-# derives them from the `global` group tag in skill-registry.json and
-# agent-registry.json, which is the single source of truth. Tag an entry
-# `"global"` to add it to the set; see tasks/main.yml.
+# There is no var for the set symlinked into ~/.claude (the artifacts available in
+# every project without a per-project `add`). `claude-kit sync` derives it from the
+# `global` group tag in skill-registry.json, agent-registry.json and the plugin
+# manifests, which is the single source of truth, then expands the skills by their
+# declared dependencies. Tag an entry `"global"` to add it to the set. The role runs
+# that command in tasks/main.yml and holds no copy of the rule.
 
 BREW_PACKAGES:
   taps:

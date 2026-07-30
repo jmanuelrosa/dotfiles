@@ -32,7 +32,7 @@ Writes claude-kit.json and nothing else. No symlink is created, moved or deleted
 from pathlib import Path
 
 from .. import catalog as cat
-from .. import errors, paths, scope, state
+from .. import errors, paths, scope, state, ui
 from ..cli import fail
 
 
@@ -92,10 +92,15 @@ def report(entries, kind, dry_run, project, emit=print):
     Always OK. Finding nothing to adopt is the healthy state, not a refusal.
     """
     if not entries:
-        emit(f"✓ Nothing to adopt: every installed {kind or 'artifact'} is already recorded.")
+        emit(
+            ui.render(
+                "ok", f"Nothing to adopt: every installed {kind or 'artifact'} is already recorded."
+            )
+        )
         return errors.OK
 
-    emit(f"{'Would record' if dry_run else 'Recorded'} in {state.path_for(project)}:")
+    verb = "Would record" if dry_run else "Recorded"
+    emit(ui.render("title", f"📋 {verb} in {ui.path(state.path_for(project))}:"))
     labels = {key: f"{key[0]} '{key[1]}'" for key in entries}
     width = max(len(label) for label in labels.values())
     for key, reason in sorted(entries.items()):
@@ -105,9 +110,9 @@ def report(entries, kind, dry_run, project, emit=print):
     counts = {}
     for artifact_kind, _ in entries:
         counts[artifact_kind] = counts.get(artifact_kind, 0) + 1
-    emit(", ".join(f"{counts[k]} {k}(s)" for k in sorted(counts)) + ".")
+    emit(ui.render("done", ", ".join(f"{counts[k]} {k}(s)" for k in sorted(counts)) + "."))
     if dry_run:
-        emit("Nothing written (--dry-run).")
+        emit(ui.render("note", "Nothing written (--dry-run).", indent=0))
     return errors.OK
 
 

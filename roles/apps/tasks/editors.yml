@@ -28,3 +28,43 @@
   loop: "{{ VSCODE_EXTENSIONS }}"
   when: item not in vscode_installed.stdout_lines
   changed_when: true
+
+# Harper.app is the only Harper on this machine, and it keys this directory on
+# its binary name, not its bundle id (com.elijahpotter.harper-desktop, which it
+# uses for Caches and WebKit data instead). The app creates the directory itself
+# on first launch; the task exists so a fresh machine links before that.
+#
+# `harper-ls` used to be linked here too, back when the VSCode extension shipped
+# it. Nothing provides an harper-ls now — no formula, no extension — so that
+# link had no reader and was dropped. Add it back to this task, and the `harper`
+# formula to BREW_PACKAGES, if an LSP-based editor ever needs it; the dictionary
+# is deliberately one file so every consumer shares learned words.
+#
+# Nothing reads ~/.config/harper either. A task linking a config.toml there used
+# to exist, and because ~/.config/harper was itself a stale directory symlink
+# back into this role, its dest resolved onto its own src and `state: link
+# force: true` replaced the source file with a symlink to itself. Don't
+# reintroduce it.
+- name: Ensure Harper config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/Library/Application Support/harper-desktop"
+    state: directory
+    mode: "0755"
+
+- name: Symlink Harper dictionary
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/harper/dictionary.txt"
+    dest: "{{ HOME }}/Library/Application Support/harper-desktop/dictionary.txt"
+    state: link
+    force: true
+
+# Kept minified exactly as Harper.app writes it, so linking causes no spurious
+# diff. It holds `dialect`, `integrations` (which apps the highlighter attaches
+# to), `ignored_lints` and 823 `lint_config` toggles — worth tracking — next to
+# one volatile key, `last_update_check`, which is the only source of churn.
+- name: Symlink Harper desktop config
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/harper/config.json"
+    dest: "{{ HOME }}/Library/Application Support/harper-desktop/config.json"
+    state: link
+    force: true

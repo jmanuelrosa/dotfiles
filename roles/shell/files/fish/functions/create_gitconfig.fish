@@ -1,26 +1,29 @@
-function create_gitconfig --description "Create a .gitconfig file for a company"
-  # Prompt the user for the company name
-  read -P "Enter the company name: " company_name
+function create_gitconfig --description "Create a per-company .gitconfig under ~/developer/<company>"
+  _ui title "🔧 New per-company git identity"
 
-  # # Prompt the git user for this company "
-  read -P "Enter the git name: " user_name
+  read -P "  Company name: " company_name
+  read -P "  Git user name: " user_name
+  read -P "  Git email: " user_email
 
-  # Prompt the user for their email
-  read -P "Enter the git email: " user_email
+  if test -z "$company_name" -o -z "$user_name" -o -z "$user_email"
+    _ui err "All three answers are required; nothing was written."
+    return 1
+  end
 
-  # Define the paths
-  set -l base_dir ~/developer
   set -l company_dir ~/developer/$company_name
   set -l gitconfig_file "$company_dir/.gitconfig.$company_name"
 
-  # Create the directory structure if it doesn't exist
-  test -d "$company_dir" || mkdir -p "$company_dir"
+  if not mkdir -p "$company_dir"
+    _ui err "Cannot create "(_ui path "$company_dir")"."
+    return 1
+  end
 
-  # Write the .gitconfig file
-  echo "[user]" > "$gitconfig_file"
-  echo "    name = $user_name" >> "$gitconfig_file"
-  echo "    email = $user_email" >> "$gitconfig_file"
+  printf '[user]\n    name = %s\n    email = %s\n' "$user_name" "$user_email" > "$gitconfig_file"
+  or begin
+    _ui err "Could not write "(_ui path "$gitconfig_file")"."
+    return 1
+  end
 
-  # Success message
-  echo "Configuration file created at: $gitconfig_file"
+  _ui done "Wrote "(_ui path "$gitconfig_file")
+  _ui note "Point your ~/.gitconfig at it with an includeIf gitdir directive."
 end

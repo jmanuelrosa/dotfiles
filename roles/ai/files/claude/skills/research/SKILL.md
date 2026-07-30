@@ -63,7 +63,7 @@ Pull every source the request names, using the recipes in `references/sources.md
 | Jira ticket | `acli jira workitem view <KEY>` |
 | Notion doc | `ntn pages get <id>` (Markdown out) |
 | GitHub / GitLab PRs, issues | `gh` / `glab` (multi-host recipe in sources.md) |
-| Library / SDK / API docs | `bunx ctx7` - never answer library questions from memory |
+| Library / SDK / API / CLI / cloud service docs | `bunx ctx7` - never answer these from memory |
 | External standards, vendors, competitors | WebSearch / WebFetch; escalate deep external questions to `/deep-research` |
 | Slack thread | No CLI exists: ask the user to paste the thread text |
 

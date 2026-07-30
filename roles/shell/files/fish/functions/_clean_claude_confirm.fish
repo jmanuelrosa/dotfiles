@@ -7,6 +7,6 @@ function _clean_claude_confirm --description "Prompt before destroying things; p
     string match -qir '^y(es)?$' -- $reply; and return 0
   end
 
-  echo "🚫 Aborted."
+  _ui warn "Aborted."
   return 1
 end

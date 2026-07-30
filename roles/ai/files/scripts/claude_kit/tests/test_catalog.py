@@ -240,7 +240,6 @@ def test_global_set_matches_the_fish_helpers_documented_membership(catalog, effe
         "pr",
         "product-lead",
         "research",
-        "skill-scout",
         "skill-writer",
     }
 
@@ -293,6 +292,52 @@ def test_dependency_only_skills_are_actually_depended_on(catalog):
     for skill in cat.of_type(catalog, cat.SKILL):
         if skill.dependency_only:
             assert skill.name in needed, f"'{skill.name}' is dependency_only but orphaned"
+
+
+# --- the views the group flags read ----------------------------------------
+
+
+def test_visible_drops_the_dependency_only_skills(catalog):
+    names = {a.name for a in cat.visible(catalog, cat.SKILL)}
+    hidden = {a.name for a in cat.of_type(catalog, cat.SKILL) if a.dependency_only}
+    assert hidden, "the fixture needs at least one dependency_only skill"
+    assert not (names & hidden)
+
+
+def test_in_group_is_exact_membership():
+    catalog = {
+        (cat.SKILL, "a"): cat.Artifact(name="a", type=cat.SKILL, groups=("frontend", "ui")),
+        (cat.SKILL, "b"): cat.Artifact(name="b", type=cat.SKILL, groups=("Frontend",)),
+        (cat.SKILL, "c"): cat.Artifact(name="c", type=cat.SKILL, groups=("frontend-design",)),
+    }
+    assert [a.name for a in cat.in_group(catalog, cat.SKILL, "frontend")] == ["a"]
+
+
+def test_in_group_tolerates_a_tag_with_a_space(catalog):
+    """`prompt engineering` is a real tag, so no caller may split on whitespace."""
+    assert cat.in_group(catalog, cat.SKILL, "prompt engineering")
+
+
+def test_in_group_never_offers_a_dependency_only_member(catalog):
+    """A hidden skill carries tags but cannot be added, so it is not a member.
+
+    It still arrives through its parent's dependency closure, which is the only way
+    it is ever meant to.
+    """
+    hidden = [a for a in cat.of_type(catalog, cat.SKILL) if a.dependency_only and a.groups]
+    assert hidden, "the fixture needs a tagged dependency_only skill"
+    for art_ in hidden:
+        for tag in art_.groups:
+            assert art_ not in cat.in_group(catalog, cat.SKILL, tag)
+
+
+def test_in_group_is_empty_for_a_tag_nothing_carries(catalog):
+    assert cat.in_group(catalog, cat.SKILL, "no-such-tag") == []
+
+
+def test_in_group_is_name_ordered(catalog):
+    members = [a.name for a in cat.in_group(catalog, cat.SKILL, "engineering")]
+    assert members == sorted(members)
 
 
 def test_every_catalog_source_exists_on_disk(catalog):

@@ -51,8 +51,9 @@ def test_reset_matches_fishs_set_color(coloured):
 def test_colour_is_off_when_not_a_terminal():
     """Piping to a file or a test harness should yield plain text.
 
-    This is the one deliberate divergence from claude-skill, which emits codes
-    unconditionally because fish's set_color does.
+    claude-skill decides the same way now that its palette comes from `_ui color`; it
+    used to emit codes unconditionally, because a bare set_color does. Which is why the
+    differential tests below force colour on rather than assuming a terminal.
     """
     assert colors.paint("x", "green") == "x"
 
@@ -191,13 +192,29 @@ def test_present_artifacts_come_before_never_downloaded_ones(catalog, effective,
 @pytest.mark.parametrize(
     "kind,expected",
     [
-        (cat.SKILL, "Available skills:"),
-        (cat.AGENT, "Available agents:"),
-        (cat.PLUGIN, "Available plugins:"),
+        (cat.SKILL, "🧩 Available skills:"),
+        (cat.AGENT, "🤖 Available agents:"),
+        (cat.PLUGIN, "🔌 Available plugins:"),
     ],
 )
 def test_headers_follow_claude_skills_wording(kind, expected):
+    """Topic emoji on the heading, and only there.
+
+    The byte-for-byte tests below hold claude-skill.fish and claude-agent.fish to the
+    same strings, so a heading cannot be changed on one side alone.
+    """
     assert listing.HEADER[kind] == expected
+
+
+def test_only_the_headings_carry_an_emoji(coloured):
+    """A row marker has to be single-width or the suffix columns stop lining up.
+
+    Both emoji here are two columns wide, which is why the vocabulary keeps them off
+    every line kind that is indented under something else.
+    """
+    for header in (*listing.HEADER.values(), listing.GROUPS_HEADER):
+        assert header.split()[0] not in ("✓", "·", "↓")
+    assert "\U0001f9e9" not in listing.format_row(row("x", state=listing.LINKED))
 
 
 # --- the differential test --------------------------------------------------

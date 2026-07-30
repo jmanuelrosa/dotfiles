@@ -22,7 +22,7 @@ The whole job is usually under 80 lines of agent file.
 A utility agent keeps the flat-file-plus-registry model; only seats moved to plugins.
 `agent-registry.json` entry with `groups` (agent vocabulary: discipline plus domain) and `note: "Locally authored"`.
 `dependencies` only if the agent genuinely invokes a skill at runtime.
-Add to `GLOBAL_CLAUDE_AGENTS` in `roles/ai/defaults/main.yml` only if every project needs it; utility agents owned by one skill pipeline usually ship globally with that pipeline, so check where the calling skill lives.
+Add `"global"` to its `groups` only if every project needs it, which is what makes `claude-kit sync` link it into `~/.claude/agents/`; utility agents owned by one skill pipeline usually ship globally with that pipeline, so check where the calling skill lives.
 
 ## Boundary with seats
 

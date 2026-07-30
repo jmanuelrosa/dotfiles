@@ -4,11 +4,9 @@
 # Usage: s-task JIRA-123
 #        s-task 456
 
-# Colors for output
-set -g RED (set_color red)
-set -g GREEN (set_color green)
-set -g YELLOW (set_color yellow)
-set -g NC (set_color normal)
+# Output goes through `_ui` (roles/shell/files/fish/functions/_ui.fish), the shared
+# vocabulary: a coloured glyph carries the status, and an emoji only ever appears on a
+# heading or on the closing summary.
 
 # Cap branch length to commitlint's header-max-length (default 72 in @commitlint/config-conventional)
 set -g MAX_BRANCH_LENGTH 50
@@ -20,7 +18,7 @@ set -g ALLOWED_BRANCH_TYPES feature fix chore docs refactor test perf ci build s
 
 # Function to display error and exit
 function die
-    echo -e "$RED❌ Error: $argv$NC" >&2
+    _ui err "$argv"
     exit 1
 end
 
@@ -139,19 +137,19 @@ end
 # carries no commits, while a pre-existing one may hold work that belongs to /pr.
 function create_local_branch
     if git rev-parse --verify --quiet "refs/heads/$BRANCH_NAME" >/dev/null
-        echo -e "$YELLOW↩️  Branch already exists locally, switching to it$NC"
+        _ui warn "Branch already exists locally, switching to it"
         git switch "$BRANCH_NAME" >/dev/null 2>&1
         or die "Could not switch to existing branch $BRANCH_NAME"
         set -g BRANCH_WAS_CREATED 0
         return 0
     end
 
-    echo -e "$YELLOW🔀 Updating $DEFAULT_BRANCH...$NC"
+    _ui step "Updating $DEFAULT_BRANCH"
     git switch "$DEFAULT_BRANCH" >/dev/null 2>&1
     or die "Could not switch to $DEFAULT_BRANCH branch"
     git pull origin "$DEFAULT_BRANCH" --quiet
 
-    echo -e "$YELLOW🌱 Creating new branch...$NC"
+    _ui step "Creating the new branch"
     git switch -c "$BRANCH_NAME" >/dev/null 2>&1
     or die "Could not create branch $BRANCH_NAME"
     set -g BRANCH_WAS_CREATED 1
@@ -216,7 +214,7 @@ if test "$PROVIDER" = jira
         die "acli is required but not installed. Install it with: brew tap atlassian/homebrew-acli && brew install acli"
     end
 
-    echo -e "$YELLOW📥 Fetching issue details from Jira...$NC"
+    _ui step "Fetching issue details from Jira"
 
     set -g RESPONSE (acli jira workitem view $ISSUE_REF --fields summary,issuetype --json 2>&1)
     if test $status -ne 0
@@ -234,9 +232,9 @@ if test "$PROVIDER" = jira
         die "Could not parse issue details"
     end
 
-    echo -e "$GREEN✓ Issue found:$NC"
-    echo "  📋 Type: $ISSUE_TYPE"
-    echo "  📝 Summary: $ISSUE_SUMMARY"
+    _ui ok "Issue found"
+    _ui item "Type: $ISSUE_TYPE"
+    _ui item "Summary: $ISSUE_SUMMARY"
 else
     if not command -v gh >/dev/null 2>&1
         die "gh is required but not installed. Install it with: brew install gh"
@@ -244,7 +242,7 @@ else
 
     set -g ISSUE_NUMBER (string replace -r '^#' '' -- $ISSUE_REF)
 
-    echo -e "$YELLOW📥 Fetching issue details from GitHub...$NC"
+    _ui step "Fetching issue details from GitHub"
 
     set -g RESPONSE (gh issue view $ISSUE_NUMBER --json number,title,labels,issueType 2>&1)
     if test $status -ne 0
@@ -263,14 +261,14 @@ else
         die "Could not parse issue details"
     end
 
-    echo -e "$GREEN✓ Issue found:$NC"
+    _ui ok "Issue found"
     if test -n "$ISSUE_TYPE"
-        echo "  📋 Type: $ISSUE_TYPE"
+        _ui item "Type: $ISSUE_TYPE"
     end
     if test (count $ISSUE_LABELS) -gt 0
-        echo "  🏷️  Labels: "(string join ", " $ISSUE_LABELS)
+        _ui item "Labels: "(string join ", " $ISSUE_LABELS)
     end
-    echo "  📝 Summary: $ISSUE_SUMMARY"
+    _ui item "Summary: $ISSUE_SUMMARY"
 end
 
 # Create branch name (cap total length at MAX_BRANCH_LENGTH — matches commitlint header-max-length)
@@ -312,29 +310,29 @@ if test (string length -- $TITLE_SLUG) -gt $MAX_SLUG_LENGTH
         set TITLE_SLUG (string replace -r -- '-[^-]*$' '' $TITLE_SLUG)
     end
     set TITLE_SLUG (string replace -r -- '-+$' '' $TITLE_SLUG)
-    echo -e "$YELLOW✂️  Slug truncated to fit $MAX_BRANCH_LENGTH-char limit (commitlint header-max-length)$NC"
+    _ui warn "Slug truncated to fit the $MAX_BRANCH_LENGTH-char limit (commitlint header-max-length)"
 end
 
 set -g BRANCH_NAME "$BRANCH_BASE$TITLE_SLUG"
 
 if set -q _flag_dry
     echo ""
-    echo -e "$YELLOW🧪 Dry run — would create branch: $GREEN$BRANCH_NAME$NC"
+    _ui title "🧪 Dry run: would create branch "(_ui paint cyan $BRANCH_NAME)
     exit 0
 end
 
 echo ""
-echo -e "$YELLOW🌿 Creating branch: $GREEN$BRANCH_NAME$NC"
+_ui title "🌿 Creating branch "(_ui paint cyan $BRANCH_NAME)
 
 # Fetch latest changes and detect default branch
-echo -e "$YELLOW⬇️  Fetching latest changes...$NC"
+_ui step "Fetching the latest changes"
 git fetch origin >/dev/null 2>&1
 
 # Detect default branch from origin/HEAD
 set -g DEFAULT_BRANCH (git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
 
 if test -z "$DEFAULT_BRANCH"
-    echo -e "$YELLOW⚙️  Setting origin/HEAD...$NC"
+    _ui step "Setting origin/HEAD"
     git remote set-head origin --auto >/dev/null 2>&1
     set DEFAULT_BRANCH (git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
 end
@@ -343,53 +341,53 @@ if test -z "$DEFAULT_BRANCH"
     die "Could not determine default branch"
 end
 
-echo -e "$GREEN✓ Using default branch: $DEFAULT_BRANCH$NC"
+_ui ok "Using default branch $DEFAULT_BRANCH"
 
 # A GitHub linked branch is a remote ref, so `gh issue develop` is the only way to get
 # one: it creates the branch and registers it on the issue in a single call. Everything
 # else (Jira, or --no-push) creates the branch locally and pushes it separately.
 if test "$PROVIDER" = github -a $DO_PUSH -eq 1
     if git rev-parse --verify --quiet "refs/heads/$BRANCH_NAME" >/dev/null
-        echo -e "$YELLOW↩️  Branch already exists locally, switching to it$NC"
+        _ui warn "Branch already exists locally, switching to it"
         git switch "$BRANCH_NAME" >/dev/null 2>&1
         or die "Could not switch to existing branch $BRANCH_NAME"
 
         if string match -q "*$BRANCH_NAME*" -- (gh issue develop $ISSUE_NUMBER --list 2>/dev/null | string collect)
-            echo -e "$GREEN🔗 Already a linked branch on issue #$ISSUE_NUMBER$NC"
+            _ui ok "Already a linked branch on issue #$ISSUE_NUMBER"
         else
-            echo -e "$YELLOW⚠️  Not linked to issue #$ISSUE_NUMBER. GitHub registers a linked branch only when it creates the branch, so link this one from the issue's Development panel.$NC"
+            _ui warn "Not linked to issue #$ISSUE_NUMBER. GitHub registers a linked branch only when it creates the branch, so link this one from the issue's Development panel."
         end
     else
-        echo -e "$YELLOW🔗 Creating linked branch on issue #$ISSUE_NUMBER...$NC"
+        _ui step "Creating a linked branch on issue #$ISSUE_NUMBER"
         set -g DEVELOP_OUT (gh issue develop $ISSUE_NUMBER --name "$BRANCH_NAME" --base "$DEFAULT_BRANCH" --checkout 2>&1)
         if test $status -ne 0
-            echo -e "$RED⚠️  Could not create the linked branch: $DEVELOP_OUT$NC" >&2
-            echo -e "$YELLOW↪️  Creating the branch locally instead; issue #$ISSUE_NUMBER gets no linked branch.$NC" >&2
+            _ui err "Could not create the linked branch: $DEVELOP_OUT"
+            _ui warn "Creating the branch locally instead; issue #$ISSUE_NUMBER gets no linked branch."
             create_local_branch
         else
-            echo -e "$GREEN✓ Linked branch registered on issue #$ISSUE_NUMBER$NC"
+            _ui ok "Linked branch registered on issue #$ISSUE_NUMBER"
         end
     end
 else
     create_local_branch
 
     if test $DO_PUSH -eq 0
-        echo -e "$YELLOW📴 Branch kept local (--no-push)$NC"
+        _ui warn "Branch kept local (--no-push)"
         if test "$PROVIDER" = github
-            echo -e "$YELLOW   Issue #$ISSUE_NUMBER has no linked branch; run 'gh issue develop $ISSUE_NUMBER --name $BRANCH_NAME' after pushing if you want one.$NC"
+            _ui note "Issue #$ISSUE_NUMBER has no linked branch; run 'gh issue develop $ISSUE_NUMBER --name $BRANCH_NAME' after pushing if you want one."
         end
     else if test $BRANCH_WAS_CREATED -eq 0
         # Pushing here could carry commits made since the branch was cut, which is /pr's
         # job and its confirmation gate. Only ever push a branch created moments ago.
-        echo -e "$YELLOW⏭️  Branch already existed, so it is not being pushed. Open the PR with /pr when the work is ready.$NC"
+        _ui warn "Branch already existed, so it is not being pushed. Open the PR with /pr when the work is ready."
     else
-        echo -e "$YELLOW⬆️  Pushing to origin...$NC"
+        _ui step "Pushing to origin"
         git push -u origin "$BRANCH_NAME" --quiet
         or die "Could not push $BRANCH_NAME to origin"
         if test "$PROVIDER" = jira
-            echo -e "$GREEN✓ Pushed. $ISSUE_REF's Development panel picks the branch up from the issue key in its name.$NC"
+            _ui ok "Pushed. $ISSUE_REF's Development panel picks the branch up from the issue key in its name."
         else
-            echo -e "$GREEN✓ Pushed$NC"
+            _ui ok "Pushed"
         end
     end
 end
@@ -402,4 +400,4 @@ if test "$CURRENT_BRANCH" != "$BRANCH_NAME"
 end
 
 echo ""
-echo -e "$GREEN✨ Successfully created and checked out branch: $BRANCH_NAME$NC"
+_ui done "Created and checked out branch "(_ui paint cyan $BRANCH_NAME)

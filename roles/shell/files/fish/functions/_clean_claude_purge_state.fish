@@ -16,9 +16,9 @@ function _clean_claude_purge_state --description "Purge Claude Code project stat
     # worktree is skipped unless asked for explicitly.
     set -l main (_clean_claude_worktree_main "$project")
     if test -n "$main"; and test "$worktree_config" != 1
-      echo "   ⏭  "(_clean_claude_pretty "$project")" is a linked worktree of "(_clean_claude_pretty "$main")"."
-      echo "      Purging it would delete that main repo's config entry, so it is skipped."
-      echo "      Run 'clean_claude project --worktree-config' or 'claude project purge "(_clean_claude_pretty "$main")"' to include it."
+      _ui -i 2 warn (_ui path "$project")" is a linked worktree of "(_ui path "$main")"."
+      _ui -i 4 note "Purging it would delete that main repo's config entry, so it is skipped."
+      _ui -i 4 note "Run 'clean_claude project --worktree-config' or 'claude project purge "(_ui path "$main")"' to include it."
       continue
     end
 

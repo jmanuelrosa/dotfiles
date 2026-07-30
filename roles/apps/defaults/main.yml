@@ -84,6 +84,13 @@ BREW_PACKAGES:
     - bruno
     # Editors
     - visual-studio-code
+    # Grammar checking across every macOS text field (Slack, VSCode, Chrome,
+    # Notion, …) via Accessibility, which the app needs granted by hand once.
+    # Deliberately NOT the `harper` formula: that ships harper-ls + harper-cli
+    # for editors driving an LSP, which nothing here does — the Harper VSCode
+    # and Chrome extensions were removed in favour of this one app, so the
+    # desktop integrations in its config.json now cover those surfaces.
+    - harper-desktop
     # Infrastructure
     - gcloud-cli
     # Multimedia

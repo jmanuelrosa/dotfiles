@@ -73,7 +73,6 @@
     - .config/fish/functions/clean_node.fish
     - .config/fish/functions/create_gitconfig.fish
     - .config/fish/functions/claude-skill.fish
-    - .config/fish/functions/claude-mcp.fish
     - .config/fish/functions/claude-agent.fish
     - .config/fish/functions/_tv_claude_list.fish
     - .config/fish/functions/_tv_claude_toggle.fish
