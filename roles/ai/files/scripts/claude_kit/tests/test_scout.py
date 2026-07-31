@@ -15,7 +15,7 @@ import pytest
 from claude_kit import catalog as cat
 from claude_kit import errors, fingerprint, frontmatter, scope
 from claude_kit.commands import scout
-from conftest import CLAUDE
+from dotkit.testing import CLAUDE
 
 # Named artifacts, chosen once so the cases read concretely. The guard below fails
 # loudly if a registry edit invalidates a choice, which beats a test that silently

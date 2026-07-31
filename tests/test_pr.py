@@ -16,9 +16,9 @@ import sys
 
 import pytest
 
-from conftest import SKILLS_DIR
+from dotkit.testing import SKILLS
 
-SCRIPTS = SKILLS_DIR / "pr/scripts"
+SCRIPTS = SKILLS / "pr/scripts"
 
 
 def _load(name):

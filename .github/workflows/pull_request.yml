@@ -35,7 +35,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   test:
-    name: Registry & Fish Tests
+    name: Python & Fish Tests
     runs-on: macos-latest
     steps:
       - name: Checkout code
@@ -48,7 +48,13 @@ jobs:
 
       # No vault password needed: these tests read registries and drive the fish
       # functions against a throwaway HOME, never the playbook.
+      #
+      # The roots come from pytest.ini, so this covers claude-kit, the registries, the
+      # skill scripts, the git hook and the suite layout itself. It once named a single
+      # path and reported success while four suites were not being collected at all.
       - name: Run tests
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
         run: make test
 
   lint:
