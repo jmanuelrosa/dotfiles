@@ -15,7 +15,7 @@ import pytest
 
 from dotkit.testing import AI_SCRIPTS_DIR
 
-RECAP = AI_SCRIPTS_DIR / "weekly-recap"
+RECAP = AI_SCRIPTS_DIR / "weekly-recap" / "weekly-recap"
 
 EXIT_OK = 0
 EXIT_USAGE = 1

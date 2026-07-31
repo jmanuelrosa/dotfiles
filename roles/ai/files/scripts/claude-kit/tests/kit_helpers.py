@@ -18,13 +18,15 @@ from pathlib import Path
 from dotkit.testing import AI_SCRIPTS_DIR
 
 # Derived from this file's own location, so it says where the suite actually sits.
-PACKAGE = Path(__file__).resolve().parents[1]
+# The suite is a sibling of the package now, not inside it.
+TOOL = Path(__file__).resolve().parents[1]
+PACKAGE = TOOL / "claude_kit"
 
 # Derived from the repo anchor instead, deliberately. Two independent derivations are
 # what let test_packaging assert the package is a sibling of the shim and have the
 # assertion mean something; computing both from one constant made it tautological.
 SCRIPTS = AI_SCRIPTS_DIR
-SHIM = AI_SCRIPTS_DIR / "claude-kit"
+SHIM = AI_SCRIPTS_DIR / "claude-kit" / "claude-kit"
 
 
 def subparsers():
@@ -42,9 +44,11 @@ def subparsers():
 
 
 def ensure_importable():
-    """Put the package's directory on sys.path, exactly as the shim does.
+    """Put the tool's directory on sys.path, exactly as the shim does.
 
-    Called from conftest so it happens before any test module imports claude_kit.
+    That directory holds both claude_kit and the dotkit symlink, which is why one
+    insert still covers everything the package imports. Called from conftest so it
+    happens before any test module imports claude_kit.
     """
-    if str(SCRIPTS) not in sys.path:
-        sys.path.insert(0, str(SCRIPTS))
+    if str(TOOL) not in sys.path:
+        sys.path.insert(0, str(TOOL))

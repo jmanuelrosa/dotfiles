@@ -402,7 +402,7 @@ def test_the_role_provisions_the_global_directories():
     only this task fills it now. Losing it again would be silent: the play succeeds
     and Claude Code simply loads no global skills."""
     task = sync_task()
-    assert "claude-kit sync" in task["ansible.builtin.command"]["cmd"]
+    assert "claude-kit/claude-kit sync" in task["ansible.builtin.command"]["cmd"]
 
 
 def test_the_role_reads_changed_off_the_summary_wording(capsys):

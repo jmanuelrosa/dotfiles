@@ -1,8 +1,9 @@
 """How claude-kit reaches the machine.
 
-The `ai` role globs files/scripts/* and symlinks each match into ~/.local/bin/, so
-anything dropped in that directory lands on PATH. These guard the deployment shape
-rather than the tool's behaviour.
+The `ai` role names its tools in AI_SCRIPTS and symlinks files/scripts/<name>/<name>
+into ~/.local/bin/ for each. These guard the deployment shape rather than the tool's
+behaviour: one directory per tool, the executable named after its directory, and every
+directory accounted for in the manifest.
 """
 
 import os
@@ -12,7 +13,7 @@ import subprocess
 import yaml
 
 from dotkit.testing import REPO
-from kit_helpers import PACKAGE, SCRIPTS, SHIM, subparsers
+from kit_helpers import PACKAGE, SCRIPTS, SHIM, TOOL, subparsers
 
 AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 
@@ -31,31 +32,56 @@ def test_the_shim_is_executable():
     assert SHIM.stat().st_mode & stat.S_IXUSR
 
 
-def test_every_non_doc_file_in_scripts_is_executable():
-    """The glob puts each of these on PATH, so a non-executable one is a broken
-    command rather than a harmless file.
+def manifest():
+    """AI_SCRIPTS, the tools the role puts on PATH."""
+    return yaml.safe_load((REPO / "roles/ai/defaults/main.yml").read_text())["AI_SCRIPTS"]
 
-    Directories are skipped because the fileglob lookup skips them too: it filters its
-    matches through os.path.isfile, which is what lets the claude_kit package sit in
-    this directory without the `when` guard having to name it.
+
+def test_the_link_task_loops_the_manifest_with_an_absolute_source():
+    """A relative src here is the silent failure worth pinning.
+
+    ansible.builtin.file does not resolve src through the role search path the way copy
+    and template do, and with force: true it skips the existence guard too. Drop
+    role_path and the play still reports changed while ~/.local/bin/claude-kit is a
+    dangling link.
     """
-    for entry in sorted(SCRIPTS.iterdir()):
-        if entry.is_dir() or entry.suffix == ".md" or entry.name.startswith("."):
-            continue
-        assert entry.stat().st_mode & stat.S_IXUSR, f"{entry.name} is on PATH but not executable"
+    task = scripts_task()
+    assert task.get("loop") == "{{ AI_SCRIPTS }}", "the task should loop the manifest"
+    src = task["ansible.builtin.file"]["src"]
+    assert "{{ role_path }}" in src, f"src must be absolute, got: {src}"
+    assert "{{ item }}/{{ item }}" in src, f"src should be <name>/<name>, got: {src}"
+    assert "when" not in task, "the manifest replaces the .md guard; nothing left to skip"
 
 
-def test_documentation_is_excluded_from_the_bin_symlinks():
-    """Without this guard the README becomes ~/.local/bin/README.md.
+def test_every_tool_directory_is_in_the_manifest():
+    """A tool absent from AI_SCRIPTS is simply never installed, and nothing says so.
 
-    The glob cannot express an exclusion, so the task carries a `when`. Pinned here
-    because the failure is silent: the playbook succeeds and PATH quietly gains a
-    markdown file.
+    The glob this replaced had the opposite failure, installing whatever was dropped in
+    the directory. Both are silent, so the manifest and the directory are pinned to
+    each other.
     """
-    assert (SCRIPTS / "README.md").is_file(), "the README should live beside the script"
-    when = scripts_task().get("when")
-    assert when, f"'{LINK_TASK}' must skip documentation"
-    assert ".md" in when, f"the guard should exclude markdown, got: {when}"
+    on_disk = {
+        entry.name
+        for entry in SCRIPTS.iterdir()
+        if entry.is_dir() and not entry.is_symlink() and not entry.name.startswith(".")
+    }
+    assert on_disk == set(manifest()), (
+        f"tool directories {sorted(on_disk)} do not match AI_SCRIPTS {sorted(manifest())}"
+    )
+
+
+def test_every_tool_ships_an_executable_named_after_its_directory():
+    """The convention the one-line loop depends on: files/scripts/<name>/<name>."""
+    for name in manifest():
+        executable = SCRIPTS / name / name
+        assert executable.is_file(), f"{name}/ has no executable named {name}"
+        assert executable.stat().st_mode & stat.S_IXUSR, f"{name}/{name} is on PATH but not +x"
+
+
+def test_the_readme_lives_beside_the_tool_it_documents():
+    """No `when` guard needed any more: a file inside a tool directory is not on PATH,
+    because only <name>/<name> is linked."""
+    assert (TOOL / "README.md").is_file()
 
 
 def test_the_shim_stays_thin():
@@ -72,9 +98,14 @@ def test_the_shim_stays_thin():
 
 def test_the_package_is_importable_from_beside_the_shim():
     """The shim inserts its own directory on sys.path, so the package has to be a
-    sibling of the shim. Move one without the other and claude-kit stops importing."""
+    sibling of the shim. Move one without the other and claude-kit stops importing.
+
+    PACKAGE comes from the suite's own location and SHIM from the repo anchor, so this
+    compares two independent derivations rather than restating one.
+    """
     assert (PACKAGE / "__init__.py").is_file()
-    assert PACKAGE.parent == SCRIPTS == SHIM.parent
+    assert PACKAGE.parent == TOOL == SHIM.parent
+    assert TOOL.parent == SCRIPTS
 
 
 def test_the_shim_finds_the_package_with_the_implicit_path_entry_suppressed(tmp_path):
@@ -116,19 +147,19 @@ def test_the_shim_finds_the_package_with_the_implicit_path_entry_suppressed(tmp_
     assert "Available plugins:" in result.stdout
 
 
-def test_the_tests_live_inside_the_package():
-    """Beside the code they exercise, and with no __init__.py.
+def test_the_tests_live_beside_the_package():
+    """Inside the tool directory, and with no __init__.py.
 
-    pytest walks up from a test module while it keeps finding __init__.py to decide the
-    module name. Adding one here would make it walk into claude_kit/ and import the
-    suite as claude_kit.tests.*, which is the mild version of the problem.
+    Every suite directory in this repo is named `tests`, and an __init__.py in any of
+    them makes pytest name its modules `tests.test_x`. sys.modules['tests'] is then
+    claimed by whichever suite loads first and the others resolve against the wrong
+    package, with nothing reporting it as a collision.
 
-    The sharp version is that this repo now has three suite directories, two of them
-    named `tests`. An __init__.py in any of them names its modules `tests.test_x`, and
-    sys.modules['tests'] is claimed by whichever suite loads first, so the other one's
-    modules resolve against the wrong package. Nothing reports that as a collision.
+    A second reason applies here specifically: the tool directory is `claude-kit`, and
+    "claude-kit".isidentifier() is False, so the walk could not produce a usable module
+    name from it even if the collision did not exist.
     """
-    tests = PACKAGE / "tests"
+    tests = TOOL / "tests"
     assert tests.is_dir()
     assert (tests / "conftest.py").is_file()
     assert not (tests / "__init__.py").exists(), "an __init__.py here collides across suites"
@@ -140,7 +171,7 @@ def test_every_command_and_flag_is_documented():
     Read from the parser rather than from `--help` output so this needs no subprocess
     and cannot drift from what argparse actually accepts.
     """
-    readme = (SCRIPTS / "README.md").read_text()
+    readme = (TOOL / "README.md").read_text()
 
     commands = subparsers()
     assert commands, "expected a subcommand parser"
@@ -165,7 +196,7 @@ def test_every_exit_code_is_documented():
     """Callers branch on these, so the table has to stay complete."""
     from claude_kit import errors
 
-    readme = (SCRIPTS / "README.md").read_text()
+    readme = (TOOL / "README.md").read_text()
     missing = [name for name in errors.NAMES.values() if f"`{name}`" not in readme]
     assert missing == [], f"exit codes absent from README.md: {missing}"
 

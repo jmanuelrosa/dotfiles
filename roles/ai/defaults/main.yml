@@ -27,3 +27,17 @@ BREW_PACKAGES:
     - claude-code@latest
     - cursor
     - steipete/tap/codexbar
+
+# Tools symlinked onto PATH from files/scripts/, named rather than globbed.
+#
+# Each entry is a directory holding everything that tool owns, and the executable
+# inside it carries the same name: files/scripts/<name>/<name>. That convention is
+# what makes the link task a one-line loop.
+#
+# A glob cannot express this. Ansible's fileglob lookup filters its matches through
+# os.path.isfile, so now that every entry here is a directory it would match nothing
+# at all and silently install no tools. Naming them also drops the `when` guard that
+# used to keep the README off PATH, and gates per tool instead of per role.
+AI_SCRIPTS:
+  - claude-kit
+  - weekly-recap
