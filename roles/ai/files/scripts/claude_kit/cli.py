@@ -31,6 +31,7 @@ TYPES = ("skill", "agent", "plugin")
 
 COMMANDS = {
     "list": "Show artifacts and where they are installed",
+    "scout": "Recommend artifacts for the current project, matched to its stack",
     "add": "Install a skill, agent or plugin",
     "remove": "Uninstall a skill, agent or plugin",
     "sync": "Converge ~/.claude on the artifacts tagged global",
@@ -49,6 +50,7 @@ COMMANDS = {
 # `outdated`, and fetching from upstream is a different act from converging ~/.claude.
 MODULE = {
     "list": "listing",
+    "scout": "scout",
     "add": "add",
     "remove": "remove",
     "sync": "provision",
@@ -67,7 +69,7 @@ MODULE = {
 FAMILIES = (
     (
         "Scope-aware (a project's .claude/, or ~/.claude with --global)",
-        ("add", "remove", "list", "doctor", "adopt"),
+        ("add", "remove", "list", "scout", "doctor", "adopt"),
     ),
     (
         "Global (~/.claude only; the scope is implied, so --global does not apply)",
@@ -81,6 +83,12 @@ FAMILIES = (
 
 SCOPE = {
     "list": "Reads ~/.claude and the current project together, and never writes.",
+    "scout": (
+        "Reads <cwd> to decide what to recommend, and skips anything already "
+        "available to it from either scope. Writes only with --add, and only into "
+        "<cwd>/.claude: nothing it offers belongs in ~/.claude, so --global has "
+        "nothing to say here."
+    ),
     "add": (
         "Installs into <cwd>/.claude, or into ~/.claude with --global, which is "
         "required for any artifact that belongs there."
@@ -267,6 +275,23 @@ def build_parser():
         default=None,
         metavar="TAG",
         help="With no value, group the listing by tag. With a tag, show only that tag.",
+    )
+
+    # --type is optional for the same reason as doctor's and adopt's: a project's stack
+    # implies artifacts of all three kinds, and requiring it would make a partial answer
+    # the only one available. Given, it narrows the whole report.
+    scout = _command(sub, "scout")
+    _add_type(scout, required=False)
+    scout.add_argument(
+        "--focus",
+        metavar="TAG",
+        help="Sort artifacts carrying this group tag to the front (e.g. testing)",
+    )
+    scout.add_argument(
+        "--add",
+        dest="add",
+        action="store_true",
+        help="Install the strong matches instead of only listing them",
     )
 
     # `names` is nargs="*" on add and remove only because --group is the other way to

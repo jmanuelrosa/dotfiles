@@ -34,12 +34,13 @@ identifies a link by its filename alone.
 
 ## `--type` is required
 
-Every command except `doctor`, `adopt` and `sync` requires `--type skill|agent|plugin`. Nothing is
-inferred from a name, so the three namespaces are allowed to overlap and a collision is a
-`doctor` note rather than an error. Those three take `--type` as an optional filter, because their
-result spans all three types: `doctor`'s cross-type checks cannot run inside a single type, one
-`claude-kit.json` holds all three, and `sync` converges a directory that holds all three, so a
-required `--type` could only ever ask it for a partial job.
+Every command except `doctor`, `adopt`, `sync` and `scout` requires `--type skill|agent|plugin`.
+Nothing is inferred from a name, so the three namespaces are allowed to overlap and a collision is
+a `doctor` note rather than an error. Those four take `--type` as an optional filter, because
+their result spans all three types: `doctor`'s cross-type checks cannot run inside a single type,
+one `claude-kit.json` holds all three, `sync` converges a directory that holds all three, and a
+project's stack implies artifacts of all three — so on each of them a required `--type` could only
+ever ask for a partial job.
 
 ## Scope: the `global` tag decides, not your shell
 
@@ -80,7 +81,7 @@ The families above are how `claude-kit -h` groups its listing:
 
 | Family | Commands | Acts on |
 |---|---|---|
-| Scope-aware | `add`, `remove`, `list`, `doctor`, `adopt` | a project's `.claude/`, or `~/.claude` with `--global` |
+| Scope-aware | `add`, `remove`, `list`, `scout`, `doctor`, `adopt` | a project's `.claude/`, or `~/.claude` with `--global` |
 | Global | `sync` | `~/.claude` alone, whatever the cwd |
 | Registry-wide | `update`, `outdated` | this repo's skill sources against upstream |
 
@@ -160,6 +161,116 @@ only because something global depends on it (`jira`, `documentation-and-adrs`,
 `planning-and-task-breakdown`) carries no `global` tag, so nothing in the flat list says so, and
 `add` refusing it can look surprising. `--group` does show `(global)`, and `doctor` reports scope
 directly.
+
+### `scout`
+
+```
+claude-kit scout [--type {skill,agent,plugin}] [--focus TAG] [--add]
+```
+
+Every other command starts from a name you already know. `scout` starts from the directory: it
+fingerprints the project, matches that fingerprint against the catalogue's group tags, and prints
+a shortlist with the reason for each entry. It is the answer to *what should I install here*,
+which `list` (the whole catalogue, alphabetically, saying nothing about relevance) and `add`
+(which assumes you already know) both leave unanswered.
+
+| Flag | Meaning |
+|---|---|
+| `--type` | **Optional**, as on `doctor` and `adopt`. A project's stack implies artifacts of all three kinds, so the default covers all three; pass one to narrow the whole report |
+| `--focus TAG` | Treat that tag as asked-for. Its artifacts sort to the front **and rank as strong matches**, so `--add` takes them |
+| `--add` | Install the strong tier — which `--focus` widens. Never the weaker tier |
+
+Read-only without `--add`. Refuses `NO_PROJECT` in `$HOME`, which is never a project.
+
+**Two tiers, and the difference is the grade of evidence.**
+
+| Tier | Earned by | Example reason |
+|---|---|---|
+| Strong match | Something in the project says so | `react@19.0.0 in package.json`, `no test directory and no test files` |
+| Worth considering | A neighbour of a direct hit | `implied by react (react@19.0.0 in package.json)` |
+
+Absence counts as direct evidence: no test suite, no `.github/workflows` and no `docs/` each rank
+strongly, because a project without them wants the artifact that fills the gap more than one with
+them does. Prose counts too, coarsely — a `CLAUDE.md` mentioning TDD or ADRs is read as intent.
+
+When several tags match, the `Why` cites the one that best explains the match: whatever `--focus`
+named, else the most specific tag, which is the one naming a technology. Alphabetical order is the
+last resort rather than the rule.
+
+**`--focus` is a third source of direct evidence, not just a sort key.** Asking for a tag is the
+evidence for it, so its artifacts rank strongly and their `Why` reads `requested focus 'testing'`.
+That is deliberate — a focus `--add` ignored would be a filter that filters nothing — but it means
+`scout --focus testing --add` installs artifacts that a plain `scout --add` would have left in the
+weaker tier. In a React project with a test suite, `test-driven-development` is *worth
+considering*; add `--focus testing` and it becomes a strong match and gets installed.
+
+The closing `→` line always installs **everything shown**, both tiers. `--add` installs the strong
+tier only. When the two differ the report says so on the line beneath, because the difference is
+otherwise visible only in the counts.
+
+```
+$ claude-kit scout --type skill
+🔎 Scouting ~/dev/api
+
+Strong match
+  · react-best-practices [engineering, frontend, react]
+    Why:  react@19.0.0 in package.json
+    What: Modern React patterns. Use when writing or reviewing React components …
+  · test-driven-development [engineering, frontend, backend, testing]
+    Why:  no test directory and no test files
+    What: Drives development with tests. Use when implementing any logic …
+
+Worth considering
+  · code-review-and-quality [refactoring, backend, frontend, review]
+    Why:  implied by react (react@19.0.0 in package.json)
+    What: Conducts multi-axis code review. Use before merging any change …
+
+Already in this project
+  ✓ coderabbit
+
+→ claude-kit add react-best-practices test-driven-development --type skill
+✨ 2 strong, 1 worth considering, 1 already here
+```
+
+The closing line is runnable, and with a mixed shortlist there is **one line per type**, because
+`--type` applies to every name in a call. A mixed report also labels each row with its type; a
+narrowed one does not, since the suffix would be on every row and inform nobody.
+
+Four rules carry the ranking, and each exists to keep the report worth reading:
+
+- **Nothing already available is offered.** That is wider than "linked in this project": it covers
+  `~/.claude` too, and anything that *belongs* there whether or not `sync` has run. Offering a
+  global artifact would be offering to install what every project already loads. Dependency-only
+  skills are out for the same reason `list` hides them, and a registered skill not yet downloaded
+  is out because `add` would refuse it.
+- **A framework the project does not use is dropped entirely**, however well its other tags match.
+  Persona tags like `frontend` are shared by every framework's artifacts, so without this one
+  implied `frontend` hit drags Astro and Apollo in beside React.
+- **Broad tags never earn a place.** `engineering` is on most of the catalogue, so matching on it
+  ranks everything, which says exactly as much as ranking nothing. `observability` counts as broad
+  for the same reason and not because it is vague: ten of the fifteen seat plugins carry it as
+  boilerplate, so one `@sentry/*` dependency would otherwise make the data, design and gtm seats
+  strong matches for a React API. `sentry` is the discriminating tag over that territory. Naming a
+  broad tag with `--focus` is how to mean it, and then it matches normally.
+- **A stack the catalogue does not cover still gets an answer.** A Rust or Go repo matches no tech
+  tag, so scout falls back to the stack-agnostic tags (`workflow`, `review`, `testing`, `git`,
+  `planning`, `productivity`, `documentation`, `refactoring`). Those are guesses, so they land in
+  the weaker tier and are never claimed as strong.
+
+The combined shortlist is capped at 12, strong matches served first — so a well-covered project
+sees no guesses at all.
+
+`--add` installs the strong tier through the same path as `add` itself, so a recommendation
+accepted here resolves dependencies, records provenance in `claude-kit.json` and prints the plugin
+restart hint exactly as a hand-typed `add` does. It never installs the weaker tier: that tier is a
+prompt to go and look, not a recommendation to act on. Nothing scout offers is global, so `--add`
+only ever writes into `<cwd>/.claude` and `--global` has nothing to say here.
+
+The fingerprint reads `package.json` (dependencies and devDependencies alike) and the Swift
+markers, and deliberately not `Cargo.toml`, `go.mod` or `pyproject.toml`: a hit there implies
+nothing installable and would only add noise the reader has to discount. `node_modules` and the
+other vendor directories are pruned from the test-file walk, or every JS project would look
+tested.
 
 ### `add`
 
@@ -438,6 +549,34 @@ a `done`**: emoji are double-width, so one used as a row marker would break the 
 ---
 
 ## Examples
+
+**Find out what a project is missing, then take the shortlist.**
+
+```console
+$ cd ~/work/api
+$ claude-kit scout --type skill
+🔎 Scouting ~/work/api
+
+Strong match
+  · react-best-practices [engineering, frontend, react]
+    Why:  react@19.0.0 in package.json
+    What: Modern React patterns. Use when writing or reviewing React components …
+
+Worth considering
+  · knip [engineering, backend, frontend, review]
+    Why:  implied by react (react@19.0.0 in package.json)
+    What: Run knip to find and remove unused files, dependencies, and exports …
+
+→ claude-kit add react-best-practices --type skill
+✨ 1 strong, 1 worth considering, 0 already here
+
+$ claude-kit scout --type skill --add
+...
+✓ Linked 'react-best-practices' into ~/work/api/.claude/skills
+```
+
+`--add` takes the strong tier only. `knip` was a guess, so accepting it stays a decision you make
+by hand.
 
 **Install a project skill. It lands where you are.**
 
