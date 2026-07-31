@@ -10,6 +10,7 @@ import os
 import stat
 import subprocess
 
+import pytest
 import yaml
 
 from dotkit.testing import REPO
@@ -19,12 +20,28 @@ AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 
 LINK_TASK = "Link AI scripts into the user bin directory"
 
+# Both roles install scripts the same way, so the shape is checked for both here. The
+# work role had no packaging test at all before, which is why its link task could sit
+# next to a dead `Ensure scripts directory exists` creating a path nothing wrote to.
+INSTALLERS = [
+    ("ai", "AI_SCRIPTS", LINK_TASK),
+    ("work", "WORK_SCRIPTS", "Link work scripts into the user bin directory"),
+]
+
+
+def role_task(role, name):
+    tasks = yaml.safe_load((REPO / f"roles/{role}/tasks/main.yml").read_text())
+    matching = [t for t in tasks if t.get("name") == name]
+    assert len(matching) == 1, f"expected exactly one '{name}' task in the {role} role"
+    return matching[0]
+
 
 def scripts_task():
-    tasks = yaml.safe_load(AI_TASKS.read_text())
-    matching = [t for t in tasks if t.get("name") == LINK_TASK]
-    assert len(matching) == 1, f"expected exactly one '{LINK_TASK}' task"
-    return matching[0]
+    return role_task("ai", LINK_TASK)
+
+
+def role_manifest(role, var):
+    return yaml.safe_load((REPO / f"roles/{role}/defaults/main.yml").read_text())[var]
 
 
 def test_the_shim_is_executable():
@@ -32,12 +49,8 @@ def test_the_shim_is_executable():
     assert SHIM.stat().st_mode & stat.S_IXUSR
 
 
-def manifest():
-    """AI_SCRIPTS, the tools the role puts on PATH."""
-    return yaml.safe_load((REPO / "roles/ai/defaults/main.yml").read_text())["AI_SCRIPTS"]
-
-
-def test_the_link_task_loops_the_manifest_with_an_absolute_source():
+@pytest.mark.parametrize(("role", "var", "task_name"), INSTALLERS)
+def test_the_link_task_loops_the_manifest_with_an_absolute_source(role, var, task_name):
     """A relative src here is the silent failure worth pinning.
 
     ansible.builtin.file does not resolve src through the role search path the way copy
@@ -45,35 +58,40 @@ def test_the_link_task_loops_the_manifest_with_an_absolute_source():
     role_path and the play still reports changed while ~/.local/bin/claude-kit is a
     dangling link.
     """
-    task = scripts_task()
-    assert task.get("loop") == "{{ AI_SCRIPTS }}", "the task should loop the manifest"
+    task = role_task(role, task_name)
+    assert task.get("loop") == "{{ %s }}" % var, "the task should loop the manifest"
     src = task["ansible.builtin.file"]["src"]
     assert "{{ role_path }}" in src, f"src must be absolute, got: {src}"
     assert "{{ item }}/{{ item }}" in src, f"src should be <name>/<name>, got: {src}"
     assert "when" not in task, "the manifest replaces the .md guard; nothing left to skip"
+    assert "with_fileglob" not in task, "a glob would match only directories, which fileglob drops"
 
 
-def test_every_tool_directory_is_in_the_manifest():
+@pytest.mark.parametrize(("role", "var", "task_name"), INSTALLERS)
+def test_every_tool_directory_is_in_the_manifest(role, var, task_name):
     """A tool absent from AI_SCRIPTS is simply never installed, and nothing says so.
 
     The glob this replaced had the opposite failure, installing whatever was dropped in
     the directory. Both are silent, so the manifest and the directory are pinned to
     each other.
     """
+    scripts = REPO / f"roles/{role}/files/scripts"
     on_disk = {
         entry.name
-        for entry in SCRIPTS.iterdir()
+        for entry in scripts.iterdir()
         if entry.is_dir() and not entry.is_symlink() and not entry.name.startswith(".")
     }
-    assert on_disk == set(manifest()), (
-        f"tool directories {sorted(on_disk)} do not match AI_SCRIPTS {sorted(manifest())}"
+    declared = set(role_manifest(role, var))
+    assert on_disk == declared, (
+        f"{role} tool directories {sorted(on_disk)} do not match {var} {sorted(declared)}"
     )
 
 
-def test_every_tool_ships_an_executable_named_after_its_directory():
+@pytest.mark.parametrize(("role", "var", "task_name"), INSTALLERS)
+def test_every_tool_ships_an_executable_named_after_its_directory(role, var, task_name):
     """The convention the one-line loop depends on: files/scripts/<name>/<name>."""
-    for name in manifest():
-        executable = SCRIPTS / name / name
+    for name in role_manifest(role, var):
+        executable = REPO / f"roles/{role}/files/scripts" / name / name
         assert executable.is_file(), f"{name}/ has no executable named {name}"
         assert executable.stat().st_mode & stat.S_IXUSR, f"{name}/{name} is on PATH but not +x"
 
