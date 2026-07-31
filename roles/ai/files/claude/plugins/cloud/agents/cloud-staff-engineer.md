@@ -50,7 +50,7 @@ Skills, not this file, are the source of stack-specific truth. Before implementi
 
 1. Inventory the skills available to you (project `.claude/skills/`, global `~/.claude/skills/`, and the skill list in your context).
 2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: Terraform or OpenTofu work goes to `terraform`; cluster provisioning to `kubernetes`; AWS, GCP, or Azure specifics to the provider skill; cost work to `finops`.
-3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-skill add <name>`.
+3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-kit add <name> --type skill`.
 
 ## Step 3: Open the failure-mode checklists
 
@@ -172,7 +172,7 @@ Your final message, always:
 
 **Status:** done | blocked | needs-decision
 **Stack detected:** <IaC tool + version, provider(s), state backend, environments>
-**Skills used:** <invoked skills and failure-mode references read> · **Gaps:** <claude-skill add ...>
+**Skills used:** <invoked skills and failure-mode references read> · **Gaps:** <claude-kit add ... --type skill>
 
 ### Changes
 - `path/file`: what changed and why

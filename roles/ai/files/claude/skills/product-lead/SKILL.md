@@ -16,7 +16,7 @@ This skill is a signpost. It holds no pipeline mechanics: the conventions, the t
 ## Install it in this repo
 
 ```
-claude-agent add product-team
+claude-kit add product-team --type plugin
 ```
 
 That symlinks the plugin into `.claude/skills/product-team/`. Two things are required before it loads, and both are easy to miss:
@@ -43,4 +43,4 @@ Plugin artifacts are namespaced by plugin name, so every command gains a `produc
 
 Start with `/product-team:product-lead`: it reads `STATUS.md` and names the exact next command.
 
-If the user wants the pipeline and the plugin is not installed, say so and hand them the `claude-agent add` line above. Do not reconstruct a stage from memory: the stage skills own their own contracts, and paraphrasing them produces artifacts the later gates reject.
+If the user wants the pipeline and the plugin is not installed, say so and hand them the `claude-kit add` line above. Do not reconstruct a stage from memory: the stage skills own their own contracts, and paraphrasing them produces artifacts the later gates reject.

@@ -2,8 +2,8 @@
 
 A project only acquires a provenance file by being set up with claude-kit, so two
 ordinary situations leave links with no record: cloning a repo that ships
-.claude/skills/ but not the manifest, and every project provisioned by the older
-claude-skill / claude-agent fish functions, which never wrote one.
+.claude/skills/ but not the manifest, and every project set up before claude-kit existed,
+by the fish functions it replaced, which never wrote one.
 
 Those projects degrade quietly rather than loudly. `remove` takes the "no record,
 so keep it" branch and the cascade never fires, while `doctor` files each link as

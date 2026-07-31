@@ -1,9 +1,9 @@
 """`claude-kit list`.
 
-Output follows `claude-skill list` exactly: same header, markers, colours and suffix
-order, so the two are indistinguishable side by side. Palette in colors.py, line
-vocabulary in ui.py, and test_list_format diffs the two implementations byte for byte,
-so a header changed here has to change in claude-skill.fish in the same commit.
+The layout came from `claude-skill list`, the fish function this replaced: same header,
+markers, colours and suffix order, so the two were indistinguishable while both shipped.
+Palette in colors.py, line vocabulary in ui.py, and test_list_format pins every row
+shape as a literal, escape codes included.
 
     🧩 Available skills:
       ✓ coderabbit (linked) [productivity, review, workflow]
@@ -42,9 +42,9 @@ def rows(catalog, kind, effective, home, project, provenance, group=None, claude
     Pure: takes resolved inputs and returns data, so filtering and annotation are
     testable without a filesystem or a terminal.
 
-    Ordering mirrors claude-skill: everything present on disk first, then registry
-    entries never downloaded. That function walks the filesystem and backfills from the
-    registry, which puts the two states in separate alphabetical runs.
+    Ordering is everything present on disk first, then registry entries never
+    downloaded: the walk reads the filesystem and backfills from the registry, which puts
+    the two states in separate alphabetical runs.
     """
     present, absent = [], []
     # cat.visible drops the dependency-only skills: offering one here would be an
@@ -79,8 +79,8 @@ def rows(catalog, kind, effective, home, project, provenance, group=None, claude
 def _marker(row, indent):
     """The name and its state marker.
 
-    claude-skill dims the whole "↓ name (not downloaded)" run rather than just the
-    glyph, which is why this returns three shapes instead of one.
+    The whole "↓ name (not downloaded)" run is dimmed rather than just the glyph,
+    which is why this returns three shapes instead of one.
     """
     if row["state"] == LINKED:
         tick = colors.paint("✓", "green")
@@ -92,20 +92,19 @@ def _marker(row, indent):
 
 
 def format_row(row, indent="  ", show_groups=True):
-    """Render one row in claude-skill's layout.
+    """Render one row.
 
-    show_groups=False is the grouped view, where the tag is already the heading, so
-    claude-skill prints a bare `(global)` marker instead of the full group list.
+    show_groups=False is the grouped view, where the tag is already the heading, so a bare
+    `(global)` marker takes the place of the full group list.
     """
     parts = [_marker(row, indent)]
 
     if show_groups:
-        # No scope marker in the flat view, matching claude-skill, whose comment reads
-        # "The groups suffix already shows `global`, so no extra scope marker here."
+        # No scope marker in the flat view: the groups suffix already shows `global`.
         #
-        # That inherits claude-skill's blind spot: a skill global only via a dependency
-        # (jira, documentation-and-adrs, planning-and-task-breakdown) carries no `global`
-        # tag, so nothing here says so, and `add` refusing it looks surprising. The
+        # Which leaves one blind spot, inherited with the layout: a skill global only via
+        # a dependency (jira, documentation-and-adrs, planning-and-task-breakdown) carries
+        # no `global` tag, so nothing here says so, and `add` refusing it looks odd. The
         # grouped view below does say it, and `doctor` reports scope directly.
         if row["groups"]:
             parts.append(colors.paint("[" + ", ".join(row["groups"]) + "]", "cyan"))
@@ -145,7 +144,7 @@ def run(args):
         )
 
     if args.group is True:
-        # `--group` with no tag: the grouped view, as in `claude-skill list --group`.
+        # `--group` with no tag: the grouped view.
         ui.title(GROUPS_HEADER)
         for tag, members in grouped(listed):
             print(f"  {colors.paint(tag + ':', 'cyan')}")

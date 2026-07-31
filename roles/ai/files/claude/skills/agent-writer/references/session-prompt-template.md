@@ -46,7 +46,7 @@ Process:
     - frontmatter of the agent and SKILL.md uses `description: >-` and parses under strict YAML (awk-extract the frontmatter block, pipe to ruby -ryaml)
     - ANSIBLE_LOCAL_TEMP="$TMPDIR/ansible-tmp" ansible-lint exits 0
     - plugin.json parses and `claude plugin validate roles/ai/files/claude/plugins/<DISCIPLINE>` passes (benign groups warning)
-    - `claude-agent list` (via fish) shows `<DISCIPLINE> (plugin) [groups]`
+    - `claude-kit list --type plugin` shows `<DISCIPLINE>` with its groups
 6. Final message: what shipped with paths and line counts, research evidence adopted vs rejected, audit findings and fixes, verification results, git status. Remind me nothing was committed.
 
 Style, non-negotiable: no em or en dashes anywhere; semantic line breaks (one sentence per line, no hard wrap); reference content is checks against a diff, never tutorials; checks stay stack-agnostic because tool-specific guidance belongs to the installed stack skills.

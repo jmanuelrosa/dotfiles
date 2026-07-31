@@ -1,10 +1,9 @@
-"""`claude-kit list` renders exactly like `claude-skill list`.
+"""The exact bytes `claude-kit list` prints, row shape by row shape.
 
-The strongest form of this is a differential test: run both against the same project
-and compare the bytes. That is what test_matches_claude_skill_byte_for_byte does, so a
-drift in either implementation fails rather than being noticed by eye.
-
-The rest pin individual pieces of the template so a failure says which part moved.
+The template came from the `claude-skill` / `claude-agent` fish functions claude-kit
+replaced, and while both shipped a differential test held them to the same bytes. Those
+functions are gone, so this file is what pins the format now: every test asserts a
+literal with the escape codes in it, and a failure says which piece moved.
 """
 
 import os
@@ -17,7 +16,7 @@ from claude_kit import catalog as cat
 from claude_kit import scope
 from dotkit import colors
 from claude_kit.commands import listing
-from dotkit.testing import CLAUDE, FISH_FUNCTIONS, REPO
+from dotkit.testing import CLAUDE, REPO
 from kit_helpers import SHIM
 
 RESET = "\x1b[m"
@@ -53,9 +52,8 @@ def test_reset_matches_fishs_set_color(coloured):
 def test_colour_is_off_when_not_a_terminal():
     """Piping to a file or a test harness should yield plain text.
 
-    claude-skill decides the same way now that its palette comes from `_ui color`; it
-    used to emit codes unconditionally, because a bare set_color does. Which is why the
-    differential tests below force colour on rather than assuming a terminal.
+    Which is why every test here forces colour on rather than assuming a terminal: under
+    pytest stdout is a pipe, so the literals below would otherwise all be plain.
     """
     assert colors.paint("x", "green") == "x"
 
@@ -80,7 +78,7 @@ def test_an_available_row(coloured):
 
 
 def test_a_not_downloaded_row_dims_the_whole_run(coloured):
-    """claude-skill dims "↓ name (not downloaded)" as one unit, not just the glyph."""
+    """"↓ name (not downloaded)" is dimmed as one unit, not just the glyph."""
     got = listing.format_row(row("never-fetched", state=listing.MISSING))
     assert got == f"  {DIM}↓ never-fetched (not downloaded){RESET}"
 
@@ -94,7 +92,7 @@ def test_groups_are_cyan_bracketed_and_comma_joined(coloured):
 
 
 def test_groups_are_sorted_and_deduped(catalog, effective):
-    """jq's `unique` sorts and dedupes, so claude-skill prints them sorted.
+    """Sorted, as the jq `unique` this inherited its ordering from produced.
 
     Asserted on rows() rather than format_row: the ordering is a property of the data,
     and format_row joins whatever it is handed.
@@ -116,20 +114,16 @@ def test_suffix_order_is_groups_then_needs(coloured):
 
 
 def test_the_flat_view_carries_no_scope_marker(coloured):
-    """claude-skill prints none, so neither do we.
-
-    Its comment reads: the groups suffix already shows `global`, so no extra scope
-    marker here.
-    """
+    """The groups suffix already shows `global`, so no extra scope marker here."""
     got = listing.format_row(row("commit", groups=("ai", "global"), **{"global": True}))
     assert "[ai, global]" in got
     assert "(global)" not in got.replace("[ai, global]", "")
 
 
-def test_the_flat_view_inherits_claude_skills_blind_spot(coloured):
+def test_the_flat_view_has_a_blind_spot_and_keeps_it(coloured):
     """A skill global only via a dependency has no `global` tag, so the flat view says
-    nothing about its scope. Pinned deliberately: matching claude-skill's template means
-    matching this gap too, and the grouped view is where scope does show.
+    nothing about its scope. Pinned deliberately: the gap came with the template, and the
+    grouped view is where scope does show.
     """
     got = listing.format_row(row("jira", groups=("workflow",), **{"global": True}))
     assert "(global)" not in got
@@ -151,8 +145,8 @@ def test_provenance_is_appended_last(coloured):
 
 
 def test_grouped_rows_indent_four_and_drop_the_group_list(coloured):
-    """Under a tag heading the group list would be noise, so claude-skill prints a bare
-    `(global)` there instead."""
+    """Under a tag heading the group list would be noise, so a bare `(global)` takes its
+    place."""
     got = listing.format_row(
         row("agent-audit", groups=("ai", "global"), **{"global": True}),
         indent="    ",
@@ -176,8 +170,8 @@ def test_grouped_buckets_are_sorted_and_span_tags(catalog, effective):
 
 
 def test_present_artifacts_come_before_never_downloaded_ones(catalog, effective, tmp_path):
-    """claude-skill walks the filesystem then backfills from the registry, which puts
-    the two states in separate alphabetical runs rather than one merged list.
+    """The walk reads the filesystem then backfills from the registry, which puts the two
+    states in separate alphabetical runs rather than one merged list.
     """
     ghost = cat.Artifact(name="aaa-never-fetched", type=cat.SKILL, source=tmp_path / "nope")
     doctored = {**catalog, (cat.SKILL, ghost.name): ghost}
@@ -199,12 +193,8 @@ def test_present_artifacts_come_before_never_downloaded_ones(catalog, effective,
         (cat.PLUGIN, "🔌 Available plugins:"),
     ],
 )
-def test_headers_follow_claude_skills_wording(kind, expected):
-    """Topic emoji on the heading, and only there.
-
-    The byte-for-byte tests below hold claude-skill.fish and claude-agent.fish to the
-    same strings, so a heading cannot be changed on one side alone.
-    """
+def test_headers_carry_the_topic_emoji_and_the_rows_do_not(kind, expected):
+    """One emoji per listing, on the heading, per the shared output vocabulary."""
     assert listing.HEADER[kind] == expected
 
 
@@ -219,7 +209,11 @@ def test_only_the_headings_carry_an_emoji(coloured):
     assert "\U0001f9e9" not in listing.format_row(row("x", state=listing.LINKED))
 
 
-# --- the differential test --------------------------------------------------
+# --- a real run through the shim --------------------------------------------
+#
+# Everything above renders one row in-process. These drive the installed command end to
+# end, so the registry, the scope resolution and the printing all have to agree before a
+# row comes out looking like the literals above.
 
 
 def run_kit(argv, cwd, env):
@@ -228,17 +222,13 @@ def run_kit(argv, cwd, env):
     ).stdout
 
 
-def run_fish(command, cwd, env):
-    preamble = f"set -g fish_function_path {FISH_FUNCTIONS} $fish_function_path\n"
-    return subprocess.run(
-        ["fish", "--no-config", "-c", preamble + command],
-        cwd=str(cwd), env=env, capture_output=True, text=True,
-    ).stdout
-
-
 @pytest.fixture
-def both(tmp_path):
-    """A project with one skill linked, plus an env both tools accept."""
+def listing_run(tmp_path):
+    """A project with one skill linked, and an env the shim accepts.
+
+    Colour is forced on because the assertions are literals with escape codes in them,
+    and a subprocess under pytest writes to a pipe.
+    """
     home = tmp_path / "home"
     (home / ".claude").mkdir(parents=True)
     project = tmp_path / "project"
@@ -261,54 +251,46 @@ def both(tmp_path):
     return project, env
 
 
-def test_matches_claude_skill_byte_for_byte(both):
-    """The real check: identical bytes, escape codes included.
-
-    claude-kit adds `(installed for <parent>)` where it has provenance, which
-    claude-skill cannot know, so rows carrying that suffix are compared with it
-    stripped. Everything else must match exactly.
-    """
-    project, env = both
-    mine = run_kit(["list", "--type", "skill"], project, env)
-    theirs = run_fish("claude-skill list", project, env)
-
-    def rows_only(text):
-        """The header and row block, dropping our trailing count summary.
-
-        Also strips `(installed for <parent>)`, which claude-kit knows from provenance
-        and claude-skill cannot. Everything else must match byte for byte.
-        """
-        lines = []
-        for line in text.splitlines():
-            if not line.strip():
-                break
-            lines.append(line.split(f" {DIM}(installed for ")[0])
-        return lines
-
-    assert rows_only(mine) == rows_only(theirs)
+def test_a_real_run_prints_the_heading_then_the_rows(listing_run):
+    project, env = listing_run
+    out = run_kit(["list", "--type", "skill"], project, env).splitlines()
+    assert out[0] == f"{BOLD}🧩 Available skills:{RESET}"
+    linked = f"  {GREEN}✓{RESET} coderabbit {GREEN}(linked){RESET}"
+    assert any(line.startswith(linked) for line in out)
+    assert f"  {DIM}·{RESET} astro {CYAN}[astro, engineering, frontend]{RESET}" in out
 
 
-def test_the_count_summary_is_a_claude_kit_addition(both):
-    """It sits below the row block, so it adds information without altering the
-    template. Asserted so the differential test above cannot quietly start ignoring a
-    real divergence."""
-    project, env = both
-    mine = run_kit(["list", "--type", "skill"], project, env)
-    assert "skills, 1 installed" in mine
-    assert "installed" not in run_fish("claude-skill list", project, env).splitlines()[-1]
+def test_a_real_run_colours_nothing_when_stdout_is_a_pipe(listing_run):
+    """Which is why the fixture forces colour on rather than assuming a terminal."""
+    project, env = listing_run
+    plain = {**env}
+    plain.pop("FORCE_COLOR")
+    out = run_kit(["list", "--type", "skill"], project, plain)
+    assert "Available skills:" in out
+    assert "\x1b" not in out
 
 
-def test_the_grouped_view_matches_byte_for_byte(both):
-    project, env = both
-    mine = run_kit(["list", "--type", "skill", "--group"], project, env)
-    theirs = run_fish("claude-skill list --group", project, env)
-    assert mine.splitlines() == theirs.splitlines()
+def test_the_count_summary_closes_the_listing(listing_run):
+    """One `done` line per run, below the row block, so it adds a total without
+    disturbing the template above."""
+    project, env = listing_run
+    out = run_kit(["list", "--type", "skill"], project, env).splitlines()
+    assert out[-1].startswith("✨ ")
+    assert "skills, 1 installed" in out[-1]
 
 
-def test_a_tag_filter_is_a_claude_kit_addition(both):
-    """claude-skill's --group takes no value, so `--group <tag>` is ours alone. It must
-    not disturb the shared bare-flag behaviour."""
-    project, env = both
+def test_the_grouped_view_indents_members_under_a_tag(listing_run):
+    project, env = listing_run
+    out = run_kit(["list", "--type", "skill", "--group"], project, env).splitlines()
+    assert out[0] == f"{BOLD}{listing.GROUPS_HEADER}{RESET}"
+    assert f"  {CYAN}ai:{RESET}" in out
+    assert f"    {DIM}·{RESET} agent-audit {DIM}(global){RESET}" in out
+
+
+def test_a_tag_filter_narrows_the_flat_view(listing_run):
+    """`--group <tag>` filters; a bare `--group` buckets. One flag, two shapes, so the
+    valued form must not turn the listing into the grouped view."""
+    project, env = listing_run
     filtered = run_kit(["list", "--type", "skill", "--group", "global"], project, env)
     assert "Available skills:" in filtered
     assert "tagged 'global'" in filtered

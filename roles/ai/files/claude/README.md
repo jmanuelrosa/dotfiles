@@ -1,50 +1,28 @@
 # Claude
 
-Management system for Claude Code skills, agents, and MCP servers. Skills and agents live in this directory and are linked into projects via the `claude-skill` and `claude-agent` fish functions.
+Management system for Claude Code skills, agents, and MCP servers. Skills and agents live in this directory; `claude-kit` links them into a project or into `~/.claude`.
 
-This document covers how to **use those functions in a project** and how to **add new skills and agents to the dotfiles repo** itself.
+This document covers how to **use them in a project** and how to **add new skills and agents to the dotfiles repo** itself.
 
 ## Commands
 
-Both functions are run from the root of a project — they operate on `./.claude/skills/` or `./.claude/agents/` relative to the current directory. They require `jq` (`brew install jq`).
-
-### `claude-skill`
+`claude-kit` is the CLI (`roles/ai/files/scripts/claude-kit/`, symlinked into `~/.local/bin` by the `ai` role). It replaced the `claude-skill` / `claude-agent` fish functions, which are gone.
 
 ```
-claude-skill <list|add|remove|update|outdated> [--group] [name]
+claude-kit add    <name>... --type skill|agent|plugin   Install, resolving dependencies
+claude-kit remove <name>... --type skill|agent|plugin   Uninstall, cascading to dependencies
+claude-kit list            --type skill|agent|plugin   Show artifacts and where they are installed
+claude-kit scout                                       Recommend artifacts matched to this project's stack
+claude-kit doctor                                      Report drift between registries and disk
+claude-kit adopt                                       Rebuild claude-kit.json from what is installed
+claude-kit sync                                        Converge ~/.claude on the artifacts tagged global
+claude-kit update   --type skill                       Fetch skills from their upstream repos
+claude-kit outdated --type skill                       Report which skills are behind upstream
 ```
 
-| Subcommand | What it does |
-|---|---|
-| `list` | List all skills with status: `✓ linked`, `·` available on disk, `↓ not downloaded`. |
-| `list --group` | Same listing, but grouped by the `groups` tags from the registry. |
-| `add <name>` | Symlink the skill into `./.claude/skills/`. If it's a tracked skill not yet on disk, fetches it from upstream first. |
-| `add --group <group>` | Link every skill belonging to `<group>`, downloading any tracked ones that aren't on disk yet. |
-| `remove <name>` | Remove the symlink from `./.claude/skills/`. |
-| `remove --group <group>` | Remove all symlinks for skills in `<group>`. |
-| `update` | Pull every tracked skill from its upstream repo. Treats upstream as canonical — the local skill dir is wiped and re-extracted, so any file no longer present upstream is removed. One line per skill. Records `updated_at` for each entry it confirmed. |
-| `update <name>` | Same, scoped to one skill. Local skills are skipped with a warning — there's no upstream to sync. |
-| `outdated` | Fetch upstream for every tracked skill and report what's behind — without writing anything. One line per skill (repo header + name + status + last synced). No file-level detail. |
-| `outdated <name>` | Same, scoped to one skill. Local skills emit the same "no upstream" warning. |
+`--type` is required except on `doctor`, `adopt`, `sync` and `scout`, where it narrows an otherwise cross-type result. Nothing is inferred from a name, so a name means one artifact of one type. `add` and `remove` also take `--group <tag>` instead of names, and `--global` for an artifact that lands in `~/.claude`. A project is whatever directory you run it in (`$HOME` excepted, since its `.claude` *is* `~/.claude`).
 
-### `claude-agent`
-
-```
-claude-agent <list|add|remove|update|outdated> [--group] [name]
-```
-
-| Subcommand | What it does |
-|---|---|
-| `list` | List all agents with status: `✓ linked`, `·` available on disk, `↓ not downloaded`. |
-| `list --group` | Same listing, but grouped by the `groups` tags from the registry. |
-| `add <name>` | Symlink the agent into `./.claude/agents/`. Fetches from upstream first if not on disk. |
-| `add --group <group>` | Link every agent belonging to `<group>`, downloading any tracked ones that aren't on disk yet. |
-| `remove <name>` | Remove the symlink from `./.claude/agents/`. |
-| `remove --group <group>` | Remove all symlinks for agents in `<group>`. |
-| `update` | Pull every tracked agent from upstream. Records `updated_at` in the registry for each entry it confirmed. |
-| `update <name>` | Same, scoped to one agent. Local agents are skipped with a warning — there's no upstream to sync. |
-| `outdated` | Fetch upstream for every tracked agent and report what's behind — without writing anything. Shows `last synced` from the registry. |
-| `outdated <name>` | Same, scoped to one agent. Local agents emit the same "no upstream" warning. |
+Full reference, worked examples and a corner-case FAQ: [../scripts/claude-kit/README.md](../scripts/claude-kit/README.md). The `claude-skills` and `claude-agents` Television cables drive the same commands interactively.
 
 ## Product Team
 
@@ -140,7 +118,7 @@ Each is single-artifact and least-privilege: it is dispatched only from its owni
 | `product-team:adr-scribe` | `/product-team:4-tech-shape` | `docs/adr/NNNN-*.md` | Extracts design decisions into numbered, immutable ADRs |
 | `product-team:ac-writer` | `/product-team:5-decompose` | edits `05-backlog/story-*.md` | Adds Given/When/Then acceptance criteria traced to a PRD `R#` |
 
-The pipeline skills are all `disable-model-invocation: true` (human-invoked only). The one exception is `idea-refine`, vendored pristine from `addyosmani/agent-skills` and left model-invocable: `/product-team:setup-strategy` and `/product-team:0-refine-idea` invoke it via the Skill tool as their ideation front-end, and it works standalone too. Install the whole pipeline into a project with `claude-skill add --group product` (the group includes `idea-refine`). Its agents span a few tags: `claude-agent add --group product` links the five research and review seats; add the last two by name with `claude-agent add product-team:adr-scribe` and `claude-agent add product-team:ac-writer`.
+The pipeline skills are all `disable-model-invocation: true` (human-invoked only). The one exception is `idea-refine`, vendored pristine from `addyosmani/agent-skills` and left model-invocable: `/product-team:setup-strategy` and `/product-team:0-refine-idea` invoke it via the Skill tool as their ideation front-end, and it works standalone too. Install the whole pipeline into a project with `claude-kit add --group product --type skill` (the group includes `idea-refine`). Its agents span a few tags: `claude-kit add --group product --type agent` links the five research and review seats; add the last two by name with `claude-kit add product-team:adr-scribe product-team:ac-writer --type agent`.
 
 ## Staff-engineer bench
 
@@ -163,9 +141,9 @@ A separate delegation system for building what Product Team specs out. Each seat
 | `qa-staff-engineer` | Unit/integration/e2e tests, test infra, fixtures, flake diagnosis | Modifies application source; reports product bugs back to the caller |
 | `security-staff-engineer` | Read-only assessment: STRIDE threat models, dependency audits, secrets hygiene, authn/authz review | Edits files; auto-delegation during coding (diff review is `/security-review`) |
 
-Each seat is a skills-dir plugin under `roles/ai/files/claude/plugins/<discipline>/` that bundles the agent with its `<discipline>-failure-modes` skill (`frontend-failure-modes`, `backend-failure-modes`, and so on): an audited checklist of that domain's common defects the seat consults before it implements. Because the skill lives inside the plugin folder, `claude-agent add <seat>` links the whole plugin into the project and the skill travels with it (invoked as `<discipline>:<discipline>-failure-modes`); the seat loads once the workspace is trusted.
+Each seat is a skills-dir plugin under `roles/ai/files/claude/plugins/<discipline>/` that bundles the agent with its `<discipline>-failure-modes` skill (`frontend-failure-modes`, `backend-failure-modes`, and so on): an audited checklist of that domain's common defects the seat consults before it implements. Because the skill lives inside the plugin folder, `claude-kit add <seat> --type plugin` links the whole plugin into the project and the skill travels with it (invoked as `<discipline>:<discipline>-failure-modes`); the seat loads once the workspace is trusted.
 
-Product Team hands off a backlog; then `/feature-team "<brief>"` runs the build side: `architect` writes the spec, you approve the plan, the installed seats implement in parallel, and the skill verifies and returns an integration report. Install a whole discipline with `claude-agent add --group engineering` (all seats above except `qa-staff-engineer`, which lives under `quality`: add it with `claude-agent add qa-staff-engineer`), or add individual seats by name.
+Product Team hands off a backlog; then `/feature-team "<brief>"` runs the build side: `architect` writes the spec, you approve the plan, the installed seats implement in parallel, and the skill verifies and returns an integration report. Install a whole discipline with `claude-kit add --group engineering --type plugin` (all seats above except `qa-staff-engineer`, which lives under `quality`: add it with `claude-kit add qa-staff-engineer --type plugin`), or add individual seats by name.
 
 The parallel wave runs in **isolated git worktrees** by default (2+ independent slices; pass `--no-isolate` to keep it in the main checkout). One-file-one-owner stays the primary guarantee against source collisions; the worktree is the mechanism underneath it, fencing each seat's build/test side effects (`node_modules`, build output, generated files) and turning any ownership slip into a visible diff instead of a silent clobber. The architect marks each slice `Parallel: yes|no` and `Depends on:`; the wave (all `Parallel: yes`) dispatches with the Agent tool's `isolation: "worktree"`, and the team lead copies each seat's owned files back into the main checkout (seats never commit, so there is nothing to merge). Held/dependent slices run afterward in the main checkout so they read the integrated work. This relies on `worktree.baseRef: "head"` in [settings.json](settings.json) so seats branch from the current feature tip rather than `origin/main`. It is deliberately **not** wired to the `wt` fish helper: the Agent tool can only isolate subagents into `.claude/worktrees/`, and `wt`'s sibling worktrees fall outside the sandbox write root, so `wt` stays the tool you drive by hand.
 
@@ -222,7 +200,7 @@ Every skill and agent in this repo is either:
    }
    ```
 
-2. Run `claude-skill update <name>` to pull it down.
+2. Run `claude-kit update <name> --type skill` to pull it down.
 
 ## Adding Agents
 
@@ -254,7 +232,7 @@ Every skill and agent in this repo is either:
    }
    ```
 
-2. Run `claude-agent update <name>` to pull it down.
+2. Copy the file in by hand and record `updated_at` yourself: `update` and `outdated` cover skills only (`claude-kit update --type agent` refuses), because every agent here is authored in this repo. `repos` is empty today, and this is the reason to think twice before filling it.
 
 ## Registry Format
 
@@ -282,7 +260,7 @@ Every skill and agent in this repo is either:
 }
 ```
 
-- **`repos`** — keyed by `owner/repo`. Each repo has a `branch` and a `skills` array. Each skill maps `upstream_path` (path in the upstream repo) to a `name` used by `claude-skill` commands, plus a `groups` tag array consumed by `claude-skill add --group <name>`.
+- **`repos`** — keyed by `owner/repo`. Each repo has a `branch` and a `skills` array. Each skill maps `upstream_path` (path in the upstream repo) to a `name` used by `claude-kit` commands, plus a `groups` tag array consumed by `claude-kit add --group <tag> --type skill`.
 - **`updated_at`** — ISO 8601 UTC timestamp, automatically maintained by `update`. Records the last time `update` confirmed this entry against upstream — whether or not files changed. `outdated` reads it to show "last synced" alongside the diff. Missing on tracked entries that have never been synced after this field was introduced.
 - **`local_skills`** — **authoritative inventory of local skills.** Every local skill directory under `skills/` must appear here, with its `groups` tags and a `note` documenting why it's local (locally authored, consolidated, etc.).
 
@@ -310,7 +288,7 @@ Every skill and agent in this repo is either:
 }
 ```
 
-- **`agents` array** — maps `upstream_path` → `name` (the `.md` filename without extension in `agents/`), plus a `groups` tag array consumed by `claude-agent add --group <name>`. An optional `updated_at` is maintained by `update` (same semantics as for skills).
+- **`agents` array** — maps `upstream_path` → `name` (the `.md` filename without extension in `agents/`), plus a `groups` tag array consumed by `claude-kit add --group <tag> --type agent`. An optional `updated_at` is recorded by hand, since `update` covers skills only.
 - **`local_agents`** — **authoritative inventory of local agents.** Every locally-authored `.md` under `agents/` must appear here, with its `groups` tags and a `note` documenting why it's local (locally authored, consolidated, etc.).
 
 ## Directory Structure

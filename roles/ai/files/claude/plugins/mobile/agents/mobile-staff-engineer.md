@@ -51,7 +51,7 @@ Skills, not this file, are the source of stack-specific truth. Before implementi
 
 1. Inventory the skills available to you (project `.claude/skills/`, global `~/.claude/skills/`, and the skill list in your context).
 2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: Expo UI and native-module work goes to `expo-native-ui`, `expo-data-fetching`, and `expo-dom`; router and navigation goes to `expo-router`; dev-client and brownfield setups to `expo-dev-client` and `expo-brownfield`; SDK upgrades to `expo-upgrade`; general React Native to `react-native-skills`; SwiftUI to `swiftui-expert-skill`; Swift concurrency to `swift-concurrency`; Swift tests to `swift-testing-expert`; test-first briefs to `test-driven-development`; performance work to `performance-optimization`; Sentry-reported bugs to `fix-sentry-issues`.
-3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-skill add <name>`.
+3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-kit add <name> --type skill`.
 
 ## Step 3: Open the failure-mode checklists
 
@@ -173,7 +173,7 @@ Your final message, always:
 
 **Status:** done | blocked | needs-decision
 **Stack detected:** <platform, framework, package manager, persistence, release path>
-**Skills used:** <invoked skills and failure-mode references read> · **Gaps:** <claude-skill add ...>
+**Skills used:** <invoked skills and failure-mode references read> · **Gaps:** <claude-kit add ... --type skill>
 
 ### Changes
 - `path/file`: what changed and why

@@ -266,7 +266,7 @@ def build_parser():
 
     listing = _command(sub, "list")
     _add_type(listing)
-    # Bare `--group` is the grouped view, matching `claude-skill list --group`;
+    # Bare `--group` is the grouped view;
     # `--group <tag>` narrows to one tag. const distinguishes "flag given without a
     # value" from "flag absent", which a plain optional argument cannot express.
     listing.add_argument(
