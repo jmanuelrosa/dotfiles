@@ -72,6 +72,12 @@ def read(project):
     A malformed or unreadable file reads as empty rather than raising: provenance
     is an optimisation over conservative behaviour, and D14 already requires that
     a missing record never causes a deletion.
+
+    "Malformed" includes valid JSON of the wrong shape, which is not the same class
+    of mistake as invalid JSON and used to slip past the except below. A file holding
+    `[]` or `null` parses fine, then fails on .get() and takes `list`, `doctor` and
+    `remove` down with a traceback, which is the worst possible moment for it: doctor
+    is the command you reach for to find out what is wrong.
     """
     if project is None:
         return {}
@@ -81,6 +87,8 @@ def read(project):
     try:
         data = json.loads(path.read_text())
     except (ValueError, OSError):
+        return {}
+    if not isinstance(data, dict):
         return {}
     out = {}
     for collection, entries in (data.get("installed") or {}).items():

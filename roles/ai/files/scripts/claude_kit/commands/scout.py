@@ -79,6 +79,8 @@ def describe(art):
             data = json.loads(manifest.read_text(errors="replace"))
         except (OSError, ValueError):
             return ""
+        if not isinstance(data, dict):
+            return ""
         return " ".join(str(data.get("description") or "").split())
     path = art.source / "SKILL.md" if art.type == cat.SKILL else art.source
     try:
@@ -365,6 +367,15 @@ def run(args):
         for tag, evidence in fingerprint.fallback(direct).items():
             indirect.setdefault(tag, evidence)
     if args.focus:
+        # A tag is opaque here, so a typo is indistinguishable from a real tag that
+        # simply matched nothing: both print the unfocused report and exit 0. Say so,
+        # rather than letting a misspelt focus look like it worked. Checked against the
+        # whole catalogue, not the candidates, so this means "no such tag" and not
+        # "nothing left to offer under it".
+        if not any(cat.in_group(catalog, kind, args.focus) for kind in TYPE_ORDER):
+            ui.warn(f"nothing in the catalogue carries '{args.focus}', so --focus did nothing")
+            ui.note("`claude-kit list` prints each artifact with its tags.")
+
         # Asking for a tag is itself the evidence for it, so the focus enters as
         # *direct* and its artifacts become strong matches — which `--add` then
         # takes. That promotion is the point of the flag rather than a side effect:
