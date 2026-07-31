@@ -336,7 +336,11 @@
       "allowWrite": [
         ".",
         "/tmp",
-        "$TMPDIR"
+        "$TMPDIR",
+        "~/.bun/install/cache",
+        "~/.npm/_cacache",
+        "~/.npm/_npx",
+        "~/.cache/uv"
       ],
       "denyRead": [
         "~/.ssh",
@@ -365,6 +369,8 @@
         "app.fossa.com",
         "developers.notion.com",
         "api.notion.com",
+        "context7.com",
+        "*.context7.com",
         "api.anthropic.com"
       ]
     }
