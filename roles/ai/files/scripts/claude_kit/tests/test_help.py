@@ -19,7 +19,7 @@ import pytest
 
 from claude_kit import colors, errors
 from claude_kit.cli import COMMANDS, FAMILIES, SCOPE, build_parser
-from conftest import force_colour, subparsers
+from kit_helpers import force_colour, subparsers
 
 GROUPED = [name for _, names in FAMILIES for name in names]
 

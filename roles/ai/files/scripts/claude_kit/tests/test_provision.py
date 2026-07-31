@@ -14,7 +14,7 @@ import yaml
 from claude_kit import catalog as cat
 from claude_kit import errors, scope
 from claude_kit.commands import provision
-from conftest import REPO
+from dotkit.testing import REPO
 
 AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 SYNC_TASK = "Converge global claude skills, agents and plugins"

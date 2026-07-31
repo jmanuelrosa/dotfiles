@@ -15,9 +15,9 @@ import sys
 
 import pytest
 
-from conftest import REPO
+from dotkit.testing import SKILLS
 
-SCRIPTS = REPO / "roles/ai/files/claude/skills/coderabbit/scripts"
+SCRIPTS = SKILLS / "coderabbit/scripts"
 CONTEXT = SCRIPTS / "context.py"
 APPLY = SCRIPTS / "apply.py"
 

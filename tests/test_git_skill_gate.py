@@ -15,9 +15,9 @@ import sys
 
 import pytest
 
-from conftest import REPO
+from dotkit.testing import HOOKS
 
-HOOK = REPO / "roles/ai/files/claude/hooks/git-skill-gate.sh"
+HOOK = HOOKS / "git-skill-gate.sh"
 
 ALLOW = 0
 BLOCK = 2

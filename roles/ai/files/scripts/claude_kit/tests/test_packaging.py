@@ -11,7 +11,8 @@ import subprocess
 
 import yaml
 
-from conftest import PACKAGE, REPO, SCRIPTS, SHIM, subparsers
+from dotkit.testing import REPO
+from kit_helpers import PACKAGE, SCRIPTS, SHIM, subparsers
 
 AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 
@@ -120,12 +121,17 @@ def test_the_tests_live_inside_the_package():
 
     pytest walks up from a test module while it keeps finding __init__.py to decide the
     module name. Adding one here would make it walk into claude_kit/ and import the
-    tests as claude_kit.tests.*, at which point `from conftest import ...` breaks.
+    suite as claude_kit.tests.*, which is the mild version of the problem.
+
+    The sharp version is that this repo now has three suite directories, two of them
+    named `tests`. An __init__.py in any of them names its modules `tests.test_x`, and
+    sys.modules['tests'] is claimed by whichever suite loads first, so the other one's
+    modules resolve against the wrong package. Nothing reports that as a collision.
     """
     tests = PACKAGE / "tests"
     assert tests.is_dir()
     assert (tests / "conftest.py").is_file()
-    assert not (tests / "__init__.py").exists(), "an __init__.py here breaks conftest imports"
+    assert not (tests / "__init__.py").exists(), "an __init__.py here collides across suites"
 
 
 def test_every_command_and_flag_is_documented():

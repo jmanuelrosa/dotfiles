@@ -8,27 +8,24 @@ Three altitudes, in order of how many tests should live at each:
 
 HOME and DOTFILES_DIR are the tool's only environmental inputs, so pointing them
 at tmp_path isolates a run completely from the real machine.
+
+**Fixtures only.** Paths come from `dotkit.testing`, and this suite's own helpers from
+`kit_helpers`. Nothing here is imported by a test module: `conftest` is not a unique
+name once a second suite directory exists, and a test doing `from conftest import X`
+binds to whichever suite loaded last. `test_suites.py` asserts none do.
 """
 
 import os
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
+from dotkit.testing import CLAUDE, REPO
+from kit_helpers import SHIM, ensure_importable, force_colour
 
-PACKAGE = Path(__file__).resolve().parent.parent
-SCRIPTS = PACKAGE.parent
-FILES = SCRIPTS.parent
-REPO = FILES.parents[2]  # roles/ai/files -> the dotfiles checkout
-CLAUDE = FILES / "claude"
-SHIM = SCRIPTS / "claude-kit"
-# claude-skill / claude-agent are kept as reference implementations. test_list_format
-# runs claude-skill for real and diffs its output against ours.
-FISH_FUNCTIONS = REPO / "roles/shell/files/fish/functions"
-
-# Make the package importable for the pure altitude. Mirrors what the shim does.
-sys.path.insert(0, str(SCRIPTS))
+# Make the package importable for the pure altitude. Mirrors what the shim does, and
+# must happen before any test module imports claude_kit, which is why it is here.
+ensure_importable()
 
 
 @pytest.fixture
@@ -83,20 +80,6 @@ def kit(tmp_path):
     return run
 
 
-def force_colour(monkeypatch, on):
-    """Turn colour on or off for an in-process render.
-
-    colors.enabled reads the environment per call, so this is all a test needs to make
-    a non-tty stdout behave like a terminal, or the reverse.
-    """
-    if on:
-        monkeypatch.delenv("NO_COLOR", raising=False)
-        monkeypatch.setenv("FORCE_COLOR", "1")
-    else:
-        monkeypatch.delenv("FORCE_COLOR", raising=False)
-        monkeypatch.setenv("NO_COLOR", "1")
-
-
 @pytest.fixture
 def coloured(monkeypatch):
     """Force colour on, as if stdout were a terminal."""
@@ -107,20 +90,6 @@ def coloured(monkeypatch):
 def plain(monkeypatch):
     """Force colour off, whatever the surrounding environment says."""
     force_colour(monkeypatch, False)
-
-
-def subparsers():
-    """The CLI's subcommand parsers, by name.
-
-    argparse exposes them only as the one action whose `choices` is a dict, so the
-    lookup is written here rather than in each module that needs it.
-    """
-    from claude_kit.cli import build_parser
-
-    action = next(
-        a for a in build_parser()._actions if hasattr(a, "choices") and isinstance(a.choices, dict)
-    )
-    return action.choices
 
 
 @pytest.fixture(scope="session")
