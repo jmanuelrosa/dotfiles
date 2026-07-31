@@ -15,7 +15,7 @@ import pytest
 from claude_kit import catalog as cat
 from claude_kit import errors, fingerprint, frontmatter, scope
 from claude_kit.commands import scout
-from conftest import CLAUDE
+from dotkit.testing import CLAUDE
 
 # Named artifacts, chosen once so the cases read concretely. The guard below fails
 # loudly if a registry edit invalidates a choice, which beats a test that silently
@@ -646,3 +646,104 @@ def test_i8_add_is_idempotent(kit, project):
     kit("scout", "--type", "skill", "--add", cwd=target)
     result = kit("scout", "--type", "skill", "--add", cwd=target)
     assert result.returncode == errors.OK
+
+
+# --- the TECH_TAGS gate ------------------------------------------------------
+#
+# rank() satisfies the gate from `direct` alone, so a TECH_TAGS member that read()
+# cannot produce as direct evidence hides every artifact carrying it, in every
+# project, with nothing anywhere reporting it. These pin the obligation that creates.
+
+
+def emittable_directly():
+    """Every tag read() can put in the direct map, derived from the tables it uses.
+
+    Derived rather than listed, so adding an emitter cannot leave this behind. The
+    Swift marker tags are a named constant for exactly this reason.
+    """
+    tags = set()
+    for value in fingerprint.DEP_TAGS.values():
+        tags |= set(value)
+    for value in fingerprint.DEP_PREFIX_TAGS.values():
+        tags |= set(value)
+    for value in fingerprint.INTENT_KEYWORDS.values():
+        tags |= set(value)
+    tags |= set(fingerprint.SWIFT_TAGS)
+    tags |= set(fingerprint.GAP_TAGS)
+    return tags
+
+
+def test_g1_every_tech_tag_can_actually_be_detected():
+    """A gate nothing can satisfy is a gate that only ever subtracts.
+
+    `swiftui` and `tanstack` both sat here with no emitter: an artifact tagged with
+    either was dropped from every project while `list` still showed it, which is the
+    least debuggable failure this tool can have.
+    """
+    undetectable = sorted(fingerprint.TECH_TAGS - emittable_directly())
+    assert undetectable == [], (
+        "TECH_TAGS members no probe can produce as direct evidence, so every artifact "
+        f"carrying one is invisible to scout: {undetectable}"
+    )
+
+
+def test_g2_no_implied_tag_is_a_gate_tag():
+    """An implication pointing at a gate tag is inert, and reads as though it works.
+
+    `fastify -> node` was stated here and did nothing, so a Fastify project never saw
+    the `node` skill while a NestJS project did, because @nestjs/ emits `node` for
+    real. Where the implication is a fact it belongs in DEP_TAGS; where it is a guess
+    about a technology it cannot be honoured and should not be written.
+    """
+    inert = {}
+    for tag, neighbours in fingerprint.IMPLIED_TAGS.items():
+        offending = sorted(set(neighbours) & fingerprint.TECH_TAGS)
+        if offending:
+            inert[tag] = offending
+    assert inert == {}, f"implications that can never satisfy the gate: {inert}"
+
+
+@pytest.mark.parametrize(
+    ("dependency", "expected"),
+    [
+        ("fastify", "node"),
+        ("hono", "node"),
+        ("expo", "mobile"),
+        ("react-native", "mobile"),
+        ("@tanstack/react-router", "tanstack"),
+        ("@apollo/client", "apollo"),
+        ("@prisma/client", "prisma"),
+    ],
+)
+def test_g3_a_framework_names_the_platform_it_implies(project, dependency, expected):
+    """Directly, not by implication. Each of these was the inert case in G1 or G2."""
+    direct = fingerprint.read(js_project(project, **{dependency: "1.0.0"}))
+    assert expected in direct, f"{dependency} should yield direct {expected}, got {sorted(direct)}"
+
+
+def test_g4_an_unknown_focus_tag_says_so(kit, project):
+    """A typo cannot be told from a real tag, so silence reads as success.
+
+    Both halves matter: warn on a tag nothing carries, and stay quiet on one that is
+    real. Without the second, the warning fires on every focused run and gets ignored.
+    """
+    target = settled(js_project(project, react="19.0.0"))
+    unknown = kit("scout", "--type", "skill", "--focus", "notarealtag", cwd=target)
+    assert unknown.returncode == errors.OK
+    assert "notarealtag" in unknown.stdout
+    assert "did nothing" in unknown.stdout
+
+    real = kit("scout", "--type", "skill", "--focus", "testing", cwd=target)
+    assert real.returncode == errors.OK
+    assert "did nothing" not in real.stdout
+
+
+def test_g5_a_manifest_of_the_wrong_shape_reads_as_empty(project):
+    """package.json is a mapping by definition; valid JSON of another shape is junk.
+
+    Each of these parses, so the ValueError guard never saw them, and .get() raised.
+    """
+    for body in ("[1, 2, 3]", "null", '"a string"', "42"):
+        (project / "package.json").write_text(body)
+        direct = fingerprint.read(project)
+        assert "react" not in direct, f"{body} should yield no dependency tags"

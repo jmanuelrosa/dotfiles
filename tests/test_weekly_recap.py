@@ -13,9 +13,9 @@ import sys
 
 import pytest
 
-from conftest import REPO
+from dotkit.testing import AI_SCRIPTS_DIR
 
-RECAP = REPO / "roles/ai/files/scripts/weekly-recap"
+RECAP = AI_SCRIPTS_DIR / "weekly-recap"
 
 EXIT_OK = 0
 EXIT_USAGE = 1

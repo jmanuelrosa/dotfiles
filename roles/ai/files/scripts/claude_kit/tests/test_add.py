@@ -15,7 +15,7 @@ import pytest
 from claude_kit import catalog as cat
 from claude_kit import errors, scope, state
 from claude_kit.commands import add
-from conftest import CLAUDE
+from dotkit.testing import CLAUDE
 
 PROJECT_SKILL = "coderabbit"
 GLOBAL_SKILL = "commit"

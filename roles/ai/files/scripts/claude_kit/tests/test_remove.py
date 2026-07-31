@@ -10,7 +10,7 @@ import pytest
 from claude_kit import catalog as cat
 from claude_kit import errors, scope, state
 from claude_kit.commands import add, remove
-from conftest import CLAUDE
+from dotkit.testing import CLAUDE
 
 SKILL = cat.SKILL
 AGENT = cat.AGENT

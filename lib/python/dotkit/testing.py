@@ -1,0 +1,48 @@
+"""Where things are, for tests that need to read the repo.
+
+One definition of the checkout root, and one name for each tree a suite reads. Five
+suites derived these independently before this module existed, each with its own climb
+of `.parents[n]` from wherever the test file happened to sit.
+
+That duplication was not merely untidy. Every suite reached its constants through
+`from conftest import REPO`, and in pytest's prepend import mode a `conftest.py` in a
+directory with no `__init__.py` is named, literally, `conftest`. With two suite
+directories on `sys.path`, `sys.modules['conftest']` holds whichever loaded last and a
+test module's `import conftest` binds against the wrong file. It fails silently when
+the two happen to agree, which is exactly what it did here: four suites collected
+clean against claude-kit's conftest for two commits.
+
+So the rule this module exists to enforce: **a test module imports shared names from
+here, never from a module whose name another directory could also claim.**
+
+Deliberately pytest-free. `dotkit` is stdlib-only at runtime, and a fixture defined
+here would make that false the moment a tool imported the package. Fixtures belong in
+each suite's own `conftest.py`, which is the one place a bare name is safe.
+
+`REPO` is derived through `resolve()`, so it is the same path whether this module was
+imported through `lib/python` or through the `dotkit` symlink beside a tool. Nothing
+here may compare unresolved paths.
+"""
+
+from pathlib import Path
+
+# lib/python/dotkit/testing.py -> lib/python/dotkit -> lib/python -> lib -> checkout
+REPO = Path(__file__).resolve().parents[3]
+
+# Claude Code's payload: artifacts that ship into ~/.claude rather than onto PATH.
+CLAUDE = REPO / "roles/ai/files/claude"
+SKILLS = CLAUDE / "skills"
+AGENTS = CLAUDE / "agents"
+PLUGINS = CLAUDE / "plugins"
+HOOKS = CLAUDE / "hooks"
+
+SKILL_REGISTRY = CLAUDE / "skill-registry.json"
+AGENT_REGISTRY = CLAUDE / "agent-registry.json"
+
+# Authored tooling, one directory per role that owns some.
+AI_SCRIPTS_DIR = REPO / "roles/ai/files/scripts"
+WORK_SCRIPTS_DIR = REPO / "roles/work/files/scripts"
+
+# claude-skill / claude-agent are kept as reference implementations, and the fish half
+# of the output vocabulary lives here too. Two suites run them for real and diff.
+FISH_FUNCTIONS = REPO / "roles/shell/files/fish/functions"

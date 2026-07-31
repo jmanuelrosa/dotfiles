@@ -9,7 +9,7 @@ import pytest
 from claude_kit import catalog as cat
 from claude_kit import scope, state
 from claude_kit.commands import listing
-from conftest import CLAUDE
+from dotkit.testing import CLAUDE
 
 
 def rows(catalog, kind, effective, home=None, project=None, provenance=None, group=None):

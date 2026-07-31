@@ -16,7 +16,8 @@ import pytest
 from claude_kit import catalog as cat
 from claude_kit import colors, scope
 from claude_kit.commands import listing
-from conftest import CLAUDE, FILES, FISH_FUNCTIONS, REPO, SHIM
+from dotkit.testing import CLAUDE, FISH_FUNCTIONS, REPO
+from kit_helpers import SHIM
 
 RESET = "\x1b[m"
 GREEN = "\x1b[32m"
