@@ -35,7 +35,9 @@ EXIT_GH_FAILED = 5
 APPLY_INVALID_PLAN = 2
 APPLY_PARTIAL = 3
 
-BOT = "coderabbitai[bot]"
+# The spelling GraphQL returns for a Bot actor, which is what these scripts read.
+# REST appends "[bot]"; context.py accepts both, and the case below pins that.
+BOT = "coderabbitai"
 MARKER = "<!-- cr-skill -->"
 FENCE = "```"
 
@@ -263,6 +265,20 @@ def test_a_thread_from_another_author_is_skipped(context):
     model = model_of(context({"gh": one_page([thread(comments=[comment(login="alice")])])}))
     assert flat(model) == []
     assert model["skipped"] == {"not-coderabbit": 1}
+
+
+@pytest.mark.parametrize("login", ["coderabbitai", "coderabbitai[bot]"])
+def test_either_spelling_of_the_bot_login_is_recognised(context, login):
+    """Given a bot login with or without the "[bot]" suffix, When context runs, Then the thread
+    is still treated as CodeRabbit's.
+
+    GraphQL reports a Bot actor's login bare, REST appends "[bot]", and these scripts read
+    GraphQL. Pinning the REST spelling alone made every thread read as not-coderabbit, and this
+    suite passed anyway because its fixtures used that same spelling in a GraphQL-shaped response.
+    """
+    model = model_of(context({"gh": one_page([thread(comments=[comment(login=login)])])}))
+    assert len(flat(model)) == 1
+    assert "not-coderabbit" not in model["skipped"]
 
 
 def test_a_thread_a_human_already_answered_is_skipped(context):
