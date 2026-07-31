@@ -168,3 +168,57 @@ def test_the_repo_anchor_resolves():
     breaks, and it breaks per import site rather than everywhere at once.
     """
     assert (REPO / "dotfiles.yml").is_file(), f"REPO does not look like the checkout: {REPO}"
+
+
+# --- the dotkit symlinks -----------------------------------------------------
+
+
+def dotkit_links():
+    """Every `dotkit` entry in the repo that is a symlink rather than the real thing."""
+    return sorted(
+        path
+        for path in REPO.glob("roles/*/files/scripts/**/dotkit")
+        if path.is_symlink()
+    )
+
+
+def test_every_dotkit_link_resolves_to_the_one_real_copy():
+    """These are the first committed symlinks in this repo, so they get a check.
+
+    A clone with core.symlinks=false materialises a symlink as a regular file holding
+    its target path, and the failure that follows is an ImportError deep in a tool with
+    nothing pointing at the cause. Better to say so here.
+
+    Relative targets on purpose: an absolute one would bake this checkout's path in and
+    break every other clone.
+    """
+    real = REPO / "lib/python/dotkit"
+    assert real.is_dir() and not real.is_symlink(), "lib/python/dotkit should be the real package"
+
+    links = dotkit_links()
+    assert links, "no dotkit symlink found; a python tool needing the vocabulary cannot import it"
+    for link in links:
+        target = link.readlink()
+        assert not target.is_absolute(), f"{link.relative_to(REPO)} -> {target} must be relative"
+        assert link.resolve() == real.resolve(), (
+            f"{link.relative_to(REPO)} resolves to {link.resolve()}, not {real}"
+        )
+
+
+def test_a_dotkit_link_sits_beside_the_tool_that_imports_it():
+    """The runtime contract: a tool inserts its own directory, so dotkit must be in it.
+
+    Checked per link rather than per tool, because the link is the thing that has to be
+    in the right place; a tool with no link simply does not import dotkit.
+    """
+    for link in dotkit_links():
+        siblings = {entry.name for entry in link.parent.iterdir()}
+        executables = {
+            entry.name
+            for entry in link.parent.iterdir()
+            if entry.is_file() and entry.stat().st_mode & 0o100
+        }
+        assert executables or "claude_kit" in siblings, (
+            f"{link.relative_to(REPO)} sits beside no executable and no package, "
+            "so nothing there can import it"
+        )

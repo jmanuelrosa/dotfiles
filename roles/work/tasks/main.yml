@@ -47,20 +47,19 @@
     dest: "{{ HOME }}/.config/fish/conf.d/work-secrets.fish"
     mode: "0600"
 
-- name: Ensure scripts directory exists
+- name: Link work scripts into the user bin directory
   ansible.builtin.file:
-    path: "{{ HOME }}/.config/fish/conf.d/scripts"
-    state: directory
-    mode: '0755'
-
-- name: Link all scripts to config directory
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/scripts/{{ item | basename }}"
-    dest: "{{ HOME }}/.local/bin/{{ item | basename }}"
+    src: "{{ role_path }}/files/scripts/{{ item }}/{{ item }}"
+    dest: "{{ HOME }}/.local/bin/{{ item }}"
     state: link
     force: true
-  with_fileglob:
-    - "{{ role_path }}/files/scripts/*"
+  # Same shape as the ai role: one directory per tool, the executable named after it,
+  # and a manifest rather than a glob now that every entry is a directory. src stays
+  # absolute for the same reason it does there.
+  #
+  # ~/.local/bin is created by the ai role, which the work profile always includes and
+  # which the playbook runs first.
+  loop: "{{ WORK_SCRIPTS }}"
 
 - name: Ensure glab-cli config directory exists
   ansible.builtin.file:

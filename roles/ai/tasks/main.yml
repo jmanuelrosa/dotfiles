@@ -98,17 +98,20 @@
 
 - name: Link AI scripts into the user bin directory
   ansible.builtin.file:
-    src: "{{ role_path }}/files/scripts/{{ item | basename }}"
-    dest: "{{ HOME }}/.local/bin/{{ item | basename }}"
+    src: "{{ role_path }}/files/scripts/{{ item }}/{{ item }}"
+    dest: "{{ HOME }}/.local/bin/{{ item }}"
     state: link
     force: true
-  # Documentation lives beside the scripts it documents, so skip .md: the glob would
-  # otherwise put a README on PATH. The claude_kit package next to the shim needs no
-  # guard because fileglob filters its matches through os.path.isfile, so a directory
-  # is never a candidate.
-  when: not (item | basename).endswith('.md')
-  with_fileglob:
-    - "{{ role_path }}/files/scripts/*"
+  # One directory per tool, and the executable inside carries the tool's name, so the
+  # source is <name>/<name>. src stays absolute: ansible.builtin.file does not resolve
+  # it through the role search path the way copy and template do, and a relative one
+  # would be read against ~/.local/bin and written as a dangling link that still
+  # reports changed.
+  #
+  # A manifest rather than a glob because every entry is now a directory, and fileglob
+  # filters through os.path.isfile. It also means a README beside its tool needs no
+  # `when` guard to stay off PATH.
+  loop: "{{ AI_SCRIPTS }}"
 
 # The `global` group tag in the two registries is the single source of truth for what
 # belongs in ~/.claude, and claude-kit already derives that set to answer "does this
@@ -121,7 +124,7 @@
 # hand-made directory in ~/.claude/skills survives untouched.
 - name: Converge global claude skills, agents and plugins
   ansible.builtin.command:
-    cmd: "{{ role_path }}/files/scripts/claude-kit sync{{ ' --dry-run' if ansible_check_mode else '' }}"
+    cmd: "{{ role_path }}/files/scripts/claude-kit/claude-kit sync{{ ' --dry-run' if ansible_check_mode else '' }}"
   environment:
     # Both of claude-kit's environmental inputs, pinned rather than inherited: the
     # playbook's HOME is the right one, and DOTFILES_DIR keeps the tool reading this

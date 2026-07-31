@@ -38,7 +38,7 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 
 ## Output style
 
-Every fish function here prints through `_ui`, the shared line vocabulary in [`files/fish/functions/_ui.fish`](files/fish/functions/_ui.fish). It is one style expressed twice: `claude_kit/ui.py` is the python half, and a differential test renders every kind through both and compares the bytes, so the two cannot drift.
+Every fish function here prints through `_ui`, the shared line vocabulary in [`files/fish/functions/_ui.fish`](files/fish/functions/_ui.fish). It is one style expressed twice: `dotkit/ui.py` is the python half, and a differential test renders every kind through both and compares the bytes, so the two cannot drift.
 
 ```fish
 _ui title "🧹 Removing Claude artifacts"   # bold; the only line kind that takes a topic emoji
