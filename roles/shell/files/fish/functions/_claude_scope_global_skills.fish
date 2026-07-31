@@ -5,7 +5,7 @@ function _claude_scope_global_skills --description "Print the effective global s
     #
     # This used to name GLOBAL_CLAUDE_SKILLS_EFFECTIVE in roles/ai/tasks/main.yml as the
     # authority, but commit 0624d1c deleted that block, so the authority is now
-    # global_set() in roles/ai/files/scripts/claude_kit/scope.py. Keep the two in sync;
+    # global_set() in roles/ai/files/scripts/claude-kit/claude_kit/scope.py. Keep the two in sync;
     # the Python version is under test (claude_kit/tests/test_catalog.py pins the
     # resulting set) and this one is not.
     set -l base "$DOTFILES_DIR/roles/ai/files/claude"

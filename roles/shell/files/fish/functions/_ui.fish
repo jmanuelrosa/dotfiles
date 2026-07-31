@@ -1,5 +1,5 @@
 function _ui --description "Shared output vocabulary for dotfiles scripts: one palette, one set of glyphs"
-    # The palette claude-kit uses (roles/ai/files/scripts/claude_kit/ui.py is the
+    # The palette claude-kit uses (lib/python/dotkit/ui.py is the
     # python half of this file, kind for kind and glyph for glyph). Two rules hold the
     # whole style together:
     #

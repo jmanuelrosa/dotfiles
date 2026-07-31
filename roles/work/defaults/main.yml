@@ -13,3 +13,11 @@ BREW_PACKAGES:
     - acli
   casks:
     - fossa
+
+# Tools symlinked onto PATH from files/scripts/, one directory per tool with the
+# executable named after it. Same convention and the same reasons as the ai role's
+# AI_SCRIPTS: a glob would match only directories, which fileglob discards.
+WORK_SCRIPTS:
+  - s-db
+  - s-task
+  - weekly-recap

@@ -6,16 +6,23 @@ Work-only role. Runs only when `profile=work`.
 
 - Installs `acli` (Atlassian) and the `fossa` cask via `BREW_PACKAGES` (with the `atlassian/homebrew-acli` tap). Relies on `shell` / `coreutils` (which run before `work` in `profile_roles[work]`) for `fish` and `television`.
 - Renders `~/.config/fish/conf.d/work-secrets.fish` from `templates/exports.fish.j2` (work tokens, mode 0600).
-- Symlinks every script under `files/scripts/` into `~/.local/bin/`. See [Scripts](#scripts).
+- Symlinks each tool named in `WORK_SCRIPTS` into `~/.local/bin/`. See [Scripts](#scripts).
 - Renders `~/Library/Application Support/glab-cli/config.yml` from `templates/glab/config.yml.j2` (personal + work GitLab hosts) and verifies each host is authenticated. See [GitLab auth (glab)](#gitlab-auth-glab).
 - Symlinks the Jira Television cable (`files/television/cable/jira.toml`) and its helper fish function (`files/fish/functions/_tv_jira.fish`) into `~/.config/`. Both depend on `acli` so they live here rather than in `shell`.
 
 ## Scripts
 
-Both are symlinked into `~/.local/bin/`, so editing them here takes effect without re-running the playbook.
+Each is a directory under `files/scripts/` holding the executable and whatever else it owns, and the
+executable carries the directory's name. The role links the ones named in `WORK_SCRIPTS`, so editing them
+here takes effect without re-running the playbook.
 
 - `s-task <ref>`: creates a git branch from an issue, off an up-to-date default branch, and pushes it so the issue links back to it. It is dual-provider and infers which from the reference shape: `PROJ-123` goes to Jira via `acli`, while `456`, `#456`, or a GitHub issue URL goes to GitHub via `gh` (installed by the `apps` role). Force either with `--jira` / `--github`. Branch names are `<type>/PROJ-123-<slug>` for Jira and `<type>/gh-456-<slug>` for GitHub, capped at 50 chars to stay under commitlint's `header-max-length`, truncating the slug at a hyphen boundary. The branch type comes from the Jira issue type, or for GitHub from the issue's native type first and its labels second; `--type` overrides it and `--dry` prints the branch name without creating anything. The `commit` and `pr` skills parse both ticket shapes back out of the branch name, so keep the three in sync. See [Issue linking](#issue-linking) for the push behavior and `--no-push`.
 - `s-db [production|staging]`: connects to cloud-sql-proxy for the given environment.
+- `weekly-recap [--days N | --since DATE]`: summarises recent Jira, GitHub and GitLab activity as markdown,
+  grouped by project or repo. Each platform degrades on its own, so an unauthenticated CLI records one note
+  and the other two still report. It lives here rather than in the `ai` role because all three of its sources
+  are work ones, and the multi-host `glab` iteration below exists only for the two-account split this role
+  creates. On a personal machine it is simply not installed.
 
 ### Issue linking
 
