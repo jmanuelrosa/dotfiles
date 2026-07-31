@@ -14,7 +14,7 @@ import os
 import sys
 from pathlib import Path
 
-from . import colors
+from dotkit import colors
 
 # The playbook marks the repo root. Searching for it beats counting parent
 # directories, which silently breaks whenever this file moves.

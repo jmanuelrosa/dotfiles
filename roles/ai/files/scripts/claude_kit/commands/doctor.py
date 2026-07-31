@@ -12,7 +12,8 @@ which ones it skipped.
 from pathlib import Path
 
 from .. import catalog as cat
-from .. import checks, errors, paths, scope, state, ui
+from .. import checks, errors, paths, scope, state
+from dotkit import ui
 
 
 def collect(catalog, effective, claude, home, project, provenance, kind=None):

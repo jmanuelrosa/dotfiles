@@ -23,7 +23,8 @@ import tempfile
 from pathlib import Path
 
 from .. import catalog as cat
-from .. import colors, errors, paths, registry, ui, upstream
+from .. import errors, paths, registry, upstream
+from dotkit import colors, ui
 from ..cli import fail
 
 BEHIND = "behind"

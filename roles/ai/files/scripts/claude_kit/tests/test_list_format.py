@@ -14,7 +14,8 @@ import sys
 import pytest
 
 from claude_kit import catalog as cat
-from claude_kit import colors, scope
+from claude_kit import scope
+from dotkit import colors
 from claude_kit.commands import listing
 from dotkit.testing import CLAUDE, FISH_FUNCTIONS, REPO
 from kit_helpers import SHIM

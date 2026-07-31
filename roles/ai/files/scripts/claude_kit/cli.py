@@ -13,7 +13,8 @@ import argparse
 import importlib
 import sys
 
-from . import colors, errors, ui
+from . import errors
+from dotkit import colors, ui
 
 # Python 3.14 paints argparse's own output in its own theme (blue usage, magenta prog,
 # green flags), which would show through ours as nested escapes and a palette the

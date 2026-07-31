@@ -21,7 +21,7 @@ from pathlib import Path
 # this directory does it, which is what keeps one palette across all of them.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from claude_kit import ui  # noqa: E402
+from dotkit import ui  # noqa: E402
 
 EXIT_OK = 0
 EXIT_USAGE = 1

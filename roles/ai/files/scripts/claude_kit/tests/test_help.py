@@ -17,9 +17,11 @@ import sys
 
 import pytest
 
-from claude_kit import colors, errors
+from claude_kit import errors
+from dotkit import colors
 from claude_kit.cli import COMMANDS, FAMILIES, SCOPE, build_parser
-from kit_helpers import force_colour, subparsers
+from dotkit.testing import force_colour
+from kit_helpers import subparsers
 
 GROUPED = [name for _, names in FAMILIES for name in names]
 

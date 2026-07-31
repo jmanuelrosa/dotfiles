@@ -46,3 +46,19 @@ WORK_SCRIPTS_DIR = REPO / "roles/work/files/scripts"
 # claude-skill / claude-agent are kept as reference implementations, and the fish half
 # of the output vocabulary lives here too. Two suites run them for real and diff.
 FISH_FUNCTIONS = REPO / "roles/shell/files/fish/functions"
+
+
+def force_colour(monkeypatch, on):
+    """Turn colour on or off for an in-process render.
+
+    colors.enabled reads the environment per call, so this is all a test needs to make
+    a non-tty stdout behave like a terminal, or the reverse. The `coloured` and `plain`
+    fixtures wrap it for the common case; test_help calls it directly because it
+    renders the same help twice, once each way, inside a single test.
+    """
+    if on:
+        monkeypatch.delenv("NO_COLOR", raising=False)
+        monkeypatch.setenv("FORCE_COLOR", "1")
+    else:
+        monkeypatch.delenv("FORCE_COLOR", raising=False)
+        monkeypatch.setenv("NO_COLOR", "1")

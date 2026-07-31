@@ -31,7 +31,8 @@ is the only durable statement about what belongs.
 from dataclasses import dataclass, field
 
 from .. import catalog as cat
-from .. import errors, paths, scope, ui
+from .. import errors, paths, scope
+from dotkit import ui
 from ..cli import fail
 
 # What apply() reports doing. Only the three outcomes that touch the disk get a name:

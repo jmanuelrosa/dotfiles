@@ -32,7 +32,8 @@ Writes claude-kit.json and nothing else. No symlink is created, moved or deleted
 from pathlib import Path
 
 from .. import catalog as cat
-from .. import errors, paths, scope, state, ui
+from .. import errors, paths, scope, state
+from dotkit import ui
 from ..cli import fail
 
 

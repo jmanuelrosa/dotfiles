@@ -20,7 +20,8 @@ is not one, it reports global state and says so.
 from pathlib import Path
 
 from .. import catalog as cat
-from .. import colors, errors, paths, scope, state, ui
+from .. import errors, paths, scope, state
+from dotkit import colors, ui
 
 LINKED = "linked"
 AVAILABLE = "available"

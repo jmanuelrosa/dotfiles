@@ -20,8 +20,8 @@ import subprocess
 import sys
 
 import pytest
-from dotkit.testing import CLAUDE, REPO
-from kit_helpers import SHIM, ensure_importable, force_colour
+from dotkit.testing import CLAUDE, REPO, force_colour
+from kit_helpers import SHIM, ensure_importable
 
 # Make the package importable for the pure altitude. Mirrors what the shim does, and
 # must happen before any test module imports claude_kit, which is why it is here.

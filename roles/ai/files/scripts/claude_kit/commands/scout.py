@@ -28,7 +28,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .. import catalog as cat
-from .. import colors, errors, fingerprint, frontmatter, paths, scope, ui
+from .. import errors, fingerprint, frontmatter, paths, scope
+from dotkit import colors, ui
 from ..cli import fail
 from . import add
 
