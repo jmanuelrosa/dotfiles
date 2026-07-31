@@ -146,6 +146,64 @@ def test_the_limit_itself_is_still_named():
     assert ui.names_or_count(names, "skill") == ", ".join(names)
 
 
+# --- colour composed by hand ------------------------------------------------
+
+
+def fish(command, **env_overrides):
+    """A fish snippet, run with the repo's functions on the path and stdout captured.
+
+    Captured rather than on a terminal, which is the whole point of the tests below:
+    fish gives every command substitution a pipe of its own, so a helper called inside
+    one sees a pipe for fd 1 however the outer command was run, and cannot tell which.
+    """
+    preamble = f"set -g fish_function_path {FISH_FUNCTIONS} $fish_function_path\n"
+    env = {**os.environ, "TERM": "xterm-256color"}
+    env.pop("FORCE_COLOR", None)
+    env.pop("NO_COLOR", None)
+    env.update(env_overrides)
+    return subprocess.run(
+        ["fish", "--no-config", "-c", preamble + command],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_a_composed_fragment_carries_its_colour_out_of_the_substitution():
+    """`_ui paint` states intent; it does not decide.
+
+    Deciding there is what left every `lns` arrow and every `clean_claude` marker plain
+    on a real terminal: the isatty it ran answered for fish's substitution pipe, which is
+    never a tty, rather than for the stdout the line was headed to.
+    """
+    assert fish('printf "%s" (_ui paint yellow x)').stdout == f"{YELLOW}x{RESET}"
+
+
+def test_a_printed_line_strips_the_colour_its_stream_refuses():
+    """Where the line lands is where colour is resolved, so a composed fragment reaching
+    a pipe is plain again. colors.for_stream is the python counterpart; ui.paint needs
+    no equivalent, because in-process it can see the stream it is painting for."""
+    out = fish('_ui item (_ui paint dim " → ")(_ui paint yellow ⚠)').stdout
+    assert out == "  ·  → ⚠\n"
+
+
+def test_no_color_silences_a_composed_fragment():
+    """The one part of the decision a composing helper can make on its own: NO_COLOR is
+    a statement about every stream, so it needs no knowledge of this one."""
+    assert fish('printf "%s" (_ui paint yellow x)', NO_COLOR="1").stdout == "x"
+
+
+@pytest.mark.parametrize(
+    "env,expected",
+    [({}, 1), ({"FORCE_COLOR": "1"}, 0), ({"NO_COLOR": "1", "FORCE_COLOR": "1"}, 1)],
+)
+def test_color_enabled_answers_through_its_exit_status(env, expected):
+    """A script that prints rows with `echo` has no printing kind to resolve its colours,
+    so it asks. Through the status rather than stdout, because a command substitution
+    would replace the very fd the question is about."""
+    assert fish("_ui color-enabled", **env).returncode == expected
+
+
 # --- the differential test --------------------------------------------------
 
 

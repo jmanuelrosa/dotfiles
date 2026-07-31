@@ -1,8 +1,8 @@
-"""Terminal colours, matching what `claude-skill` / `claude-agent` emit.
+"""Terminal colours, matching what the fish half of the vocabulary emits.
 
-The fish functions use `set_color`, whose reset is `\\x1b[m` rather than the more
-common `\\x1b[0m`. Reproduced exactly so claude-kit output is indistinguishable from
-theirs when both are on screen.
+`_ui` colours through `set_color`, whose reset is `\\x1b[m` rather than the more common
+`\\x1b[0m`. Reproduced exactly so a python tool and a fish function are indistinguishable
+when both are on screen.
 
 Unlike `set_color`, these are suppressed when stdout is not a terminal, so piping to
 a file or a test harness yields plain text. NO_COLOR and FORCE_COLOR override, per the

@@ -19,7 +19,7 @@ All checks must pass; a red check is fixed or reported honestly, never skipped.
    `claude plugin validate roles/ai/files/claude/plugins/<discipline>`
    For a utility agent instead: both registries parse as JSON (`python3 -c "import json; json.load(open('roles/ai/files/claude/skill-registry.json')); json.load(open('roles/ai/files/claude/agent-registry.json'))"`).
 6. **The seat is discoverable:**
-   `fish -c 'claude-agent list'` shows `<discipline> (plugin) [groups]`, and `claude plugin details <discipline>@skills-dir` lists the bundled agent and skill. (A utility agent shows as `<name>`, with `(needs: <skill>)` if it declares one.)
+   `claude-kit list --type plugin` shows `<discipline>` with its groups, and `claude plugin details <discipline>@skills-dir` lists the bundled agent and skill. (A utility agent shows as `<name>`, with `(needs: <skill>)` if it declares one.)
 7. **Trigger-table integrity** (belt and braces after the audit): every domain in the agent's Step 3 table has a reference file in the bundled skill and a matching row in the skill's router; the agent lists bare domain names, the router links them, and both cover the same domains in the same order.
 
 ## Final message contract

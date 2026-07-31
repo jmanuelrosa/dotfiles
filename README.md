@@ -156,13 +156,14 @@ Git, git-delta, LazyGit, GitHub CLI, GitLab CLI (glab), fnm (Node version manage
 
 Gemini CLI, ChatGPT, Claude, Claude Code, Cursor, CodexBar
 
-Claude Code skills and agents are managed per-project with the `claude-skill` and `claude-agent` functions:
+Claude Code skills, agents and plugins are managed per-project with `claude-kit`:
 
 ```bash
-claude-skill list                            # Show available skills
-claude-skill add vercel-react-best-practices # Link a skill into current project
-claude-skill remove vercel-react-best-practices # Remove it
-claude-agent add backend                     # Link a seat (staff-engineer seats are plugins, named by discipline)
+claude-kit list --type skill                                   # Show available skills
+claude-kit add vercel-react-best-practices --type skill         # Link a skill into current project
+claude-kit remove vercel-react-best-practices --type skill      # Remove it
+claude-kit add backend --type plugin                           # Link a seat (staff-engineer seats are plugins, named by discipline)
+claude-kit scout                                               # What this project's stack suggests
 ```
 
 Two larger systems ship here. **Product Team** is a gated pipeline that takes a raw idea to an engineering-ready GitHub backlog through numbered stages (`/0-refine-idea` to `/7-push-to-board`), and a **staff-engineer bench** of implementation agents (`architect` plus frontend, mobile, design, backend, platform, cloud, sre, data, analytics, gtm, database, qa, and security seats) builds what the pipeline specs out. See [`roles/ai/files/claude/README.md`](roles/ai/files/claude/README.md) for the full guide.

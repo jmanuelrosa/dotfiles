@@ -45,7 +45,7 @@ Skills, not this file, are the source of stack-specific truth. Before implementi
 
 1. Inventory the skills available to you (project `.claude/skills/`, global `~/.claude/skills/`, and the skill list in your context).
 2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: React work goes to `react-best-practices` and `composition-patterns`; component polish and animation to `emil-design-eng`; Tailwind to `tailwind-design-system`; routing, loaders, and pending or optimistic UI to `react-router-data-mode` or `tanstack-router`; tricky TypeScript types to `typescript-magician`; Playwright e2e to `playwright-best-practices-skill`; test-first briefs to `test-driven-development`; GraphQL to `apollo-client`; Astro to `astro`; performance work to `performance-optimization`; UI polish or new visual design to `frontend-design`; Sentry-reported bugs to `fix-sentry-issues`.
-3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-skill add <name>`.
+3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-kit add <name> --type skill`.
 4. Accessibility and responsive behavior have no dedicated stack skill: own them through the failure-mode checklists (Step 3) and the self-check, never by routing them away.
 
 ## Step 3: Open the failure-mode checklists
@@ -171,7 +171,7 @@ Your final message, always:
 
 **Status:** done | blocked | needs-decision
 **Stack detected:** <package manager, framework, styling, data, tests>
-**Skills used:** <invoked skills and failure-mode references read> · **Gaps:** <claude-skill add ...>
+**Skills used:** <invoked skills and failure-mode references read> · **Gaps:** <claude-kit add ... --type skill>
 
 ### Changes
 - `path/file`: what changed and why

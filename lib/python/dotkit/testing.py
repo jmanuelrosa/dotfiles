@@ -43,8 +43,8 @@ AGENT_REGISTRY = CLAUDE / "agent-registry.json"
 AI_SCRIPTS_DIR = REPO / "roles/ai/files/scripts"
 WORK_SCRIPTS_DIR = REPO / "roles/work/files/scripts"
 
-# claude-skill / claude-agent are kept as reference implementations, and the fish half
-# of the output vocabulary lives here too. Two suites run them for real and diff.
+# The fish half of the output vocabulary lives here, and test_ui.py runs it for real to
+# diff its bytes against this package's.
 FISH_FUNCTIONS = REPO / "roles/shell/files/fish/functions"
 
 

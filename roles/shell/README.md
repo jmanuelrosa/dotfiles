@@ -26,7 +26,7 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 
 ## Files
 
-- `files/fish/` — `config.fish`, `conf.d/{aliases,exports}.fish`, plus functions: `clean_claude` (+ `_clean_claude_{usage,excludes,find,confirm,tracked,purge_state,state_roots,worktree_main}`), `clean_all`, `clean_docker`, `clean_node`, `create_gitconfig`, `lns` (+ `_lns_{usage,target}`), `wt`, `claude-skill`, `claude-agent` (+ `_claude_scope_{target,is_global,global_skills,refuse}`, `_claude_skill_jqlib`), `_tv_claude_list`, `_tv_claude_toggle`, `tv_change_dir`, `tv_history`, `_ui`. Dropping a new `.fish` in there is self-installing: the role globs the directory, and prunes links whose source is gone. (Work-only helpers like `_tv_jira` live in the `work` role.)
+- `files/fish/` — `config.fish`, `conf.d/{aliases,exports}.fish`, plus functions: `clean_claude` (+ `_clean_claude_{usage,excludes,find,confirm,tracked,purge_state,state_roots,worktree_main}`), `clean_all`, `clean_docker`, `clean_node`, `create_gitconfig`, `lns` (+ `_lns_{usage,target}`), `wt`, `_tv_claude_list`, `_tv_claude_toggle` (+ `_claude_scope_{target,is_global,global_skills}`, `_claude_skill_jqlib`), `tv_change_dir`, `tv_history`, `_ui`. Dropping a new `.fish` in there is self-installing: the role globs the directory, and prunes links whose source is gone. (Work-only helpers like `_tv_jira` live in the `work` role.)
 - `files/ghostty/config` — Ghostty terminal config.
 - `files/starship.toml` — Starship prompt config.
 - `files/television/config.toml` — top-level television config (keybindings, theme, shell-integration channel triggers).
@@ -55,11 +55,12 @@ _ui done  "Removed 3 of 3"                 # ✨ closing summary
 
 Unlike a bare `set_color`, `_ui` decides colour per stream: `NO_COLOR` beats `FORCE_COLOR` beats the tty check, so piping any of these commands into a file gives plain text.
 
-Two things stay outside the vocabulary on purpose. A **row** in `claude-skill list` (a name plus coloured suffixes) is composed by hand from `_ui color`, because only its glyph is coloured. And **Television cable rows** (`_tv_claude_fmt`) are fixed-width columns a picker lays out and filters, not lines a human reads.
+That decision is made where a line is **printed**, never where a fragment is composed. `_ui color` and `_ui paint` only run inside a command substitution, and fish gives one a pipe for stdout, so a tty check there is false however the command was run: they emit their escapes regardless (only `NO_COLOR` silences them) and the printing kind strips what its stream refuses. A script building a row with `echo` instead has nothing to strip it, so it asks **`_ui color-enabled`** first, as a bare command, and fills its palette inside that `if`.
+
+**Television cable rows** (`_tv_claude_fmt`) stay outside the vocabulary on purpose: they are fixed-width columns a picker lays out and filters, not lines a human reads.
 
 ## Custom fish commands worth knowing
 
-- `claude-skill {list|add|remove|outdated|update}` and `claude-agent …` — project-scoped management of Claude Code skills and agents. Reference-only: `claude-kit` is the supported CLI, and the television cables now drive it rather than these.
 - `clean_claude [MODE] [ROOT] [--dry-run] [--exclude PATTERN] [--include PATTERN]` — one recursive cleaner with four modes, always walking `ROOT` (default: cwd) and everything below it with `fd`.
   - `project` (the default, alias `clean:claude`) removes every `.claude` in the tree, then purges Claude Code's stored state for the tree.
     State is scoped from the two real stores, not from `.claude` presence, because a project keeps transcripts and a `~/.claude.json` entry long after its `.claude` is gone: one `claude project purge --yes ROOT` call sweeps transcripts, tasks, file history and `history.jsonl` for the whole tree (the CLI prefix-matches those at path-segment boundaries), then one exact call per `~/.claude.json` project at or below `ROOT` removes its config entry (those are matched exactly, never by prefix, so subprojects would otherwise keep their trust and MCP servers).

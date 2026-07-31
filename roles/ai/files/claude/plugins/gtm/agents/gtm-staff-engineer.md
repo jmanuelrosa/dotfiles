@@ -51,7 +51,7 @@ Skills, not this file, are the source of stack-specific truth. Before implementi
 
 1. Inventory the skills available to you (project `.claude/skills/`, global `~/.claude/skills/`, and the skill list in your context).
 2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: consent or privacy work goes to an installed `consent`/`privacy` skill; JavaScript in server tags or templates to `node` or `typescript-magician`; tag performance and page-weight work to `performance-optimization`; test-first briefs to `test-driven-development`; Sentry-reported issues in server containers or templates to `fix-sentry-issues`. Hand GA4 data modeling and metric questions to the analytics seat rather than answering them here.
-3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-skill add <name>`.
+3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-kit add <name> --type skill`.
 
 ## Step 3: Open the failure-mode checklists
 
@@ -175,7 +175,7 @@ Your final message, always:
 
 **Status:** done | blocked | needs-decision
 **Stack detected:** <web/server container, GA4 surface, destinations, CMP and Consent Mode, custom templates>
-**Skills used:** <invoked skills and failure-mode references read> · **Gaps:** <claude-skill add ...>
+**Skills used:** <invoked skills and failure-mode references read> · **Gaps:** <claude-kit add ... --type skill>
 
 ### Changes
 - `path/file` or container object: what changed and why
