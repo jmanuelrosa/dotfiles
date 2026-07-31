@@ -7,6 +7,7 @@ Installs and configures AI tooling: Claude Code, Gemini CLI, Pi (mariozechner), 
 - Installs gemini-cli, pi-coding-agent, and casks for ChatGPT/Claude/Claude Code/Cursor/CodexBar via `BREW_PACKAGES`.
 - Symlinks per-tool configs into `~/.claude/`, `~/.gemini/`, `~/.pi/agent/`.
 - Symlinks `files/claude/skills/` into `~/.pi/agent/skills/` so Claude skills are reusable from the Pi agent.
+- Symlinks each tool named in `AI_SCRIPTS` into `~/.local/bin/`, from `files/scripts/<name>/<name>`. `claude-kit` is the only one: `weekly-recap` belongs to the `work` role, whose Jira, GitHub and GitLab accounts it actually queries.
 - Runs `claude-kit sync`, which links every artifact tagged `global` into `~/.claude/skills/` and `~/.claude/agents/` so it is available to Claude Code in every project without a per-project `add`, and **unlinks** any link there that is no longer in the derived set. Those directories are role-owned: what belongs in them is decided by the `global` group tag, not by where you ran a command from. Under `make check` the task passes `--dry-run`, so a check reports what it would change without changing it.
 
 - Runs `herdr integration install claude` so Claude Code reports agent state to [herdr](https://herdr.dev). `herdr integration status` gates it: the task only runs when the line for `claude` is not `current (v<n>)`, so a herdr upgrade that ships a newer hook reinstalls on the next run.

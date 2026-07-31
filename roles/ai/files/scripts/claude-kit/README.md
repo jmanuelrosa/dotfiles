@@ -535,7 +535,7 @@ hermetic; the colour pair only changes how it looks.
 
 ## Output style
 
-Every line these commands print comes from `claude_kit/ui.py`, the shared vocabulary: `title`
+Every line these commands print comes from `dotkit/ui.py`, the shared vocabulary: `title`
 (bold heading), `step` (cyan `→`), `ok` (green `✓`), `warn` (yellow `⚠`), `err` (magenta `✗`, on
 stderr), `item` (dim `·`), `note` (dim aside) and `done` (`✨` summary). `ui.render(kind, text)`
 returns the string instead of printing it, which is how `doctor` feeds its report through a
