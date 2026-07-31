@@ -13,9 +13,9 @@ import sys
 
 import pytest
 
-from conftest import REPO
+from dotkit.testing import SKILLS
 
-ADF = REPO / "roles/ai/files/claude/skills/jira/scripts/adf.py"
+ADF = SKILLS / "jira/scripts/adf.py"
 
 EXIT_OK = 0
 EXIT_USAGE = 1

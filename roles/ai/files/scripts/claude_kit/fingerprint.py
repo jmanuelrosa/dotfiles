@@ -45,6 +45,20 @@ BROAD_TAGS = frozenset({"engineering", "global", "observability"})
 # or Apollo skill out of a plain React project's report. Persona tags like
 # `frontend` are shared by every framework's artifacts, so without this rule one
 # implied `frontend` hit drags in the whole front-end shelf.
+#
+# This is a *gate*, and rank() satisfies it from `direct` alone, so membership here
+# carries an obligation: a tag in this set that read() cannot produce as direct
+# evidence silently hides every artifact carrying it, in every project, for ever.
+# Nothing reports that; the artifact simply never appears.
+#
+# Two consequences worth keeping in mind when editing the tables below.
+#   - An IMPLIED_TAGS entry pointing at a member of this set is inert. `node` used to
+#     reach a Fastify project only that way, so `node` and `nodejs-backend-patterns`
+#     were invisible there while a NestJS project got both, purely because @nestjs/
+#     happens to emit `node` directly.
+#   - A tag naming a technology no probe can detect does not belong here at all. It
+#     is not a gate we can honour, so it can only ever subtract.
+# test_scout.py's G1 and G2 assert both halves of this.
 TECH_TAGS = frozenset(
     {
         "apollo",
@@ -63,10 +77,8 @@ TECH_TAGS = frozenset(
         "react",
         "react-native",
         "react-router",
-        "react-tanstack",
         "sentry",
         "swift",
-        "swiftui",
         "tailwind",
         "tanstack",
         "typescript",
@@ -75,20 +87,24 @@ TECH_TAGS = frozenset(
 
 # Dependency name to tag, for the ecosystems the catalogue actually has artifacts
 # for. An entry that maps to a tag nothing carries is harmless but pointless.
+# A dependency names its own technology *and* the platform that technology implies,
+# because both are facts about the project rather than guesses. Expo is React Native,
+# Fastify is Node: putting those in IMPLIED_TAGS instead looked tidier and was wrong,
+# since a gate tag reached only by implication can never satisfy the gate.
 DEP_TAGS = {
     "react": ("react",),
     "react-dom": ("react",),
-    "react-native": ("mobile",),
+    "react-native": ("react-native", "mobile"),
     "react-router": ("react-router",),
     "react-router-dom": ("react-router",),
-    "expo": ("expo",),
+    "expo": ("expo", "mobile"),
     "astro": ("astro",),
     "tailwindcss": ("tailwind",),
     "typescript": ("typescript",),
     "graphql": ("graphql",),
-    "fastify": ("fastify",),
-    "hono": ("hono",),
-    "prisma": ("database",),
+    "fastify": ("fastify", "node"),
+    "hono": ("hono", "node"),
+    "prisma": ("prisma", "database"),
     "playwright": ("playwright", "testing"),
     "vitest": ("testing",),
     "jest": ("testing",),
@@ -97,32 +113,35 @@ DEP_TAGS = {
 # Scoped families, matched by prefix so a new member of one needs no entry.
 DEP_PREFIX_TAGS = {
     "@nestjs/": ("nestjs", "node"),
-    "@apollo/": ("graphql",),
-    "@prisma/": ("database",),
+    "@apollo/": ("apollo", "graphql"),
+    "@prisma/": ("prisma", "database"),
     "@playwright/": ("playwright", "testing"),
-    "@tanstack/": ("react-tanstack",),
+    "@tanstack/": ("tanstack",),
     "@sentry/": ("sentry", "observability"),
-    "@expo/": ("expo",),
+    "@expo/": ("expo", "mobile"),
 }
 
 # A direct hit makes its neighbours plausible, which is the whole of the second
 # tier: these are the tags scout is willing to guess at, and nothing else.
+#
+# Every value here should be a *persona* or *topic* tag. A TECH_TAGS member in this
+# position is inert, because rank() only ever satisfies the gate from direct evidence,
+# so stating `fastify implies node` here achieved nothing at all. Where the
+# implication is a fact rather than a guess it now lives in DEP_TAGS; where it is a
+# guess about a technology, it cannot be expressed and should not be.
 IMPLIED_TAGS = {
     "react": ("frontend", "ui"),
     "react-router": ("frontend",),
-    "react-tanstack": ("frontend",),
+    "tanstack": ("frontend",),
     "astro": ("frontend",),
     "tailwind": ("frontend", "designer", "design", "ui"),
-    "expo": ("mobile",),
-    "mobile": ("expo",),
     "nestjs": ("backend",),
-    "fastify": ("backend", "node"),
-    "hono": ("backend", "node"),
+    "fastify": ("backend",),
+    "hono": ("backend",),
     "graphql": ("backend", "frontend"),
     "database": ("backend",),
     "sentry": ("observability", "devops"),
     "playwright": ("testing",),
-    "swift": ("ios", "mobile"),
     "ci": ("devops",),
 }
 
@@ -159,6 +178,14 @@ INTENT_FILES = ("CLAUDE.md", "README.md")
 
 SWIFT_FILES = ("Package.swift", "Podfile")
 SWIFT_GLOBS = ("*.xcodeproj", "*.xcworkspace")
+# Named rather than inlined at the call site so the set of tags read() can produce is
+# derivable from these tables alone, which is what lets test_scout.py check the
+# TECH_TAGS obligation without restating the emitters and drifting from them.
+#
+# `mobile` is asserted here rather than implied from `swift`, for the same reason Expo
+# names it: implying a gate tag achieves nothing, and it was costing every Swift
+# project the `mobile` seat. It claims no more than the `ios` beside it already does.
+SWIFT_TAGS = ("swift", "ios", "mobile")
 
 TEST_DIRS = ("tests", "test", "__tests__", "spec")
 TEST_FILE = re.compile(r"\.(test|spec)\.[jt]sx?$|Tests?\.swift$|^test_.+\.py$")
@@ -173,10 +200,19 @@ RANGE_CHARS = "^~>=< "
 
 
 def _read_json(path):
+    """The parsed object, or {} for anything this cannot use.
+
+    A manifest is a mapping by definition, so valid JSON of any other shape is as
+    useless here as invalid JSON and is treated the same way. Catching only ValueError
+    left `[]`, `null`, a bare string and a bare number to reach .get() in _declared and
+    raise, which turned a junk package.json into a traceback instead of a scout run
+    that finds nothing in it.
+    """
     try:
-        return json.loads(path.read_text(errors="replace"))
+        data = json.loads(path.read_text(errors="replace"))
     except (OSError, ValueError):
         return {}
+    return data if isinstance(data, dict) else {}
 
 
 def _declared(project):
@@ -233,7 +269,7 @@ def read(project):
     markers = [name for name in SWIFT_FILES if (project / name).is_file()]
     markers += sorted(path.name for pattern in SWIFT_GLOBS for path in project.glob(pattern))
     if markers:
-        note(("swift", "ios"), f"{markers[0]} in the project root")
+        note(SWIFT_TAGS, f"{markers[0]} in the project root")
 
     # Absence, which is evidence too. Each of these is a gap an artifact fills, so
     # a project without tests wants a testing skill more than a tested one does.

@@ -14,7 +14,7 @@ import unicodedata
 import pytest
 
 from claude_kit import ui
-from conftest import FISH_FUNCTIONS
+from dotkit.testing import FISH_FUNCTIONS
 
 RESET = "\x1b[m"
 GREEN = "\x1b[32m"

@@ -5,7 +5,6 @@ PROFILE ?= personal
 
 # Test deps are resolved per-run by uv, so there is no venv to create or refresh.
 PYTEST = uv run --with pytest --with pyyaml pytest
-CLAUDE_KIT = roles/ai/files/scripts/claude_kit
 
 # Install / refresh pinned Ansible collections
 deps:
@@ -15,10 +14,16 @@ deps:
 lint:
 	ansible-lint
 
-# claude-kit + registry integrity. Fast, hermetic, no vault or become password.
-# The suite lives beside the package it exercises, not in a top-level tests/.
+# Every python suite: claude-kit, the registries, the skill scripts, the hook, and the
+# suite layout itself. Fast, hermetic, no vault or become password.
+#
+# The roots are listed in pytest.ini rather than here, so `pytest` on its own collects
+# what `make test` does. Naming one path here is what let four suites go dark.
+#
+# PYTHONDONTWRITEBYTECODE keeps pytest's assertion rewriter from leaving __pycache__
+# inside a skill directory, which is symlinked whole into ~/.claude.
 test:
-	$(PYTEST) $(CLAUDE_KIT)/tests -q
+	PYTHONDONTWRITEBYTECODE=1 $(PYTEST) -q
 
 syntax:
 	ansible-playbook --syntax-check --inventory inventory.yml --ask-vault-password --extra-vars "profile=$(PROFILE)" dotfiles.yml

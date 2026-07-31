@@ -8,7 +8,7 @@ import pytest
 
 from claude_kit import catalog as cat
 from claude_kit import scope
-from conftest import CLAUDE
+from dotkit.testing import CLAUDE
 
 SKILL = cat.Artifact(name="coderabbit", type=cat.SKILL)
 GLOBAL_SKILL = cat.Artifact(name="commit", type=cat.SKILL, groups=("global",))

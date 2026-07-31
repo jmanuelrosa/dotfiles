@@ -14,7 +14,7 @@ import pytest
 import yaml
 
 from claude_kit import frontmatter
-from conftest import CLAUDE
+from dotkit.testing import CLAUDE
 
 # (label, block, caught) — `caught` is whether the scanner must report it. Every
 # case is run past PyYAML too, so a False here means "PyYAML rejects this and we

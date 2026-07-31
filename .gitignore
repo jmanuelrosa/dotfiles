@@ -1,6 +1,7 @@
 *.log
 .DS_Store
 __pycache__/
+.pytest_cache/
 
 backups
 vault_pass
