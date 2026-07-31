@@ -21,7 +21,6 @@ BREW_PACKAGES:
   taps:
     - oven-sh/bun
     - getsentry/tools
-    - tw93/tap
     - nikitabobko/tap
     - dlvhdr/formulae
     - jmanuelrosa/tap
@@ -31,7 +30,6 @@ BREW_PACKAGES:
   trusted:
     - oven-sh/bun/bun
     - getsentry/tools/sentry
-    - tw93/tap/mole
     - dlvhdr/formulae/diffnav
     - nikitabobko/tap/aerospace
     - jmanuelrosa/tap
@@ -67,7 +65,7 @@ BREW_PACKAGES:
     # Network
     - nextdns
     # System / window management
-    - tw93/tap/mole
+    - mole
   casks:
     # Browsers
     - google-chrome
