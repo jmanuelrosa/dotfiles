@@ -23,7 +23,10 @@ EXIT_NOT_GITHUB = 3
 EXIT_NO_PR = 4
 EXIT_GH_FAILED = 5
 
-BOT_LOGIN = "coderabbitai[bot]"
+# GraphQL reports a Bot actor's login without the "[bot]" suffix that REST uses,
+# and this script reads authors from GraphQL. Accept both so a change of source
+# does not silently classify every thread as not-coderabbit.
+BOT_LOGINS = ("coderabbitai", "coderabbitai[bot]")
 SKILL_MARKER = "<!-- cr-skill -->"
 PAGE_SIZE = 100
 MAX_PAGES = 20
@@ -224,24 +227,28 @@ def author_of(comment):
     return (comment.get("author") or {}).get("login")
 
 
+def by_bot(comment):
+    return author_of(comment) in BOT_LOGINS
+
+
 def skip_reason(thread, comments):
     if not comments:
         return "empty"
-    if author_of(comments[0]) != BOT_LOGIN:
+    if not by_bot(comments[0]):
         return "not-coderabbit"
     if thread.get("isResolved"):
         return "resolved"
     if thread.get("isOutdated"):
         return "outdated"
     for c in comments[1:]:
-        if SKILL_MARKER in (c.get("body") or "") or author_of(c) != BOT_LOGIN:
+        if SKILL_MARKER in (c.get("body") or "") or not by_bot(c):
             return "answered"
     return None
 
 
 def build(thread, comments):
     root = comments[0]
-    raw = "\n\n".join(c.get("body") or "" for c in comments if author_of(c) == BOT_LOGIN)
+    raw = "\n\n".join(c.get("body") or "" for c in comments if by_bot(c))
     return {
         "thread": thread.get("id"),
         "reply_to": root.get("databaseId"),
@@ -268,7 +275,7 @@ def walkthrough(pr):
     bot_bodies = [
         r.get("body") or ""
         for r in data.get("reviews") or []
-        if author_of(r) == BOT_LOGIN and (r.get("body") or "").strip()
+        if by_bot(r) and (r.get("body") or "").strip()
     ]
     latest = strip_noise(bot_bodies[-1]) if bot_bodies else ""
     return {
