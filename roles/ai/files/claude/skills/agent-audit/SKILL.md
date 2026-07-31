@@ -29,7 +29,7 @@ If the fetch fails, say so and limit frontmatter findings to fields observed wor
    - **local**: under registry `local_agents`, or no registry entry.
      Fixes may be applied.
    - **upstream-synced**: under a registry `repos` entry.
-     REPORT-ONLY: in-place edits are silently reverted by `claude-agent update`.
+     REPORT-ONLY: the file belongs to its upstream repo, so an in-place edit is lost the next time it is re-synced from there.
      Remedies to offer: contribute the fix upstream, or fork to local (copy the file, move its registry entry to `local_agents`).
 3. Note registry ↔ disk drift (registered but missing, on disk but unregistered) as findings.
 

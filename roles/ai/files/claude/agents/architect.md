@@ -48,7 +48,7 @@ Skills, not this file, are the source of method truth. Before designing:
 1. Inventory the skills available to you (project `.claude/skills/`, global `~/.claude/skills/`, and the skill list in your context).
 2. Invoke your method skills at the step that needs them: `domain-modeling` (glossary and term sharpening), `planning-and-task-breakdown` (work breakdown mechanics), `documentation-and-adrs` (doc craft only: inline comments, API docs like JSDoc/OpenAPI, README, changelog, NOT ADRs). ADRs follow the ## ADRs section below, not a skill. Also invoke any installed stack skill relevant to a design decision you're making (e.g. `prisma-expert` for schema design, `nestjs` for module layout, `graphql-operations` for schema design).
 3. Do **not** invoke `spec-driven-development` even if installed — its phases are human-gated and terminate in implementation; the spec contract below supersedes it. Never invoke implementation skills (`incremental-implementation`, `test-driven-development`).
-4. If a method or stack skill you need is missing, proceed on your own judgment and list the gap in the design report as `claude-skill add <name>`.
+4. If a method or stack skill you need is missing, proceed on your own judgment and list the gap in the design report as `claude-kit add <name> --type skill`.
 
 **Non-interactive adaptation — applies to every skill you invoke.** These skills were written for interactive sessions; you have no user mid-run. When a skill says to ask the user, wait for review, or seek approval: do not stall and do not silently invent. Convert the moment into artifact form — resolvable from code you read → resolve it and record the evidence; minor ambiguity → Decision Item with recommendation and the default you proceeded with; foundational fork → `needs-decision` return.
 
@@ -160,7 +160,7 @@ Your final message, always:
 
 **Status:** done | blocked | needs-decision
 **Artifacts:** docs/specs/<feature>.md · <ADR paths, if any> · <CONTEXT.md updated: yes/no>
-**Skills used:** <invoked skills> · **Gaps:** <claude-skill add …>
+**Skills used:** <invoked skills> · **Gaps:** <claude-kit add … --type skill>
 **Decision items:** <count> — <one line each, highest-impact first>
 
 ### Dispatch briefs

@@ -40,7 +40,7 @@ Do not tag the discipline `global`; seats are per-project.
 ### How it loads and installs
 
 The folder auto-loads as `<discipline>@skills-dir`; the agent is `<discipline>:<seat>` and the skill is `<discipline>:<seat>-failure-modes`.
-Install into a project with `claude-agent add <discipline>` (it symlinks the plugin folder into `.claude/skills/`, the same edit-once-use-everywhere model as flat agents).
+Install into a project with `claude-kit add <discipline> --type plugin` (it symlinks the plugin folder into `.claude/skills/`, the same edit-once-use-everywhere model as flat agents).
 A project-scope plugin loads only in a trusted workspace (the repo root has `hasTrustDialogAccepted: true`) and only when Claude Code is launched from that repo root; a freshly linked plugin needs a full restart, not `/reload-plugins`.
 
 ## Utility agent: flat file plus registry row

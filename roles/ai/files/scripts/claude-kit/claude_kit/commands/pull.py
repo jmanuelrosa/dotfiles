@@ -14,9 +14,9 @@ nothing else has an upstream to compare against.
 Neither command touches a project. They update the dotfiles checkout itself, so they
 work from any cwd.
 
-Output follows `claude-skill update` / `claude-skill outdated` exactly: same header,
-cyan repo rules, glyphs, state colours, dim `(last synced …)` suffix and `Done:` tally,
-so the two are indistinguishable side by side. Palette in colors.py.
+The layout came from `claude-skill update` / `claude-skill outdated`, the fish functions
+this replaced: cyan repo rules, glyphs, state colours, dim `(last synced …)` suffix and
+`Done:` tally. Palette in colors.py.
 """
 
 import tempfile
@@ -34,9 +34,9 @@ SYNCED = "synced"
 INSTALLED = "installed"
 FAILED = "failed"
 
-# Glyph, colour and label per state, as claude-skill paints them. The glyph and the
-# label share a colour there, and the state is read off the colour as much as the
-# text: green means untouched, blue means written, red means a sync is waiting.
+# Glyph, colour and label per state. The glyph and the label share a colour, and the
+# state is read off the colour as much as the text: green means untouched, blue means
+# written, red means a sync is waiting.
 STYLE = {
     BEHIND: ("⟳", "red", "behind"),
     CURRENT: ("✓", "green", "up to date"),
@@ -90,7 +90,7 @@ def targets(catalog, names):
 
 
 def last_synced(skill):
-    """The `updated_at` stamp as a date, which is the granularity claude-skill shows.
+    """The `updated_at` stamp as a date, which is all the granularity a row needs.
 
     It truncates the ISO timestamp to ten characters rather than parsing it, so an
     unparseable or absent stamp still renders instead of raising.
@@ -116,14 +116,14 @@ def classify(skill, checkout, destination):
 
 
 def format_result(state, name, detail=None):
-    """One `  ✓ name: label (note)` row in claude-skill's layout."""
+    """One `  ✓ name: label (note)` row."""
     glyph, colour, label = STYLE[state]
     parts = [f"  {colors.paint(glyph, colour)} {name}:"]
     if label:
         parts.append(colors.paint(label, colour))
     if detail:
         # A failure reason reads as prose and stays undimmed; everything else is a
-        # de-emphasised parenthetical, as in claude-skill.
+        # de-emphasised parenthetical.
         parts.append(detail if state == FAILED else colors.paint(f"({detail})", "dim"))
     return " ".join(parts)
 
@@ -145,8 +145,8 @@ def process_repo(skills, claude, branch, repo, write, fetcher, workspace):
     into one run.
 
     Returns (fetch_error, results). A fetch error is one fact about the repo, so it is
-    returned separately for the single `✗ FAILED to fetch` line claude-skill prints,
-    while every skill it stranded still gets a FAILED result so the tally counts them.
+    returned separately for the single `✗ FAILED to fetch` line, while every skill it
+    stranded still gets a FAILED result so the tally counts them.
     """
     checkout = workspace / repo.replace("/", "_")
     try:
@@ -182,7 +182,7 @@ def process_repo(skills, claude, branch, repo, write, fetcher, workspace):
             collection=cat.COLLECTION[cat.SKILL],
         )
         # No note: the stamp is what was just written, so echoing it says only that the
-        # clock works. claude-skill prints the bare outcome for the same reason.
+        # clock works.
         results.append((skill, INSTALLED if state == ABSENT else SYNCED, None))
     return None, results
 
@@ -213,9 +213,8 @@ def run(args, fetcher=None):
         ui.title(f"🔎 Checking {count} repo(s) for updates...")
     ui.blank()
 
-    # Only when the user named one. On a bare run every locally authored skill is
-    # local, and claude-skill says nothing about them: thirteen warnings about
-    # nothing being wrong is what teaches a reader to skip the report.
+    # Only when the user named one. On a bare run every locally authored skill is local,
+    # and saying so thirteen times is what teaches a reader to skip the report.
     named_local = local if args.names else []
     for skill in named_local:
         ui.warn(f"'{skill.name}' is a local skill; no upstream to sync.", indent=2)

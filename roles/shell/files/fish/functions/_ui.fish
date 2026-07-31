@@ -25,11 +25,21 @@ function _ui --description "Shared output vocabulary for dotfiles scripts: one p
     #   _ui blank                                   an empty line
     #
     # Indent defaults to 0, or 2 for `item` and `note`; -i/--indent overrides it.
-    # Three helpers compose rather than print:
+    # Three helpers compose rather than print, and one answers a question:
     #
     #   _ui color cyan          the escape sequence alone, for building a line by hand
     #   _ui paint cyan "text"   that text, wrapped and reset
     #   _ui path ~/dev/api      a path with $HOME collapsed back to ~
+    #   _ui color-enabled       status 0 when this stdout wants colour
+    #
+    # The two colouring helpers are only ever useful inside a command substitution, and
+    # fish gives one a pipe for stdout, so their own fd 1 is never the terminal however
+    # the command was run: an isatty check there is false every time, which is what left
+    # every `lns` arrow and every `clean_claude` marker uncoloured. They therefore state
+    # intent, silenced by NO_COLOR alone, and the printing kind resolves it by stripping
+    # the escapes its stream does not want, as dotkit's colors.for_stream does. A script
+    # printing a row with `echo` has no printing kind to resolve it, so it asks
+    # `_ui color-enabled` first, while fd 1 is still its own stdout.
     #
     # -s so that `_ui err "-x is unknown"` prints rather than parsing -x as a flag.
     argparse -s -n _ui 'i/indent=' -- $argv
@@ -43,18 +53,25 @@ function _ui --description "Shared output vocabulary for dotfiles scripts: one p
     set -l kind $argv[1]
     set -l rest $argv[2..-1]
 
-    # The composing helpers return text rather than printing a line, so they answer
+    # These return text, or an answer, rather than printing a line, so they are served
     # before any of the layout below applies.
     switch $kind
         case color
-            _ui_code "$rest[1]" "$rest[2]"
+            set -l stream $rest[2]
+            test -n "$stream"; or set stream compose
+            _ui_code "$rest[1]" "$stream"
             return 0
+        case color-enabled
+            # Asked as a bare command, so fd 1 is the caller's real stdout rather than
+            # the pipe a command substitution would have handed it.
+            _ui_colour_on "$rest[1]"
+            return $status
         case paint
             # Every command substitution here is assigned first and then quoted:
             # with colour off `(_ui_code x)` is an empty *list*, which would shift
             # printf's arguments one place to the left rather than print nothing.
-            set -l code (_ui_code "$rest[1]")
-            set -l reset (_ui_code reset)
+            set -l code (_ui_code "$rest[1]" compose)
+            set -l reset (_ui_code reset compose)
             set -l body (string join ' ' -- $rest[2..-1])
             printf '%s%s%s' "$code" "$body" "$reset"
             return 0
@@ -113,6 +130,12 @@ function _ui --description "Shared output vocabulary for dotfiles scripts: one p
     set -l c (_ui_code $colour $stream)
     set -l r (_ui_code reset $stream)
 
+    # Colour composed upstream is intent, not a decision, so this is where it is
+    # resolved: the line lands here, and nothing before here could see where.
+    if not _ui_colour_on $stream
+        set text (string replace -ra '\e\[[0-9;]*m' '' -- "$text" | string collect)
+    end
+
     switch $kind
         case title note
             printf '%s%s%s%s\n' "$pad" "$c" "$text" "$r"
@@ -133,7 +156,7 @@ function _ui_code --description "The escape sequence for one palette colour, or 
         case reset
             set_color normal
         case dim
-            # brblack, as every de-emphasised suffix in claude-skill uses.
+            # brblack, as every de-emphasised suffix in a listing uses.
             set_color brblack
         case bold
             set_color --bold
@@ -150,5 +173,9 @@ function _ui_colour_on --description "True when escape codes should be emitted f
     # unset, so `NO_COLOR= cmd` does not silently strip colour.
     test -n "$NO_COLOR"; and return 1
     test -n "$FORCE_COLOR"; and return 0
+    # `compose` is not a stream: it is `_ui color` / `_ui paint` saying they cannot know
+    # where their text lands. Optimistic, because the printing kind strips what its own
+    # stream refuses, and no check here could tell a substitution's pipe from a real one.
+    test "$stream" = compose; and return 0
     isatty $stream
 end

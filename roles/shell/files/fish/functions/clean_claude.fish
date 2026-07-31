@@ -146,7 +146,7 @@ function clean_claude --description "Remove Claude Code artifacts under a direct
 
   switch $mode
     case skills agents
-      _ui done "Removed $removed $label. Restore what you need with 'claude-skill add' / 'claude-agent add'."
+      _ui done "Removed $removed $label. Restore what you need with 'claude-kit add <name> --type skill|agent|plugin'."
     case project
       if test $removed -eq 0
         _ui done "Purged Claude state under "(_ui path "$root")"; there was no $label to remove."

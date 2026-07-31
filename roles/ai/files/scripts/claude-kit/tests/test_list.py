@@ -123,8 +123,7 @@ def test_b6_reads_only_the_two_scopes_not_a_parent_directory(catalog, effective,
 
 
 def test_b8_dependencies_are_annotated(catalog, effective):
-    """Sorted and deduped, matching the jq `unique` claude-skill uses, so the two
-    print the same list in the same order."""
+    """Sorted and deduped, as the jq `unique` this inherited its ordering from was."""
     by_name = {row["name"]: row for row in rows(catalog, cat.SKILL, effective)}
     assert by_name["spec-driven-development"]["dependencies"] == (
         "context-engineering",
@@ -165,9 +164,9 @@ def test_b9_an_untagged_skill_linked_in_home_is_shown_as_global(catalog, effecti
 
     by_name = {row["name"]: row for row in rows(catalog, cat.SKILL, effective, home, project)}
     assert by_name["coderabbit"]["global"] is True
-    # The row *data* knows, but the flat view deliberately prints no scope marker, so
-    # that claude-kit and claude-skill render identically. The grouped view shows it.
-    # See test_list_format.test_the_flat_view_inherits_claude_skills_blind_spot.
+    # The row *data* knows, but the flat view deliberately prints no scope marker. The
+    # grouped view shows it. See
+    # test_list_format.test_the_flat_view_has_a_blind_spot_and_keeps_it.
     grouped_row = listing.format_row(by_name["coderabbit"], indent="    ", show_groups=False)
     assert "(global)" in grouped_row
 

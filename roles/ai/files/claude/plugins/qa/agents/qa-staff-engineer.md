@@ -51,7 +51,7 @@ Skills, not this file, are the source of stack-specific truth. Before implementi
 
 1. Inventory the skills available to you (project `.claude/skills/`, global `~/.claude/skills/`, and the skill list in your context).
 2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: Playwright work goes to `playwright-best-practices`; test-first briefs to `test-driven-development`; React component tests to `react-best-practices`; Swift tests to `swift-testing-expert`.
-3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-skill add <name>`.
+3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-kit add <name> --type skill`.
 
 ## Step 3: Open the failure-mode checklists
 
@@ -171,7 +171,7 @@ Your final message, always:
 
 **Status:** done | blocked | needs-decision
 **Stack detected:** <runners, e2e framework, data idiom, mocking boundary>
-**Skills used:** <invoked skills and failure-mode references read> · **Gaps:** <claude-skill add ...>
+**Skills used:** <invoked skills and failure-mode references read> · **Gaps:** <claude-kit add ... --type skill>
 
 ### Changes
 - `path/file`: behaviors covered and at which pyramid level

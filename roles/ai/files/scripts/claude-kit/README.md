@@ -107,12 +107,13 @@ claude-kit list --type {skill,agent,plugin} [--group [TAG]]
 Read-only, and the only command that never refuses: in `$HOME` it reports global state and says
 so.
 
-**The layout, colours and markers match `claude-skill list` byte for byte**, so the two read
-identically side by side. A test runs both and diffs their output, so neither can drift.
+**The layout, colours and markers came from `claude-skill list`**, the fish function this
+replaced, so the two read identically while both shipped. Every row shape is pinned as a literal
+in `test_list_format.py`, escape codes included.
 
 | Flag | Meaning |
 |---|---|
-| `--group` | With no value, group the listing by tag, as `claude-skill list --group` does |
+| `--group` | With no value, group the listing by tag |
 | `--group TAG` | Show only entries carrying that tag. A claude-kit addition; tags are opaque, so any value in the registry works |
 
 Bare `--group` is also how you find a tag worth passing to `add --group` or `remove --group`.
@@ -133,9 +134,8 @@ $ claude-kit list --type skill
 ✨ 65 skills, 4 installed
 ```
 
-Two additions over `claude-skill`, both below or after the shared template:
-`(installed for <parent>)`, which comes from provenance that `claude-skill` does not track, and
-the trailing count.
+Two things sit outside that inherited template: `(installed for <parent>)`, which comes from
+provenance, and the trailing count.
 
 Grouped by tag:
 
@@ -153,10 +153,10 @@ $ claude-kit list --type skill --group
 Dependency-only skills are hidden, because they cannot be added directly.
 
 Colour is emitted only when stdout is a terminal, so piping to a file or into `grep` gives plain
-text. `NO_COLOR` disables it and `FORCE_COLOR` forces it on, with `NO_COLOR` winning.
-`claude-skill` follows the same rule, through `_ui color`, so the two agree here too.
+text. `NO_COLOR` disables it and `FORCE_COLOR` forces it on, with `NO_COLOR` winning. `_ui` in fish
+follows the same rule, so a fish function and this agree on screen.
 
-**Note the flat view shows no scope marker**, matching `claude-skill`. A skill that is global
+**Note the flat view shows no scope marker.** A skill that is global
 only because something global depends on it (`jira`, `documentation-and-adrs`,
 `planning-and-task-breakdown`) carries no `global` tag, so nothing in the flat list says so, and
 `add` refusing it can look surprising. `--group` does show `(global)`, and `doctor` reports scope
@@ -441,7 +441,7 @@ project already pointing at a skill sees the new content immediately.
 Only skills have upstreams: `agent-registry.json` has no repos and plugins are authored here.
 Naming a locally authored skill says so and exits `0`; a bare run just leaves them out.
 
-Output matches `claude-skill update` / `claude-skill outdated` line for line: a bold header, a cyan
+Output follows the layout inherited from the fish tooling: a bold header, a cyan
 rule per repo, one row per skill (`⟳` behind in red, `✓` up to date in green, `↓` not downloaded in
 yellow, `✗` failed in magenta, blue for anything `update` wrote) and a bold `Done:` tally. An
 unreachable repo prints one `✗ FAILED to fetch` line and the run continues with the next.
@@ -472,8 +472,8 @@ claude-kit adopt [--type {skill,agent,plugin}] [--dry-run]
 | `--dry-run` | Show what would be recorded without writing anything |
 
 Rebuilds a missing `claude-kit.json` from the links already in the project. Use it after cloning
-a repo that ships a `.claude/` but no manifest, or in a project set up by the older
-`claude-skill` / `claude-agent` fish functions, which never wrote one. Writes the manifest and
+a repo that ships a `.claude/` but no manifest, or in a project set up before claude-kit existed, by
+the fish functions it replaced, which never wrote one. Writes the manifest and
 **nothing else**: no symlink is created, moved or deleted.
 
 An installed skill that some other installed artifact declares as a dependency is recorded
@@ -871,32 +871,25 @@ afternoon, or reaching for an artifact you have not decided to keep. Just know i
 change. Anything you want on the machine permanently belongs behind the tag, which is the only
 durable statement about what `~/.claude` holds.
 
-**Why does `list` look exactly like `claude-skill list`?**
-Because they are often used in the same terminal, and two similar-but-different layouts for the
-same information is a reading tax. A test runs both against one project and diffs the bytes, so
-a change to either implementation fails rather than being spotted by eye.
-
-**`claude-kit list --type skill` and `claude-skill list` differ. Why?**
-Two additions, both outside the shared template: `(installed for <parent>)` on rows where
-claude-kit has provenance, and the trailing count. Everything in the row template itself is
-identical. If anything else differs, that is a bug.
+**Why does `list` look the way it does?**
+It kept the layout of `claude-skill list`, the fish function it replaced, so that the two read
+identically for as long as both shipped and the switch cost nobody a second look. The fish
+functions are gone now, and `test_list_format.py` pins every row shape as a literal instead.
 
 **Why is `list` not coloured when I pipe it?**
 Colour is on only for a terminal, so redirecting to a file or through `grep` gives clean text.
-Set `FORCE_COLOR=1` to keep it, or `NO_COLOR=1` to switch it off everywhere. `claude-skill` takes
-its palette from `_ui color`, which decides the same way, so both go plain when piped. It used to
-emit codes unconditionally, because a bare `set_color` does.
+Set `FORCE_COLOR=1` to keep it, or `NO_COLOR=1` to switch it off everywhere. `_ui` in fish decides
+the same way, so a fish function piped into a file goes plain too.
 
 **`add` refuses a skill as global, but `list` shows no `(global)` next to it. Why?**
 The flat list shows `[groups]`, and a skill reached as a dependency of something global carries
-no `global` tag of its own. `claude-skill` has the same gap and the template is matched
-deliberately. Use `claude-kit list --type skill --group`, which prints `(global)`, or `doctor`,
-which reports scope directly.
+no `global` tag of its own. The gap came with the layout and is kept deliberately. Use
+`claude-kit list --type skill --group`, which prints `(global)`, or `doctor`, which reports scope
+directly.
 
 **Does `--group` take a value or not?**
-On `list`, both. Bare `--group` gives the grouped view, matching `claude-skill list --group`, and
-`--group <tag>` narrows to one tag, which claude-skill cannot do. On `add` and `remove` the tag is
-required, because there the flag has to name a set to act on.
+On `list`, both. Bare `--group` gives the grouped view and `--group <tag>` narrows to one tag. On
+`add` and `remove` the tag is required, because there the flag has to name a set to act on.
 
 **Why did `add --group` skip the global members instead of installing them?**
 Because `--global` is what says "write to `~/.claude`", and a tag is a filter rather than a name.
@@ -915,11 +908,12 @@ counted in an aside and the run still exits `OK`, which is what makes `add --gro
 Naming that same artifact directly still refuses with `ALREADY`, because then it is the whole
 request rather than one member of a set.
 
-**`claude-skill remove --group` leaves dependencies behind. Why does claude-kit not?**
+**Why does `remove --group` cascade to dependencies when the fish tooling did not?**
 Because it can tell the difference. The cascade needs `claude-kit.json` to know which links arrived
 *for* something else, which the fish version never wrote, so it could only delete exactly the
-members it matched. `--no-cascade` gives the old behaviour if you want it.
+members it matched. `--no-cascade` gives that behaviour if you want it.
 
-**What about `claude-skill` and `claude-agent`?**
-The fish functions are unchanged and still work; they are kept as reference. They use the same
-scope rule, so the two agree on placement, but only claude-kit's version is under test.
+**What happened to `claude-skill` and `claude-agent`?**
+Deleted. claude-kit covers everything they did, plus plugins, provenance and the cascade, and it is
+the half that is under test. The Television pickers now drive it, and `claude-kit adopt` recovers
+the manifest for any project those functions set up.

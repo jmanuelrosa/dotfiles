@@ -14,7 +14,7 @@ If empty, ask for it before anything else.
    If it is fuzzy (multiple readings, unstated constraints), stop and suggest running /grill-me on it first; offer to continue with the current brief only if I decline.
 2. **Inventory the seats.** List `.claude/agents/` and `~/.claude/agents/`, and run `claude plugin list` for skills-dir seat plugins (e.g. `backend@skills-dir`, whose agent shows as `backend:backend-staff-engineer`).
    Report which staff-engineer seats are installed by either mechanism.
-   If the work clearly needs a seat that is missing (tests → qa, migrations → database, pipelines → platform, IaC → cloud, data/dbt → data/analytics, SLOs → sre), give me the exact `claude-agent add <seat>` command and wait; frontend/backend cover their slices when no specialist is installed.
+   If the work clearly needs a seat that is missing (tests → qa, migrations → database, pipelines → platform, IaC → cloud, data/dbt → data/analytics, SLOs → sre), give me the exact `claude-kit add <seat> --type plugin` command and wait; frontend/backend cover their slices when no specialist is installed.
 3. **Design.** Dispatch the architect subagent with the brief.
    It returns a spec at docs/specs/ plus dispatch briefs per seat.
    If it returns `needs-decision`, bring me the decision brief, collect my answer, and re-dispatch.
