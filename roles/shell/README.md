@@ -26,7 +26,7 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 
 ## Files
 
-- `files/fish/` — `config.fish`, `conf.d/{aliases,exports}.fish`, plus functions: `clean_claude` (+ `_clean_claude_{usage,excludes,find,confirm,tracked,purge_state,state_roots,worktree_main,pretty}`), `clean_docker`, `clean_node`, `create_gitconfig`, `claude-skill`, `claude-agent`, `_tv_claude_list`, `_tv_claude_toggle`, `tv_change_dir`. (Work-only helpers like `_tv_jira` live in the `work` role.)
+- `files/fish/` — `config.fish`, `conf.d/{aliases,exports}.fish`, plus functions: `clean_claude` (+ `_clean_claude_{usage,excludes,find,confirm,tracked,purge_state,state_roots,worktree_main}`), `clean_all`, `clean_docker`, `clean_node`, `create_gitconfig`, `lns` (+ `_lns_{usage,target}`), `wt`, `claude-skill`, `claude-agent` (+ `_claude_scope_{target,is_global,global_skills,refuse}`, `_claude_skill_jqlib`), `_tv_claude_list`, `_tv_claude_toggle`, `tv_change_dir`, `tv_history`, `_ui`. Dropping a new `.fish` in there is self-installing: the role globs the directory, and prunes links whose source is gone. (Work-only helpers like `_tv_jira` live in the `work` role.)
 - `files/ghostty/config` — Ghostty terminal config.
 - `files/starship.toml` — Starship prompt config.
 - `files/television/config.toml` — top-level television config (keybindings, theme, shell-integration channel triggers).
@@ -74,6 +74,12 @@ Two things stay outside the vocabulary on purpose. A **row** in `claude-skill li
   Add names for one run with `--exclude`, permanently via `CLEAN_CLAUDE_EXCLUDES`, or opt a default-excluded name back in with `--include`.
   Candidates are always listed before anything is touched and git-tracked ones are flagged.
   Only `purge` may touch `~/.claude`: it holds credentials, history, plugins and the `ai` role's symlinks, so other modes skip it with a note even when run from `$HOME`, and `purge` gates it behind typing `purge` (restoring is `make run-role ROLE=ai` plus a re-login).
+- `lns [ROOT] [--contains STRING] [--remove] [--dry-run] [--yes] [--all]` - lists every symlink under `ROOT` (default: cwd) with the absolute path it points at, and optionally removes them. Read-only unless `--remove`.
+  `--contains` matches the **target**, not the link's own name, which is what makes it useful: `lns --contains old-repo --remove` drops every link still pointing into a repo you moved or deleted. Broken links are flagged `⚠ broken` and are removable like any other; a link whose target cannot be read at all is flagged `⚠ unreadable` and never matches a `--contains`, since a filter is a claim about the target.
+  The target is resolved **one hop** and normalized, not chased to the end of the chain. `path resolve` would be shorter but rewrites the path out from under you: on macOS a link to `/var/folders/x` reads back as `/private/var/folders/x`, which no longer contains the string you asked about.
+  A link is reported and never followed (no `fd -L`), so the walk cannot descend into a target and loop.
+  Like `clean_claude`, it skips dependency, cache and build trees unless `--all`, because recursing them means hundreds of `node_modules/.bin` links drowning your own. It reuses `_clean_claude_excludes` rather than restating forty names, so `CLEAN_CLAUDE_EXCLUDES` extends `lns` too, and the skip is always stated in a note so a count never reads as "that is all of them".
+  `--remove` lists candidates first, then confirms once (`--yes` skips the prompt, `--dry-run` stops before it). Only the links go; their targets are untouched.
 - `tv_change_dir` — bound to `alt-c` in `config.fish`. Pipes the `dirs` television channel into `tv` and `cd`s to the pick.
 
 ## Side effects
