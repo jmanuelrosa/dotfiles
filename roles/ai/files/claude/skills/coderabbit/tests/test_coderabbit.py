@@ -13,11 +13,13 @@ import os
 import subprocess
 import sys
 
+from pathlib import Path
+
 import pytest
 
-from dotkit.testing import SKILLS
-
-SCRIPTS = SKILLS / "coderabbit/scripts"
+# Beside the subject it exercises, so it is located relatively: move the skill and
+# these travel with it. dotkit.testing is for facts about the repo, not this.
+SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 CONTEXT = SCRIPTS / "context.py"
 APPLY = SCRIPTS / "apply.py"
 

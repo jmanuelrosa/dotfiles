@@ -13,11 +13,13 @@ import json
 import subprocess
 import sys
 
+from pathlib import Path
+
 import pytest
 
-from dotkit.testing import HOOKS
-
-HOOK = HOOKS / "git-skill-gate.sh"
+# Beside the subject it exercises, so it is located relatively: move the skill and
+# these travel with it. dotkit.testing is for facts about the repo, not this.
+HOOK = Path(__file__).resolve().parents[1] / "git-skill-gate.sh"
 
 ALLOW = 0
 BLOCK = 2

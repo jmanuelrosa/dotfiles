@@ -11,11 +11,13 @@ import json
 import subprocess
 import sys
 
+from pathlib import Path
+
 import pytest
 
-from dotkit.testing import SKILLS
-
-ADF = SKILLS / "jira/scripts/adf.py"
+# Beside the subject it exercises, so it is located relatively: move the skill and
+# these travel with it. dotkit.testing is for facts about the repo, not this.
+ADF = Path(__file__).resolve().parents[1] / "scripts" / "adf.py"
 
 EXIT_OK = 0
 EXIT_USAGE = 1
