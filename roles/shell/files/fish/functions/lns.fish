@@ -1,5 +1,5 @@
 function lns --description "List symlinks under a directory tree, and optionally remove them by what they point at"
-  argparse -n lns h/help 'c/contains=' r/remove n/dry-run y/yes a/all -- $argv
+  argparse -n lns h/help 'c/contains=' b/broken r/remove n/dry-run y/yes a/all -- $argv
   or return 1
 
   if set -q _flag_help
@@ -42,6 +42,12 @@ function lns --description "List symlinks under a directory tree, and optionally
   set -l links
   set -l targets
   for link in $found
+    # --broken is a claim about the link rather than about its target, so it is answered
+    # by -e alone and an unreadable link can satisfy it. The link exists by construction,
+    # so -e failing means it resolves to nothing.
+    if set -q _flag_broken
+      test -e "$link"; and continue
+    end
     # An unreadable link yields no target, so it can never match --contains: a filter is
     # a claim about the target, and an unknown target cannot satisfy one.
     set -l target (_lns_target "$link")
@@ -55,10 +61,18 @@ function lns --description "List symlinks under a directory tree, and optionally
   set -l count (count $links)
   set -l label symlinks
   test $count -eq 1; and set label symlink
+  set -q _flag_broken; and set label "broken $label"
+
+  # One descriptor per filter, joined, so the four combinations of --broken and --contains
+  # read as sentences without four copies of each heading.
+  set -l descr
+  set -q _flag_broken; and set -a descr broken
+  set -q _flag_contains; and set -a descr "pointing at '$_flag_contains'"
+  set -l matching (string join " and " $descr)
 
   if test $count -eq 0
-    if set -q _flag_contains
-      _ui title "🤷 No symlink under "(_ui path "$root")" points at anything containing '$_flag_contains'."
+    if test -n "$matching"
+      _ui title "🤷 No symlink under "(_ui path "$root")" is $matching."
       test (count $found) -gt 0; and _ui note (count $found)" found, none matching."
     else
       _ui title "🤷 No symlinks under "(_ui path "$root")"."
@@ -66,8 +80,8 @@ function lns --description "List symlinks under a directory tree, and optionally
     return 0
   end
 
-  if set -q _flag_contains
-    _ui title "🔎 $count of "(count $found)" symlinks under "(_ui path "$root")", pointing at '$_flag_contains':"
+  if test -n "$matching"
+    _ui title "🔎 $count of "(count $found)" symlinks under "(_ui path "$root")", $matching:"
   else
     _ui title "🔎 $count $label under "(_ui path "$root")":"
   end
