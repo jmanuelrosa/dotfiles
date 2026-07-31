@@ -203,6 +203,29 @@ def apply(plan_, home, project):
     return linked
 
 
+def install_one(catalog, effective, kind, name, want_global, home, project):
+    """Plan one artifact, link it, record provenance and report. Returns its Plan.
+
+    The whole of a single add, so a caller that arrives at a name by some other
+    route — `scout --add`, which starts from the project rather than from a name —
+    inherits dependency resolution, the provenance record and the plugin restart
+    hint instead of growing a second copy of them that drifts.
+
+    Provenance is read here rather than passed in because each install may add to
+    it, and a batch that read it once would plan later names against a stale file.
+    """
+    provenance = state.read(project)
+    plan_ = plan(catalog, effective, kind, name, want_global, home, project, provenance)
+    if plan_.refused:
+        return plan_
+    linked = apply(plan_, home, project)
+    entries = provenance_entries(plan_)
+    if entries:
+        state.record(project, entries)
+    _report(plan_, linked)
+    return plan_
+
+
 def _report(plan_, linked):
     for warning in plan_.warnings:
         ui.warn(warning)
@@ -294,9 +317,8 @@ def run(args):
     # several outcomes, so the per-name report carries the detail.
     first_failure = errors.OK
     for name in names:
-        provenance = state.read(project)
-        plan_ = plan(
-            catalog, effective, args.type, name, args.want_global, home, project, provenance
+        plan_ = install_one(
+            catalog, effective, args.type, name, args.want_global, home, project
         )
         if plan_.refused:
             # A tag describes a set to converge on, not a list of names somebody
@@ -310,11 +332,6 @@ def run(args):
             if first_failure == errors.OK:
                 first_failure = plan_.code
             continue
-        linked = apply(plan_, home, project)
-        entries = provenance_entries(plan_)
-        if entries:
-            state.record(project, entries)
-        _report(plan_, linked)
         tally["linked"] += 1
 
     if grouped:

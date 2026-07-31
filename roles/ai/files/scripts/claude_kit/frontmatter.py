@@ -5,6 +5,10 @@ at all, and that it declares a `name`. Both used to come from PyYAML, which is a
 test dependency, so on a machine carrying only python3 the check reported that it
 had not run. It was skipped exactly where it mattered.
 
+`description` reads the same dialect for `scout`, which wants a gist to print
+rather than a verdict. Reading and validating stay separate functions: one may
+refuse, the other never does.
+
 The frontmatter these artifacts write is a flat mapping of scalars, with folded
 values, multi-line plain values and the occasional nested `metadata`. That dialect
 is small enough to scan, and the failure the check exists for is lexical: an
@@ -36,6 +40,12 @@ COMMENT = " #"
 PLAIN = "plain"
 OPAQUE = "opaque"
 
+DESCRIPTION = "description:"
+# Both block-scalar indicators. A value opening with one of these carries no text
+# on its own line, so everything worth reading is in the lines beneath it.
+BLOCK_OPENERS = "|>"
+QUOTES = "\"'"
+
 
 class Malformed(Exception):
     """The block cannot be valid YAML. The message names the offending line."""
@@ -56,6 +66,41 @@ def keys(text):
     """
     body = block(text)
     return None if body is None else _scan(body)
+
+
+def description(text):
+    """A file's frontmatter `description`, flattened to one line, or "".
+
+    Reading, not validating, so it never raises: this is what a report prints, and
+    a malformed block is doctor's business rather than an excuse to say nothing.
+
+    The three forms these artifacts write all collapse to the same run of words —
+    a plain one-liner, a plain value continued across indented lines, and a block
+    scalar. `grep -m1 '^description:'` handles only the first, which is how every
+    skill written in the `description: >-` form used to reach scout's report with
+    nothing beside its name.
+    """
+    body = block(text)
+    if body is None:
+        return ""
+    lines = body.splitlines()
+    for index, line in enumerate(lines):
+        if not line.startswith(DESCRIPTION):
+            continue
+        inline = line[len(DESCRIPTION) :].strip()
+        # Everything indented under the key continues it, whichever form it took. A
+        # blank line is kept as a paragraph break and folds away with the rest; the
+        # first flush-left line is the next key and ends the value.
+        folded = []
+        for continuation in lines[index + 1 :]:
+            if continuation.strip() and not continuation.startswith((" ", "\t")):
+                break
+            folded.append(continuation.strip())
+        # A block indicator's own line holds only the indicator and its chomping
+        # flag, so it contributes no words.
+        parts = folded if not inline or inline[0] in BLOCK_OPENERS else [inline, *folded]
+        return " ".join(" ".join(parts).split()).strip(QUOTES)
+    return ""
 
 
 def _scan(body):
