@@ -179,6 +179,20 @@ def test_a_non_dict_collection_is_ignored(tmp_path):
     assert state.read(project) == {}
 
 
+def test_a_non_dict_document_is_ignored(tmp_path):
+    """The companion to the case above, one level further out.
+
+    A file holding `[]` or `null` is valid JSON, so the except in read() never saw it
+    and .get() raised instead. That took `list`, `doctor` and `remove` down with a
+    traceback, and doctor is precisely the command reached for when something is wrong.
+    """
+    project = tmp_path / "project"
+    (project / ".claude").mkdir(parents=True)
+    for body in ("[]", "null", '"a string"', "42", "[{\"installed\": {}}]"):
+        state.path_for(project).write_text(body)
+        assert state.read(project) == {}, f"{body} should read as no provenance"
+
+
 def test_the_file_ends_with_a_newline(tmp_path):
     project = tmp_path / "project"
     project.mkdir()
