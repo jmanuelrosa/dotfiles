@@ -40,4 +40,3 @@ BREW_PACKAGES:
 # used to keep the README off PATH, and gates per tool instead of per role.
 AI_SCRIPTS:
   - claude-kit
-  - weekly-recap

@@ -20,3 +20,4 @@ BREW_PACKAGES:
 WORK_SCRIPTS:
   - s-db
   - s-task
+  - weekly-recap

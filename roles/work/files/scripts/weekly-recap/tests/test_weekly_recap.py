@@ -13,9 +13,9 @@ import sys
 
 import pytest
 
-from dotkit.testing import AI_SCRIPTS_DIR
+from dotkit.testing import WORK_SCRIPTS_DIR
 
-RECAP = AI_SCRIPTS_DIR / "weekly-recap" / "weekly-recap"
+RECAP = WORK_SCRIPTS_DIR / "weekly-recap" / "weekly-recap"
 
 EXIT_OK = 0
 EXIT_USAGE = 1
