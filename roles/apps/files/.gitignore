@@ -1,6 +1,7 @@
 .gitconfig.*
 .code-workspace
 
+# AI
 **/.claude/settings.local.json
-
 **/.claude/.cc-writes/
+**/.claude/claude-kit.json
