@@ -25,13 +25,21 @@ layout = "portrait"
 enter = "actions:toggle"
 ctrl-o = "actions:edit"
 
+# Unlike `output`, which tv applies per entry, an action template is applied ONCE to
+# every selected row joined by `separator`. So the bare `{split: :0}` the preview uses
+# would take field 0 of the whole concatenation and pass a single arbitrary name (the
+# selection is an unordered set), silently dropping the rest of a Tab multi-select.
+# Joining on a newline instead (rows hold spaces but never one) makes each row an item,
+# and `map:` then takes field 0 of each. `\\n` in TOML is the two characters
+# string_pipeline unescapes; `separator` wants the real byte.
 [actions.toggle]
 description = "Toggle the agent link in this project"
-command = "fish -c '_tv_claude_toggle agent {split: :0}'"
+command = "fish -c '_tv_claude_toggle agent {split:\\n:..|map:{split: :0}|join: }'"
 mode = "execute"
-separator = " "
+separator = "\n"
 
 [actions.edit]
 description = "Open agent .md in $EDITOR"
-command = "fish -c 'set b $DOTFILES_DIR/roles/ai/files/claude; set p $b/agents/{split: :0}.md; test -f $p; or set p $b/plugins/{split: :0}/agents/{split: :0}-staff-engineer.md; $EDITOR $p'"
+command = "fish -c 'set b $DOTFILES_DIR/roles/ai/files/claude; set -l files; for n in {split:\\n:..|map:{split: :0}|join: }; set p $b/agents/$n.md; test -f $p; or set p $b/plugins/$n/agents/$n-staff-engineer.md; set -a files $p; end; $EDITOR $files'"
 mode = "execute"
+separator = "\n"

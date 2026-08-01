@@ -24,25 +24,33 @@ ctrl-d = "actions:outdated"
 ctrl-u = "actions:update"
 ctrl-o = "actions:edit"
 
+# Unlike `output`, which tv applies per entry, an action template is applied ONCE to
+# every selected row joined by `separator`. So the bare `{split: :0}` the preview uses
+# would take field 0 of the whole concatenation and pass a single arbitrary name (the
+# selection is an unordered set), silently dropping the rest of a Tab multi-select.
+# Joining on a newline instead (rows hold spaces but never one) makes each row an item,
+# and `map:` then takes field 0 of each. `\\n` in TOML is the two characters
+# string_pipeline unescapes; `separator` wants the real byte.
 [actions.toggle]
 description = "Toggle the skill link in this project"
-command = "fish -c '_tv_claude_toggle skill {split: :0}'"
+command = "fish -c '_tv_claude_toggle skill {split:\\n:..|map:{split: :0}|join: }'"
 mode = "execute"
-separator = " "
+separator = "\n"
 
 [actions.outdated]
 description = "Check if the skill is up-to-date"
-command = "claude-kit outdated --type skill {split: :0}"
+command = "claude-kit outdated --type skill {split:\\n:..|map:{split: :0}|join: }"
 mode = "execute"
-separator = " "
+separator = "\n"
 
 [actions.update]
 description = "Sync the skill from upstream"
-command = "claude-kit update --type skill {split: :0}"
+command = "claude-kit update --type skill {split:\\n:..|map:{split: :0}|join: }"
 mode = "execute"
-separator = " "
+separator = "\n"
 
 [actions.edit]
 description = "Open SKILL.md in $EDITOR"
-command = "$EDITOR $DOTFILES_DIR/roles/ai/files/claude/skills/{split: :0}/SKILL.md"
+command = "$EDITOR {split:\\n:..|map:{split: :0|prepend:$DOTFILES_DIR/roles/ai/files/claude/skills/|append:/SKILL.md}|join: }"
 mode = "execute"
+separator = "\n"
