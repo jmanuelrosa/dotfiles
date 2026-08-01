@@ -50,6 +50,16 @@ alias clean:all=clean_all
 alias docker:start='systemctl start docker'
 alias docker:stop='systemctl stop docker'
 
-alias claude:skill='claude-kit --type skill'
-alias claude:agent='claude-agent --type agent'
-alias claude:plugin='claude-agent --type plugin'
+# claude-kit. Functions rather than aliases: fish's alias builtin appends $argv to the
+# body unconditionally, so an alias holding $argv passes every argument twice.
+function claude:skill --wraps claude-kit
+    claude-kit $argv --type skill
+end
+
+function claude:agent --wraps claude-kit
+    claude-kit $argv --type agent
+end
+
+function claude:plugin --wraps claude-kit
+    claude-kit $argv --type plugin
+end
