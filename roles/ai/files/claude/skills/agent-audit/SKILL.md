@@ -39,6 +39,7 @@ If the fetch fails, say so and limit frontmatter findings to fields observed wor
 |---|---|
 | Delegation surface | `description` is written for the router: when to delegate, when NOT to, non-goals naming the sibling agent that owns that seat; "Use PROACTIVELY" only where auto-delegation is truly wanted |
 | Cost: model fit | `model:` matches the judgment intensity of the work; flag heavy tiers on mechanical tasks and a missing `model:` where inheriting the caller's model is wrong |
+| Cost: effort fit | `effort:` matches the depth the work needs, in both directions: `medium`/`high` on mechanical, template-driven, or read-only work, `xhigh` on multi-file implementation and design. Flag a delegated agent left on the session default, since the caller set that for their own turn |
 | Context economy | `tools:` is a minimal allowlist (omission = inherit everything); every prompt section earns its tokens; a bounded output contract caps what flows back to the caller |
 | Reliability | Bounded self-correction (retry limit, then stop), explicit failure statuses (`blocked`, `needs-decision`), honest-reporting rules (never claim an unrun check) |
 | Latency | Independent lookups prompted as parallel tool calls; no prescribed re-reads of content the agent already holds |

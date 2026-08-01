@@ -5,12 +5,12 @@ All checks must pass; a red check is fixed or reported honestly, never skipped.
 
 ## Checks
 
-1. **Line budget.** The agent is <= ~205 lines and in family with the siblings:
+1. **Line budget.** The agent is <= ~215 lines and in family with the siblings:
    `wc -l roles/ai/files/claude/plugins/*/agents/*.md`
 2. **No em or en dashes** in any touched file:
    `grep -rnP '[\x{2013}\x{2014}]' roles/ai/files/claude/plugins/<discipline>/`
    Must return nothing.
-3. **Frontmatter parses under strict YAML** and uses `description: >-`; for advisor seats also confirm the `model:` and `tools:` lines survived:
+3. **Frontmatter parses under strict YAML** and uses `description: >-`; confirm `model:`, `effort:` and `memory:` survived, and for advisor seats the `tools:` allowlist and its `effort: high` too:
    `awk '/^---$/{c++; next} c==1{print}' <file> | ruby -ryaml -e 'YAML.safe_load(STDIN.read)'`
    Run for the agent and the skill's SKILL.md.
 4. **ansible-lint exits 0** (redirect output to a file; the spinner garbles inline capture):

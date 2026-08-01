@@ -169,6 +169,36 @@ Every skill and agent in this repo is either:
 
 **Never both, never neither.** The `local_skills` and `local_agents` arrays are not just "skipped" lists — they're the authoritative inventory of locally-authored items. If a skill or agent exists on disk but doesn't appear in either place, that's a bug.
 
+## Model and effort policy
+
+`model` and `effort` are separate dials and they answer different questions. **Model is capability**: which weights read the problem. **Effort is depth**: how many tokens, tool calls and verification passes the model spends before it comes back. A cheap model at high effort and an expensive one at low effort are both real configurations, and neither substitutes for the other.
+
+Both are set per artifact, in the frontmatter of a `SKILL.md` or an agent `.md`. The session values in [settings.json](settings.json) (`model: opus`, `effortLevel: high`) are the baseline for **your own turn**; a delegated skill or agent should not inherit them by accident, because you chose them for what you were doing, not for what it does.
+
+### Effort
+
+Three tiers are in use. `low` and `max` are deliberately unused: `low` trades away tool calls, which is the wrong economy for anything that has to read a diff or a codebase first, and `max` is prone to overthinking on structured work.
+
+| Tier | For | Where it is set today |
+|---|---|---|
+| `medium` | Template-driven and mechanical work, where the procedure carries the result and the model fills it in | `commit`, `pr`, `jira`, `handoff`, `coderabbit`, `cc-review` |
+| `high` | Research, review and read-and-summarize work, where breadth matters more than depth | `security-staff-engineer`, `cc-staff-reviewer`, the five product-team research and scribe agents |
+| `xhigh` | Multi-file implementation, cross-stack design, adversarial review | The 13 implementer seats, `architect`, `pm-red-team` |
+
+`high` matches the current `effortLevel`, so setting it explicitly changes nothing today and reads as a no-op. It is not one: it is a **pin**, and its job is to keep that artifact at `high` when you run a session at `xhigh`, `max` or ultracode. Do not delete it as dead config.
+
+### Model
+
+Pins are deliberate and stay. Every staff-engineer seat and `architect` pin `model: opus`, which is a refusal to follow a `/model fable` session: the cost of a delegated implementation stays predictable whatever you are running in the main loop. `commit`, `pr` and the product-team research and scribe agents pin `model: sonnet`, because the judgment intensity does not justify Opus. Everything else omits `model:` and inherits.
+
+Leave `model:` off unless inheriting the caller's model would be wrong for the work.
+
+### Memory
+
+The 14 seats and `architect` carry `memory: project`, giving each one `<project>/.claude/agent-memory/<name>/` so it stops rediscovering the same stack facts on every dispatch. The directory is committable by design, so a seat records the **shape of the codebase** there and never a secret, a credential, or a security finding's exploit detail. Enabling the field is not enough on its own: each seat also carries a boundary bullet telling it to write there, and the completion report still names the gotchas for the caller.
+
+Authoring guidance for all three lives with the generators, and they are the files to change if this policy changes: [skills/agent-writer/references/seat-agent-anatomy.md](skills/agent-writer/references/seat-agent-anatomy.md) for seats, [skills/skill-writer/references/claude-frontmatter-invocation.md](skills/skill-writer/references/claude-frontmatter-invocation.md) for skills, and [skills/agent-audit/SKILL.md](skills/agent-audit/SKILL.md) for the audit rubric that catches drift.
+
 ## Adding Skills
 
 ### Option A — Local skill
@@ -187,6 +217,8 @@ Every skill and agent in this repo is either:
    ```
 
    Common notes: `"Locally authored"`, `"Consolidated from multiple sources"`, `"No external source"`.
+
+3. Set `effort:` if the skill's work is reliably shallower or deeper than an average turn, and `model:` only if inheriting the caller's model would be wrong. See [Model and effort policy](#model-and-effort-policy). A thin dispatcher that immediately hands off to a subagent gets almost nothing from its own `effort:`; set it on the subagent instead.
 
 ### Option B — Track from an upstream repo
 
@@ -219,6 +251,8 @@ Every skill and agent in this repo is either:
    ```
 
    Common notes: `"Locally authored"`, `"Consolidated from multiple sources"`, `"No external source"`.
+
+3. Set `effort:` from the [Model and effort policy](#model-and-effort-policy) tiers; a delegated agent should never be left on the session default. Add `memory: project` if the agent benefits from carrying stack facts between dispatches, and pair it with a boundary bullet telling the agent to write there. A seat goes through `/agent-writer` instead, which owns the whole frontmatter contract.
 
 ### Option B — Track from an upstream repo
 
