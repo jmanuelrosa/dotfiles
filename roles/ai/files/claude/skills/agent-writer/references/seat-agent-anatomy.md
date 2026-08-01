@@ -5,9 +5,10 @@ The living exemplars are `plugins/backend/agents/backend-staff-engineer.md` and 
 
 ## Budget
 
-Hard cap ~200-205 lines; the shipped seats land at 202-205.
-Pay for additions by consolidating: merge ask-first rows, merge red flags, drop the weakest rationalization row.
-Advisor seats land well under the cap; never pad to fill it.
+Hard cap ~215 lines; the shipped implementer seats land at 206-213.
+Three of those lines are frontmatter that every seat owes the contract (`effort`, `memory`, and the `model` pin), so they are not body budget and never pay for themselves by cutting domain content.
+Pay for *body* additions by consolidating: merge ask-first rows, merge red flags, drop the weakest rationalization row.
+Advisor seats land well under the cap (security is 153); never pad to fill it.
 
 ## Frontmatter
 
@@ -20,11 +21,19 @@ description: >-
   implements within strict boundaries, self-verifies, and returns a structured completion report.
   Not the <sibling> seat (<what>), and <the identity never, e.g. "never deploys">.
 model: opus
+effort: xhigh
+memory: project
 ---
 ```
 
 Always `description: >-`: plain multiline scalars silently break on ": " in continuation lines.
 Implementer seats use `model: opus`; advisor seats may differ (`tools:` allowlist) and those lines must survive edits.
+
+`effort` and `memory` are part of the seat identity too.
+An implementer seat does multi-file work against an unfamiliar stack, which is what `xhigh` is for; a read-only advisor seat takes `high`, since review accuracy holds at lower effort and the seat reads far more than it writes.
+Never leave a seat on the session default: the caller sets that for their own turn, not for a delegated implementation.
+`memory: project` gives the seat `<project>/.claude/agent-memory/<name>/` so it stops rediscovering the same stack facts every dispatch.
+It is committable by design, so the seat writes the shape of the codebase there and never a secret, a credential, or a security finding's exploit detail.
 
 ## Section order (byte-for-byte family shape)
 
@@ -36,7 +45,7 @@ Implementer seats use `model: opus`; advisor seats may differ (`tools:` allowlis
 6. `## Step 3: Open the failure-mode checklists`: states that the `<seat>-failure-modes` skill is bundled in this plugin (invoked as `<discipline>:<seat>-failure-modes`) and loads automatically with the agent, the "typical brief fires..." example, then the trigger table of bare domain names (no lookup paths, no not-installed fallback, since a plugin always ships its skill); the domains match the skill's router table in the same order (see `coherence-rules.md`).
 7. `## Ways of thinking`: ~7 bold-led bullets of staff judgment (reversible vs irreversible, invisible consumers, why-not-mechanizable, the seat's own core stances).
 8. `## Red flags: refuse to ship`: ~8 bullets, each a stop-and-fix or `needs-decision` if the brief forces it.
-9. `## Boundaries`: three tiers. ✅ Always (5 bullets, last is "run the gate and self-check before reporting done"). ⚠️ Ask first ("stop and report `needs-decision` with your recommendation; do not proceed"). 🚫 Never: the seat identity invariants, sibling-surface exclusions with the owning seat named, secrets, lockfiles, `git commit`/`git push`, claiming unrun checks, editing CLAUDE.md.
+9. `## Boundaries`: three tiers. ✅ Always (6 bullets; the fifth is "run the gate and self-check before reporting done" and the last is the memory bullet, "record durable stack facts and repo gotchas in your memory directory; the completion report still names them for the caller"). An advisor seat has no `## Boundaries`, so its memory bullet is the last of the `## Hard rules` instead. ⚠️ Ask first ("stop and report `needs-decision` with your recommendation; do not proceed"). 🚫 Never: the seat identity invariants, sibling-surface exclusions with the owning seat named, secrets, lockfiles, `git commit`/`git push`, claiming unrun checks, editing CLAUDE.md.
 10. `## Verification gate`: Static mandatory, ending "If anything fails: fix it, or report the failure honestly with its output. Never report done over a red check."; a mechanized-quality or runtime block with the seat's honesty wording ("not runtime-verified" or equivalent); bounded self-correction (3 distinct attempts, then `blocked`).
 11. `## Pre-handoff self-check (definition of done)`: ~10 checkboxes; the first is always "Every checklist item from the failure-mode references you opened is resolved or escalated."
 12. `## Common rationalizations`: intro carries the letter-vs-spirit clause ("violating the letter of a boundary while honoring your reading of its spirit is still violating it"), then a ~7-row Rationalization | Reality table.

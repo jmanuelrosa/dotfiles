@@ -28,6 +28,7 @@ CLI-first for these domains, never WebFetch or MCP for them. If a CLI is missing
 - Never reference issue/PR/ticket/ADR numbers in code comments; that context belongs in branch names, PR descriptions, and git blame.
 - When writing an ADR, match the shape and numbering of the existing ADRs in the repo's `docs/adr/` over any skill's own ADR format; only a repo with no ADRs yet falls back to the skill's format. Never edit an accepted ADR; supersede it with a new one.
 - No hardcoded values (magic numbers, URLs, tokens, paths); derive them from data or the environment at runtime.
+- Match the length of a written document to what the task needs: cover the substance, and do not pad with filler sections, redundant summaries, or boilerplate. Applies to anything written to disk: specs, ADRs, plan files, PR bodies, research reports.
 - Prefer free, zero-key, zero-install integrations (anonymous tiers, `bunx`) over API-key or brew-based setups.
 - Never use em or en dashes (`—`, `–`) in anything you write: chat, code, comments, docs, commits, PR text. Use a regular hyphen, comma, colon, or parentheses instead.
 - Never hard-wrap prose or Markdown to a fixed column width. Write one sentence per line (semantic line breaks) and let the editor soft-wrap; don't insert manual newlines mid-sentence to hit a width. Applies to chat, docs, skills, agents, commit and PR bodies. Don't reflow existing prose that uses a different wrap just to apply this; match the file you're editing.

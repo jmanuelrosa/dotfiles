@@ -3,6 +3,7 @@ name: ac-writer
 description: Product Team acceptance-criteria writer - adds Given/When/Then criteria with AC ids to every story file, each criterion traced to an existing PRD requirement. Use ONLY from /product-team:5-decompose with the PRD path and the story files; it reports untraceable stories instead of inventing requirements.
 model: sonnet
 tools: Read, Edit, Glob, Grep
+effort: high
 ---
 
 # AC writer

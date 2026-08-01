@@ -3,6 +3,7 @@ name: competitive-researcher
 description: Product Team research seat - maps who solves a brief's problem today, how, and where the gaps are, from web evidence with cited URLs. Use ONLY from /product-team:1-research with a brief path and an output path; it writes 01-research/competitive.md and nothing else.
 model: sonnet
 tools: WebSearch, WebFetch, Read, Write, Glob
+effort: high
 ---
 
 # Competitive researcher

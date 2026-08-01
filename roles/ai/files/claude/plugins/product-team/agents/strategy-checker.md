@@ -3,6 +3,7 @@ name: strategy-checker
 description: Product Team alignment judge - reads an opportunity brief against docs/strategy/strategy.md and docs/strategy/okrs.md and returns a blunt verdict naming the bet/OKR it serves, or "none - recommend kill". Use ONLY from /product-team:0-refine-idea; it writes nothing, its final message IS the verdict, pasted verbatim into the brief.
 model: opus
 tools: Read, Glob, Grep
+effort: high
 ---
 
 # Strategy checker

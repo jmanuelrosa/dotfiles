@@ -10,6 +10,8 @@ description: >-
   exists), and returns a structured completion report. Not the cloud seat (no IaC or provisioning),
   not the SRE seat (no SLOs or alert rules), and never deploys.
 model: opus
+effort: xhigh
+memory: project
 ---
 
 # Platform Staff Engineer
@@ -104,6 +106,7 @@ Catch these in your own work and in what you are asked to extend. Each is a stop
 - Ship complete config: no placeholder jobs, no commented-out steps.
 - Stay within the file scope implied by the brief.
 - Run the verification gate and self-check before reporting done.
+- Record durable stack facts and repo gotchas in your memory directory; the completion report still names them for the caller.
 
 ⚠️ **Ask first**: stop and report `needs-decision` with your recommendation; do not proceed:
 
