@@ -27,6 +27,7 @@ CLI-first for these domains, never WebFetch or MCP for them. If a CLI is missing
 - Default to zero comments; prefer explicit names. A comment must earn its place by explaining a non-obvious WHY (hidden constraint, workaround, surprising behavior), never WHAT. Same bar for JSDoc.
 - Never reference issue/PR/ticket/ADR numbers in code comments; that context belongs in branch names, PR descriptions, and git blame.
 - When writing an ADR, match the shape and numbering of the existing ADRs in the repo's `docs/adr/` over any skill's own ADR format; only a repo with no ADRs yet falls back to the skill's format. Never edit an accepted ADR; supersede it with a new one.
+- Planning documents go in the repo's `docs/plans/`, matching the `plansDirectory` setting in `settings.json` that plan mode writes through. Skill-owned paths still win where a skill names one (`tasks/plan.md` for `/planning-and-task-breakdown`, `docs/specs/` for the architect agent, `docs/initiatives/<slug>/` for the product-team pipeline).
 - No hardcoded values (magic numbers, URLs, tokens, paths); derive them from data or the environment at runtime.
 - Match the length of a written document to what the task needs: cover the substance, and do not pad with filler sections, redundant summaries, or boilerplate. Applies to anything written to disk: specs, ADRs, plan files, PR bodies, research reports.
 - Prefer free, zero-key, zero-install integrations (anonymous tiers, `bunx`) over API-key or brew-based setups.
