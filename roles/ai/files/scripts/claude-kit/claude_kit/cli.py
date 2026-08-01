@@ -64,13 +64,25 @@ MODULE = {
 # The families differ in what they touch, which is what decides whether --global is
 # even a question. Grouping them is the whole point of the epilog.
 #
-# `sync` earns the third one rather than joining the first: it acts on ~/.claude and
-# only ever on ~/.claude, so --global is not an option there but the implied and only
-# scope. Listing it as scope-aware would suggest a project run that does not exist.
+# **Each title is a claim about every command beneath it**, so a family must be uniform
+# on the flag or its title cannot be right about it. That is why `add` and `remove` sit
+# apart from the other four scope-aware commands rather than with them: those two write
+# somewhere you choose, the rest have exactly one right answer given the cwd and take no
+# flag at all. One combined "scope-aware ... with --global" family read as a promise to
+# all six, which sent readers looking for `list --global` and got them a refusal about
+# --type instead. Splitting says it where the commands are, so no footnote has to.
+#
+# `sync` stays out of both: it acts on ~/.claude and only ever on ~/.claude, so --global
+# is not an option there but the implied and only scope, and listing it as scope-chosen
+# would suggest a project run that does not exist.
 FAMILIES = (
     (
-        "Scope-aware (a project's .claude/, or ~/.claude with --global)",
-        ("add", "remove", "list", "scout", "doctor", "adopt"),
+        "Scope-chosen (a project's .claude/, or ~/.claude with --global)",
+        ("add", "remove"),
+    ),
+    (
+        "Scope-fixed (the cwd decides; there is nothing to pick, so no --global)",
+        ("list", "scout", "doctor", "adopt"),
     ),
     (
         "Global (~/.claude only; the scope is implied, so --global does not apply)",
@@ -83,7 +95,10 @@ FAMILIES = (
 )
 
 SCOPE = {
-    "list": "Reads ~/.claude and the current project together, and never writes.",
+    "list": (
+        "Reads ~/.claude and the current project together, and never writes, so there "
+        "is no scope to pick and no --global here."
+    ),
     "scout": (
         "Reads <cwd> to decide what to recommend, and skips anything already "
         "available to it from either scope. Writes only with --add, and only into "
@@ -111,8 +126,14 @@ SCOPE = {
         "Acts on this repo's skill sources against upstream. Tied to neither a "
         "project nor ~/.claude, and covers skills only."
     ),
-    "doctor": "Reports on ~/.claude and the current project together, and never writes.",
-    "adopt": "Project scope only: the manifest it writes is <cwd>/.claude/claude-kit.json.",
+    "doctor": (
+        "Reports on ~/.claude and the current project together, and never writes, so "
+        "there is no scope to pick and no --global here."
+    ),
+    "adopt": (
+        "Project scope only: the manifest it writes is <cwd>/.claude/claude-kit.json, "
+        "so --global has nothing to say here."
+    ),
 }
 
 
@@ -163,9 +184,69 @@ class RawHelp(_Painted, argparse.RawDescriptionHelpFormatter):
 
 
 class Parser(argparse.ArgumentParser):
-    """argparse exits 2 on a usage error, which is NOT_FOUND in our table."""
+    """argparse exits 2 on a usage error, which is NOT_FOUND in our table.
+
+    It also reports one usage problem at a time, and two of its orderings made a
+    mistyped flag read as an unrelated complaint:
+
+    - A missing required argument is raised inside `parse_known_args`, before extras
+      are ever looked at, so `list --global` only ever said `--type` was missing. Fix
+      one and a second, different refusal appears.
+    - Extras are caught by the *root* parser, after the subparser has parsed cleanly,
+      so `list --type skill --global` printed `usage: claude-kit [-h] COMMAND ...` and
+      named none of `list`'s own flags.
+
+    Both are addressed by keeping the argv each parser was handed and choosing the
+    parser that reports, rather than by touching argparse's parsing itself.
+    """
+
+    #: The argv this parser was handed, recorded by parse_known_args. Subparsers are
+    #: Parser instances too (add_subparsers takes parser_class from type(self)), and
+    #: _SubParsersAction calls parse_known_args on them with their own slice, so each
+    #: ends up holding exactly its own tokens.
+    _argv = ()
+
+    #: Set on the root parser only, to route an extras refusal at the subcommand.
+    subcommands = {}
+
+    def parse_known_args(self, args=None, namespace=None):
+        self._argv = tuple(sys.argv[1:] if args is None else args)
+        return super().parse_known_args(args, namespace)
+
+    def parse_args(self, args=None, namespace=None):
+        # argparse's own two lines, with the error target swapped: the subcommand knows
+        # its flags and the root does not, so its usage is the one worth printing.
+        parsed, extras = self.parse_known_args(args, namespace)
+        if extras:
+            target = self.subcommands.get(getattr(parsed, "command", None), self)
+            target.error("unrecognized arguments: %s" % " ".join(extras))
+        return parsed
+
+    def _unknown_flags(self):
+        """The `--`-prefixed tokens in our argv that this parser does not define.
+
+        Matched by prefix rather than equality because allow_abbrev is on, so `--typ`
+        is a legal spelling of `--type` and must not be reported. Only `--` tokens are
+        considered: a single dash can begin a value, and a false accusation about one
+        would be worse than the silence.
+        """
+        unknown = []
+        for token in self._argv:
+            if token == "--":
+                break
+            if not token.startswith("--"):
+                continue
+            name = token.split("=", 1)[0]
+            if not any(known.startswith(name) for known in self._option_string_actions):
+                unknown.append(name)
+        return unknown
 
     def error(self, message):
+        # Fold in what argparse would only have told us on the next run. Skipped when
+        # the message is already the extras refusal, or `--global` would be named twice.
+        unknown = [] if message.startswith("unrecognized") else self._unknown_flags()
+        if unknown:
+            message = f"unrecognized arguments: {' '.join(unknown)}; {message}"
         # The usage line is painted by a formatter that cannot know where it will be
         # printed, and a refusal goes to stderr rather than stdout. for_stream is what
         # decides against the right one, so a redirected stderr gets clean text.
@@ -203,9 +284,9 @@ def _add_group(parser, verb):
 def _epilog():
     """Render FAMILIES as the command listing argparse cannot produce itself.
 
-    A parser takes exactly one subparsers action, so the two families cannot be
-    two argument groups. Generating this from COMMANDS rather than writing it out
-    keeps the one-liners in a single place.
+    A parser takes exactly one subparsers action, so the families cannot be argument
+    groups. Generating this from COMMANDS rather than writing it out keeps the
+    one-liners in a single place.
     """
     width = max(len(name) for name in COMMANDS)
     blocks = [
@@ -223,6 +304,9 @@ def _epilog():
         )
         for title, names in FAMILIES
     ]
+    # No --global footnote: each title now carries that for its own members, which is
+    # the point of the split. A dim line at the foot of the page was the worst place
+    # for the one fact the listing had been missing.
     blocks.append(
         colors.paint("Run `claude-kit COMMAND --help` for a command's flags and its scope.", "dim")
     )
@@ -263,6 +347,9 @@ def build_parser():
         metavar="COMMAND",
         help="one of the commands below",
     )
+    # So parse_args can hand an extras refusal to the subcommand whose flags it is
+    # actually about. Only the root gets one; a subparser keeps the empty class default.
+    parser.subcommands = sub.choices
 
     listing = _command(sub, "list")
     _add_type(listing)

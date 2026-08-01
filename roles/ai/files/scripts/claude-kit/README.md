@@ -57,7 +57,7 @@ rather than being refused; `claude-kit doctor` is what finds those.
 `$HOME` is the one directory that cannot be a project, and not as leftover detection. Its
 `.claude` **is** `~/.claude`, so a project-scoped install there would be a global one without
 saying so, would load in every repo, and would be deleted by the `ai` role the next time it
-prunes `~/.claude/skills`. Use `--global` to write there deliberately.
+prunes `~/.claude/skills`. Use `add --global` to write there deliberately.
 
 Membership is the tag **plus one level of declared dependencies**, which is why `grilling`,
 `jira`, `domain-modeling`, `documentation-and-adrs` and `planning-and-task-breakdown` are global
@@ -67,8 +67,8 @@ listing does not, for the reason given under `list` below.
 
 `sync` is where that tag stops being advice and becomes the state of the machine: it links
 everything the tag reaches and unlinks everything it does not, so `~/.claude` holds exactly the
-derived set and nothing else. `--global` is how you write there deliberately; the tag is how you
-write there durably.
+derived set and nothing else. `add --global` is how you write there deliberately; the tag is how
+you write there durably.
 
 `update` and `outdated` sit outside all of this. They rewrite the skill sources in this repo and
 touch no install, so neither scope applies and neither accepts `--global`.
@@ -77,17 +77,33 @@ touch no install, so neither scope applies and neither accepts `--global`.
 
 ## Commands
 
-The families above are how `claude-kit -h` groups its listing:
+The scopes above are what `claude-kit -h` groups its listing by, four families of them:
 
-| Family | Commands | Acts on |
-|---|---|---|
-| Scope-aware | `add`, `remove`, `list`, `scout`, `doctor`, `adopt` | a project's `.claude/`, or `~/.claude` with `--global` |
-| Global | `sync` | `~/.claude` alone, whatever the cwd |
-| Registry-wide | `update`, `outdated` | this repo's skill sources against upstream |
+| Family | Commands | Acts on | `--global` |
+|---|---|---|---|
+| Scope-chosen | `add`, `remove` | a project's `.claude/`, or `~/.claude` | **picks which** |
+| Scope-fixed | `list`, `scout`, `doctor`, `adopt` | whatever the cwd implies | not accepted |
+| Global | `sync` | `~/.claude` alone, whatever the cwd | not accepted |
+| Registry-wide | `update`, `outdated` | this repo's skill sources against upstream | not accepted |
 
-`sync` gets a family of its own rather than joining the scope-aware set, because `~/.claude` is not
-one of two places it might act but the only one. `--global` is therefore not an option there, and
-listing it alongside `add` would imply a project-scoped run that does not exist.
+**`--global` exists on `add` and `remove`, and on nothing else.** Those two write, so one of the
+two scopes has to be chosen and the flag is how you choose it. Everything else has exactly one
+right answer given the cwd, so there is nothing to pick: `list` and `doctor` report project and
+global state together, `scout` skips anything either scope already provides, and `adopt` writes a
+manifest that is project-scoped by definition. Passing the flag to one of them is a usage error,
+not a no-op.
+
+That is why the scope-chosen pair is a family of its own rather than sitting with the other four
+scope-aware commands. **A family title is a claim about every command beneath it**, so a family
+split on the flag cannot have a title that is true of all its members. One combined heading reading
+`Scope-aware (a project's .claude/, or ~/.claude with --global)` promised the flag to six commands
+of which four have never had it, and that is how `claude-kit list --global` became a documented
+command that does not exist. The split says it where the commands are, so no footnote has to, and
+`test_help.py` checks the first family's membership against the built parser.
+
+`sync` stays out of both for a different reason: `~/.claude` is not one of two places it might act
+but the only one. `--global` is therefore not an option there, and listing it alongside `add` would
+imply a project-scoped run that does not exist.
 
 Each command's own `--help` repeats its scope in one sentence, so `claude-kit add --help` says
 where an install lands without a trip back here.
@@ -735,6 +751,26 @@ end
 **Why does `add commit --type skill` fail when `commit` clearly exists?**
 Because it is global. Writing into `~/.claude` affects every project, so the flag makes that
 explicit at the call site. Exit `4`, and the message contains the exact corrected command.
+
+**Why does `claude-kit list --global` fail?**
+Because `list` has no `--global`. It reads `~/.claude` and the project together and never writes,
+so there is no scope to pick. To see the global set, filter by the tag instead:
+`claude-kit list --type skill --group global`. The same goes for `scout`, `doctor` and `adopt`:
+only `add` and `remove` take the flag.
+
+**The refusal to that only mentioned `--type`. Where did `--global` go?**
+Nowhere; argparse checks required arguments before it looks at leftovers, so a call with two
+mistakes would report them one per run. `Parser.error` folds the unknown flags back in, so both
+arrive together, and an extras refusal is raised by the subcommand rather than the root so its
+usage line is the one you see:
+
+```
+$ claude-kit list --global
+usage: claude-kit list [-h] --type {skill,agent,plugin} [--group [TAG]]
+✗ unrecognized arguments: --global; the following arguments are required: --type
+```
+
+An abbreviation is not an unknown flag: `--typ` is a legal spelling of `--type` and is left alone.
 
 **A dependency landed in `~/.claude` and I never passed `--global`. Is that a bug?**
 No. Dependencies resolve their own scope, so a project skill may depend on a global one.
