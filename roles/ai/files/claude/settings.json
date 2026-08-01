@@ -305,6 +305,7 @@
       "mcp__Supabase"
     ]
   },
+  "plansDirectory": "docs/plans",
   "preferredNotifChannel": "ghostty",
   "sandbox": {
     "allowUnsandboxedCommands": false,
