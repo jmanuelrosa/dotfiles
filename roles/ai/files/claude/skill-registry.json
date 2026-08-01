@@ -332,6 +332,15 @@
             "node"
           ],
           "updated_at": "2026-07-25T09:44:36Z"
+        },
+        {
+          "upstream_path": "plugins/cloud-infrastructure/skills/terraform-module-library",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-08-01T13:17:13Z"
         }
       ]
     },
@@ -633,6 +642,29 @@
             "global"
           ],
           "updated_at": "2026-08-01T07:46:37Z"
+        }
+      ]
+    },
+    "hashicorp/agent-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "terraform/code-generation/skills/terraform-style-guide",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-08-01T13:17:57Z"
+        },
+        {
+          "upstream_path": "terraform/module-generation/skills/terraform-stacks",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-08-01T13:17:57Z"
         }
       ]
     }
