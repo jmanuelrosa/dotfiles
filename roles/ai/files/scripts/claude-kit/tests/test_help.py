@@ -64,6 +64,86 @@ def test_an_unknown_command_still_names_the_valid_ones(kit):
         assert name in result.stderr
 
 
+# --- --global is claimed for exactly the commands that have it ---------------
+
+
+def _defines_global():
+    return {
+        name
+        for name, parser in subparsers().items()
+        if "--global" in parser._option_string_actions
+    }
+
+
+def test_the_first_family_is_exactly_the_commands_that_define_the_flag():
+    """The listing is generated from FAMILIES, which is prose until something checks it
+    against the parser. `Scope-chosen` is the one title that offers --global, so its
+    membership has to be the truth about who accepts it."""
+    assert set(FAMILIES[0][1]) == _defines_global()
+
+
+def test_every_family_is_uniform_on_the_flag():
+    """A title is a claim about every command beneath it, so a family split on --global
+    cannot have a title that is right. Six commands under one `... with --global` is
+    how `claude-kit list --global` became a documented command that does not exist."""
+    has = _defines_global()
+    for title, names in FAMILIES:
+        mixed = [name for name in names if (name in has) != (names[0] in has)]
+        assert not mixed, f"{title!r} speaks for a family that disagrees about it: {mixed}"
+
+
+def test_the_listing_needs_no_footnote_to_place_the_flag():
+    """The split exists so the fact sits with the commands. If it drifts back out into
+    a closing aside, the dim text at the foot of the page is the least readable place
+    on it, which is the complaint that prompted the split."""
+    epilog = build_parser().epilog
+    footer = epilog.rsplit("\n\n", 1)[-1]
+    assert "--global" not in footer, "the flag is back in a footnote instead of a title"
+    assert any("--global" in title for title, _ in FAMILIES), "no title mentions it at all"
+
+
+@pytest.mark.parametrize("command", sorted(set(COMMANDS) - set(FAMILIES[0][1])))
+def test_a_command_without_the_flag_is_covered_by_a_title_or_its_own_help(command):
+    """Every command that does not take --global says so somewhere a reader will look:
+    in its family title, or in the scope sentence on its own --help. `sync`, `update`
+    and `outdated` are covered by their titles; the scope-fixed four are covered twice."""
+    title = next(t for t, names in FAMILIES if command in names)
+    assert "--global" in title or "--global" in SCOPE[command], (
+        f"nothing tells a reader that {command} has no --global"
+    )
+
+
+# --- refusals name every problem they can see --------------------------------
+
+
+def test_an_unknown_flag_is_named_alongside_a_missing_required_one(kit):
+    """argparse raises the required-argument error inside parse_known_args, before it
+    ever looks at leftovers, so `list --global` used to report only the absent --type
+    and reveal the real problem on the next run."""
+    result = kit("list", "--global")
+    assert result.returncode == errors.USAGE
+    assert "--global" in result.stderr
+    assert "--type" in result.stderr
+
+
+def test_an_unknown_flag_is_refused_under_the_subcommands_usage(kit):
+    """Extras are caught by the root parser after the subcommand parsed cleanly, so the
+    usage line was `claude-kit [-h] COMMAND ...` and named none of list's own flags."""
+    result = kit("list", "--type", "skill", "--global")
+    assert result.returncode == errors.USAGE
+    assert "usage: claude-kit list" in result.stderr
+    assert "--group" in result.stderr, "list's own flags should be on show"
+    assert result.stderr.count("--global") == 1, "named once, not by both parsers"
+
+
+def test_an_abbreviated_flag_is_not_mistaken_for_an_unknown_one(kit):
+    """allow_abbrev is on, so `--typ` is a legal spelling of --type. The scanner matches
+    by prefix for this reason; equality would refuse a call argparse accepts."""
+    result = kit("list", "--typ", "skill", "--group", "global")
+    assert result.returncode == errors.OK
+    assert "unrecognized" not in result.stderr
+
+
 # --- colour -----------------------------------------------------------------
 
 
