@@ -157,6 +157,17 @@ def test_update_and_outdated_take_no_names_meaning_all():
         assert args.names == []
 
 
+def test_a_valid_call_is_never_accused_of_carrying_an_unknown_flag():
+    """`error` scans the argv for `--` tokens the parser does not define, to name them
+    alongside whatever it was actually raising. A valid call must reach neither."""
+    for argv in (
+        ["add", "--group", "planning", "--type", "skill"],
+        ["remove", "x", "--type", "skill", "--no-cascade", "--global"],
+        ["list", "--type", "skill", "--group"],
+    ):
+        build_parser().parse_args(argv)
+
+
 def test_a_subcommand_is_required():
     assert parse([]) == errors.USAGE
 
