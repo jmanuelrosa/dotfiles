@@ -3,6 +3,7 @@ name: pr
 description: Generate the PR description from the current branch and open the PR (GitHub) or MR (GitLab), returning the URL
 argument-hint: "[base-branch] [--title \"<title>\"]"
 model: sonnet
+effort: medium
 disable-model-invocation: true
 allowed-tools:
   - Bash(python3 *skills/pr/scripts/context.py*)

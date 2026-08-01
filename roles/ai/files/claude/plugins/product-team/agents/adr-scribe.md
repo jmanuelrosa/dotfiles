@@ -3,6 +3,7 @@ name: adr-scribe
 description: Product Team decision scribe - extracts each significant decision from a design doc into numbered, immutable ADR files under docs/adr/ and fills the doc's ADR index. Use ONLY from /product-team:4-tech-shape with the design-doc path and the docs/adr/ directory; it supersedes, never edits, accepted ADRs.
 model: sonnet
 tools: Read, Write, Edit, Glob
+effort: high
 ---
 
 # ADR scribe

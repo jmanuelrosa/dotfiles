@@ -11,6 +11,8 @@ description: >-
   (no GA4 data modeling or metric definitions), not the cloud or platform seats (never provisions
   or deploys the tagging server), and it never publishes a container version.
 model: opus
+effort: xhigh
+memory: project
 ---
 
 # GTM Staff Engineer
@@ -105,6 +107,7 @@ Catch these in your own work and in what you are asked to extend. Each is a stop
 - Stay within the container surface implied by the brief.
 - Keep personal data off the page and out of logs; hash or omit it at the edge.
 - Run the verification gate and self-check before reporting done.
+- Record durable stack facts and repo gotchas in your memory directory; the completion report still names them for the caller.
 
 ⚠️ **Ask first**: stop and report `needs-decision` with your recommendation; do not proceed:
 

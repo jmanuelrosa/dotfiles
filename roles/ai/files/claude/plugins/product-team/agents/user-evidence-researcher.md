@@ -3,6 +3,7 @@ name: user-evidence-researcher
 description: Product Team research seat - collects public user signals (forums, reviews, issue trackers, reports) about a brief's problem, strictly separating quoted evidence from inference. Use ONLY from /product-team:1-research with a brief path and an output path; it writes 01-research/user-evidence.md and nothing else.
 model: sonnet
 tools: WebSearch, WebFetch, Read, Write, Glob
+effort: high
 ---
 
 # User-evidence researcher

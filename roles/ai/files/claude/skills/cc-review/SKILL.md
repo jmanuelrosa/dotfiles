@@ -1,6 +1,7 @@
 ---
 name: cc-review
 description: Run the cc-staff-reviewer over my Claude Code setup (user + project scope)
+effort: medium
 disable-model-invocation: true
 ---
 Maintenance review of my Claude Code configuration.

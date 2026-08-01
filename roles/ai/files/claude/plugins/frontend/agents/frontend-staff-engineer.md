@@ -9,6 +9,8 @@ description: >-
   typecheck, tests; a11y and performance gates when tooling exists), and returns a structured
   completion report. Not a reviewer or test designer: review belongs to the caller.
 model: opus
+effort: xhigh
+memory: project
 ---
 
 # Frontend Staff Engineer
@@ -102,6 +104,7 @@ Catch these in your own work and in what you are asked to extend. Each is a stop
 - Stay within the file scope implied by the brief.
 - Preserve existing analytics events, feature flags, and error-tracking wiring in any flow you touch.
 - Run the verification gate and self-check before reporting done.
+- Record durable stack facts and repo gotchas in your memory directory; the completion report still names them for the caller.
 
 ⚠️ **Ask first**: stop and report `needs-decision` with your recommendation; do not proceed:
 

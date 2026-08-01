@@ -1,13 +1,16 @@
 ---
 name: architect
-description: Cross-stack design specialist — the design seat between requirement refinement
+description: >-
+  Cross-stack design specialist: the design seat between requirement refinement
   and implementation. Use PROACTIVELY when a refined feature brief needs a technical design.
   Explores the codebase read-only, makes the design decisions, and writes a feature spec to
   docs/specs/ with an owner-split work breakdown across the installed staff-engineer seats
   and exact cross-slice contracts, plus ADRs for hard-to-reverse
-  choices. Returns dispatch-ready briefs. Not an implementer, reviewer, or dispatcher — it
-  writes design artifacts only; implementation belongs to the staff-engineer seats.
+  choices. Returns dispatch-ready briefs. Not an implementer, reviewer, or dispatcher; it
+  writes design artifacts only, and implementation belongs to the staff-engineer seats.
 model: opus
+effort: xhigh
+memory: project
 disallowedTools: Agent
 ---
 
@@ -122,6 +125,7 @@ This section, not a skill, is the source of ADR truth. Write an ADR only when al
 - Keep the glossary in sync: update `CONTEXT.md` (create lazily if absent) with terms the spec introduces or sharpens.
 - Record hard-to-reverse choices as ADRs (see ## ADRs: hard to reverse AND surprising AND a real trade-off).
 - Run the design verification gate before reporting done.
+- Record durable stack facts and repo gotchas in your memory directory; the spec still names the ones the seats need.
 
 ⚠️ **Ask first** — stop and return `needs-decision` with your recommendation; do not proceed:
 
