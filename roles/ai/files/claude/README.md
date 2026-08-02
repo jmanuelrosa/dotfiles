@@ -4,6 +4,8 @@ Management system for Claude Code skills, agents, and MCP servers. Skills and ag
 
 This document covers how to **use them in a project** and how to **add new skills and agents to the dotfiles repo** itself.
 
+For the worked example (a project from zero, product side then engineering side, with the exact commands and dispatch briefs) read [GETTING-STARTED.md](GETTING-STARTED.md). This file is the reference; that one is the walkthrough.
+
 ## Commands
 
 `claude-kit` is the CLI (`roles/ai/files/scripts/claude-kit/`, symlinked into `~/.local/bin` by the `ai` role). It replaced the `claude-skill` / `claude-agent` fish functions, which are gone.
@@ -132,6 +134,7 @@ A separate delegation system for building what Product Team specs out. Each seat
 | `mobile-staff-engineer` | Native iOS (SwiftUI), Android (Compose), React Native/Expo screens and flows, offline/sync, persistence, deep links, push, permissions | Web UI (frontend seat), server code (backend seat); never submits to a store or ships an OTA update |
 | `backend-staff-engineer` | API endpoints, services, business logic, data models, migrations, queues, jobs | Reviews its own work (the caller owns review) |
 | `platform-staff-engineer` | CI/CD, Dockerfiles and compose, app-level K8s/Helm, hooks, task runners | Cloud IaC, SLOs/alerts; never deploys |
+| `dx-staff-engineer` | Inner loop: monorepo build graphs and caching, codegen, shared lint/TS config, workspace and dependency health, test velocity, internal CLIs and scaffolding | CI/CD, containers, release (the platform seat), test design (qa); never deploys |
 | `cloud-staff-engineer` | Terraform/Pulumi/CDK, networking, IAM, cluster provisioning, cost controls | CI pipelines, alert rules; never `apply`s or mutates live infra |
 | `sre-staff-engineer` | SLOs and error budgets, burn-rate alerts, dashboards-as-code, observability, runbooks | CI, IaC; never silences an alert without a root cause |
 | `data-staff-engineer` | Orchestrated pipelines (Airflow, Dagster), Spark/batch jobs, ingestion, data contracts | dbt/metrics, OLTP schemas; never runs pipelines/backfills against prod |
@@ -143,7 +146,7 @@ A separate delegation system for building what Product Team specs out. Each seat
 
 Each seat is a skills-dir plugin under `roles/ai/files/claude/plugins/<discipline>/` that bundles the agent with its `<discipline>-failure-modes` skill (`frontend-failure-modes`, `backend-failure-modes`, and so on): an audited checklist of that domain's common defects the seat consults before it implements. Because the skill lives inside the plugin folder, `claude-kit add <seat> --type plugin` links the whole plugin into the project and the skill travels with it (invoked as `<discipline>:<discipline>-failure-modes`); the seat loads once the workspace is trusted.
 
-Product Team hands off a backlog; then `/feature-team "<brief>"` runs the build side: `architect` writes the spec, you approve the plan, the installed seats implement in parallel, and the skill verifies and returns an integration report. Install a whole discipline with `claude-kit add --group engineering --type plugin` (all seats above except `qa-staff-engineer`, which lives under `quality`: add it with `claude-kit add qa-staff-engineer --type plugin`), or add individual seats by name.
+Product Team hands off a backlog; then `/feature-team "<brief>"` runs the build side: `architect` writes the spec, you approve the plan, the installed seats implement in parallel, and the skill verifies and returns an integration report. Install a whole discipline with `claude-kit add --group engineering --type plugin` (the 13 seats above except `qa`, which lives under `quality`: add it with `claude-kit add qa --type plugin`), or add individual seats by name. A seat's **plugin name is the bare discipline** (`claude-kit add backend --type plugin`); the namespaced `backend:backend-staff-engineer` is how the agent inside is dispatched, not how it is installed.
 
 The parallel wave runs in **isolated git worktrees** by default (2+ independent slices; pass `--no-isolate` to keep it in the main checkout). One-file-one-owner stays the primary guarantee against source collisions; the worktree is the mechanism underneath it, fencing each seat's build/test side effects (`node_modules`, build output, generated files) and turning any ownership slip into a visible diff instead of a silent clobber. The architect marks each slice `Parallel: yes|no` and `Depends on:`; the wave (all `Parallel: yes`) dispatches with the Agent tool's `isolation: "worktree"`, and the team lead copies each seat's owned files back into the main checkout (seats never commit, so there is nothing to merge). Held/dependent slices run afterward in the main checkout so they read the integrated work. This relies on `worktree.baseRef: "head"` in [settings.json](settings.json) so seats branch from the current feature tip rather than `origin/main`. It is deliberately **not** wired to the `wt` fish helper: the Agent tool can only isolate subagents into `.claude/worktrees/`, and `wt`'s sibling worktrees fall outside the sandbox write root, so `wt` stays the tool you drive by hand.
 
