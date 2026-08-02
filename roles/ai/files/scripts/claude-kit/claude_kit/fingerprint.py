@@ -14,11 +14,11 @@ Two grades of evidence, and the difference is what splits the report in two:
                file, or the absence of one where its presence is the norm.
     implied    a neighbour of a direct hit. Plausible, never asserted.
 
-Probing is deliberately narrow. package.json and the Swift markers are read
-because the registries carry artifacts for those ecosystems; Cargo.toml, go.mod
-and pyproject.toml are read by nothing here, because a hit there implies nothing
-installable and would only add noise the reader has to discount. A stack the
-catalogue does not cover falls through to `fallback` instead.
+Probing is deliberately narrow. package.json, the Swift markers and the desktop
+markers are read because the registries carry artifacts for those ecosystems;
+Cargo.toml, go.mod and pyproject.toml are read by nothing here, because a hit there
+implies nothing installable and would only add noise the reader has to discount.
+A stack the catalogue does not cover falls through to `fallback` instead.
 
 Pure apart from reading the project directory. Nothing here touches the registry:
 tags are matched as opaque strings, so retagging the catalogue needs no edit here.
@@ -31,7 +31,7 @@ import re
 # Tags a large part of the catalogue carries. Matching on them ranks everything as
 # relevant, which says exactly as much as ranking nothing.
 #
-# `observability` is here for that reason and not because it is vague: ten of the
+# `observability` is here for that reason and not because it is vague: fourteen of the
 # fifteen seat plugins carry it as boilerplate, so one @sentry/* dependency used to
 # make the data, design and gtm seats strong matches for a React API. The
 # discriminating tag over the same territory is `sentry`, which only the artifacts
@@ -64,6 +64,8 @@ TECH_TAGS = frozenset(
         "apollo",
         "astro",
         "database",
+        "desktop",
+        "electron",
         "expo",
         "fastify",
         "graphql",
@@ -81,6 +83,7 @@ TECH_TAGS = frozenset(
         "swift",
         "tailwind",
         "tanstack",
+        "tauri",
         "typescript",
     }
 )
@@ -108,6 +111,8 @@ DEP_TAGS = {
     "playwright": ("playwright", "testing"),
     "vitest": ("testing",),
     "jest": ("testing",),
+    "electron": ("electron", "desktop"),
+    "electron-builder": ("electron", "desktop"),
 }
 
 # Scoped families, matched by prefix so a new member of one needs no entry.
@@ -119,6 +124,8 @@ DEP_PREFIX_TAGS = {
     "@tanstack/": ("tanstack",),
     "@sentry/": ("sentry", "observability"),
     "@expo/": ("expo", "mobile"),
+    "@electron/": ("electron", "desktop"),
+    "@tauri-apps/": ("tauri", "desktop"),
 }
 
 # A direct hit makes its neighbours plausible, which is the whole of the second
@@ -140,6 +147,8 @@ IMPLIED_TAGS = {
     "hono": ("backend",),
     "graphql": ("backend", "frontend"),
     "database": ("backend",),
+    "electron": ("frontend", "ui"),
+    "tauri": ("frontend", "ui"),
     "sentry": ("observability", "devops"),
     "playwright": ("testing",),
     "ci": ("devops",),
@@ -187,6 +196,18 @@ SWIFT_GLOBS = ("*.xcodeproj", "*.xcworkspace")
 # project the `mobile` seat. It claims no more than the `ios` beside it already does.
 SWIFT_TAGS = ("swift", "ios", "mobile")
 
+# A Tauri app is Rust-first, so package.json can be absent entirely and the @tauri-apps/
+# prefix above never fires. The directory is the marker the CLI itself scaffolds.
+TAURI_DIR = "src-tauri"
+TAURI_TAGS = ("tauri", "desktop")
+
+# Read out of the pbxproj because nothing cheaper distinguishes a Mac app from an iPhone
+# app: both carry an .xcodeproj and Package.swift, so SWIFT_TAGS alone hands every Mac
+# app to the mobile seat. Additive on purpose, since a project can ship both targets.
+PBXPROJ = "project.pbxproj"
+MACOS_SDKROOT = "SDKROOT = macosx"
+MACOS_TAGS = ("swift", "desktop")
+
 TEST_DIRS = ("tests", "test", "__tests__", "spec")
 TEST_FILE = re.compile(r"\.(test|spec)\.[jt]sx?$|Tests?\.swift$|^test_.+\.py$")
 # Pruned from the test-file walk: a dependency's own tests say nothing about
@@ -213,6 +234,18 @@ def _read_json(path):
     except (OSError, ValueError):
         return {}
     return data if isinstance(data, dict) else {}
+
+
+def _mentions(path, needle):
+    """Whether a readable text file contains needle, False for anything unreadable.
+
+    A missing or unreadable file is simply not evidence, the same way a malformed
+    package.json is not: probing must never turn a junk checkout into a traceback.
+    """
+    try:
+        return needle in path.read_text(errors="replace")
+    except OSError:
+        return False
 
 
 def _declared(project):
@@ -267,9 +300,17 @@ def read(project):
                 note(tags, evidence)
 
     markers = [name for name in SWIFT_FILES if (project / name).is_file()]
-    markers += sorted(path.name for pattern in SWIFT_GLOBS for path in project.glob(pattern))
+    projects = sorted(path for pattern in SWIFT_GLOBS for path in project.glob(pattern))
+    markers += [path.name for path in projects]
     if markers:
         note(SWIFT_TAGS, f"{markers[0]} in the project root")
+    for bundle in projects:
+        if _mentions(bundle / PBXPROJ, MACOS_SDKROOT):
+            note(MACOS_TAGS, f"{bundle.name} declares a macOS SDK target")
+            break
+
+    if (project / TAURI_DIR).is_dir():
+        note(TAURI_TAGS, f"{TAURI_DIR}/ in the project root")
 
     # Absence, which is evidence too. Each of these is a gap an artifact fills, so
     # a project without tests wants a testing skill more than a tested one does.

@@ -120,6 +120,29 @@ def test_i1_a_swift_marker_is_direct_evidence(project):
     assert {"swift", "ios"} <= set(fingerprint.read(project))
 
 
+def test_i1_a_tauri_project_is_recognised_without_a_manifest(project):
+    """Tauri is Rust-first, so the @tauri-apps/ prefix rule can never fire on its own."""
+    (project / fingerprint.TAURI_DIR).mkdir()
+    assert {"tauri", "desktop"} <= set(fingerprint.read(project))
+
+
+def test_i1_an_xcode_project_targeting_macos_is_a_desktop_app(project):
+    """Both platforms carry an .xcodeproj, so only the SDK distinguishes them."""
+    bundle = project / "App.xcodeproj"
+    bundle.mkdir()
+    (bundle / fingerprint.PBXPROJ).write_text(f"\t\t\t\t{fingerprint.MACOS_SDKROOT};\n")
+    assert {"swift", "desktop"} <= set(fingerprint.read(project))
+
+
+def test_i1_an_ios_only_xcode_project_stays_off_the_desktop_seat(project):
+    bundle = project / "App.xcodeproj"
+    bundle.mkdir()
+    (bundle / fingerprint.PBXPROJ).write_text("\t\t\t\tSDKROOT = iphoneos;\n")
+    direct = fingerprint.read(project)
+    assert {"swift", "ios", "mobile"} <= set(direct)
+    assert "desktop" not in direct
+
+
 def test_i1_a_malformed_package_json_is_not_evidence_of_anything(project):
     """A broken manifest is not scout's problem to report, but it must not crash it."""
     (project / "package.json").write_text("{not json")
@@ -669,6 +692,8 @@ def emittable_directly():
     for value in fingerprint.INTENT_KEYWORDS.values():
         tags |= set(value)
     tags |= set(fingerprint.SWIFT_TAGS)
+    tags |= set(fingerprint.MACOS_TAGS)
+    tags |= set(fingerprint.TAURI_TAGS)
     tags |= set(fingerprint.GAP_TAGS)
     return tags
 
@@ -713,6 +738,8 @@ def test_g2_no_implied_tag_is_a_gate_tag():
         ("@tanstack/react-router", "tanstack"),
         ("@apollo/client", "apollo"),
         ("@prisma/client", "prisma"),
+        ("electron", "desktop"),
+        ("@tauri-apps/api", "desktop"),
     ],
 )
 def test_g3_a_framework_names_the_platform_it_implies(project, dependency, expected):
