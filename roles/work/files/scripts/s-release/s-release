@@ -1,0 +1,541 @@
+#!/usr/bin/env fish
+
+# Script to open the pull request that deploys to production: develop into master
+# Usage: s-release
+#        s-release aw-front aw-api
+
+# Output goes through `_ui` (roles/shell/files/fish/functions/_ui.fish), the shared
+# vocabulary: a coloured glyph carries the status, and an emoji only ever appears on a
+# heading or on the closing summary.
+
+# Every repo here deploys on a push to master, so a release is a PR that merges develop
+# into it. Hardcoded like s-db's Cloud SQL instances are: one org, and a branch layout
+# that is being retired. --org is the escape hatch.
+set -g ORG addingwell
+
+# Deliberately not flags. git-skill-gate.sh lets this script run `gh pr create` outside
+# /pr, and "it can only ever open develop into master" is what keeps that exception
+# narrow, so reaching either from the command line would void the argument.
+set -g BASE master
+set -g HEAD develop
+
+set -g PR_TITLE "chore(release): deploy to production"
+
+# What the team looks for, and what each repo's slack-pr-notification.yml keys on:
+# labelling the PR is what announces the release, which is why --no-label exists.
+set -g PR_LABEL "Ready for review"
+
+# One call for the whole org, and it doubles as the duplicate check. A repo that still
+# deploys this way defaults to develop and keeps master; every other repo in the org has
+# one or the other, so retiring master is what drops a repo off this list.
+set -g DISCOVERY_QUERY 'query($org: String!, $endCursor: String) {
+  organization(login: $org) {
+    repositories(first: 100, after: $endCursor, isArchived: false, ownerAffiliations: OWNER) {
+      pageInfo { hasNextPage endCursor }
+      nodes {
+        name
+        defaultBranchRef { name }
+        master: ref(qualifiedName: "refs/heads/master") { name }
+        pullRequests(states: OPEN, baseRefName: "master", headRefName: "develop", first: 1) {
+          nodes { number url }
+        }
+      }
+    }
+  }
+}'
+
+# Walks first parents from the tip back to the merge base, rather than listing
+# `commits[]`, because the repos disagree about shape: some squash-merge, and the ones
+# that keep merge commits also carry every commit those merges brought in, so a raw list
+# is seven lines for three pull requests. A merge commit's own body holds the PR title.
+#
+# 8212 and 8211 are the em and en dash, rewritten to a hyphen because these are other
+# people's commit messages and this house style, plus the repos' own commit hooks, reject
+# both. They are codepoints rather than characters so that nothing in the chain from a
+# fish single-quoted string to jq's regex engine has to preserve an escape: fish collapses
+# `\\` to `\` inside single quotes, so only escapes jq itself defines (\t, \n, \(...))
+# survive, which is also why regex metacharacters below are written as classes like [(].
+set -g BODY_QUERY 'def clean: explode | map(if . == 8212 or . == 8211 then 45 else . end) | implode
+                   | gsub("[ \t]+"; " ") | sub("^ "; "") | sub(" $"; "");
+def line: if .n == "" then "- \(.s) \(.t)" else "- #\(.n) \(.t)" end;
+
+.commits as $c
+| ($c | map({(.sha): .}) | add) as $ix
+| .merge_base_commit.sha as $mb
+| (.total_commits > ($c | length)) as $capped
+| [ (if ($c | length) == 0 then empty else ($c | last | .sha) end)
+    | recurse(if . == $mb then empty else ($ix[.].parents[0].sha // empty) end)
+    | select(. != $mb)
+    | $ix[.] // empty ]
+| map(
+    (.commit.message | split("\n")) as $lines
+    | ($lines[0] | clean) as $subject
+    | if $subject | test("^Merge pull request #[0-9]+ from ")
+      then { n: ($subject | capture("#(?<n>[0-9]+)").n),
+             t: (([$lines[1:][] | clean | select(. != "")] | first)
+                 // ($subject | sub(".*/"; ""))) }
+      elif $subject | test("[(]#[0-9]+[)]$")
+      then { n: ($subject | capture("[(]#(?<n>[0-9]+)[)]$").n),
+             t: ($subject | sub(" *[(]#[0-9]+[)]$"; "")) }
+      else { n: "", s: (.sha[0:7]), t: $subject }
+      end)
+| reduce .[] as $x ([]; if ($x.n != "" and any(.[]; .n == $x.n)) then . else . + [$x] end)
+| map(line)
+| (if $capped then . + ["- ... and earlier commits, see the compare link"] else . end)
+| ["Merging `\($head)` into `\($base)` to deploy to production.", "", "## Releasing", ""]
+  + . + ["", $url]
+| join("\n")'
+
+function die
+    _ui err "$argv"
+    exit 1
+end
+
+function usage
+    echo "Usage: s-release [--dry] [--list] [--no-label] [--no-assign] [REPO ...]"
+    echo "Example: s-release"
+    echo "         s-release aw-front aw-api aw-scripts"
+    echo "         s-release --dry aw-front"
+    echo ""
+    echo "Opens the pull request that deploys to production: $HEAD into $BASE."
+    echo "Merging that PR is what deploys, and this script never merges."
+    echo ""
+    echo "Options:"
+    echo "  -l, --list        Print every repo that still deploys this way, and exit"
+    echo "  -d, --dry         Print what would be created, without creating it"
+    echo "  -t, --title TEXT  Override the PR title (default: $PR_TITLE)"
+    echo "  -o, --org ORG     GitHub organisation (default: $ORG)"
+    echo "      --no-label    Do not apply the '$PR_LABEL' label"
+    echo "      --no-assign   Do not assign the PR to yourself"
+    echo ""
+    echo "With no REPO, every repo that still deploys $HEAD into $BASE is listed and you"
+    echo "pick from it. Naming repos skips both the lookup and the prompt."
+    echo ""
+    echo "The '$PR_LABEL' label is what fires each repo's Slack notification, so a"
+    echo "default run announces the release. Use --no-label to open one quietly."
+    echo ""
+    echo "Prerequisites:"
+    echo "  gh (run 'gh auth login' to authenticate) and jq"
+    exit 1
+end
+
+function first_line
+    for line in $argv
+        set -l trimmed (string trim -- $line)
+        if test -n "$trimmed"
+            echo $trimmed
+            return
+        end
+    end
+end
+
+# gh prints the API's raw JSON body and its own summary of it, and the body carries no
+# trailing newline, so the two arrive glued into one line. The summary is the readable
+# half, and a failure with no summary at all falls back to whatever came first.
+function gh_error
+    set -l joined (string join \n -- $argv)
+    set -l summary (string match -r 'gh: .*' -- $joined)
+    if test -n "$summary"
+        string replace 'gh: ' '' -- $summary[1]
+        return
+    end
+    first_line $argv
+end
+
+function first_url
+    set -l found (string match -r 'https://\S+' -- (string join \n -- $argv))
+    if test -n "$found"
+        echo $found[1]
+        return
+    end
+    first_line $argv
+end
+
+function repo_slug --argument-names repo
+    if string match -q -- "$ORG/*" $repo
+        string replace -- "$ORG/" "" $repo
+    else
+        echo $repo
+    end
+end
+
+function compare_url --argument-names repo
+    echo "https://github.com/$repo/compare/$BASE...$HEAD"
+end
+
+function require_tools
+    for tool in gh jq
+        if not command -v $tool >/dev/null 2>&1
+            die "$tool is required but not installed. Install it with: brew install $tool"
+        end
+    end
+    if not gh auth status >/dev/null 2>&1
+        die "Not authenticated with GitHub. Run 'gh auth login' first."
+    end
+end
+
+# Fills CANDIDATES, plus DISCOVERED_PR / DISCOVERED_URL alongside it: the query already
+# knows which repos have a release PR open, so nothing else has to ask.
+function discover
+    _ui step "Looking for repos that still deploy $HEAD into $BASE"
+
+    set -l payload (gh api graphql --paginate --slurp -f org=$ORG -f query=$DISCOVERY_QUERY 2>&1)
+    if test $status -ne 0
+        die "Could not list $ORG repos: "(gh_error $payload)
+    end
+
+    # A partial GraphQL response still exits 0, and reading one as an empty set would
+    # report that there is nothing to release.
+    set -l failures (printf '%s\n' $payload | jq -r '[.[] | .errors // empty | .[].message] | join("; ")')
+    if test -n "$failures"
+        die "GitHub returned errors for the repo query: $failures"
+    end
+
+    set -l rows (printf '%s\n' $payload | jq -r '
+        [.[] | .data.organization.repositories.nodes[]]
+        | map(select(.defaultBranchRef.name == "develop" and .master != null))
+        | sort_by(.name)
+        | .[]
+        | [.name,
+           (.pullRequests.nodes[0].number // "" | tostring),
+           (.pullRequests.nodes[0].url // "")]
+        | @tsv')
+
+    set -g CANDIDATES
+    set -g DISCOVERED_PR
+    set -g DISCOVERED_URL
+    for row in $rows
+        set -l fields (string split \t -- $row)
+        set -a CANDIDATES "$ORG/$fields[1]"
+        set -a DISCOVERED_PR "$fields[2]"
+        set -a DISCOVERED_URL "$fields[3]"
+    end
+
+    if test (count $CANDIDATES) -eq 0
+        die "No $ORG repo has both a $HEAD default branch and a $BASE branch. If $BASE is gone, so is this script."
+    end
+end
+
+function open_release_pr --argument-names repo
+    gh pr list --repo $repo --base $BASE --head $HEAD --state open \
+        --json number,url --limit 1 2>/dev/null |
+        jq -r '.[0] | if . then [(.number | tostring), .url] | @tsv else empty end'
+end
+
+# One state per candidate, in four parallel lists so nothing has to be encoded and split
+# back out. Every branch appends to all four, which is what keeps them aligned.
+function survey
+    set -g ROW_REPO
+    set -g ROW_STATE
+    set -g ROW_DETAIL
+    set -g ROW_URL
+
+    set -l total (count $CANDIDATES)
+    _ui step "Checking $total "(test $total -eq 1; and echo repo; or echo repos)
+
+    for i in (seq $total)
+        set -l repo $CANDIDATES[$i]
+
+        set -l pr ""
+        set -l url ""
+        if set -q DISCOVERED_PR[$i]
+            set pr $DISCOVERED_PR[$i]
+            set url $DISCOVERED_URL[$i]
+        else
+            set -l found (open_release_pr $repo)
+            if test -n "$found"
+                set -l fields (string split \t -- $found)
+                set pr $fields[1]
+                set url $fields[2]
+            end
+        end
+
+        set -a ROW_REPO $repo
+
+        if test -n "$pr"
+            set -a ROW_STATE open
+            set -a ROW_DETAIL "PR #$pr already open"
+            set -a ROW_URL "$url"
+            continue
+        end
+
+        set -a ROW_URL ""
+
+        set -l ahead (gh api "repos/$repo/compare/$BASE...$HEAD" --jq '.ahead_by' 2>&1)
+        if test $status -ne 0; or not string match -qr '^[0-9]+$' -- "$ahead"
+            set -a ROW_STATE error
+            set -a ROW_DETAIL (gh_error $ahead)
+            continue
+        end
+
+        if test "$ahead" -eq 0
+            set -a ROW_STATE uptodate
+            set -a ROW_DETAIL "nothing to release"
+        else
+            set -a ROW_STATE ready
+            set -a ROW_DETAIL "$ahead "(test "$ahead" -eq 1; and echo commit; or echo commits)
+        end
+    end
+end
+
+# Prints the listing and fills SELECTABLE with the indexes a number was offered for.
+# Rows that cannot be released come last and carry no number: one you cannot act on only
+# invites a typo, while showing the row is what says the repo was checked.
+function render_rows
+    # Selectable rows are numbered and column-aligned, so they are printf'ed rather than
+    # sent through a `_ui` kind, which leaves the colour decision here. It has to be
+    # asked as a bare command, while fd 1 is still this script's stdout: inside a command
+    # substitution fish hands the callee a pipe, so the answer there is always no. Each
+    # colour starts empty because an unset one is an empty *list*, which would vanish
+    # from printf's arguments and shift every later one into its place.
+    set -l dim ""
+    set -l reset ""
+    if _ui color-enabled
+        set dim (_ui color dim)
+        set reset (_ui color reset)
+    end
+
+    set -l width 0
+    for repo in $ROW_REPO
+        set -l length (string length -- (repo_slug $repo))
+        test $length -gt $width; and set width $length
+    end
+
+    # `N) ` and `· ` are different widths, so the dim glyph's indent is derived from how
+    # many digits the numbers reach: without this the two halves of the listing start one
+    # column apart, and the detail column with them.
+    set -l digits (string length -- (count (string match ready -- $ROW_STATE)))
+
+    set -g SELECTABLE
+    _ui blank
+    _ui title "🚀 Release to production"
+
+    for i in (seq (count $ROW_REPO))
+        if test "$ROW_STATE[$i]" != ready
+            continue
+        end
+        set -a SELECTABLE $i
+        printf '  %s) %s  %s%s%s\n' \
+            (string pad -w $digits -- (count $SELECTABLE)) \
+            (string pad -r -w $width -- (repo_slug $ROW_REPO[$i])) \
+            "$dim" "$ROW_DETAIL[$i]" "$reset"
+    end
+
+    for i in (seq (count $ROW_REPO))
+        if test "$ROW_STATE[$i]" = ready
+            continue
+        end
+        set -l detail "$ROW_DETAIL[$i]"
+        if test "$ROW_STATE[$i]" = error
+            set detail "could not be checked: $detail"
+        end
+        # The indent flag precedes the kind: `_ui` parses with --stop-nonopt, so one after
+        # it is left in $argv and printed as part of the line.
+        _ui -i (math 2 + $digits) item \
+            (string pad -r -w $width -- (repo_slug $ROW_REPO[$i]))"  "(_ui paint dim $detail)
+    end
+end
+
+# Sets CHOSEN to a subset of SELECTABLE. An invalid entry is a refusal rather than a
+# re-prompt, as in s-db: a rerun costs one lookup.
+function choose
+    set -l offered (count $SELECTABLE)
+    _ui blank
+    read -P "Select repos [1-$offered, a for all, empty to abort]: " reply
+
+    set -l picks (string split -n ' ' -- (string replace -a ',' ' ' -- "$reply"))
+
+    if test (count $picks) -eq 0
+        _ui blank
+        _ui warn "Nothing selected, so nothing was opened"
+        exit 0
+    end
+
+    if test (count $picks) -eq 1; and contains -- $picks[1] a all
+        set -g CHOSEN $SELECTABLE
+        return
+    end
+
+    set -g CHOSEN
+    for pick in $picks
+        if not string match -qr '^[0-9]+$' -- $pick
+            die "'$pick' is not one of 1-$offered, or 'a' for all."
+        end
+        if test $pick -lt 1 -o $pick -gt $offered
+            die "$pick is out of range. Pick from 1-$offered, or 'a' for all."
+        end
+        if not contains -- $SELECTABLE[$pick] $CHOSEN
+            set -a CHOSEN $SELECTABLE[$pick]
+        end
+    end
+end
+
+function release_body
+    set -l repo $argv[1]
+    printf '%s\n' $argv[2..-1] |
+        jq -r --arg url (compare_url $repo) --arg base $BASE --arg head $HEAD "$BODY_QUERY"
+end
+
+# Each repo carries its own outcome: a failure here names the repo and the run moves on,
+# because a batch that stops halfway leaves you guessing which half shipped.
+function release
+    set -l opened
+    set -l failed 0
+
+    for i in $argv
+        set -l repo $ROW_REPO[$i]
+        _ui blank
+        _ui title "🚀 "(repo_slug $repo)
+
+        set -l payload (gh api "repos/$repo/compare/$BASE...$HEAD" 2>&1)
+        if test $status -ne 0
+            _ui err "Could not read what $repo would release: "(gh_error $payload)
+            set failed (math $failed + 1)
+            continue
+        end
+
+        # jq writing nothing is the only failure signal that survives a pipeline: $status
+        # there belongs to `string collect`.
+        set -l body (release_body $repo $payload | string collect)
+        if test -z "$body"
+            _ui err "Could not build the release notes for $repo"
+            set failed (math $failed + 1)
+            continue
+        end
+
+        set -l args --repo $repo --base $BASE --head $HEAD --title $PR_TITLE --body $body
+        set -l shown --repo $repo --base $BASE --head $HEAD --title $PR_TITLE --body "<printed below>"
+        if test $DO_LABEL -eq 1
+            set -a args --label $PR_LABEL
+            set -a shown --label $PR_LABEL
+        end
+        if test $DO_ASSIGN -eq 1
+            set -a args --assignee @me
+            set -a shown --assignee @me
+        end
+
+        if test $DRY -eq 1
+            _ui note (string escape -- gh pr create $shown | string join ' ')
+            _ui blank
+            printf '%s\n' $body
+            continue
+        end
+
+        set -l created (gh pr create $args 2>&1)
+        if test $status -ne 0
+            _ui err "Could not open the PR for $repo: "(gh_error $created)
+            # gh can fail after GitHub accepted the PR, and "did it land?" is the one
+            # question the next run cannot answer for you.
+            set -l landed (open_release_pr $repo)
+            if test -n "$landed"
+                _ui warn "A release PR exists anyway: "(string split \t -- $landed)[2]
+            end
+            set failed (math $failed + 1)
+            continue
+        end
+
+        _ui ok "Opened "(first_url $created)
+        set -a opened $repo
+    end
+
+    _ui blank
+    if test $DRY -eq 1
+        _ui done "Dry run: nothing was opened"
+        return 0
+    end
+
+    set -l count (count $opened)
+    if test $count -eq 0
+        die "No release PR was opened"
+    end
+
+    _ui done "Opened $count release "(test $count -eq 1; and echo PR; or echo PRs)
+    _ui note "Merging one is what deploys it, so that stays a separate step."
+    if test $failed -gt 0
+        _ui warn "$failed of "(math $count + $failed)" repos failed, see above"
+        return 1
+    end
+    return 0
+end
+
+function main
+    argparse 'h/help' 'l/list' 'd/dry' 't/title=' 'o/org=' no-label no-assign -- $argv 2>/dev/null
+    or usage
+
+    if set -q _flag_help
+        usage
+    end
+
+    if set -q _flag_org
+        set -g ORG $_flag_org
+    end
+    if set -q _flag_title
+        set -g PR_TITLE $_flag_title
+    end
+
+    # argparse's flag variables are local to this function, so every later stage reads a
+    # global instead.
+    set -g DRY 0
+    set -g DO_LABEL 1
+    set -g DO_ASSIGN 1
+    set -q _flag_dry; and set -g DRY 1
+    set -q _flag_no_label; and set -g DO_LABEL 0
+    set -q _flag_no_assign; and set -g DO_ASSIGN 0
+
+    require_tools
+
+    set -g CANDIDATES
+    set -g DISCOVERED_PR
+    set -g DISCOVERED_URL
+
+    for name in $argv
+        set -l parts (string split / -- $name)
+        switch (count $parts)
+            case 1
+                set -a CANDIDATES "$ORG/$name"
+            case 2
+                set -a CANDIDATES $name
+            case '*'
+                die "'$name' is not a repo. Use 'aw-front', or 'owner/aw-front'."
+        end
+    end
+
+    set -l named (count $CANDIDATES)
+    if test $named -eq 0
+        discover
+    end
+
+    survey
+    render_rows
+
+    for i in (seq (count $ROW_REPO))
+        if test "$ROW_STATE[$i]" = open
+            _ui note $ROW_URL[$i]
+        end
+    end
+
+    if test (count $SELECTABLE) -eq 0
+        _ui blank
+        if test $named -gt 0
+            die "Nothing to release"
+        end
+        _ui warn "Nothing to release"
+        return 0
+    end
+
+    if set -q _flag_list
+        _ui blank
+        _ui done (count $SELECTABLE)" of "(count $ROW_REPO)" ready to release"
+        return 0
+    end
+
+    if test $named -gt 0
+        set -g CHOSEN $SELECTABLE
+    else
+        choose
+    end
+
+    release $CHOSEN
+end
+
+main $argv
