@@ -8,6 +8,7 @@ a test that silently starts exercising the wrong branch is worse than one that
 fails loudly.
 """
 
+import json
 import os
 
 import pytest
@@ -99,11 +100,25 @@ def test_c3_a_plugin_is_a_directory_symlink_in_the_skills_leaf(catalog, effectiv
 
 
 def test_c3_a_plugin_says_a_restart_is_needed(catalog, effective, home, project, capsys):
+    """The `home` fixture makes ~/.claude but no ~/.claude.json, so this is also the
+    untrusted case: the hint checks the workspace rather than asserting as prose that it
+    must be trusted, because nobody could act on the prose without checking anyway."""
     args = _args(cat.PLUGIN, [PROJECT_PLUGIN])
     _run_in(args, project)
     out = capsys.readouterr().out
     assert "Restart Claude Code" in out
-    assert "trusted" in out
+    assert "not a trusted workspace" in out
+    assert "claude-kit trust --on" in out
+
+
+def test_c3b_a_trusted_workspace_gets_no_trust_warning(catalog, effective, home, project, capsys):
+    (home / ".claude.json").write_text(
+        json.dumps({"projects": {str(project.resolve()): {"hasTrustDialogAccepted": True}}})
+    )
+    _run_in(_args(cat.PLUGIN, [PROJECT_PLUGIN]), project)
+    out = capsys.readouterr().out
+    assert "Restart Claude Code" in out
+    assert "trusted workspace" not in out
 
 
 def test_c4b_the_leaf_directory_is_created(catalog, effective, home, project):

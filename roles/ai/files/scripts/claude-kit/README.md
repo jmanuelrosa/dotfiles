@@ -34,13 +34,17 @@ identifies a link by its filename alone.
 
 ## `--type` is required
 
-Every command except `doctor`, `adopt`, `sync` and `scout` requires `--type skill|agent|plugin`.
-Nothing is inferred from a name, so the three namespaces are allowed to overlap and a collision is
-a `doctor` note rather than an error. Those four take `--type` as an optional filter, because
-their result spans all three types: `doctor`'s cross-type checks cannot run inside a single type,
-one `claude-kit.json` holds all three, `sync` converges a directory that holds all three, and a
-project's stack implies artifacts of all three — so on each of them a required `--type` could only
-ever ask for a partial job.
+Every command except `doctor`, `adopt`, `sync`, `scout` and `trust` requires
+`--type skill|agent|plugin`. Nothing is inferred from a name, so the three namespaces are allowed to
+overlap and a collision is a `doctor` note rather than an error. Four of the exceptions take
+`--type` as an optional filter, because their result spans all three types: `doctor`'s cross-type
+checks cannot run inside a single type, one `claude-kit.json` holds all three, `sync` converges a
+directory that holds all three, and a project's stack implies artifacts of all three - so on each of
+them a required `--type` could only ever ask for a partial job.
+
+`trust` is the fifth exception and a different one: it accepts no `--type` at all. Workspace trust
+is a property of a directory rather than of an artifact, so there is no kind to narrow, and a flag
+that filtered nothing would be a lie about what the command does.
 
 ## Scope: the `global` tag decides, not your shell
 
@@ -77,7 +81,7 @@ touch no install, so neither scope applies and neither accepts `--global`.
 
 ## Commands
 
-The scopes above are what `claude-kit -h` groups its listing by, four families of them:
+The scopes above are what `claude-kit -h` groups its listing by, five families of them:
 
 | Family | Commands | Acts on | `--global` |
 |---|---|---|---|
@@ -85,6 +89,7 @@ The scopes above are what `claude-kit -h` groups its listing by, four families o
 | Scope-fixed | `list`, `scout`, `doctor`, `adopt` | whatever the cwd implies | not accepted |
 | Global | `sync` | `~/.claude` alone, whatever the cwd | not accepted |
 | Registry-wide | `update`, `outdated` | this repo's skill sources against upstream | not accepted |
+| Workspace trust | `trust` | `~/.claude.json`, keyed on the cwd's repo root | not accepted |
 
 **`--global` exists on `add` and `remove`, and on nothing else.** Those two write, so one of the
 two scopes has to be chosen and the flag is how you choose it. Everything else has exactly one
@@ -104,6 +109,11 @@ command that does not exist. The split says it where the commands are, so no foo
 `sync` stays out of both for a different reason: `~/.claude` is not one of two places it might act
 but the only one. `--global` is therefore not an option there, and listing it alongside `add` would
 imply a project-scoped run that does not exist.
+
+`trust` gets a family of its own on the same principle. The other four titles all describe which
+`.claude/` a command touches, and it touches none of them: it reads and writes Claude Code's own
+`~/.claude.json`. Filing it under scope-fixed would have been true, and would have buried the one
+command a reader wants when a plugin they just installed does not load.
 
 Each command's own `--help` repeats its scope in one sentence, so `claude-kit add --help` says
 where an install lands without a trip back here.
@@ -518,6 +528,82 @@ cascades and so nothing needs to know why one is there.
 
 ---
 
+### `trust`
+
+```
+claude-kit trust [PATH] [--on | --off]
+```
+
+| Flag | Meaning |
+|---|---|
+| `PATH` | Which directory to report on or change (default: the cwd) |
+| `--on` | Trust this workspace, so its project-scope plugins load |
+| `--off` | Clear this workspace's own trust flag |
+
+The other half of a plugin install. A seat linked into `<project>/.claude/skills/` loads only in a
+**trusted** workspace, so `add` succeeding is not the same as the agent appearing. This is the
+command that tells you which of the two you are looking at, and the only one here that reads and
+writes `~/.claude.json` rather than a `.claude/` directory.
+
+Takes no `--type`: trust is a property of a directory, not of an artifact.
+
+Two things about how Claude Code stores trust are worth knowing before reading a report, because
+both surprise people and neither is guessable from the file:
+
+- **The key is the git repo root**, and for a **linked worktree it is the main checkout**, reached
+  through `.git/commondir`. So every worktree of a repo shares one answer, and none of them has an
+  entry of its own. Outside a repo the key is the directory itself.
+- **Trust is inherited.** The gate probes the key, then walks the cwd's ancestors to `/`. A trusted
+  `~` therefore trusts every project beneath it, whatever their own flags say.
+
+That second one is why `--off` warns instead of claiming success outright. Clearing a project's own
+flag is a real write, and while an ancestor still grants trust it changes nothing observable, so the
+report names the ancestor and prints the command that would clear that one too. It exits `0` either
+way: the write you asked for did happen.
+
+```
+$ claude-kit trust
+🔐 Workspace trust
+  · Workspace: ~/Developer/dotfiles-claude-trust-script
+  · Trust key: ~/Developer/dotfiles
+    Linked worktree: Claude Code keys trust on the main checkout, so every worktree of this repo shares one answer.
+  · hasTrustDialogAccepted: true
+✓ Trusted on its own key.
+  Project-scope plugins load here, after Claude Code is restarted from ~/Developer/dotfiles.
+```
+
+```
+$ claude-kit trust ~/work/api
+🔐 Workspace trust
+  · Workspace: ~/work/api
+  · Trust key: ~/work/api
+  · hasTrustDialogAccepted: false
+✓ Trusted, inherited from ~.
+  ~ grants trust to every directory beneath it, so this workspace is trusted whatever its own flag says.
+```
+
+A write touches one field of one key. Everything else in the entry survives (those hold the
+project's MCP servers, its allowed tools and its session history), a key that does not exist yet is
+created with the same nine fields the trust dialog writes, and the file is rewritten with the exact
+byte formatting Claude Code uses: two-space indent, no trailing newline, non-ASCII unescaped. It is
+replaced atomically and keeps its mode, which matters because it holds an oauth account.
+
+Nothing here **creates** `~/.claude.json`. A machine where Claude Code has never run has no trust to
+change, so a write exits `1` and says so; a read reports that nothing is trusted and exits `9`.
+A file that cannot be parsed also exits `1` rather than being written over.
+
+Restart Claude Code after a change, and close any live session for that project first: a session
+rewrites the whole file from memory when it exits, which would undo the write.
+
+Exits `9` when a read finds the workspace untrusted, so `claude-kit trust >/dev/null` works as a
+condition. Exits `5` when the flag already reads the way you asked for.
+
+`claude-kit doctor` runs the same check the other way round, reporting a problem when a project has
+plugins linked but its workspace is not trusted. It only asks once a plugin is actually installed:
+trust is Claude Code's business until something claude-kit put there depends on it.
+
+---
+
 ## Exit codes
 
 Distinct so scripts can branch without matching message text.
@@ -525,15 +611,15 @@ Distinct so scripts can branch without matching message text.
 | Code | Name | Meaning |
 |---|---|---|
 | 0 | `OK` | success |
-| 1 | `USAGE` | missing or invalid `--type`, bad flags, an unsupported combination, or a real directory where a link belongs |
+| 1 | `USAGE` | missing or invalid `--type`, bad flags, an unsupported combination, a real directory where a link belongs, or a `~/.claude.json` that is absent or unparseable when `trust` needs to write |
 | 2 | `NOT_FOUND` | no artifact of that type by that name, or registered but absent on disk |
 | 3 | `DEPENDENCY_ONLY` | named a skill that exists only to satisfy another |
 | 4 | `WRONG_SCOPE` | a global artifact named without `--global` |
-| 5 | `ALREADY` | already installed at the resolved target |
+| 5 | `ALREADY` | already installed at the resolved target, or `trust` asked to set a flag that already reads that way |
 | 6 | `NO_PROJECT` | project-scoped, but cwd is `$HOME`, the one directory that is not a project |
 | 7 | `NOT_INSTALLED` | `remove` target absent |
 | 8 | `FETCH_FAILED` | `update` / `outdated` could not reach or read an upstream |
-| 9 | `DRIFT` | `doctor` found at least one problem, or `sync` refused to prune every link in `~/.claude` |
+| 9 | `DRIFT` | `doctor` found at least one problem, `sync` refused to prune every link in `~/.claude`, or `trust` found the workspace untrusted |
 
 ## Environment
 
