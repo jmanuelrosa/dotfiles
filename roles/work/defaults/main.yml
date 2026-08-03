@@ -19,5 +19,6 @@ BREW_PACKAGES:
 # AI_SCRIPTS: a glob would match only directories, which fileglob discards.
 WORK_SCRIPTS:
   - s-db
+  - s-release
   - s-task
   - weekly-recap
