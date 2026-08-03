@@ -75,6 +75,15 @@ A migrated seat symlinked into a real project (`work/addingwell/api/.claude/skil
 - **Resolution:** after `hasTrustDialogAccepted: true` + relaunch from root, `claude plugin list` reported `backend@skills-dir  Scope: project  Status: ✔ loaded` and the bundled agent + skill became available. The project-scope, symlinked, editable-in-place, per-repo-granular model is proven working, at the cost of one trust-accept per repo.
 - **Design consequence:** per-project granularity (the user's core requirement) is only achievable at project scope, and project scope carries the one-time trust step; user scope is the only trust-free option but loads everywhere. Decision: keep project scope, absorb the one-time trust, surface it in the tooling (see gate 3).
 
+### Follow-up: two things "keyed on the git repo root" left out (read from the 2.1.220 binary, 2026-08-03)
+
+The account above is right about the mechanism and incomplete about the key, in two ways that both cost real debugging time. Both were settled by reading the trust functions out of the compiled CLI rather than by testing behaviour, so they are statements about that version's code. `claude-kit trust` implements them and `roles/ai/files/scripts/claude-kit/tests/test_trust.py` pins them.
+
+- **For a linked git worktree the key is the *main* checkout, not the worktree.** The key is `normalize(gitRoot(cwd) ?? resolve(cwd))`, and the git-root resolver reads a `.git` *file* as a worktree pointer and follows `gitdir:` -> `commondir` back to the main repo. So every worktree of a repo shares one trust answer and none of them appears in `projects` at all. On this machine there were five worktrees and zero corresponding entries, which reads exactly like trust having been lost. Normalisation is `path.resolve` + `path.normalize`, so symlinks are **not** followed: a key derived through a realpath names a directory the config never mentions.
+- **Trust is inherited from any trusted ancestor.** The gate probes the derived key, then walks the cwd's ancestors to `/` and returns true at the first entry with `hasTrustDialogAccepted: true`. `~` was trusted on this machine, which means every project beneath it was trusted while six of the eight entries read `false`. The corollary matters more than the fact: setting a project's own flag to `false` does not untrust it, so an "untrust" that only writes the local key is a change with no observable effect.
+
+Neither of these is visible from the file. `projects` is a flat map with no parent/child relationship and stores no inherited value, so the ancestor walk exists only in code, and the worktree keying makes the absence of an entry ambiguous between "never trusted" and "trusted under another name".
+
 ## Scope and non-goals
 
 - In scope: the staff-engineer fleet agents and their `*-failure-modes` skills only.
