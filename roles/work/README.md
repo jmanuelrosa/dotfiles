@@ -18,6 +18,11 @@ here takes effect without re-running the playbook.
 
 - `s-task <ref>`: creates a git branch from an issue, off an up-to-date default branch, and pushes it so the issue links back to it. It is dual-provider and infers which from the reference shape: `PROJ-123` goes to Jira via `acli`, while `456`, `#456`, or a GitHub issue URL goes to GitHub via `gh` (installed by the `apps` role). Force either with `--jira` / `--github`. Branch names are `<type>/PROJ-123-<slug>` for Jira and `<type>/gh-456-<slug>` for GitHub, capped at 50 chars to stay under commitlint's `header-max-length`, truncating the slug at a hyphen boundary. The branch type comes from the Jira issue type, or for GitHub from the issue's native type first and its labels second; `--type` overrides it and `--dry` prints the branch name without creating anything. The `commit` and `pr` skills parse both ticket shapes back out of the branch name, so keep the three in sync. See [Issue linking](#issue-linking) for the push behavior and `--no-push`.
 - `s-db [production|staging]`: connects to cloud-sql-proxy for the given environment.
+- `s-release [REPO ...]`: opens the pull request that deploys to production, which at addingwell means merging
+  `develop` into `master`. With no argument it lists every repo that still deploys that way and you pick from it;
+  naming repos skips both the lookup and the prompt, which is the point when several ship at once. `--list` prints
+  the listing and stops, `--dry` prints the command and the body without creating anything. See
+  [Release PRs](#release-prs).
 - `weekly-recap [--days N | --since DATE]`: summarises recent Jira, GitHub and GitLab activity as markdown,
   grouped by project or repo. Each platform degrades on its own, so an unauthenticated CLI records one note
   and the other two still report. It lives here rather than in the `ai` role because all three of its sources
@@ -36,6 +41,20 @@ here takes effect without re-running the playbook.
 **The push only ever covers a branch `s-task` just created**, off the default branch's tip, with no commits on it. Re-run it on a branch that already exists and it switches to the branch and pushes nothing, because that branch may hold work, and pushing work is `/pr`'s job and its confirmation gate. This is the property that lets `git-skill-gate.sh` leave `s-task` alone: the hook sees Bash commands, not the subprocesses they spawn, so `s-task` could push whatever it wanted, and the script is what keeps that narrow. Its docstring records the exception.
 
 Because the script pushes, running it creates a remote ref before `/pr` does. Branch-push CI will fire on an empty branch, and abandoning the work leaves a ref on the remote.
+
+### Release PRs
+
+`s-release` is **temporary by design**. Every repo's `deploy-prod.yml` triggers on a push to `master`, so a release is a PR from `develop`, and merging it is the deploy. When `master` goes, so does this script.
+
+Which repos it offers is **derived, never listed**: one GraphQL call keeps the repos whose default branch is `develop` and that still have a `master` branch. Nothing else in the org has both, so a repo retiring `master` drops off the listing by itself and there is no list to remember to prune. The same call reports any open `develop` into `master` PR, which is how a duplicate is refused; scoping it to `head: develop` is also what keeps it from colliding with the release-please PRs that some of these repos open against `master`.
+
+Three deliberate choices worth knowing:
+
+- **The body replaces the template.** Four of these repos ship a `pull_request_template.md`, and clicking through the UI leaves its checklist in place unfilled, which is what most historic release PRs contain. `s-release` sends a body listing the pull requests being released plus a compare link instead, matching what the most recent hand-made ones did. It walks first parents back to the merge base rather than listing every commit, because the repos disagree about merge style and a raw list is seven lines for three pull requests.
+- **The label is the announcement.** `Ready for review` is what each repo's `slack-pr-notification.yml` keys on, so a default run tells the team. `--no-label` opens one quietly.
+- **It never merges,** and must not learn how. `git-skill-gate.sh` blocks `gh pr create` outside `/pr` and only sees Bash commands, not the subprocesses they spawn, so this script could open anything it liked. What keeps that exception narrow is that base and head are constants with no flag to reach them, it commits and pushes nothing, and the deploy itself stays a human act. Its docstring records the exception, the same way `s-task`'s does.
+
+It needs no clone: both refs are already on the remote, so `--repo` and `--head` are enough and the script never looks at a working tree. That also sidesteps the fact that the local directory names do not match the repo names (`~/Developer/work/addingwell/front` is `aw-front`).
 
 ## Vars
 

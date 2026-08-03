@@ -157,6 +157,16 @@ def test_s_task_is_deliberately_not_gated(gate):
     assert gate("s-task PROJ-123") == ALLOW
 
 
+def test_s_release_is_deliberately_not_gated(gate):
+    """Given s-release, which opens the develop-to-master PR, When it runs, Then it is allowed.
+
+    Its base and head are constants with no flag to reach them, it commits and
+    pushes nothing, and it never merges, so /pr stays the only path that opens a
+    pull request for code someone wrote.
+    """
+    assert gate("s-release aw-front") == ALLOW
+
+
 def test_an_unrelated_git_command_is_never_gated(gate):
     """Given a read-only git command, When it runs with no skill, Then it is allowed."""
     assert gate("git status --porcelain") == ALLOW
