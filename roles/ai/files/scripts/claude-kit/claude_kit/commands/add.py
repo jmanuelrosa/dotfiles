@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .. import catalog as cat
 from .. import errors, paths, scope, state
+from .. import workspace as ws
 from dotkit import ui
 from ..cli import fail
 
@@ -223,11 +224,11 @@ def install_one(catalog, effective, kind, name, want_global, home, project):
     entries = provenance_entries(plan_)
     if entries:
         state.record(project, entries)
-    _report(plan_, linked)
+    _report(plan_, linked, home, project)
     return plan_
 
 
-def _report(plan_, linked):
+def _report(plan_, linked, home=None, project=None):
     for warning in plan_.warnings:
         ui.warn(warning)
     for step, destination in linked:
@@ -248,12 +249,25 @@ def _report(plan_, linked):
             f"'{step.artifact.name}' was already installed as a dependency and is "
             f"now marked as wanted in its own right; removing its parent will keep it."
         )
-    named = plan_.steps[-1].artifact if plan_.steps else None
-    if named is not None and named.type == cat.PLUGIN:
-        ui.note(
-            f"Restart Claude Code from the project root to load "
-            f"'{named.name}@skills-dir'; the workspace must be trusted."
-        )
+    last = plan_.steps[-1] if plan_.steps else None
+    if last is None or last.artifact.type != cat.PLUGIN:
+        return
+    ui.note(
+        f"Restart Claude Code from the project root to load '{last.artifact.name}@skills-dir'."
+    )
+    # Only a project-scope plugin is gated on trust; ~/.claude has no such gate. Checked
+    # rather than asserted as prose, because "the workspace must be trusted" was advice
+    # nobody could act on without first knowing whether theirs already is.
+    if last.scope == scope.GLOBAL or project is None:
+        return
+    key = ws.key_for(project)
+    try:
+        config = ws.read(ws.config_path(home))
+    except ws.Unreadable:
+        config = {}
+    if ws.granted_by(config, key, project) is None:
+        ui.warn(f"{ui.path(key)} is not a trusted workspace, so it will not load.")
+        ui.note("claude-kit trust --on")
 
 
 def _report_group(kind, tag, want_global, elsewhere, tally):

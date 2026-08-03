@@ -13,7 +13,7 @@ failure would train the reader to ignore doctor.
 from dataclasses import dataclass
 
 from . import catalog as cat
-from . import frontmatter, scope, state
+from . import frontmatter, scope, state, workspace
 
 PROBLEM = "problem"
 NOTE = "note"
@@ -264,6 +264,38 @@ def wrong_scope(catalog, effective, home, project, claude):
                     )
                 )
     return findings
+
+
+def untrusted_workspace(config, project, claude):
+    """G18: a plugin is linked here but Claude Code will not load it.
+
+    The one check about Claude Code's own configuration rather than ours, and it earns
+    its place because the failure is completely silent: the link is correct, `add`
+    reported success, `claude plugin details` still lists the bundle's agents, and none
+    of them register. That cost a full debugging session once.
+
+    Gated on a plugin actually being linked. Trust is Claude Code's business until
+    something claude-kit installed depends on it, and a project with no plugins would
+    otherwise collect a problem it has no reason to act on, which is how a report earns
+    being skipped.
+    """
+    if project is None:
+        return []
+    if not scope.installed_names(project, cat.PLUGIN, claude):
+        return []
+    key = workspace.key_for(project)
+    if workspace.granted_by(config, key, project) is not None:
+        return []
+    return [
+        Finding(
+            "untrusted-workspace",
+            PROBLEM,
+            f"workspace {key}",
+            "has plugins linked but is not trusted, so none of them load. "
+            "Run: claude-kit trust --on",
+            cat.PLUGIN,
+        )
+    ]
 
 
 def provenance_drift(catalog, provenance, project, claude):

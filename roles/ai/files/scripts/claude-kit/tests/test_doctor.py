@@ -407,7 +407,7 @@ def test_g15_narrowing_keeps_only_that_types_findings(catalog, effective, tmp_pa
         ),
         (SKILL, "ghost"): cat.Artifact(name="ghost", type=SKILL, source=tmp_path / "nowhere"),
     }
-    plugin_only = doctor.collect(doctored, effective, CLAUDE, home, project, {}, kind=PLUGIN)
+    plugin_only = doctor.collect(doctored, effective, CLAUDE, home, project, {}, config={}, kind=PLUGIN)
     assert {f.kind for f in plugin_only} == {PLUGIN}
     assert any(f.check == "plugin-reserved-key" for f in plugin_only)
     assert not any(f.check == "missing-source" for f in plugin_only)
@@ -423,8 +423,8 @@ def test_g15_cross_type_findings_are_dropped_when_narrowing(catalog, effective, 
             name="dangler", type=SKILL, dependencies=("nope",), source=REAL_SKILL_SOURCE
         ),
     }
-    full = doctor.collect(doctored, effective, CLAUDE, home, None, {})
-    narrowed = doctor.collect(doctored, effective, CLAUDE, home, None, {}, kind=SKILL)
+    full = doctor.collect(doctored, effective, CLAUDE, home, None, {}, config={})
+    narrowed = doctor.collect(doctored, effective, CLAUDE, home, None, {}, config={}, kind=SKILL)
     assert any(f.check == "dangling-dependency" for f in full)
     assert not any(f.check == "dangling-dependency" for f in narrowed)
 
@@ -437,7 +437,7 @@ def test_a6_an_unnarrowed_run_includes_all_three_types(catalog, effective, tmp_p
         (AGENT, "a"): cat.Artifact(name="a", type=AGENT, source=tmp_path / "no-a"),
         (PLUGIN, "p"): cat.Artifact(name="p", type=PLUGIN, source=tmp_path / "no-p"),
     }
-    findings = doctor.collect(doctored, effective, CLAUDE, home, None, {})
+    findings = doctor.collect(doctored, effective, CLAUDE, home, None, {}, config={})
     assert {SKILL, AGENT, PLUGIN} <= {f.kind for f in findings if f.kind}
 
 
@@ -446,7 +446,7 @@ def test_a6_an_unnarrowed_run_includes_all_three_types(catalog, effective, tmp_p
 
 def test_g17_a_clean_run_exits_ok(catalog, effective, tmp_path, capsys):
     home = tmp_path / "home"
-    findings = doctor.collect(catalog, effective, CLAUDE, home, None, {})
+    findings = doctor.collect(catalog, effective, CLAUDE, home, None, {}, config={})
     assert [f for f in findings if f.is_problem] == []
     assert doctor.report(findings, None, None) == errors.OK
 
@@ -463,7 +463,7 @@ def test_g17_notes_alone_do_not_fail(tmp_path, capsys):
 
 def test_g16_no_project_still_runs_registry_checks(catalog, effective, tmp_path, capsys):
     home = tmp_path / "home"
-    findings = doctor.collect(catalog, effective, CLAUDE, home, None, {})
+    findings = doctor.collect(catalog, effective, CLAUDE, home, None, {}, config={})
     doctor.report(findings, None, None)
     assert "project-scope checks were skipped" in capsys.readouterr().out
 

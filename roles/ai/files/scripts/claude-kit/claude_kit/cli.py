@@ -1,8 +1,10 @@
 """Argument parsing and dispatch.
 
-`--type` is required on every command except `doctor` and `adopt`, where it
-narrows an otherwise cross-type result. Nothing is inferred from a name: because
-the type is always explicit, the three namespaces are allowed to overlap.
+`--type` is required on every command except `scout`, `sync`, `doctor` and `adopt`, where
+it narrows an otherwise cross-type result, and `trust`, which does not take it at all:
+workspace trust is a property of a directory, not of an artifact. Nothing is inferred
+from a name: because the type is always explicit, the three namespaces are allowed to
+overlap.
 
 The help is painted in the same palette the commands use (colors.py): bold for a
 section heading, as in `list`'s "Available skills:"; cyan for a name, as in its group
@@ -40,6 +42,7 @@ COMMANDS = {
     "outdated": "Report which skills are behind upstream",
     "doctor": "Report drift between registries and disk",
     "adopt": "Rebuild claude-kit.json from what is installed",
+    "trust": "Show or change whether this workspace is trusted",
 }
 
 # Which module runs each command. `update` and `outdated` share one: they are the same
@@ -59,6 +62,7 @@ MODULE = {
     "outdated": "pull",
     "doctor": "doctor",
     "adopt": "adopt",
+    "trust": "trust",
 }
 
 # The families differ in what they touch, which is what decides whether --global is
@@ -91,6 +95,16 @@ FAMILIES = (
     (
         "Registry-wide (this repo's sources against upstream; --global does not apply)",
         ("update", "outdated"),
+    ),
+    # A fifth family rather than a sixth scope-fixed command, because the other four
+    # titles are all claims about which .claude/ a command touches and this one touches
+    # none of them: it reads and writes Claude Code's own ~/.claude.json. Filing it under
+    # "the cwd decides" would have been true and would still have put it in a list of
+    # artifact commands, where a reader looking for why a plugin does not load has no
+    # reason to look.
+    (
+        "Workspace trust (~/.claude.json, keyed on the repo root; --global does not apply)",
+        ("trust",),
     ),
 )
 
@@ -133,6 +147,12 @@ SCOPE = {
     "adopt": (
         "Project scope only: the manifest it writes is <cwd>/.claude/claude-kit.json, "
         "so --global has nothing to say here."
+    ),
+    "trust": (
+        "Acts on ~/.claude.json, under the key Claude Code derives from <cwd>: the git "
+        "repo root, and for a linked worktree the main checkout. It reads and writes one "
+        "field of one key and no artifact of any type, so neither --type nor --global "
+        "applies here."
     ),
 }
 
@@ -445,6 +465,33 @@ def build_parser():
         dest="dry_run",
         action="store_true",
         help="Show what would be recorded without writing anything",
+    )
+
+    # No _add_type: this is the one command that acts on a directory rather than on an
+    # artifact, so there is no kind to narrow and run() reads no args.type.
+    trust = _command(sub, "trust")
+    trust.add_argument(
+        "path",
+        nargs="?",
+        default=None,
+        metavar="PATH",
+        help="Which directory to report on or change (default: the cwd). Its repo root "
+        "is what gets used, so an ancestor named in a warning can be passed straight back.",
+    )
+    # Mutually exclusive rather than one --trust=BOOL: the two are opposite intentions
+    # and argparse can refuse both at once only when they are separate flags.
+    switch = trust.add_mutually_exclusive_group()
+    switch.add_argument(
+        "--on",
+        dest="turn_on",
+        action="store_true",
+        help="Trust this workspace, so its project-scope plugins load",
+    )
+    switch.add_argument(
+        "--off",
+        dest="turn_off",
+        action="store_true",
+        help="Clear this workspace's own trust flag",
     )
 
     return parser

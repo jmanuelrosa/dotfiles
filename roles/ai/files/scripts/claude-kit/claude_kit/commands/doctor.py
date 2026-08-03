@@ -13,10 +13,25 @@ from pathlib import Path
 
 from .. import catalog as cat
 from .. import checks, errors, paths, scope, state
+from .. import workspace as ws
 from dotkit import ui
 
 
-def collect(catalog, effective, claude, home, project, provenance, kind=None):
+def trust_config(home):
+    """Claude Code's config, or an empty one.
+
+    Unreadable in either sense means nothing is trusted: a file that is not there has no
+    entries, and one Claude Code cannot parse is one it reads no trust out of either. So
+    both degrade to the same empty mapping rather than to a skipped check, and doctor
+    keeps its promise never to refuse.
+    """
+    try:
+        return ws.read(ws.config_path(home))
+    except ws.Unreadable:
+        return {}
+
+
+def collect(catalog, effective, claude, home, project, provenance, config, kind=None):
     """Every finding, narrowed to `kind` when one is given. Pure.
 
     Narrowing filters the findings rather than the inputs, so a scoped run uses
@@ -35,6 +50,7 @@ def collect(catalog, effective, claude, home, project, provenance, kind=None):
         *checks.broken_links(claude, home, project),
         *checks.wrong_scope(catalog, effective, home, project, claude),
         *checks.provenance_drift(catalog, provenance, project, claude),
+        *checks.untrusted_workspace(config, project, claude),
     ]
     if kind is None:
         return findings
@@ -87,5 +103,7 @@ def run(args):
     project = scope.project_root(Path.cwd(), home)
     provenance = state.read(project)
 
-    findings = collect(catalog, effective, claude, home, project, provenance, args.type)
+    findings = collect(
+        catalog, effective, claude, home, project, provenance, trust_config(home), args.type
+    )
     return report(findings, args.type, project)
