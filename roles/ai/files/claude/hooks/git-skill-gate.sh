@@ -32,7 +32,7 @@ lock the user out. To swap to fail-closed, change the `sys.exit(0)`
 lines in the transcript-handling path to `sys.exit(2)`.
 
 Wrapper scripts that run git in a subprocess are invisible here: the hook
-receives the Bash command, not what that command spawns. Three are known,
+receives the Bash command, not what that command spawns. Four are known,
 and they are not all handled in the same direction.
 
 `skills/commit/scripts/apply.py` commits and `skills/pr/scripts/apply.py`
@@ -50,6 +50,18 @@ created moments earlier, off the default branch's tip, with no commits on
 it, and it refuses to push a branch that already existed. So it cannot
 push work, and /pr stays the only path that pushes commits. `s-task
 --no-push` skips the push entirely.
+
+`s-release` (~/.local/bin/s-release, from the same role) runs `gh pr
+create`, and that is deliberately allowed too. It exists for a ritual
+`master` will retire: opening the pull request that merges `develop` into
+`master`, which is what deploys to production, across several repos at
+once. What keeps it narrow: base and head are constants with no flag to
+reach them, so it can only ever open `develop` into `master`; it commits
+and pushes nothing, since both refs are already on the remote; it refuses
+when there is nothing to release or a release PR is already open, so it
+can open neither an empty one nor a duplicate; and it never merges, which
+is the step that actually deploys. So /pr stays the only path that opens
+a pull request for code someone wrote.
 
 Acknowledged limitations: the matcher does not parse subshells, command
 substitution, `eval`, or shell aliases, and for gh/glab it does not
