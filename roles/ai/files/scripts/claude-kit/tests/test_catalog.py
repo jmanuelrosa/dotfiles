@@ -220,9 +220,14 @@ def test_global_set_expands_one_dependency_level(catalog, effective, name, paren
     assert name in effective, f"{name} should be global via {parent}"
 
 
-def test_global_set_matches_the_fish_helpers_documented_membership(catalog, effective):
-    """Pinned so a registry retag shows up as a failing test rather than as silent
-    divergence from _claude_scope_global_skills.fish."""
+def test_global_set_holds_exactly_the_documented_membership(catalog, effective):
+    """Pinned so a registry retag shows up as a failing test rather than as a silent
+    change to what lands in ~/.claude.
+
+    This used to be pinned against a fish helper that derived the same set for the
+    Television picker. That helper is gone: the cables read `claude-kit list --json`, so
+    this function is the only implementation and there is nothing left to diverge from.
+    """
     assert effective == {
         "agent-audit",
         "agent-writer",

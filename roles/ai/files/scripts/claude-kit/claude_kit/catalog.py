@@ -73,8 +73,11 @@ def entry_name(entry, repo_key):
     """A repo entry's directory name: the basename of upstream_path.
 
     Falls back to the repo name when the path is empty, "." or "/", which is how
-    a skill living at a repo root is named. Mirrors dn() in
-    _claude_skill_jqlib.fish, which the fish tooling still uses.
+    a skill living at a repo root is named.
+
+    This is now the only implementation, and the Television cables depend on it being
+    the name they get from `claude-kit list --json`: their preview and $EDITOR actions
+    build a path under files/claude/skills/ from it.
     """
     if "name" in entry:
         return entry["name"]
