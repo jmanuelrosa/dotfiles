@@ -563,7 +563,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-07-25T09:44:15Z"
+          "updated_at": "2026-08-04T16:31:47Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-brownfield",
@@ -572,7 +572,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-07-25T09:44:15Z"
+          "updated_at": "2026-08-04T16:31:47Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-dev-client",
@@ -581,7 +581,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-07-25T09:44:15Z"
+          "updated_at": "2026-08-04T16:31:47Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-tailwind-setup",
@@ -590,7 +590,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-07-25T09:44:15Z"
+          "updated_at": "2026-08-04T16:31:47Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-data-fetching",
@@ -599,7 +599,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-07-25T09:44:15Z"
+          "updated_at": "2026-08-04T16:31:47Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-upgrade",
@@ -608,7 +608,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-07-25T09:44:15Z"
+          "updated_at": "2026-08-04T16:31:47Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-dom",
@@ -617,7 +617,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-07-25T09:44:15Z"
+          "updated_at": "2026-08-04T16:31:47Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-router",
@@ -626,7 +626,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-07-25T09:44:15Z"
+          "updated_at": "2026-08-04T16:31:47Z"
         }
       ]
     },
