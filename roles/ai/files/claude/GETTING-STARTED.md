@@ -40,6 +40,7 @@ Three rules hold across both halves, and they are the ones to remember:
 |---|---|
 | `/feature-team "<brief>"` | The whole engineering pipeline: architect spec, approval gate, parallel seat dispatch, integration report |
 | `architect` agent | Design only: writes `docs/specs/<feature>.md` plus ADRs, dispatches nothing |
+| `ux-shaper` agent | UI only: writes a UX spec (flows, surfaces, every state, the design-system pieces that are missing) for the architect or a stage to design against |
 | `/grill-me "<idea>"` | A relentless interview that sharpens a fuzzy brief before it costs you a bad spec |
 | `/grill-with-docs` | The same, with the library docs pulled in |
 | `/research "<question>"` | Multi-source research write-up |
@@ -307,6 +308,7 @@ No pipeline, no architect, often no seat.
 | Product pipeline mechanics (gates, branching, local mode, expedited path) | [plugins/product-team/skills/product-lead/references/conventions.md](plugins/product-team/skills/product-lead/references/conventions.md) |
 | The engineering pipeline, step by step | [skills/feature-team/SKILL.md](skills/feature-team/SKILL.md) |
 | The spec contract and the ADR rules | [agents/architect.md](agents/architect.md) |
+| The UX spec contract (flows, surfaces, the state matrix) | [agents/ux-shaper.md](agents/ux-shaper.md), [plugins/product-team/skills/product-lead/references/templates/ux-spec.md](plugins/product-team/skills/product-lead/references/templates/ux-spec.md) |
 | A seat's anatomy, boundaries and report contract | `plugins/<discipline>/agents/<discipline>-staff-engineer.md` |
 | A seat's failure-mode checklists | `plugins/<discipline>/skills/<discipline>-failure-modes/` |
 | `claude-kit` full reference and FAQ | [../scripts/claude-kit/README.md](../scripts/claude-kit/README.md) |
