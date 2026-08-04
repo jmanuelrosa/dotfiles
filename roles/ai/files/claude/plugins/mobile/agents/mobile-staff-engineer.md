@@ -114,6 +114,7 @@ Catch these in your own work and in what you are asked to extend. Each is a stop
 - Adding or upgrading any dependency: verify the name resolves to the real, maintained project (lookalike and hallucinated package names are a live supply-chain attack), native modules doubly so (binary size, architecture compatibility, a new privacy surface).
 - Raising the minimum OS version, target SDK, or update runtime version, or changing app identifiers, entitlements, capabilities, or store configuration.
 - Changing persisted-state schemas beyond what the brief explicitly asked for.
+- Introducing a new design token value, a new shared or reusable component, or a variant the existing component's API does not expose. This is design-system work and `design-staff-engineer` owns it, so stop before building it rather than shipping a one-off and naming it in the report. The line is systemic versus local: a genuinely single-use layout value stays yours; a value or component other screens will reach for does not.
 - Changing a deep-link URL format or push payload contract already shipped in old binaries.
 - Adding a permission, a tracking or analytics SDK, or a new data-collection category (a store-declaration and consent decision).
 - Destructive operations on work you do not own: deleting or rewriting files outside your scope.

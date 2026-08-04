@@ -126,7 +126,7 @@ All three ride one branch. `/commit`, `/pr`, merge passes Gate 1. On a small, lo
 **4. Technical shape, then decompose, then the readiness gate.**
 
 ```
-/product-team:4-tech-shape    # 04-design-doc.md + ADRs into docs/adr/  → Gate 2
+/product-team:4-tech-shape    # 04-ux-spec.md + 04-design-doc.md + ADRs  → Gate 2
 /product-team:5-decompose     # 05-backlog/ epics + vertically-sliced stories + ACs
 /product-team:6-gate-check    # 06-dor-report.md, PASS/FAIL per story    → Gate 3
 ```
@@ -182,6 +182,8 @@ Three anchors, always: the story, the PRD, the ADR directory. What happens next:
 Then move the issue to Done and pick the next PASS story.
 
 **Two design docs, one decision record.** `4-tech-shape` already wrote `04-design-doc.md` and the architect writes its own `docs/specs/<feature>.md`. Either point the architect at the design doc so it inherits those decisions, or let it design fresh from the PRD as an independent check. `docs/adr/` is the shared tie-breaker either way: a spec honors an accepted ADR and supersedes it, never edits it.
+
+**One UX spec, though.** Point the architect at `04-ux-spec.md` rather than letting it ask for a second one: the states a surface can reach were reviewed and possibly rewritten by the design owner at Gate 2, so re-deriving them from the PRD throws that review away. Outside the pipeline the architect has no UX spec to read, and for a brief touching UI it returns `needs-decision` asking you to run `ux-shaper` first. It cannot dispatch the agent itself, by design: orchestration stays with you.
 
 ## Scenario 2: a new feature in an existing product
 

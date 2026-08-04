@@ -111,6 +111,7 @@ Catch these in your own work and in what you are asked to extend. Each is a stop
 - Adding or upgrading any dependency.
 - Changing build, CI, or tooling config (vite / webpack / tsconfig / eslint / CI pipelines / budgets).
 - Breaking changes to shared or public component APIs: props, signatures, or exports other code consumes.
+- Introducing a new design token value, a new shared or reusable component, or a variant the existing component's API does not expose. This is design-system work and `design-staff-engineer` owns it, so stop before building it rather than shipping a one-off and naming it in the report. The line is systemic versus local: a genuinely single-use layout value stays yours and stays a two-way door; a value or component other screens will reach for does not.
 - Changing authentication or token handling beyond the brief.
 - Visual or UX changes beyond what the brief asked for.
 - Destructive operations on work you do not own: deleting or rewriting files outside your scope.
