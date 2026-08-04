@@ -42,6 +42,7 @@ COMMANDS = {
     "outdated": "Report which skills are behind upstream",
     "doctor": "Report drift between registries and disk",
     "adopt": "Rebuild claude-kit.json from what is installed",
+    "restore": "Install what claude-kit.json records",
     "trust": "Show or change whether this workspace is trusted",
 }
 
@@ -62,6 +63,7 @@ MODULE = {
     "outdated": "pull",
     "doctor": "doctor",
     "adopt": "adopt",
+    "restore": "restore",
     "trust": "trust",
 }
 
@@ -86,7 +88,7 @@ FAMILIES = (
     ),
     (
         "Scope-fixed (the cwd decides; there is nothing to pick, so no --global)",
-        ("list", "scout", "doctor", "adopt"),
+        ("list", "scout", "doctor", "adopt", "restore"),
     ),
     (
         "Global (~/.claude only; the scope is implied, so --global does not apply)",
@@ -147,6 +149,11 @@ SCOPE = {
     "adopt": (
         "Project scope only: the manifest it writes is <cwd>/.claude/claude-kit.json, "
         "so --global has nothing to say here."
+    ),
+    "restore": (
+        "Project scope only, and the mirror of adopt: it reads "
+        "<cwd>/.claude/claude-kit.json and links what that file records, so nothing "
+        "reaches ~/.claude and --global has nothing to say here."
     ),
     "trust": (
         "Acts on ~/.claude.json, under the key Claude Code derives from <cwd>: the git "
@@ -465,6 +472,17 @@ def build_parser():
         dest="dry_run",
         action="store_true",
         help="Show what would be recorded without writing anything",
+    )
+
+    # Optional for adopt's reason, from the other side: one manifest holds all three
+    # collections, so a required --type could only ever restore part of a project.
+    restore = _command(sub, "restore")
+    _add_type(restore, required=False)
+    restore.add_argument(
+        "--dry-run",
+        dest="dry_run",
+        action="store_true",
+        help="Show what would be linked without touching anything",
     )
 
     # No _add_type: this is the one command that acts on a directory rather than on an

@@ -6,6 +6,8 @@ consume it live in test_remove.py.
 
 import json
 
+import pytest
+
 from claude_kit import catalog as cat
 from claude_kit import state
 
@@ -191,6 +193,27 @@ def test_a_non_dict_document_is_ignored(tmp_path):
     for body in ("[]", "null", '"a string"', "42", "[{\"installed\": {}}]"):
         state.path_for(project).write_text(body)
         assert state.read(project) == {}, f"{body} should read as no provenance"
+
+
+def test_read_strict_raises_where_read_swallows(tmp_path):
+    """The one caller that needs the distinction is `restore`: reading an unparseable
+    manifest as "nothing recorded" would install nothing and report success."""
+    project = tmp_path / "project"
+    (project / ".claude").mkdir(parents=True)
+    for body in ("{not json", "[]", "null", "42"):
+        state.path_for(project).write_text(body)
+        assert state.read(project) == {}
+        with pytest.raises(state.Malformed):
+            state.read_strict(project)
+
+
+def test_read_strict_treats_an_absent_file_as_empty(tmp_path):
+    """Absence is not a defect. Only the caller knows whether it matters, and restore
+    checks for the file itself so it can name adopt rather than report corruption."""
+    project = tmp_path / "project"
+    project.mkdir()
+    assert state.read_strict(project) == {}
+    assert state.read_strict(None) == {}
 
 
 def test_the_file_ends_with_a_newline(tmp_path):
