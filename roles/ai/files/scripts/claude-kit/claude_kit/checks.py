@@ -312,7 +312,7 @@ def provenance_drift(catalog, provenance, project, claude):
                     "stale-provenance",
                     PROBLEM,
                     f"{kind} '{name}'",
-                    "recorded in claude-kit.json but not linked",
+                    "recorded in claude-kit.json but not linked. Run: claude-kit restore",
                     kind,
                 )
             )

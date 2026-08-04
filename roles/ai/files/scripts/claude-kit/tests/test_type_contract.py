@@ -14,7 +14,7 @@ from claude_kit import errors
 from claude_kit.cli import TYPES, build_parser
 
 TYPED = ["list", "add", "remove", "update", "outdated"]
-UNTYPED = ["doctor", "adopt"]
+UNTYPED = ["doctor", "adopt", "restore"]
 
 
 def parse(argv):
