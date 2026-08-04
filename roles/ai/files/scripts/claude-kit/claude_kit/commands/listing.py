@@ -15,12 +15,23 @@ single-width and keeps the suffix columns aligned.
 
 Read-only, so it never refuses for want of a project: in $HOME, the one directory that
 is not one, it reports global state and says so.
+
+`--json` prints `rows()` verbatim instead of rendering it, which is what makes this
+command the one source the Television cables read. They used to re-derive the
+catalogue, the dependency_only hiding, the effective global set and link status in jq
+and fish, against a *different* rule for what a project is, so a directory that is not
+a git repo showed every skill as available while this command showed them linked.
+Nothing on stdout but the payload, then: the $HOME aside goes to stderr and neither
+the heading nor the closing count is printed at all.
 """
 
+import json
+import sys
 from pathlib import Path
 
 from .. import catalog as cat
 from .. import errors, paths, scope, state
+from ..cli import fail
 from dotkit import colors, ui
 
 LINKED = "linked"
@@ -128,6 +139,17 @@ def grouped(listed):
 
 
 def run(args):
+    # A bare `--group` asks for the grouped *view*, and JSON has no view: each row
+    # already carries its tags, so bucketing them is the caller's to do. Refused before
+    # any I/O, since it is a decision about the flags alone.
+    if args.json and args.group is True:
+        return fail(
+            errors.USAGE,
+            "--json emits rows, and a bare --group asks for a rendering of them. Every "
+            "row carries its `groups`, so bucket them downstream.\n"
+            f"  Run: claude-kit list --type {args.type} --json",
+        )
+
     claude = paths.claude_dir()
     home = paths.home()
     catalog = cat.build_catalog(claude)
@@ -138,10 +160,17 @@ def run(args):
     listed = rows(catalog, args.type, effective, home, project, provenance, args.group, claude)
 
     if project is None:
+        # stderr under --json: the aside is still worth reading, and stdout is a payload
+        # a caller parses.
         ui.note(
             "Running in $HOME, which is never a project, so only global state is shown.",
             indent=0,
+            stream=sys.stderr if args.json else None,
         )
+
+    if args.json:
+        print(json.dumps(listed))
+        return errors.OK
 
     if args.group is True:
         # `--group` with no tag: the grouped view.

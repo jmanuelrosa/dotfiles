@@ -128,7 +128,7 @@ plain help byte for byte, which is what a test asserts.
 ### `list`
 
 ```
-claude-kit list --type {skill,agent,plugin} [--group [TAG]]
+claude-kit list --type {skill,agent,plugin} [--group [TAG]] [--json]
 ```
 
 Read-only, and the only command that never refuses: in `$HOME` it reports global state and says
@@ -142,8 +142,23 @@ in `test_list_format.py`, escape codes included.
 |---|---|
 | `--group` | With no value, group the listing by tag |
 | `--group TAG` | Show only entries carrying that tag. A claude-kit addition; tags are opaque, so any value in the registry works |
+| `--json` | Print the rows as JSON on stdout instead of rendering them |
 
 Bare `--group` is also how you find a tag worth passing to `add --group` or `remove --group`.
+
+`--json` is what the Television cables read, and it is why they hold no catalogue logic of
+their own. stdout carries the payload and nothing else: no heading, no closing count, no colour,
+and the `$HOME` aside goes to stderr. Each row carries `name`, `state` (`linked`, `available` or
+`missing`), `installed` (`global`, `project` or `null`), `global`, `groups`, `dependencies`,
+`reason` and `parent` - so the direction of a toggle is `.state` and whether `add` needs
+`--global` is `.global`. `--group TAG` still narrows, being a filter; a bare `--group` asks for a
+rendering and is refused `USAGE`, since every row already carries its tags.
+
+```
+$ claude-kit list --type skill --json | jq -r '.[] | select(.state == "linked") | .name'
+coderabbit
+context-engineering
+```
 
 Markers: `✓ (linked)` in green is installed, `·` dim is available, and a dim
 `↓ name (not downloaded)` is registered but not yet fetched. Suffixes follow in a fixed order:
