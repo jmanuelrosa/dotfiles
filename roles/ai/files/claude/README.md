@@ -131,6 +131,7 @@ A separate delegation system for building what Product Team specs out. Each seat
 | Agent | Owns | Never |
 |---|---|---|
 | `architect` | Cross-stack design: feature spec in `docs/specs/`, work split across seats, ADRs for hard-to-reverse choices | Implements, reviews, or dispatches (disallows the Agent tool) |
+| `ux-shaper` | UX specification: every flow, every surface, every state each surface can reach, and the design-system pieces that do not exist yet | Implements, generates mockups, or dispatches; never names a component it did not find in the code |
 | `frontend-staff-engineer` | UI features, components, styling, state, routing, data fetching | Reviews its own work (the caller owns review) |
 | `design-staff-engineer` | Design system: tokens, theming, shared components and variant APIs, typography, color, spacing, motion, responsive/CSS architecture | Data fetching, routing, business logic (the frontend seat); never trades accessibility for aesthetics |
 | `mobile-staff-engineer` | Native iOS (SwiftUI), Android (Compose), React Native/Expo screens and flows, offline/sync, persistence, deep links, push, permissions | Web UI (frontend seat), server code (backend seat); never submits to a store or ships an OTA update |
@@ -165,6 +166,8 @@ The per-story loop:
 
 **Two design docs, one decision record.** `/product-team:4-tech-shape` already wrote `04-design-doc.md`, and `architect` writes its own `docs/specs/<feature>.md`. Either point the architect at `04-design-doc.md` so it inherits those decisions, or let it design fresh from the PRD for an independent check. Whichever you choose, `docs/adr/` is the shared, immutable tie-breaker: the spec honors accepted ADRs and supersedes (never edits) if it diverges, continuing the same global numbering both pipelines use.
 
+**One UX spec, though.** The states each surface can reach were reviewed, and possibly rewritten, by the `.github/CODEOWNERS` design owner at Gate 2, so point the architect at `04-ux-spec.md` rather than letting it re-derive them from the PRD and throw that review away. Outside the pipeline there is no spec to read, and a brief touching UI comes back `needs-decision` naming the `ux-shaper` run for you to make: the architect cannot dispatch it, which is the design rather than a limitation.
+
 ## The Tracked/Local Rule
 
 Every skill and agent in this repo is either:
@@ -188,19 +191,19 @@ Three tiers are in use. `low` and `max` are deliberately unused: `low` trades aw
 |---|---|---|
 | `medium` | Template-driven and mechanical work, where the procedure carries the result and the model fills it in | `commit`, `pr`, `jira`, `handoff`, `coderabbit`, `cc-review` |
 | `high` | Research, review and read-and-summarize work, where breadth matters more than depth | `security-staff-engineer`, `cc-staff-reviewer`, the five product-team research and scribe agents |
-| `xhigh` | Multi-file implementation, cross-stack design, adversarial review | The 13 implementer seats, `architect`, `pm-red-team` |
+| `xhigh` | Multi-file implementation, cross-stack design, adversarial review | The 14 implementer seats, `architect`, `ux-shaper`, `pm-red-team` |
 
 `high` matches the current `effortLevel`, so setting it explicitly changes nothing today and reads as a no-op. It is not one: it is a **pin**, and its job is to keep that artifact at `high` when you run a session at `xhigh`, `max` or ultracode. Do not delete it as dead config.
 
 ### Model
 
-Pins are deliberate and stay. Every staff-engineer seat and `architect` pin `model: opus`, which is a refusal to follow a `/model fable` session: the cost of a delegated implementation stays predictable whatever you are running in the main loop. `commit`, `pr` and the product-team research and scribe agents pin `model: sonnet`, because the judgment intensity does not justify Opus. Everything else omits `model:` and inherits.
+Pins are deliberate and stay. Every staff-engineer seat, `architect` and `ux-shaper` pin `model: opus`, which is a refusal to follow a `/model fable` session: the cost of a delegated implementation stays predictable whatever you are running in the main loop. `commit`, `pr` and the product-team research and scribe agents pin `model: sonnet`, because the judgment intensity does not justify Opus. Everything else omits `model:` and inherits.
 
 Leave `model:` off unless inheriting the caller's model would be wrong for the work.
 
 ### Memory
 
-The 14 seats and `architect` carry `memory: project`, giving each one `<project>/.claude/agent-memory/<name>/` so it stops rediscovering the same stack facts on every dispatch. The directory is committable by design, so a seat records the **shape of the codebase** there and never a secret, a credential, or a security finding's exploit detail. Enabling the field is not enough on its own: each seat also carries a boundary bullet telling it to write there, and the completion report still names the gotchas for the caller.
+All 15 seats, `architect` and `ux-shaper` carry `memory: project`, giving each one `<project>/.claude/agent-memory/<name>/` so it stops rediscovering the same stack facts on every dispatch. For `ux-shaper` those facts are the design system: which tokens exist, which components have which variants. The directory is committable by design, so a seat records the **shape of the codebase** there and never a secret, a credential, or a security finding's exploit detail. Enabling the field is not enough on its own: each seat also carries a boundary bullet telling it to write there, and the completion report still names the gotchas for the caller.
 
 Authoring guidance for all three lives with the generators, and they are the files to change if this policy changes: [skills/agent-writer/references/seat-agent-anatomy.md](skills/agent-writer/references/seat-agent-anatomy.md) for seats, [skills/skill-writer/references/claude-frontmatter-invocation.md](skills/skill-writer/references/claude-frontmatter-invocation.md) for skills, and [skills/agent-audit/SKILL.md](skills/agent-audit/SKILL.md) for the audit rubric that catches drift.
 

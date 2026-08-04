@@ -30,7 +30,7 @@ First read `../product-lead/references/conventions.md` (sibling of this skill's 
 
 ## Check
 
-For every `05-backlog/story-*.md`, evaluate each checklist item against the actual file contents, cross-referencing `02-prd.md` (do R# ids exist? do open questions touching them have owners?) and the backlog (dependency cycles). Verify, don't trust: an AC id present but untestable ("works correctly") is a FAIL on that item.
+For every `05-backlog/story-*.md`, evaluate each checklist item against the actual file contents, cross-referencing `02-prd.md` (do R# ids exist? do open questions touching them have owners?), `04-ux-spec.md` (does each story's Design/UX pointer resolve to a heading that is really there?) and the backlog (dependency cycles). Verify, don't trust: an AC id present but untestable ("works correctly") is a FAIL on that item, and a Design/UX pointer you did not open is an item you did not check.
 
 Write `06-dor-report.md` (metadata header per conventions.md):
 
