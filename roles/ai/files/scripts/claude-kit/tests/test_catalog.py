@@ -10,8 +10,9 @@ import json
 import pytest
 
 from claude_kit import catalog as cat
+from claude_kit import frontmatter
 from claude_kit import scope
-from dotkit.testing import CLAUDE
+from dotkit.testing import AGENTS, CLAUDE
 
 # --- fixtures over the real repo --------------------------------------------
 
@@ -343,3 +344,44 @@ def test_in_group_is_name_ordered(catalog):
 def test_every_catalog_source_exists_on_disk(catalog):
     for art_ in catalog.values():
         assert art_.source.exists(), f"{art_.type} '{art_.name}' missing at {art_.source}"
+
+
+# --- seat routing, held against architect.md --------------------------------
+
+
+def seat_agents(catalog):
+    """Every staff-engineer agent shipped by a seat plugin, with its frontmatter keys."""
+    for plugin in cat.of_type(catalog, cat.PLUGIN):
+        for path in sorted((plugin.source / "agents").glob("*-staff-engineer.md")):
+            yield path, frontmatter.keys(path.read_text()) or ()
+
+
+def test_implementer_seats_are_the_ones_without_a_tools_allowlist(catalog):
+    """The advisor/implementer split is readable from frontmatter alone.
+
+    `tools:` is what makes a seat read-only, and a read-only seat owns no slice. Pinned
+    so the next advisor seat is a deliberate addition here rather than a silent
+    disappearance from architect's routing.
+    """
+    advisors = {p.stem for p, keys in seat_agents(catalog) if "tools" in keys}
+    assert advisors == {"security-staff-engineer"}
+
+
+def test_architect_routes_to_every_implementer_seat(catalog):
+    """A seat architect never names is a seat it never assigns work to.
+
+    This list rotted from twelve seats to seven without anyone noticing: design,
+    mobile, desktop, dx and gtm each shipped without reaching `architect.md`, so
+    architect silently defaulted their work to the frontend and backend seats. The
+    symptom was invisible, because defaulting is indistinguishable from routing.
+    """
+    routing = (AGENTS / "architect.md").read_text()
+    missing = sorted(
+        path.stem
+        for path, keys in seat_agents(catalog)
+        if "tools" not in keys and path.stem.removesuffix("-staff-engineer") not in routing
+    )
+    assert missing == [], (
+        f"seats absent from architect.md's enumeration: {', '.join(missing)}. "
+        f"Architect cannot assign a slice to a seat it does not name."
+    )

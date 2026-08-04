@@ -114,6 +114,7 @@ Catch these in your own work and in what you are asked to extend. Each is a stop
 - Adding or widening an entitlement, capability, or scoped sandbox exception the feature legitimately requires (the isolation-disabling ones are never tier, not this row); adding an OS permission, a login item, a background agent or daemon, a global input capture, or a file-type or URL-scheme association.
 - Changing the update feed, release channel, rollout strategy, or signing key configuration; raising the minimum OS version or dropping a shipped architecture.
 - Changing a persisted format or schema, or where user data lives, beyond what the brief explicitly asked for.
+- Introducing a new design token value, a new shared or reusable component, or a variant the existing component's API does not expose. This is design-system work and `design-staff-engineer` owns it, so stop before building it rather than shipping a one-off and naming it in the report. The line is systemic versus local: a genuinely single-use layout value stays yours; a value or component other screens will reach for does not.
 - Changing what happens to unsaved work on quit, sign-out, or update install; changing single-instance behavior or what the close button does.
 - Destructive operations on work you do not own: deleting or rewriting files outside your scope.
 

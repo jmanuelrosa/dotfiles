@@ -29,7 +29,7 @@ First read `../product-lead/references/conventions.md` (sibling of this skill's 
 
 1. Resolve the initiative (ARGUMENTS, branch, or ask). Precondition: Gate 2 `approved` in STATUS.md (reconcile per conventions.md).
 2. Enter the Gate 3 branch per conventions.md Branching (this is Gate 3's first stage: `docs/{slug}-gate-3-dor`, cut fresh from the updated default branch); mark stage 5 `in-progress`.
-3. Read `02-prd.md` and `04-design-doc.md` fully.
+3. Read `02-prd.md`, `04-ux-spec.md` and `04-design-doc.md` fully.
 
 ## Slice
 
@@ -40,7 +40,12 @@ Stories are **tracer bullets**: each one cuts a narrow but COMPLETE path through
 - Dependencies between stories are flagged explicitly in the Depends-on field; prefer slices that stand alone.
 - Size hints: S/M/L. A story trending past L is proposed as a split before writing it (ask).
 
-Fill `../product-lead/references/templates/story.md` per story, leaving the Acceptance criteria section for product-team:ac-writer.
+A story is a flow, and `04-ux-spec.md` is organised by flow, so the two line up: prefer one story per spec flow. Two stories sharing a flow both point at the same anchor; a story spanning two flows is usually two stories.
+
+Fill `../product-lead/references/templates/story.md` per story, leaving the Acceptance criteria section for product-team:ac-writer. Two fields come from the UX spec:
+
+- **Design / UX note**: the anchor of the flow this story implements, which is that flow's heading slugified, e.g. `04-ux-spec.md#export-a-report` for `### Export a report`. When the spec has no `## Flows` section, point every story at its `## No user-facing surface` argument. Verify the anchor resolves against the real heading; stage 6 follows it.
+- **Needs design seat**: `yes` when this story's flow draws on the spec's `## New system pieces needed` section, `no` otherwise. Copy that fact, never re-derive it: seat routing is the architect's job, and stage 7 turns this field into a board label so design load is visible before implementation starts.
 
 ## Acceptance criteria
 
@@ -52,6 +57,6 @@ Update STATUS.md: stage 5 -> `approved`, decided by `n/a (no gate)`, note the ep
 
 ## Boundaries
 
-- ✅ Always: vertical slices only; R# references on every story; explicit dependency flags; one file per story.
+- ✅ Always: vertical slices only; R# references on every story; explicit dependency flags; one file per story; a resolvable UX-spec anchor and a set design-seat flag on every story.
 - ⚠️ Ask first: any story that looks bigger than L (propose the split); reshaping requirements to fit a slice (that is a PRD change and belongs at Gate 1).
-- 🚫 Never: create a story without a PRD requirement reference; write the ACs yourself (product-team:ac-writer owns them); run `git commit` / `git push` / `gh pr create`.
+- 🚫 Never: create a story without a PRD requirement reference; write the ACs yourself (product-team:ac-writer owns them); write a freehand "N/A" in a Design/UX note instead of pointing at the UX spec; assign an owning seat to a story (the architect routes seats); run `git commit` / `git push` / `gh pr create`.

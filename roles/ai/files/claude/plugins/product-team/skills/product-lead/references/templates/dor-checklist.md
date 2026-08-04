@@ -7,7 +7,8 @@ Per story:
 - [ ] **ACs present & testable**: at least one Given/When/Then block with an AC id; each Then is observable, not "works correctly".
 - [ ] **PRD traceability**: every AC and the story itself reference existing R# ids that appear in 02-prd.md.
 - [ ] **Dependencies flagged**: the Depends-on field is filled (a story with none says `none`), and no dependency cycle exists across the backlog.
-- [ ] **Design attached or argued N/A**: the Design/UX note points at a design-doc section or mockup, or states why none is needed. A bare "N/A" fails.
+- [ ] **Design pointer resolves**: the Design/UX note points at a section that exists in `04-ux-spec.md` (a flow anchor, or that spec's "No user-facing surface" argument). Follow the pointer and check; a dangling anchor fails, and so does any freehand "N/A because ..." written in the story instead of a pointer.
+- [ ] **Design seat flag set**: the `Needs design seat` field reads `yes` or `no`, and `yes` iff the story's flow draws on the UX spec's "New system pieces needed" section. Blank fails.
 - [ ] **No unowned open questions**: no open question in 02-prd.md that touches this story's requirements is missing an owner.
 - [ ] **Size hint present**: S, M, or L. An L should carry a note on why it was not split.
 

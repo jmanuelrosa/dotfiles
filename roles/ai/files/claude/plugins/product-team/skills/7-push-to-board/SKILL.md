@@ -43,6 +43,7 @@ First read `../product-lead/references/conventions.md` (sibling of this skill's 
 Build the full plan from `05-backlog/` without creating anything:
 
 - One parent issue per epic (title from the epic file, label `initiative:{slug}`, `epic:{n}`), one issue per story (title `Story {n.m}: {title}`, body = the story file content, labels `initiative:{slug}`, `epic:{n}`, `type:story`), linked as native sub-issues of their epic.
+- A story whose `Needs design seat` field reads `yes` also gets `needs:design`. That label is the whole point of the field: it makes design work countable on the board before anyone picks a story up, instead of surfacing when an implementer seat stops mid-task to ask for a token that does not exist.
 - Labels that do not exist yet, listed as to-create.
 - Every issue added to Project `{project_number}`.
 

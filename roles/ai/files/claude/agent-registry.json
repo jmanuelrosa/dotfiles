@@ -23,6 +23,21 @@
         "documentation-and-adrs",
         "domain-modeling"
       ]
+    },
+    {
+      "name": "ux-shaper",
+      "groups": [
+        "product",
+        "designer",
+        "design",
+        "ui",
+        "planning",
+        "global"
+      ],
+      "note": "Locally authored",
+      "dependencies": [
+        "domain-modeling"
+      ]
     }
   ]
 }
