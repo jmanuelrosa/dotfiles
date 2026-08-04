@@ -391,6 +391,14 @@ def build_parser():
         metavar="TAG",
         help="With no value, group the listing by tag. With a tag, show only that tag.",
     )
+    # The machine-readable half of the same answer, and the reason the Television cables
+    # need no catalogue logic of their own. Only on `list`: it is the one command whose
+    # whole output is a set of facts rather than a report of what it did.
+    listing.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the rows as JSON on stdout instead of rendering them.",
+    )
 
     # --type is optional for the same reason as doctor's and adopt's: a project's stack
     # implies artifacts of all three kinds, and requiring it would make a partial answer

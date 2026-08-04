@@ -26,7 +26,7 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 
 ## Files
 
-- `files/fish/` — `config.fish`, `conf.d/{aliases,exports}.fish`, plus functions: `clean_claude` (+ `_clean_claude_{usage,excludes,find,confirm,tracked,purge_state,state_roots,worktree_main}`), `clean_all`, `clean_docker`, `clean_node`, `create_gitconfig`, `lns` (+ `_lns_{usage,target}`), `wt`, `_tv_claude_list`, `_tv_claude_toggle` (+ `_claude_scope_{target,is_global,global_skills}`, `_claude_skill_jqlib`), `tv_change_dir`, `tv_history`, `_ui`. Dropping a new `.fish` in there is self-installing: the role globs the directory, and prunes links whose source is gone. (Work-only helpers like `_tv_jira` live in the `work` role.)
+- `files/fish/` — `config.fish`, `conf.d/{aliases,exports}.fish`, plus functions: `clean_claude` (+ `_clean_claude_{usage,excludes,find,confirm,tracked,purge_state,state_roots,worktree_main}`), `clean_all`, `clean_docker`, `clean_node`, `create_gitconfig`, `lns` (+ `_lns_{usage,target}`), `wt`, `_tv_claude_list`, `_tv_claude_toggle` (both thin: every fact they show or act on comes from `claude-kit list --json`), `tv_change_dir`, `tv_history`, `_ui`. Dropping a new `.fish` in there is self-installing: the role globs the directory, and prunes links whose source is gone. (Work-only helpers like `_tv_jira` live in the `work` role.)
 - `files/ghostty/config` — Ghostty terminal config.
 - `files/starship.toml` — Starship prompt config.
 - `files/television/config.toml` — top-level television config (keybindings, theme, shell-integration channel triggers).

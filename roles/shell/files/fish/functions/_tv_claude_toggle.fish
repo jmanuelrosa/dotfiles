@@ -4,66 +4,73 @@ function _tv_claude_toggle --description "Television action: toggle link for one
         _ui err "_tv_claude_toggle: missing name"
         return 1
     end
-
-    set -l rc 0
-    switch $kind
-        case skill skills
-            for name in $names
-                _tv_claude_toggle_one skill $name ""; or set rc $status
-            end
-        case agent agents
-            set -l plugins_source $DOTFILES_DIR/roles/ai/files/claude/plugins
-            for name in $names
-                # A seat plugin links as a folder into the skills dir; a plain agent as a .md into the agents dir.
-                if test -f "$plugins_source/$name/.claude-plugin/plugin.json"
-                    _tv_claude_toggle_one plugin $name ""; or set rc $status
-                else
-                    _tv_claude_toggle_one agent $name .md; or set rc $status
-                end
-            end
-        case '*'
-            _ui err "_tv_claude_toggle: kind must be 'skill' or 'agent'"
-            return 1
-    end
-    return $rc
-end
-
-function _tv_claude_toggle_one --description "Add or remove one artifact through claude-kit, in the scope its tag dictates" --argument-names type name ext
     if not command -q claude-kit
         _ui err "claude-kit is not on PATH. Run: make run-role ROLE=ai"
         return 1
     end
 
-    # _claude_scope_target stays the authority on *where*, and the toggle runs
-    # claude-kit from there. The two disagree on what a project is: claude-kit
-    # anchors at the cwd, this anchors at the repo root, which is where a Claude
-    # session scans. Television is launched from anywhere in a checkout, so
-    # without the pushd below Enter would link into a subdirectory the session
-    # never reads, and the row _tv_claude_list renders would stay [available].
-    set -l target (_claude_scope_target $type $name)
-
-    set -l action add
-    if test -n "$target"; and test -L "$target/$name$ext"
-        set action remove
+    switch $kind
+        case skill skills
+            _tv_claude_toggle_type skill $names
+        case agent agents
+            # The agent picker lists agents and seat plugins together, so a selection may
+            # hold both and each needs its own --type. Which a name is comes from
+            # claude-kit's own plugin listing rather than from probing for a manifest
+            # under files/claude/plugins/: that probe is how catalog.py decides what a
+            # plugin is, and a second copy of it here is the class of bug this whole
+            # function stopped having.
+            set -l known (claude-kit list --type plugin --json | jq -r '.[].name')
+            set -l agents
+            set -l plugins
+            for name in $names
+                if contains -- $name $known
+                    set -a plugins $name
+                else
+                    set -a agents $name
+                end
+            end
+            set -l rc 0
+            test (count $agents) -gt 0; and begin
+                _tv_claude_toggle_type agent $agents; or set rc $status
+            end
+            test (count $plugins) -gt 0; and begin
+                _tv_claude_toggle_type plugin $plugins; or set rc $status
+            end
+            return $rc
+        case '*'
+            _ui err "_tv_claude_toggle: kind must be 'skill' or 'agent'"
+            return 1
     end
+end
 
-    # A global artifact lands in ~/.claude wherever it is invoked from, and
-    # claude-kit requires --global as confirmation of exactly that.
-    if _claude_scope_is_global $type $name
-        claude-kit $action $name --type $type --global
-        return $status
+function _tv_claude_toggle_type --description "Add or remove every named artifact of one type, in the scope claude-kit reports for it" --argument-names type
+    set -l names $argv[2..]
+
+    # claude-kit is the authority on both questions this action has to answer: whether an
+    # artifact is currently linked, and whether it belongs in ~/.claude. Reading them off
+    # its own listing, rather than re-deriving either here, is what keeps the row the
+    # picker rendered and the command it runs from disagreeing. Enter can carry a Tab
+    # multi-select, so the listing is fetched once for the whole selection.
+    set -l payload (claude-kit list --type $type --json)
+
+    set -l rc 0
+    for name in $names
+        # --arg rather than interpolating into a pattern: this is an exact string
+        # comparison, and a name is never a regex or a glob.
+        set -l row (printf '%s\n' $payload \
+            | jq -r --arg n $name '.[] | select(.name == $n) | [.state, (.global | tostring)] | @tsv' \
+            | string split \t)
+
+        # A name the listing does not carry: run the add anyway, so the refusal the user
+        # reads is the one claude-kit prints for the same command typed by hand.
+        set -l action add
+        set -l want_global
+        if test (count $row) -eq 2
+            test "$row[1]" = linked; and set action remove
+            test "$row[2]" = true; and set want_global --global
+        end
+
+        claude-kit $action $name --type $type $want_global; or set rc $status
     end
-
-    # Nowhere to install into: run it anyway so the refusal the user reads is the
-    # one claude-kit prints for the same command typed by hand.
-    if test -z "$target"
-        claude-kit $action $name --type $type
-        return $status
-    end
-
-    pushd (path dirname (path dirname $target))
-    claude-kit $action $name --type $type
-    set -l rc $status
-    popd
     return $rc
 end

@@ -6,6 +6,7 @@ functions are gone, so this file is what pins the format now: every test asserts
 literal with the escape codes in it, and a failure says which piece moved.
 """
 
+import json
 import os
 import subprocess
 import sys
@@ -13,7 +14,7 @@ import sys
 import pytest
 
 from claude_kit import catalog as cat
-from claude_kit import scope
+from claude_kit import errors, scope
 from dotkit import colors
 from claude_kit.commands import listing
 from dotkit.testing import CLAUDE, REPO
@@ -295,3 +296,69 @@ def test_a_tag_filter_narrows_the_flat_view(listing_run):
     assert "Available skills:" in filtered
     assert "tagged 'global'" in filtered
     assert "Available groups:" not in filtered
+
+
+# --- --json: the machine-readable half --------------------------------------
+#
+# The Television cables read this and derive nothing themselves, so what stdout carries
+# is a contract rather than a convenience. They used to rebuild the catalogue, the
+# dependency_only hiding, the effective global set and link status in jq and fish,
+# against a different rule for what a project is; lib/python/tests/test_tv_cables.py
+# holds the invariant that keeps them from doing it again.
+
+
+def test_json_carries_exactly_the_row_fields(listing_run):
+    """The key set is the contract. A renamed field breaks a cable silently, because jq
+    yields null for a name that is not there and the row still prints."""
+    project, env = listing_run
+    payload = json.loads(run_kit(["list", "--type", "skill", "--json"], project, env))
+    assert payload
+    assert set(payload[0]) == set(row())
+
+
+def test_json_is_the_whole_of_stdout(listing_run):
+    """No heading, no closing count, and no escape bytes even with colour forced on:
+    each of those would land inside what a caller parses."""
+    project, env = listing_run
+    out = run_kit(["list", "--type", "skill", "--json"], project, env)
+    assert out.count("\n") == 1
+    assert "\x1b" not in out
+    assert listing.HEADER[cat.SKILL] not in out
+    assert "✨" not in out
+    json.loads(out)
+
+
+def test_json_reports_the_link_the_renderer_reports(listing_run):
+    """The disagreement this flag exists to end: the picker calling a skill available
+    while the listing called it linked. One project rule now, so one answer."""
+    project, env = listing_run
+    payload = json.loads(run_kit(["list", "--type", "skill", "--json"], project, env))
+    linked = {r["name"] for r in payload if r["state"] == listing.LINKED}
+    assert "coderabbit" in linked
+    assert f"{GREEN}(linked){RESET}" in run_kit(["list", "--type", "skill"], project, env)
+
+
+def test_json_keeps_the_home_aside_off_stdout(kit):
+    """$HOME is the one directory that is not a project, and the listing says so. On
+    stderr under --json, so the aside survives without corrupting the payload."""
+    done = kit("list", "--type", "skill", "--json")
+    assert done.returncode == errors.OK
+    json.loads(done.stdout)
+    assert "never a project" in done.stderr
+
+
+def test_json_refuses_the_grouped_view(kit):
+    """A bare --group asks for a rendering, and there is none to give. Refused rather
+    than silently flattened, because a caller passing both wanted buckets."""
+    done = kit("list", "--type", "skill", "--json", "--group")
+    assert done.returncode == errors.USAGE
+    assert done.stdout == ""
+
+
+def test_json_still_narrows_to_one_tag(kit):
+    """--group TAG is a filter rather than a rendering, so it survives."""
+    done = kit("list", "--type", "skill", "--json", "--group", "global")
+    assert done.returncode == errors.OK
+    payload = json.loads(done.stdout)
+    assert payload
+    assert all("global" in r["groups"] for r in payload)
