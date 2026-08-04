@@ -17,12 +17,14 @@ claude-kit list            --type skill|agent|plugin   Show artifacts and where 
 claude-kit scout                                       Recommend artifacts matched to this project's stack
 claude-kit doctor                                      Report drift between registries and disk
 claude-kit adopt                                       Rebuild claude-kit.json from what is installed
+claude-kit restore                                     Install what claude-kit.json records
 claude-kit sync                                        Converge ~/.claude on the artifacts tagged global
 claude-kit update   --type skill                       Fetch skills from their upstream repos
 claude-kit outdated --type skill                       Report which skills are behind upstream
+claude-kit trust                                       Show or change whether this workspace is trusted
 ```
 
-`--type` is required except on `doctor`, `adopt`, `sync` and `scout`, where it narrows an otherwise cross-type result. Nothing is inferred from a name, so a name means one artifact of one type. `add` and `remove` also take `--group <tag>` instead of names, and `--global` for an artifact that lands in `~/.claude`. A project is whatever directory you run it in (`$HOME` excepted, since its `.claude` *is* `~/.claude`).
+`--type` is required except on `doctor`, `adopt`, `restore`, `sync` and `scout`, where it narrows an otherwise cross-type result, and on `trust`, which takes none at all. Nothing is inferred from a name, so a name means one artifact of one type. `add` and `remove` also take `--group <tag>` instead of names, and `--global` for an artifact that lands in `~/.claude`. A project is whatever directory you run it in (`$HOME` excepted, since its `.claude` *is* `~/.claude`).
 
 Full reference, worked examples and a corner-case FAQ: [../scripts/claude-kit/README.md](../scripts/claude-kit/README.md). The `claude-skills` and `claude-agents` Television cables drive the same commands interactively.
 

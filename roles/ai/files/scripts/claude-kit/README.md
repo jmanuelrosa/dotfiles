@@ -34,15 +34,16 @@ identifies a link by its filename alone.
 
 ## `--type` is required
 
-Every command except `doctor`, `adopt`, `sync`, `scout` and `trust` requires
+Every command except `doctor`, `adopt`, `restore`, `sync`, `scout` and `trust` requires
 `--type skill|agent|plugin`. Nothing is inferred from a name, so the three namespaces are allowed to
-overlap and a collision is a `doctor` note rather than an error. Four of the exceptions take
+overlap and a collision is a `doctor` note rather than an error. Five of the exceptions take
 `--type` as an optional filter, because their result spans all three types: `doctor`'s cross-type
-checks cannot run inside a single type, one `claude-kit.json` holds all three, `sync` converges a
-directory that holds all three, and a project's stack implies artifacts of all three - so on each of
-them a required `--type` could only ever ask for a partial job.
+checks cannot run inside a single type, one `claude-kit.json` holds all three for both `adopt` and
+`restore`, `sync` converges a directory that holds all three, and a project's stack implies
+artifacts of all three - so on each of them a required `--type` could only ever ask for a partial
+job.
 
-`trust` is the fifth exception and a different one: it accepts no `--type` at all. Workspace trust
+`trust` is the sixth exception and a different one: it accepts no `--type` at all. Workspace trust
 is a property of a directory rather than of an artifact, so there is no kind to narrow, and a flag
 that filtered nothing would be a lie about what the command does.
 
@@ -86,7 +87,7 @@ The scopes above are what `claude-kit -h` groups its listing by, five families o
 | Family | Commands | Acts on | `--global` |
 |---|---|---|---|
 | Scope-chosen | `add`, `remove` | a project's `.claude/`, or `~/.claude` | **picks which** |
-| Scope-fixed | `list`, `scout`, `doctor`, `adopt` | whatever the cwd implies | not accepted |
+| Scope-fixed | `list`, `scout`, `doctor`, `adopt`, `restore` | whatever the cwd implies | not accepted |
 | Global | `sync` | `~/.claude` alone, whatever the cwd | not accepted |
 | Registry-wide | `update`, `outdated` | this repo's skill sources against upstream | not accepted |
 | Workspace trust | `trust` | `~/.claude.json`, keyed on the cwd's repo root | not accepted |
@@ -94,9 +95,9 @@ The scopes above are what `claude-kit -h` groups its listing by, five families o
 **`--global` exists on `add` and `remove`, and on nothing else.** Those two write, so one of the
 two scopes has to be chosen and the flag is how you choose it. Everything else has exactly one
 right answer given the cwd, so there is nothing to pick: `list` and `doctor` report project and
-global state together, `scout` skips anything either scope already provides, and `adopt` writes a
-manifest that is project-scoped by definition. Passing the flag to one of them is a usage error,
-not a no-op.
+global state together, `scout` skips anything either scope already provides, and `adopt` and
+`restore` read and write a manifest that is project-scoped by definition. Passing the flag to one
+of them is a usage error, not a no-op.
 
 That is why the scope-chosen pair is a family of its own rather than sitting with the other four
 scope-aware commands. **A family title is a claim about every command beneath it**, so a family
@@ -528,6 +529,52 @@ cascades and so nothing needs to know why one is there.
 
 ---
 
+### `restore`
+
+```
+claude-kit restore [--type {skill,agent,plugin}] [--dry-run]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--dry-run` | Show what would be linked without touching anything |
+
+The mirror of `adopt`: that command reads the disk and writes the manifest, this one reads the
+manifest and links what it records. The case both exist for is a clone. The symlinks point into
+this dotfiles checkout and are never committed, so a repo shipping `.claude/claude-kit.json`
+arrives with a complete record of what it needs and nothing installed.
+
+**Only the `direct` entries are installed**, each through the same code path as a hand-typed
+`add`, so an entry restored here resolves its dependency closure, records provenance and prints
+the plugin restart hint exactly as `add` does. Handing the `dep-of:` rows to `add` too would
+install them as though they had been asked for and record them `direct`, which would leave the
+project with a manifest that no longer arms the cascade. The closing line therefore counts both:
+the manifest rows restored, and the links that actually reached the disk.
+
+An entry already linked is the steady state rather than a refusal, the way a `--group` member is,
+so a second run exits `0` saying there was nothing to do.
+
+**Nothing is ever deleted.** A recorded entry still unlinked when the run finishes (its parent
+stopped declaring it, or the registry dropped the row) is named in a warning and exits `9`, never
+forgotten: dropping a record is `remove`'s job.
+
+```
+$ claude-kit restore
+📦 Restoring from ~/work/api/.claude/claude-kit.json:
+✓ Linked 'incremental-implementation' into ~/work/api/.claude/skills  (required by spec-driven-development)
+✓ Linked 'test-driven-development' into ~/work/api/.claude/skills  (required by spec-driven-development)
+✓ Linked 'context-engineering' into ~/work/api/.claude/skills  (required by spec-driven-development)
+✓ Linked 'spec-driven-development' into ~/work/api/.claude/skills
+✨ Restored 1 of 1 recorded artifact(s), 4 link(s)
+```
+
+Exits `2` when there is no manifest to restore from, pointing at `adopt`; `9` when the file will
+not parse, which is the one place a bad manifest is a refusal rather than silence (every other
+command reads it as "nothing recorded" so a corrupt file can never block a `remove`); and `6` in
+`$HOME`, where `claude-kit sync` is the command that applies.
+
+---
+
 ### `trust`
 
 ```
@@ -612,14 +659,14 @@ Distinct so scripts can branch without matching message text.
 |---|---|---|
 | 0 | `OK` | success |
 | 1 | `USAGE` | missing or invalid `--type`, bad flags, an unsupported combination, a real directory where a link belongs, or a `~/.claude.json` that is absent or unparseable when `trust` needs to write |
-| 2 | `NOT_FOUND` | no artifact of that type by that name, or registered but absent on disk |
+| 2 | `NOT_FOUND` | no artifact of that type by that name, registered but absent on disk, or no `claude-kit.json` for `restore` to read |
 | 3 | `DEPENDENCY_ONLY` | named a skill that exists only to satisfy another |
 | 4 | `WRONG_SCOPE` | a global artifact named without `--global` |
 | 5 | `ALREADY` | already installed at the resolved target, or `trust` asked to set a flag that already reads that way |
 | 6 | `NO_PROJECT` | project-scoped, but cwd is `$HOME`, the one directory that is not a project |
 | 7 | `NOT_INSTALLED` | `remove` target absent |
 | 8 | `FETCH_FAILED` | `update` / `outdated` could not reach or read an upstream |
-| 9 | `DRIFT` | `doctor` found at least one problem, `sync` refused to prune every link in `~/.claude`, or `trust` found the workspace untrusted |
+| 9 | `DRIFT` | `doctor` found at least one problem, `sync` refused to prune every link in `~/.claude`, `restore` could not parse the manifest or left a recorded entry unlinked, or `trust` found the workspace untrusted |
 
 ## Environment
 
@@ -841,8 +888,8 @@ explicit at the call site. Exit `4`, and the message contains the exact correcte
 **Why does `claude-kit list --global` fail?**
 Because `list` has no `--global`. It reads `~/.claude` and the project together and never writes,
 so there is no scope to pick. To see the global set, filter by the tag instead:
-`claude-kit list --type skill --group global`. The same goes for `scout`, `doctor` and `adopt`:
-only `add` and `remove` take the flag.
+`claude-kit list --type skill --group global`. The same goes for `scout`, `doctor`, `adopt` and
+`restore`: only `add` and `remove` take the flag.
 
 **The refusal to that only mentioned `--type`. Where did `--global` go?**
 Nowhere; argparse checks required arguments before it looks at leftovers, so a call with two
@@ -892,6 +939,11 @@ it recognises next time it runs. `claude-kit adopt` rebuilds it in one pass.
 The cascade, until you run `claude-kit adopt`. Every link reads as untracked, so `remove` keeps
 each dependency rather than guessing, and the project slowly collects dependencies nothing needs.
 `doctor` reports them as `untracked-install` notes and names the fix.
+
+**I cloned a repo with a manifest and no links. How do I install them?**
+`claude-kit restore`. The symlinks point into this checkout and are never committed, so the
+manifest is the only thing that survives the clone; `doctor` reports each row as a
+`stale-provenance` problem until you run it.
 
 **Why didn't `adopt` see some of my links?**
 Because they point somewhere else. `add` writes an absolute target into the checkout, so a symlink
