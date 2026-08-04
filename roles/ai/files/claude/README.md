@@ -57,8 +57,8 @@ Either way `docs/strategy/` and `docs/adr/` are shared across every initiative i
 | `/product-team:1-research` | brief | `01-research/` (3 researchers + `summary.md`) | none (feeds Gate 1) | `product-team:competitive-researcher`, `product-team:user-evidence-researcher`, `product-team:market-sizer` (parallel) |
 | `/product-team:2-write-prd` | brief + research | `02-prd.md` | Gate 1: PM + team | none |
 | `/product-team:3-red-team` | PRD only (fresh eyes) | `03-red-team-report.md`, PRD revision | none (feeds Gate 1) | `product-team:pm-red-team` |
-| `/product-team:4-tech-shape` | PRD + this codebase | `04-design-doc.md`, `docs/adr/` | Gate 2: tech lead | `product-team:adr-scribe` |
-| `/product-team:5-decompose` | PRD + design doc | `05-backlog/` epics + stories + ACs | none (feeds Gate 3) | `product-team:ac-writer` |
+| `/product-team:4-tech-shape` | PRD + this codebase | `04-ux-spec.md`, `04-design-doc.md`, `docs/adr/` | Gate 2: tech lead + design owner | `ux-shaper`, `product-team:adr-scribe` |
+| `/product-team:5-decompose` | PRD + UX spec + design doc | `05-backlog/` epics + stories + ACs | none (feeds Gate 3) | `product-team:ac-writer` |
 | `/product-team:6-gate-check` | backlog | `06-dor-report.md` (PASS/FAIL per story) | Gate 3: final | none |
 | `/product-team:7-push-to-board` | backlog + DoR report | GitHub issues + Project items, `docs/LEARNINGS.md` entry | dry-run confirm | none |
 
@@ -71,8 +71,8 @@ A healthy funnel kills most ideas at Gate 0. Killing early is the pipeline worki
 3. `/product-team:1-research`: fans out to the three researchers in parallel (the only fan-out in the pipeline) and synthesizes `01-research/summary.md`. No gate of its own.
 4. `/product-team:2-write-prd`: writes `02-prd.md` (numbered `R1..Rn` requirements, non-goals, metrics with baselines) and opens the Gate 1 PR.
 5. `/product-team:3-red-team`: `product-team:pm-red-team` attacks the PRD with fresh eyes; agreed fixes are applied to the PRD by the skill. Both files ride the Gate 1 PR, so merge to pass Gate 1.
-6. `/product-team:4-tech-shape`: explores this codebase read-only and writes `04-design-doc.md`; `product-team:adr-scribe` extracts decisions into the repo-wide `docs/adr/`. Opens the Gate 2 PR.
-7. `/product-team:5-decompose`: writes epics and vertically-sliced stories; `product-team:ac-writer` adds Given/When/Then acceptance criteria, each traced to a PRD requirement.
+6. `/product-team:4-tech-shape`: dispatches `ux-shaper` to write `04-ux-spec.md` (every flow, every surface, every state, and the design-system pieces that do not exist yet), then explores this codebase read-only and writes `04-design-doc.md` against those states; `product-team:adr-scribe` extracts decisions into the repo-wide `docs/adr/`. Opens the Gate 2 PR, where the `.github/CODEOWNERS` design owner approves the UX spec and may revise it in place. `ux-shaper` is a registry agent rather than a bundled one, so both this stage and the architect use the same definition of a UX spec: `claude-kit add ux-shaper --type agent --global`.
+7. `/product-team:5-decompose`: writes epics and vertically-sliced stories, each pointing at the UX-spec flow it implements and flagged `Needs design seat` when that flow draws on the spec's new-system-pieces section; `product-team:ac-writer` adds Given/When/Then acceptance criteria, each traced to a PRD requirement and covering the states the spec names.
 8. `/product-team:6-gate-check`: verifies every story against the Definition of Ready and writes `06-dor-report.md`. Opens the Gate 3 PR; merge only on ALL PASS.
 9. `/product-team:7-push-to-board`: dry-runs, asks Go/Cancel, then creates the GitHub epic and story issues, links them, adds them to the Project, and appends a retrospective to `docs/LEARNINGS.md`.
 

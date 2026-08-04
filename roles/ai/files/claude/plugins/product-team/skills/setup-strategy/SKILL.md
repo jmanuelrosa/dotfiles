@@ -52,7 +52,7 @@ One question at a time, each with a recommended answer, drilling into vagueness.
 3. **Non-bets**: at least 2 attractive things the team is explicitly not doing, and why. These do the killing at Gate 0; refuse to accept an empty set.
 4. **Target users**: precise segments. Never assume a market or segment; every one comes from the human.
 5. **OKRs**: quarterly objectives with numeric key results. Every target AND baseline comes from the human; never invent, never extrapolate. Missing baseline -> written as `UNKNOWN` with an owner to measure it.
-6. **Config**: gate owners (GitHub handles for gates 0/1/3, gate 2, strategy; default all to the repo owner if solo), Project number (may stay UNSET until stage 7), extra codebase paths for stage 4 (default none).
+6. **Config**: gate owners (GitHub handles for gates 0/1/3, gate 2, strategy, and the design gate owner who approves each initiative's UX spec; default all to the repo owner if solo, and accept "none" for the design owner if the team has no designer), Project number (may stay UNSET until stage 7), extra codebase paths for stage 4 (default none).
 
 ## Write & scaffold
 
@@ -64,7 +64,9 @@ Templates live in `../product-lead/references/templates/` (sibling of this skill
    ```
    /docs/strategy/     {strategy owner}
    /docs/initiatives/  {PM gate owner}
+   /docs/initiatives/*/04-ux-spec.md  {design gate owner}
    ```
+   Keep that order: CODEOWNERS applies the **last** matching pattern, so the specific line must follow the general one or the PM owns the UX spec too. The single `*` matches exactly the slug level, which is what the initiative layout needs. Omit the third line entirely when there is no design gate owner; Gate 2 then behaves as it did before.
 4. Append `claude-md-section.md` (placeholders filled from the interview) to the repo's CLAUDE.md; create the file if absent. If the section already exists, update values in place.
 
 ## Gate handoff

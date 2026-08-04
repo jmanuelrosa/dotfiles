@@ -20,10 +20,11 @@ docs/
     01-research/           # competitive.md, user-evidence.md, sizing.md, summary.md
     02-prd.md
     03-red-team-report.md
+    04-ux-spec.md          # ux-shaper writes it before the design doc; the design gate owner approves it
     04-design-doc.md       # its ADR index points at the ADRs in docs/adr/
     05-backlog/            # epic-{n}.md, story-{n.m}.md
     06-dor-report.md
-.github/CODEOWNERS         # gate ownership
+.github/CODEOWNERS         # gate ownership, including the design owner of 04-ux-spec.md
 ```
 
 Slug rule: lowercase, `a-z0-9-` only, words joined by single hyphens, max 40 chars, derived from the idea's core noun phrase (`"let customers export their data as CSV"` -> `csv-data-export`).
