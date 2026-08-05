@@ -20,12 +20,15 @@ AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 
 LINK_TASK = "Link AI scripts into the user bin directory"
 
-# Both roles install scripts the same way, so the shape is checked for both here. The
-# work role had no packaging test at all before, which is why its link task could sit
-# next to a dead `Ensure scripts directory exists` creating a path nothing wrote to.
+# Every role installs scripts the same way, so the shape is checked for all of them
+# here. The work role had no packaging test at all before, which is why its link task
+# could sit next to a dead `Ensure scripts directory exists` creating a path nothing
+# wrote to. coreutils joined when hostof landed, and it is the one role whose link task
+# also has to create ~/.local/bin, because it runs before the ai role that used to.
 INSTALLERS = [
     ("ai", "AI_SCRIPTS", LINK_TASK),
     ("work", "WORK_SCRIPTS", "Link work scripts into the user bin directory"),
+    ("coreutils", "CORE_SCRIPTS", "Link core scripts into the user bin directory"),
 ]
 
 

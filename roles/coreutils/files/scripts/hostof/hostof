@@ -1,0 +1,1079 @@
+#!/usr/bin/env python3
+"""Report which service and region host a site, separating edge from origin.
+
+Reads only what a browser reads: DNS, the TLS certificate, one HTTP response and
+the assets that response links. Vendor and region are the promise; a project or
+account id is reported when the site happens to expose one and never guessed.
+
+Edge and network are printed as separate facts because both are true at once.
+Netlify runs on AWS Global Accelerator, so `edge: Netlify` and `network: AS16509
+Amazon` describe one site correctly and collapsing them into a single verdict is
+wrong whichever one wins.
+"""
+
+import argparse
+import concurrent.futures
+import http.client
+import ipaddress
+import json
+import os
+import re
+import socket
+import ssl
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+# The shared line vocabulary, reached the same way the claude-kit shim reaches its
+# package: by putting this file's own directory on sys.path. Every python script in
+# this directory does it, which is what keeps one palette across all of them.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from dotkit import ui  # noqa: E402
+
+EXIT_OK = 0
+EXIT_USAGE = 1
+EXIT_UNREACHABLE = 2
+EXIT_REFUSED = 3
+
+# An honest agent with a contact path, never a browser string. A site that blocks
+# this is answering, and the answer is respected rather than worked around.
+USER_AGENT = "hostof/1.0 (+https://github.com/jmanuelrosa/dotfiles)"
+
+ENTRY_TIMEOUT = 10
+CHUNK_TIMEOUT = 8
+CHUNK_MAX_BYTES = 3_000_000
+MAX_CHUNKS = 5
+# The guardrail the legal analysis asks for: one request per second per host, and a
+# ceiling on the whole run so a target can never absorb a burst from this tool.
+MIN_REQUEST_INTERVAL = 1.0
+MAX_REQUESTS_PER_HOST = 10
+DNS_TIMEOUT = 5
+TLS_TIMEOUT = 8
+
+PREFIX_TTL = 7 * 24 * 3600
+CACHE_DIR = Path(os.environ.get("HOSTOF_CACHE", Path.home() / ".cache" / "hostof"))
+AUTHORIZED_FILE = Path(
+    os.environ.get("HOSTOF_AUTHORIZED", Path.home() / ".config" / "hostof" / "authorized.json")
+)
+
+# Published for exactly this purpose, which makes them the cleanest legal footing in
+# the tool as well as the only source that carries a region at all.
+AWS_RANGES = "https://ip-ranges.amazonaws.com/ip-ranges.json"
+GCP_RANGES = "https://www.gstatic.com/ipranges/cloud.json"
+CLOUDFLARE_V4 = "https://www.cloudflare.com/ips-v4"
+RIPESTAT_PREFIX = "https://stat.ripe.net/data/prefix-overview/data.json?resource={ip}"
+DOH_RESOLVE = "https://dns.google/resolve?name={name}&type={rrtype}"
+
+# A CNAME suffix is the durable fingerprint because the vendor owns it. Hardcoded
+# platform IPs are not: Netlify alone has two disjoint Global Accelerator pairs, and
+# AWS reuses a released static IP after ten days, so a stale entry ages into naming
+# an unrelated customer. That failure is a silent misattribution rather than a miss,
+# so no IP table lives here.
+CNAME_VENDORS = (
+    ("netlifyglobalcdn.com", "Netlify"),
+    ("netlify.com", "Netlify"),
+    ("netlify.app", "Netlify"),
+    ("vercel-dns.com", "Vercel"),
+    ("vercel.app", "Vercel"),
+    ("edgekey.net", "Akamai"),
+    ("edgesuite.net", "Akamai"),
+    ("akamaiedge.net", "Akamai"),
+    ("akamaized.net", "Akamai"),
+    ("map.fastly.net", "Fastly"),
+    ("fastly.net", "Fastly"),
+    ("cloudfront.net", "AWS CloudFront"),
+    ("elb.amazonaws.com", "AWS Elastic Load Balancing"),
+    ("execute-api", "AWS API Gateway"),
+    ("s3.amazonaws.com", "AWS S3"),
+    ("amplifyapp.com", "AWS Amplify"),
+    ("run.app", "Google Cloud Run"),
+    ("web.app", "Firebase Hosting"),
+    ("firebaseapp.com", "Firebase Hosting"),
+    ("appspot.com", "Google App Engine"),
+    ("ghs.googlehosted.com", "Google"),
+    ("azurestaticapps.net", "Azure Static Web Apps"),
+    ("azurewebsites.net", "Azure App Service"),
+    ("azureedge.net", "Azure CDN"),
+    ("trafficmanager.net", "Azure Traffic Manager"),
+    ("github.io", "GitHub Pages"),
+    ("herokudns.com", "Heroku"),
+    ("herokuapp.com", "Heroku"),
+    ("onrender.com", "Render"),
+    ("up.railway.app", "Railway"),
+    ("fly.dev", "Fly.io"),
+    ("myshopify.com", "Shopify"),
+    ("shops.myshopify.com", "Shopify"),
+    ("webflow.com", "Webflow"),
+    ("squarespace.com", "Squarespace"),
+    ("wixdns.net", "Wix"),
+    ("hs-sites.com", "HubSpot"),
+    ("pages.dev", "Cloudflare Pages"),
+    ("workers.dev", "Cloudflare Workers"),
+)
+
+# A header naming a vendor. Presence alone is the signal, so the value is kept only
+# as evidence. Every one of these is read on the same response: linear.app answers
+# with `server: cloudflare` AND `via: 1.1 google`, so stopping at the first match
+# would report one vendor and hide the other.
+HEADER_VENDORS = (
+    ("x-vercel-id", "Vercel"),
+    ("x-nf-request-id", "Netlify"),
+    ("cf-ray", "Cloudflare"),
+    ("x-amz-cf-id", "AWS CloudFront"),
+    ("x-amz-cf-pop", "AWS CloudFront"),
+    ("x-amz-request-id", "AWS S3"),
+    ("x-amzn-requestid", "AWS API Gateway"),
+    ("apigw-requestid", "AWS API Gateway"),
+    ("x-guploader-uploadid", "Google Cloud Storage"),
+    ("x-cloud-trace-context", "Google Cloud"),
+    ("fly-request-id", "Fly.io"),
+    ("x-render-origin-server", "Render"),
+    ("x-github-request-id", "GitHub"),
+    ("x-shopify-stage", "Shopify"),
+    ("akamai-grn", "Akamai"),
+    ("x-akam-sw-version", "Akamai"),
+    ("x-azure-ref", "Azure Front Door"),
+    ("x-msedge-ref", "Azure"),
+    ("x-served-by", "Fastly"),
+    ("x-kong-upstream-latency", "Kong"),
+    ("x-envoy-upstream-service-time", "Envoy"),
+)
+
+# `server` and `via` are free text, so they are matched on a substring rather than
+# on presence. `via: 1.1 google` is the tell that a Google load balancer sits in the
+# chain even when the edge vendor is somebody else.
+SERVER_VENDORS = (
+    ("vercel", "Vercel"),
+    ("netlify", "Netlify"),
+    ("cloudflare", "Cloudflare"),
+    ("amazons3", "AWS S3"),
+    ("uploadserver", "Google Cloud Storage"),
+    ("akamaighost", "Akamai"),
+    ("heroku-router", "Heroku"),
+    ("github.com", "GitHub"),
+    ("gws", "Google"),
+    ("esf", "Google"),
+    ("fly/", "Fly.io"),
+    ("litespeed", "LiteSpeed"),
+    ("openresty", "OpenResty"),
+    ("nginx", "nginx"),
+    ("apache", "Apache"),
+    ("caddy", "Caddy"),
+    ("envoy", "Envoy"),
+)
+
+VIA_VENDORS = (
+    ("cloudfront", "AWS CloudFront"),
+    ("google", "Google Cloud"),
+    ("varnish", "Varnish or Fastly"),
+    ("fly.io", "Fly.io"),
+)
+
+# Project identifiers the site ships to every visitor. Public by design in most
+# cases (Google documents that a Firebase apiKey need not be secret), so reading one
+# is reading what the page hands the browser.
+PROJECT_PATTERNS = (
+    ("Sentry org and project", re.compile(r"https://[0-9a-f]+@o(\d+)\.ingest\.[a-z0-9.]*sentry\.io/(\d+)")),
+    ("Firebase project", re.compile(r"['\"]projectId['\"]\s*:\s*['\"]([a-z0-9-]{4,40})['\"]")),
+    ("Firebase auth domain", re.compile(r"([a-z0-9-]{4,40})\.firebaseapp\.com")),
+    ("Supabase project ref", re.compile(r"https://([a-z]{16,25})\.supabase\.co")),
+    ("Cognito user pool", re.compile(r"\b([a-z]{2}-[a-z]+-\d)_[A-Za-z0-9]{9,}\b")),
+    ("Vercel project", re.compile(r"/vc-ap-([a-z0-9-]{2,60})/")),
+    ("Algolia app", re.compile(r"['\"]appId['\"]\s*:\s*['\"]([A-Z0-9]{10})['\"]")),
+    ("Google Analytics", re.compile(r"\b(G-[A-Z0-9]{8,12})\b")),
+    ("Stripe mode", re.compile(r"\b(pk_(?:live|test))_[A-Za-z0-9]{10,}")),
+)
+
+GENERATOR = re.compile(r'<meta[^>]+name=["\']generator["\'][^>]+content=["\']([^"\']+)', re.I)
+SCRIPT_SRC = re.compile(r'<script[^>]+src=["\']([^"\']+)["\']', re.I)
+PRECONNECT = re.compile(
+    r'<link[^>]+rel=["\'](?:preconnect|dns-prefetch)["\'][^>]*href=["\']([^"\']+)["\']', re.I
+)
+# Region encoded in the hostname itself, which is the only path for the platforms
+# whose headers carry no region.
+HOST_REGION = (
+    re.compile(r"\.([a-z]{2}-[a-z]+-\d)\.elb\.amazonaws\.com$"),
+    re.compile(r"\.execute-api\.([a-z]{2}-[a-z]+-\d)\.amazonaws\.com$"),
+    re.compile(r"\.s3[.-](?:website-)?([a-z]{2}-[a-z]+-\d)\.amazonaws\.com$"),
+    # A GCP region is not two letters then a word: europe-west1 and africa-south1
+    # both start with a full word, so the first group cannot be bounded to {2}.
+    re.compile(r"-\d+\.([a-z]+-[a-z]+\d+)\.run\.app$"),
+)
+
+NETLIFY_DC = re.compile(r'\bdc;desc="([^"]+)"')
+FASTLY_POP = re.compile(r"-([A-Z]{3})\b")
+
+# Paths a --deep run may request. Conventional and undocumented, which is why the
+# flag needs an authorization entry naming a basis. Nothing that reads as hunting
+# for a secret appears here or anywhere else in this file: no /.git, no /.env, no
+# backup extensions, no /server-status. `/actuator/health` is listed and
+# `/actuator/env` deliberately is not, because the second dumps configuration, so
+# the gate is on the exact path rather than on the prefix.
+DEEP_PATHS = (
+    "/openapi.json",
+    "/swagger.json",
+    "/v3/api-docs",
+    "/health",
+    "/healthz",
+    "/actuator/health",
+    "/version.json",
+    "/.well-known/openid-configuration",
+)
+
+RRTYPES = {"A": 1, "NS": 2, "CNAME": 5, "TXT": 16}
+
+
+def fail(code, message):
+    ui.err(message)
+    return code
+
+
+class Budget:
+    """Per-host pacing and a hard request ceiling.
+
+    Both are guardrails rather than politeness: a tool that can burst against a
+    third party is a tool that can be read as degrading the service.
+    """
+
+    def __init__(self, interval=MIN_REQUEST_INTERVAL, ceiling=MAX_REQUESTS_PER_HOST):
+        self.interval = interval
+        self.ceiling = ceiling
+        self._last = {}
+        self._count = {}
+
+    def take(self, host):
+        if self._count.get(host, 0) >= self.ceiling:
+            return False
+        previous = self._last.get(host)
+        if previous is not None:
+            wait = self.interval - (time.monotonic() - previous)
+            if wait > 0:
+                time.sleep(wait)
+        self._last[host] = time.monotonic()
+        self._count[host] = self._count.get(host, 0) + 1
+        return True
+
+
+def http_get(url, budget, timeout=ENTRY_TIMEOUT, limit=CHUNK_MAX_BYTES):
+    """One ordinary GET. Returns (status, headers, body, error).
+
+    Redirects are followed by urllib, which is what a browser does. A 429 or a 503
+    is a final answer and is never retried: the point of reading Retry-After here is
+    to stop, not to schedule a second attempt.
+    """
+    host = urllib.parse.urlsplit(url).hostname or ""
+    if not budget.take(host):
+        return None, {}, "", f"request ceiling of {budget.ceiling} reached for {host}"
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            headers = {k.lower(): v for k, v in response.headers.items()}
+            body = response.read(limit).decode("utf-8", "replace")
+            return response.status, headers, body, None
+    except urllib.error.HTTPError as exc:
+        headers = {k.lower(): v for k, v in exc.headers.items()} if exc.headers else {}
+        # IncompleteRead is an http.client.HTTPException rather than an OSError, and an
+        # exception raised inside an except clause escapes the whole try rather than
+        # reaching the broad clause below. A 404 with a truncated chunked body is
+        # therefore what crashed this function before the second type was listed, which
+        # is the same trap upstream.py documents in claude-kit.
+        body = ""
+        try:
+            body = exc.read(limit).decode("utf-8", "replace")
+        except (OSError, http.client.HTTPException):
+            pass
+        if exc.code in (429, 503):
+            retry = headers.get("retry-after", "unspecified")
+            return exc.code, headers, body, f"rate limited, Retry-After {retry}, stopping"
+        # A 4xx still carries headers, and a platform 404 body often names the
+        # platform, so this is a result rather than a failure.
+        return exc.code, headers, body, None
+    except urllib.error.URLError as exc:
+        return None, {}, "", str(getattr(exc, "reason", exc))
+    except (TimeoutError, socket.timeout):
+        return None, {}, "", f"timed out after {timeout}s"
+    # Broad on purpose: a truncated chunked response raises http.client.IncompleteRead
+    # mid-read, which is neither an OSError nor a URLError, and a fingerprinting run
+    # must degrade to one note rather than a traceback.
+    except Exception as exc:  # noqa: BLE001
+        return None, {}, "", f"{type(exc).__name__}: {exc}"
+
+
+def fetch_bytes(url, timeout=ENTRY_TIMEOUT):
+    """A keyless fetch of a published dataset. No budget: these are not the target."""
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.read(), None
+    except Exception as exc:  # noqa: BLE001
+        return None, f"{type(exc).__name__}: {exc}"
+
+
+def dig_records(host, rrtype):
+    argv = ["dig", "+noall", "+answer", "+time=2", "+tries=1", host, rrtype]
+    try:
+        proc = subprocess.run(argv, capture_output=True, text=True, timeout=DNS_TIMEOUT)
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    records = []
+    for line in proc.stdout.splitlines():
+        fields = line.split()
+        if len(fields) >= 5 and fields[3] == rrtype:
+            records.append(fields[4].rstrip("."))
+    return records
+
+
+def doh_records(host, rrtype):
+    url = DOH_RESOLVE.format(name=urllib.parse.quote(host), rrtype=rrtype)
+    raw, error = fetch_bytes(url, timeout=DNS_TIMEOUT)
+    if error is not None:
+        return None
+    try:
+        payload = json.loads(raw)
+    except ValueError:
+        return None
+    wanted = RRTYPES.get(rrtype)
+    return [
+        answer["data"].rstrip(".")
+        for answer in payload.get("Answer", [])
+        if answer.get("type") == wanted
+    ]
+
+
+def lookup(host, rrtype, use_doh):
+    """dig first because it uses the system resolver and leaks nothing to a third
+    party. DoH is the fallback for a network that blocks UDP/53, at the cost of
+    telling Google what is being looked up."""
+    if not use_doh:
+        records = dig_records(host, rrtype)
+        if records is not None:
+            return records
+    return doh_records(host, rrtype) or []
+
+
+def cname_chain(host, use_doh):
+    """Follow CNAMEs to the end, bounded so a loop cannot hang the run."""
+    chain = []
+    current = host
+    for _ in range(8):
+        targets = lookup(current, "CNAME", use_doh)
+        if not targets:
+            break
+        current = targets[0]
+        if current in chain:
+            break
+        chain.append(current)
+    return chain
+
+
+def vendor_from_hosts(hosts):
+    for candidate in hosts:
+        lowered = candidate.lower()
+        for suffix, vendor in CNAME_VENDORS:
+            if lowered.endswith(suffix) or f".{suffix}." in f".{lowered}.":
+                return vendor, candidate
+    return None, None
+
+
+def region_from_host(host):
+    for pattern in HOST_REGION:
+        found = pattern.search(host.lower())
+        if found:
+            return found.group(1)
+    return None
+
+
+def vercel_regions(value):
+    """Edge and compute region out of an x-vercel-id.
+
+    Three shapes exist in the wild and a naive "second field" rule misreads two of
+    them: the two-segment form has no compute region at all and returns a request id,
+    and the multi-hop form puts a routing hop where field two would be. Splitting on
+    `::` and taking the segment before the request id is what handles all three.
+
+        fra1::iad1::7dqhk-...                    edge fra1, compute iad1
+        fra1::2cshq-...                          edge fra1, no compute region
+        fra1:fra1:sfo1:...::sfo1::j5mk6-...      edge fra1, compute sfo1
+    """
+    segments = value.split("::")
+    if len(segments) < 2:
+        return None, None
+    edge = segments[0].split(":")[0] or None
+    if len(segments) == 2:
+        return edge, None
+    return edge, segments[-2] or None
+
+
+def regions_from_headers(headers):
+    """Every region a response states, as {label: (region, evidence)}."""
+    found = {}
+    vercel = headers.get("x-vercel-id")
+    if vercel:
+        edge, compute = vercel_regions(vercel)
+        if edge:
+            found["edge"] = (edge, f"x-vercel-id: {vercel}")
+        if compute:
+            found["compute"] = (compute, f"x-vercel-id: {vercel}")
+    timing = headers.get("server-timing", "")
+    netlify = NETLIFY_DC.search(timing)
+    if netlify:
+        # The matched fragment, not the whole header. A real server-timing carries a
+        # dozen unrelated metrics and quoting all of them buries the one that answers.
+        found["edge"] = (netlify.group(1), f"server-timing: {netlify.group(0)}")
+    pop = headers.get("x-amz-cf-pop")
+    if pop:
+        found["edge"] = (pop[:3], f"x-amz-cf-pop: {pop}")
+    ray = headers.get("cf-ray")
+    if ray and "-" in ray:
+        found["edge"] = (ray.rsplit("-", 1)[1], f"cf-ray: {ray}")
+    fly = headers.get("fly-request-id")
+    if fly and "-" in fly:
+        found["edge"] = (fly.rsplit("-", 1)[1], f"fly-request-id: {fly}")
+    github = headers.get("x-github-edge-region")
+    if github:
+        found["edge"] = (github, f"x-github-edge-region: {github}")
+    served = headers.get("x-served-by")
+    if served:
+        pops = FASTLY_POP.findall(served)
+        if pops:
+            found["edge"] = (pops[-1], f"x-served-by: {served}")
+    return found
+
+
+def vendors_from_headers(headers):
+    """Every vendor the response names, in no priority order.
+
+    Deliberately not first-match-wins. One response routinely names two vendors and
+    both are true, so the caller decides how to present them.
+    """
+    found = []
+    for name, vendor in HEADER_VENDORS:
+        if name in headers:
+            found.append((vendor, f"{name}: {headers[name]}"))
+    server = headers.get("server", "")
+    lowered = server.lower()
+    for needle, vendor in SERVER_VENDORS:
+        if needle in lowered:
+            found.append((vendor, f"server: {server}"))
+            break
+    via = headers.get("via", "")
+    for needle, vendor in VIA_VENDORS:
+        if needle in via.lower():
+            found.append((vendor, f"via: {via}"))
+    seen = {}
+    for vendor, evidence in found:
+        seen.setdefault(vendor, evidence)
+    return list(seen.items())
+
+
+def cached(name, url, parse):
+    """A published dataset on disk, refetched once its TTL lapses.
+
+    The AWS file alone is 2.5 MB, so fetching it per run would be the slowest thing
+    the tool does and would hammer a service that publishes it as a courtesy.
+    """
+    # The cache is an optimisation, so an unwritable directory degrades this source to
+    # nothing rather than ending the run. A sandbox or a read-only HOME is the common
+    # cause and neither is the caller's mistake.
+    try:
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        return None, f"cache unavailable: {exc.strerror or exc}"
+    target = CACHE_DIR / name
+    try:
+        fresh = target.exists() and (time.time() - target.stat().st_mtime) < PREFIX_TTL
+        if not fresh:
+            raw, error = fetch_bytes(url, timeout=30)
+            if error is None and raw:
+                tmp = target.with_suffix(target.suffix + ".tmp")
+                tmp.write_bytes(raw)
+                tmp.replace(target)
+            elif not target.exists():
+                return None, error or "no data"
+        return parse(target.read_bytes()), None
+    except Exception as exc:  # noqa: BLE001
+        return None, f"{type(exc).__name__}: {exc}"
+
+
+def aws_prefixes(raw):
+    payload = json.loads(raw)
+    return [
+        (ipaddress.ip_network(entry["ip_prefix"]), entry["service"], entry["region"])
+        for entry in payload.get("prefixes", [])
+    ]
+
+
+def gcp_prefixes(raw):
+    payload = json.loads(raw)
+    rows = []
+    for entry in payload.get("prefixes", []):
+        cidr = entry.get("ipv4Prefix") or entry.get("ipv6Prefix")
+        if cidr:
+            rows.append((ipaddress.ip_network(cidr), "Google Cloud", entry.get("scope", "")))
+    return rows
+
+
+def cloudflare_prefixes(raw):
+    return [
+        (ipaddress.ip_network(line.strip()), "Cloudflare", "")
+        for line in raw.decode().splitlines()
+        if line.strip()
+    ]
+
+
+def attribute_ip(address):
+    """Vendor, service and region for an IP, from the providers' own files.
+
+    A `GLOBAL` region is reported as undeterminable rather than as a region, because
+    it is what anycast prefixes carry and it answers nothing. That is not a rare
+    corner: over half of CloudFront prefixes and a third of Global Accelerator
+    prefixes are GLOBAL, against 1% of EC2, so an edge address usually cannot state
+    a region while an origin address almost always can.
+    """
+    try:
+        ip = ipaddress.ip_address(address)
+    except ValueError:
+        return None
+    sources = (
+        ("aws-ip-ranges.json", AWS_RANGES, aws_prefixes),
+        ("gcp-cloud.json", GCP_RANGES, gcp_prefixes),
+        ("cloudflare-ips-v4", CLOUDFLARE_V4, cloudflare_prefixes),
+    )
+    for name, url, parse in sources:
+        rows, error = cached(name, url, parse)
+        if not rows:
+            continue
+        matches = [
+            (network, service, region)
+            for network, service, region in rows
+            if ip.version == network.version and ip in network
+        ]
+        if not matches:
+            continue
+        # Longest prefix first, then the specific service over the umbrella. AWS lists
+        # 3.33.128.0/17 as both AMAZON and GLOBALACCELERATOR at the *same* length, and
+        # AMAZON comes first in the file, so prefix length alone reports the umbrella
+        # and loses the one fact that identifies the address as an anycast edge.
+        network, service, region = max(
+            matches, key=lambda row: (row[0].prefixlen, row[1].upper() != "AMAZON")
+        )
+        usable = region and region.upper() not in ("GLOBAL", "")
+        return {
+            "source": name,
+            "prefix": str(network),
+            "service": service,
+            "region": region if usable else None,
+            "region_note": None if usable else (region or "unset"),
+        }
+    return None
+
+
+def network_layer(address):
+    """ASN and holder, reported beside the vendor and never merged into it.
+
+    RIPEstat is keyless with no documented request cap and carries no attribution or
+    deletion obligation, which is why it is here and GeoLite2 is not.
+    """
+    raw, error = fetch_bytes(RIPESTAT_PREFIX.format(ip=urllib.parse.quote(address)), timeout=10)
+    if error is not None:
+        return {"error": error}
+    try:
+        data = json.loads(raw).get("data", {})
+    except ValueError:
+        return {"error": "unparseable RIPEstat response"}
+    asns = data.get("asns") or []
+    return {
+        "asn": asns[0].get("asn") if asns else None,
+        "holder": asns[0].get("holder") if asns else None,
+        "prefix": data.get("resource"),
+        "source": "stat.ripe.net",
+    }
+
+
+def tls_facts(host, address=None):
+    """Issuer and SANs from the leaf certificate, via stdlib ssl.
+
+    Connects to an address already resolved above when there is one, passing `host` as
+    the SNI name so verification still runs against the hostname. That avoids a second
+    resolution, and it is also what makes this work where the process cannot call
+    getaddrinfo at all while DNS over another path succeeds.
+
+    Verification stays on. An unverifiable certificate is reported as such rather than
+    read anyway: turning verification off to read a cert is the beginning of treating a
+    security control as an obstacle.
+    """
+    context = ssl.create_default_context()
+    try:
+        with socket.create_connection((address or host, 443), timeout=TLS_TIMEOUT) as raw:
+            with context.wrap_socket(raw, server_hostname=host) as tls:
+                cert = tls.getpeercert()
+    except Exception as exc:  # noqa: BLE001
+        return {"error": f"{type(exc).__name__}: {exc}"}
+    issuer = ""
+    for part in cert.get("issuer", ()):
+        for key, value in part:
+            if key == "organizationName":
+                issuer = value
+    names = sorted({value for key, value in cert.get("subjectAltName", ()) if key == "DNS"})
+    return {"issuer": issuer or None, "sans": names, "not_after": cert.get("notAfter")}
+
+
+def robots_disallows_root(url, budget):
+    """Whether robots.txt asks agents to stay off the root.
+
+    Not legally required for a browser-equivalent request, but it is the DSM art.
+    4(3) reservation channel and honouring it is what avoids the complaint that
+    would make continued access a different legal question.
+    """
+    parts = urllib.parse.urlsplit(url)
+    status, _, body, error = http_get(
+        f"{parts.scheme}://{parts.netloc}/robots.txt", budget, timeout=ENTRY_TIMEOUT, limit=100_000
+    )
+    if error is not None or status != 200:
+        return False
+    applies = False
+    for line in body.splitlines():
+        line = line.split("#", 1)[0].strip()
+        if not line or ":" not in line:
+            continue
+        field, value = (part.strip() for part in line.split(":", 1))
+        field = field.lower()
+        if field == "user-agent":
+            applies = value == "*"
+        elif field == "disallow" and applies and value == "/":
+            return True
+    return False
+
+
+def linked_scripts(body, base):
+    """Script URLs the page itself references, in document order.
+
+    Bounded to the entry document's own references. Nothing is guessed, and the
+    lazy-chunk graph is not walked: configuration lives in the eagerly loaded entry
+    and vendor chunks, so the first few are where the answer is if it is anywhere.
+    """
+    urls = []
+    for src in SCRIPT_SRC.findall(body):
+        absolute = urllib.parse.urljoin(base, src)
+        if absolute.startswith(("http://", "https://")) and absolute not in urls:
+            urls.append(absolute)
+    return urls
+
+
+def scan_project_ids(text):
+    found = []
+    for label, pattern in PROJECT_PATTERNS:
+        for match in pattern.finditer(text):
+            value = "/".join(group for group in match.groups() if group)
+            entry = {"kind": label, "value": value}
+            if entry not in found:
+                found.append(entry)
+    return found
+
+
+def crawl_project_ids(body, base, budget):
+    """The best-effort tier: identifiers the bundles happen to expose.
+
+    Bounded on purpose. An unbounded crawl of a handful of sites took over two
+    minutes in testing and one site's chunks alone were 10 MB, so this reads at most
+    MAX_CHUNKS scripts with a size and time cap on each. Roughly a third to a half of
+    serious production sites expose nothing here, which is why an empty result is
+    reported as "not exposed" rather than as a failed search.
+    """
+    found = scan_project_ids(body)
+    generator = GENERATOR.search(body)
+    for url in linked_scripts(body, base)[:MAX_CHUNKS]:
+        _, _, chunk, error = http_get(url, budget, timeout=CHUNK_TIMEOUT, limit=CHUNK_MAX_BYTES)
+        if error is not None:
+            continue
+        for entry in scan_project_ids(chunk):
+            if entry not in found:
+                found.append(entry)
+    return found, generator.group(1) if generator else None
+
+
+def linked_origins(body, base):
+    """Distinct origins the page will actually call.
+
+    A preconnect is the strongest available signal because an author only preconnects
+    to an origin the page really uses, which is what separates the API base URL from
+    the asset hosts without executing any script.
+    """
+    own = urllib.parse.urlsplit(base).hostname
+    origins = []
+    for href in PRECONNECT.findall(body):
+        host = urllib.parse.urlsplit(urllib.parse.urljoin(base, href)).hostname
+        if host and host != own and host not in origins:
+            origins.append(host)
+    for url in linked_scripts(body, base):
+        host = urllib.parse.urlsplit(url).hostname
+        if host and host != own and host not in origins:
+            origins.append(host)
+    return origins
+
+
+def authorized(host):
+    """The basis on which --deep may touch this host, or None.
+
+    A flag alone cannot carry this. Requesting an undocumented path evidences an
+    expectation that it exists, and under the French line that awareness is the whole
+    offence, so the tool needs a recorded reason naming who authorised it.
+    """
+    if not AUTHORIZED_FILE.exists():
+        return None
+    try:
+        payload = json.loads(AUTHORIZED_FILE.read_text())
+    except (ValueError, OSError):
+        return None
+    today = time.strftime("%Y-%m-%d")
+    for entry in payload.get("hosts", []):
+        if entry.get("host") != host:
+            continue
+        expires = entry.get("expires")
+        if expires and expires < today:
+            continue
+        return entry.get("basis") or "unstated"
+    return None
+
+
+def probe_deep(url, budget):
+    parts = urllib.parse.urlsplit(url)
+    hits = []
+    for path in DEEP_PATHS:
+        status, headers, _, error = http_get(
+            f"{parts.scheme}://{parts.netloc}{path}", budget, timeout=CHUNK_TIMEOUT, limit=200_000
+        )
+        if error is not None:
+            break
+        if status and status < 400:
+            hits.append({"path": path, "status": status, "type": headers.get("content-type", "")})
+    return hits
+
+
+def normalise(target):
+    if "://" not in target:
+        target = f"https://{target}"
+    parts = urllib.parse.urlsplit(target)
+    if not parts.hostname:
+        return None, None
+    return parts.hostname, urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path or "/", "", ""))
+
+
+def investigate(host, url, args, budget):
+    report = {
+        "target": host,
+        "url": url,
+        "dns": {},
+        "tls": {},
+        "edge": {},
+        "origin": {},
+        "network": {},
+        "ip_attribution": None,
+        "origins": [],
+        "project": {"exposed": False, "ids": []},
+        "framework": None,
+        "deep": None,
+        "notes": [],
+    }
+
+    # DNS first, then TLS against what it resolved. The handshake is short enough that
+    # serialising it behind the lookups costs less than the duplicate resolution did.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+        chain_future = pool.submit(cname_chain, host, args.doh)
+        a_future = pool.submit(lookup, host, "A", args.doh)
+        chain = chain_future.result()
+        addresses = a_future.result()
+
+    report["dns"] = {"cname_chain": chain, "a": addresses}
+    report["tls"] = tls_facts(host, addresses[0] if addresses else None)
+
+    vendor, evidence = vendor_from_hosts([host, *chain])
+    if vendor:
+        report["edge"] = {"vendor": vendor, "evidence": f"CNAME: {evidence}"}
+
+    if robots_disallows_root(url, budget):
+        report["notes"].append("robots.txt disallows / for *, so the page was not fetched")
+        status, headers, body = None, {}, ""
+    else:
+        status, headers, body, error = http_get(url, budget)
+        if error is not None:
+            report["notes"].append(error)
+        report["http_status"] = status
+
+    for found_vendor, found_evidence in vendors_from_headers(headers):
+        if not report["edge"].get("vendor"):
+            report["edge"] = {"vendor": found_vendor, "evidence": found_evidence}
+        elif found_vendor != report["edge"]["vendor"] and not report["origin"].get("vendor"):
+            report["origin"] = {"vendor": found_vendor, "evidence": found_evidence}
+        elif found_vendor not in (report["edge"].get("vendor"), report["origin"].get("vendor")):
+            report["notes"].append(f"also named: {found_vendor} ({found_evidence})")
+
+    regions = regions_from_headers(headers)
+    if "edge" in regions and report["edge"]:
+        report["edge"]["region"], report["edge"]["region_evidence"] = regions["edge"]
+    if "compute" in regions:
+        report["origin"].setdefault("vendor", report["edge"].get("vendor"))
+        report["origin"]["region"], report["origin"]["region_evidence"] = regions["compute"]
+
+    for candidate in [host, *chain]:
+        region = region_from_host(candidate)
+        if region:
+            report["origin"]["region"] = region
+            report["origin"]["region_evidence"] = f"hostname: {candidate}"
+            break
+
+    if addresses:
+        report["ip_attribution"] = attribute_ip(addresses[0])
+        report["network"] = network_layer(addresses[0])
+
+    if body:
+        ids, framework = crawl_project_ids(body, url, budget)
+        report["project"] = {"exposed": bool(ids), "ids": ids}
+        report["framework"] = framework
+        report["origins"] = linked_origins(body, url)
+
+    if args.deep:
+        basis = authorized(host)
+        report["deep"] = {"basis": basis, "hits": probe_deep(url, budget)}
+
+    return report
+
+
+def describe(layer):
+    vendor = layer.get("vendor")
+    region = layer.get("region")
+    if vendor and region:
+        return f"{vendor} ({region})"
+    # A region with no vendor is still an answer, so it is printed alone rather than
+    # dressed up as "unknown (iad1)".
+    return vendor or region or "unknown"
+
+
+# Wide enough for the longest label below, so every value starts in one column and
+# the report reads as a table rather than as prose.
+LABEL_WIDTH = 9
+
+
+def brief(text, limit=56):
+    """One line, short enough not to wrap.
+
+    Evidence is quoted to be checked, not read in full: a real server-timing carries a
+    dozen metrics and a source map path can run to hundreds of characters, and either
+    one wrapped across three lines destroys the column alignment it sits in.
+    """
+    text = " ".join(str(text).split())
+    return text if len(text) <= limit else text[: limit - 3] + "..."
+
+
+def row(label, value, colour=None, width=LABEL_WIDTH):
+    """One label-value line.
+
+    An `item`, not an `ok`: these are entries in a listing rather than operations that
+    succeeded, and the distinction between an answer and an absence is carried by the
+    colour, the way port.fish dims everything except the field that matters.
+
+    `width` is per section rather than global because the fixed labels are short while
+    an identifier's kind is prose ("Sentry org and project"), and one column sized for
+    the longest of those would strand the serving path in whitespace.
+    """
+    label = ui.paint(label.ljust(width), "dim")
+    ui.item(f"{label} {ui.paint(value, colour) if colour else value}")
+
+
+def holder_name(holder):
+    """The readable half of an ASN holder string.
+
+    Registries format these as `AMAZON-02 - Amazon.com, Inc.`, where the handle before
+    the separator is noise for a reader who wants the company.
+    """
+    if not holder:
+        return ""
+    _, separator, tail = holder.partition(" - ")
+    return (tail if separator else holder).strip()
+
+
+def render(report):
+    ui.title(f"🔎 {report['target']}")
+    ui.blank()
+
+    ui.title("Serving path")
+    edge = report["edge"]
+    shown = None
+    if edge.get("vendor"):
+        row("edge", describe(edge), "cyan")
+        shown = edge.get("region_evidence") or edge.get("evidence")
+        if shown:
+            ui.note(brief(shown), indent=4)
+    else:
+        row("edge", "not identified", "dim")
+
+    origin = report["origin"]
+    if origin.get("vendor") or origin.get("region"):
+        row("origin", describe(origin), "cyan")
+        evidence = origin.get("region_evidence") or origin.get("evidence")
+        # One x-vercel-id carries both regions, so quoting it under each row twice adds
+        # a line and no information.
+        if evidence and evidence != shown:
+            ui.note(brief(evidence), indent=4)
+    else:
+        # Stated rather than omitted. A masked origin and an unexamined one look
+        # identical in a report that simply leaves the line out.
+        row("origin", "not distinguishable behind the edge", "dim")
+
+    network = report["network"]
+    if network.get("asn"):
+        row("network", f"AS{network['asn']} {holder_name(network.get('holder'))}".strip(), "yellow")
+        ui.note(brief(f"{network.get('prefix', '')} via {network.get('source', '')}"), indent=4)
+
+    attribution = report["ip_attribution"]
+    if attribution:
+        region = attribution.get("region")
+        row("ip range", f"{attribution['service']} {region}" if region else attribution["service"])
+        detail = attribution["prefix"]
+        if not region and attribution.get("region_note"):
+            detail = f"{detail}, region {attribution['region_note']}, so not a deployment region"
+        ui.note(brief(detail, limit=72), indent=4)
+
+    stack = []
+    if report.get("framework"):
+        stack.append(("framework", report["framework"]))
+    if report["tls"].get("issuer"):
+        stack.append(("tls", report["tls"]["issuer"]))
+    chain = report["dns"].get("cname_chain") or []
+    if chain:
+        stack.append(("cname", brief(" -> ".join(chain))))
+    if stack:
+        ui.blank()
+        ui.title("Stack")
+        for label, value in stack:
+            row(label, value)
+
+    project = report["project"]
+    ui.blank()
+    ui.title("Project identifiers")
+    if project["ids"]:
+        width = max(len(entry["kind"]) for entry in project["ids"])
+        for entry in project["ids"]:
+            row(entry["kind"], entry["value"], "yellow", width=width)
+    else:
+        # "not exposed" and "not found" render identically unless one of them says so.
+        ui.note("none exposed, which is not the same as none existing", indent=4)
+
+    if report["origins"]:
+        ui.blank()
+        ui.title("Other origins this page calls")
+        for origin_host in report["origins"][:8]:
+            ui.item(origin_host)
+        if len(report["origins"]) > 8:
+            ui.note(f"and {len(report['origins']) - 8} more", indent=4)
+
+    deep = report.get("deep")
+    if deep is not None and deep["basis"]:
+        ui.blank()
+        ui.title(f"Deep probe, authorised as {deep['basis']}")
+        if deep["hits"]:
+            width = max(len(hit["path"]) for hit in deep["hits"])
+            for hit in deep["hits"]:
+                row(hit["path"], f"{hit['status']} {hit['type']}".strip(), width=width)
+        else:
+            ui.note("no conventional path answered", indent=4)
+
+    if report["notes"]:
+        ui.blank()
+        for note in report["notes"]:
+            ui.warn(brief(note, limit=72))
+
+    ui.blank()
+    ui.done(summarise(report))
+
+
+def summarise(report):
+    """The one line to read if you read nothing else.
+
+    A count of identified layers was the wrong closing line: it graded the run instead
+    of answering the question that was asked.
+    """
+    edge = report["edge"]
+    if not edge.get("vendor"):
+        return f"{report['target']}: no vendor identified"
+    origin = report["origin"]
+    answer = describe(edge)
+    if origin.get("vendor") and origin["vendor"] != edge["vendor"]:
+        answer = f"{answer}, origin on {describe(origin)}"
+    elif origin.get("region") and origin["region"] != edge.get("region"):
+        answer = f"{answer}, computing in {origin['region']}"
+    else:
+        answer = f"{answer}, origin masked"
+    count = len(report["project"]["ids"])
+    if count:
+        answer = f"{answer}, {count} identifier{'' if count == 1 else 's'} exposed"
+    return answer
+
+
+class Parser(argparse.ArgumentParser):
+    """argparse exits 2 on a usage error; this script defines its own codes."""
+
+    def error(self, message):
+        self.print_usage(sys.stderr)
+        self.exit(EXIT_USAGE, ui.render("err", message, stream=sys.stderr) + "\n")
+
+
+def main(argv=None):
+    parser = Parser(prog="hostof", description=__doc__.splitlines()[0])
+    parser.add_argument("target", help="a URL or a bare hostname")
+    parser.add_argument("--json", action="store_true", help="emit the report as JSON")
+    parser.add_argument(
+        "--doh",
+        action="store_true",
+        help="resolve over DNS-over-HTTPS instead of the system resolver",
+    )
+    parser.add_argument(
+        "--deep",
+        action="store_true",
+        help="also request conventional undocumented paths (needs an authorization entry)",
+    )
+    args = parser.parse_args(argv)
+
+    host, url = normalise(args.target)
+    if not host:
+        return fail(EXIT_USAGE, f"Not a hostname or URL: {args.target!r}.")
+
+    if args.deep and not authorized(host):
+        # The whole refusal goes to stderr. ui.note defaults to stdout, which would
+        # put the reason on a stream the caller may be discarding while the ✗ line
+        # lands on another.
+        ui.err(f"--deep is not authorised for {host}.")
+        ui.note(f"Record a basis in {ui.path(AUTHORIZED_FILE)} first:", stream=sys.stderr)
+        ui.note(
+            '{"hosts": [{"host": "%s", "basis": "own-infra", "expires": "YYYY-MM-DD"}]}' % host,
+            stream=sys.stderr,
+        )
+        ui.note(
+            "Requesting undocumented paths on a third party you have no relationship",
+            stream=sys.stderr,
+        )
+        ui.note("with is the one thing this tool will not do on a bare flag.", stream=sys.stderr)
+        return EXIT_REFUSED
+
+    budget = Budget()
+    report = investigate(host, url, args, budget)
+
+    if not report["dns"].get("a") and not report.get("http_status"):
+        return fail(EXIT_UNREACHABLE, f"{host} did not resolve and did not answer.")
+
+    if args.json:
+        print(json.dumps(report, indent=2))
+    else:
+        render(report)
+    return EXIT_OK
+
+
+if __name__ == "__main__":
+    sys.exit(main())
