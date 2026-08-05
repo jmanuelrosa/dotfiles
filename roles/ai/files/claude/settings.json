@@ -44,6 +44,17 @@
   "feedbackSurveyRate": 0,
   "fileCheckpointingEnabled": true,
   "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "~/.claude/hooks/plan-date-stamp.sh",
+            "type": "command"
+          }
+        ],
+        "matcher": "ExitPlanMode"
+      }
+    ],
     "PreToolUse": [
       {
         "hooks": [
