@@ -340,14 +340,13 @@ roles/ai/files/claude/
   skills/                 # Individual skills (directories with SKILL.md)
   agents/                 # Agent .md files
   rules/                  # User-scope rules, linked into ~/.claude/rules/
-  templates/              # Repo data, copied by hand, never linked
   skill-registry.json     # Tracked upstream + local_skills inventory
   agent-registry.json     # Tracked upstream agents
 ```
 
 Every `.md` in `rules/` is linked into `~/.claude/rules/` and loads at launch in every project, so it is machine-wide the moment the `ai` role runs.
-`templates/` is the opposite by design: `REVIEW.md` there is copied to a repository root by hand, because Claude Code reads a `REVIEW.md` only at a repo root and only for hosted GitHub Code Review.
-See the code review policy section in the repo's root `CLAUDE.md` for why the review bar lives in `rules/` rather than in a `REVIEW.md`.
+That is the only route a machine-wide review policy has: Claude Code reads a `REVIEW.md` at a repository root only, and only for hosted GitHub Code Review, so the local review never reads one wherever it sits.
+See the code review policy section in the repo's root `CLAUDE.md` for why the review bar lives in `rules/`, and why no `REVIEW.md` template is kept here.
 
 ## Resources
 
