@@ -14,6 +14,28 @@
     state: present
   when: BREW_PACKAGES.formulas | default([]) | length > 0
 
+# The ai role creates this too, but coreutils runs 15 roles earlier in dotfiles.yml,
+# and ansible.builtin.file state=link does not create a missing parent. Without this
+# the link task below fails on a fresh machine.
+- name: Ensure user bin directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.local/bin"
+    state: directory
+    mode: "0755"
+
+- name: Link core scripts into the user bin directory
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/scripts/{{ item }}/{{ item }}"
+    dest: "{{ HOME }}/.local/bin/{{ item }}"
+    state: link
+    force: true
+  # One directory per tool, and the executable inside carries the tool's name, so the
+  # source is <name>/<name>. src stays absolute: ansible.builtin.file does not resolve
+  # it through the role search path the way copy and template do, and a relative one
+  # would be read against ~/.local/bin and written as a dangling link that still
+  # reports changed.
+  loop: "{{ CORE_SCRIPTS }}"
+
 - name: Ensure bat config directory exists
   ansible.builtin.file:
     path: "{{ HOME }}/.config/bat"

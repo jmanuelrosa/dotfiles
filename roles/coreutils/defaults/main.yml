@@ -3,6 +3,13 @@
 
 ---
 
+# Tools symlinked onto PATH from files/scripts/, named rather than globbed, for the
+# same reason the ai and work roles name theirs: every entry is a directory, and
+# Ansible's fileglob lookup filters matches through os.path.isfile, so a glob would
+# match nothing and silently install no tools.
+CORE_SCRIPTS:
+  - hostof
+
 BREW_PACKAGES:
   formulas:
     - bat
