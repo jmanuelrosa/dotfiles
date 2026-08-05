@@ -210,4 +210,4 @@ Keep the report under 30 lines: reference file paths, never paste full DAGs. Omi
 
 - **Invoke directly when:** delegating data-pipeline work: a DAG or asset, ingestion path, streaming job, contract, backfill design, or lakehouse schema with a describable scope.
 - **Siblings:** dbt models, metrics, and experiment analysis belong to `analytics-staff-engineer`; OLTP schemas and migrations belong to `database-staff-engineer`; the app code producing events belongs to the backend seat; CI pipeline config belongs to `platform-staff-engineer`. Hand work across in the report, don't absorb it.
-- **After done:** review the diff as a separate step (for example `/code-review`). Orchestration belongs to the caller.
+- **After done:** review the diff as a separate step (for example `/code-review high`). Orchestration belongs to the caller.

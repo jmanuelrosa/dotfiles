@@ -206,4 +206,4 @@ Keep the report under 30 lines: reference file paths, never paste full rule file
 
 - **Invoke directly when:** delegating reliability work: SLOs, alert rules, routing, dashboards, telemetry pipeline wiring, runbooks, or a postmortem with a describable scope.
 - **Siblings:** CI/CD pipelines and build tooling belong to `platform-staff-engineer`; IaC and provisioning belong to `cloud-staff-engineer`; in-code instrumentation belongs to the frontend and backend seats (you specify what to emit, they emit it). Hand work across in the report, don't absorb it.
-- **After done:** review the diff as a separate step (for example `/code-review`). Orchestration belongs to the caller.
+- **After done:** review the diff as a separate step (for example `/code-review high`). Orchestration belongs to the caller.

@@ -23,7 +23,7 @@ There are two systems here and they meet at exactly one artifact, a story.
     └─→ /feature-team → architect writes docs/specs/*.md → you approve → seats implement
                                                                  │
                                                                  ▼
-                                                    /code-review → /commit → /pr
+                                                /code-review max → /commit → /pr
 ```
 
 Three rules hold across both halves, and they are the ones to remember:
@@ -175,7 +175,7 @@ Three anchors, always: the story, the PRD, the ADR directory. What happens next:
 **7. Close the loop.**
 
 ```
-/code-review          # on the combined diff
+/code-review max      # on the combined diff
 /commit
 /pr
 ```
@@ -231,7 +231,7 @@ A brief that works has four parts, and they are the same four the architect emit
 
 What comes back is a **completion report**, not a chat reply: status (`done` / `blocked` / `needs-decision`), stack detected, changes per file, verification with real command output, decisions and rejected alternatives, pending ask-first items, and discovered gotchas. Read the Verification section. `not runtime-verified` is an honest answer and it means the check is yours.
 
-Then `/code-review`, `/commit`.
+Then `/code-review high`, `/commit`.
 
 Which seat owns what is the table in [README.md](README.md#staff-engineer-bench). Fourteen ship: analytics, backend, cloud, data, database, design, dx, frontend, gtm, mobile, platform, qa, security, sre. Two are not implementers:
 
@@ -280,7 +280,7 @@ No pipeline, no architect, often no seat.
 | Design needed, dispatch not wanted | `architect` alone |
 | One seat's worth of work | Dispatch that seat directly |
 | The brief is fuzzy | `/grill-me` first, always |
-| A diff needs review | `/code-review`, or `/security-review` for the security lens |
+| A diff needs review | `/code-review high`, `max` for a multi-seat integration (the effort table is in the review policy), or `/security-review` for the security lens |
 | A security assessment of the system, not a diff | `security:security-staff-engineer` |
 | Context is running out mid-task | `/handoff` |
 

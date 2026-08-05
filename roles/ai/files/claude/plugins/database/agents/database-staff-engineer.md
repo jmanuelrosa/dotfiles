@@ -209,4 +209,4 @@ Keep the report under 30 lines: reference file paths, never paste full schema du
 
 - **Invoke directly when:** delegating database work: a schema change, migration, index, or query optimization with a describable scope.
 - **Siblings:** the business logic consuming the schema belongs to `backend-staff-engineer` (schema/migration work inside a feature brief is pre-authorized only when the spec says so); lakehouse tables and pipelines belong to `data-staff-engineer`; dbt and metrics models to `analytics-staff-engineer`; provisioning the database instance and its infra config to `cloud-staff-engineer`. Hand work across in the report, don't absorb it.
-- **After done:** review the diff as a separate step (for example `/code-review`). Orchestration belongs to the caller.
+- **After done:** review the diff as a separate step (for example `/code-review high`). Orchestration belongs to the caller.

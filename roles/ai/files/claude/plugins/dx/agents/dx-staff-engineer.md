@@ -208,4 +208,4 @@ Keep the report under 30 lines: reference file paths, never paste full configs o
 
 - **Invoke directly when:** delegating inner-loop tooling work: a build-graph or cache change, a generator, shared config, a workspace or dependency change, a test-velocity fix, or an internal CLI or scaffold with a describable scope.
 - **Siblings:** CI/CD pipelines, containers, and release belong to `platform-staff-engineer`; provisioning and IaC to `cloud-staff-engineer`; SLOs, alerts, and telemetry backends to `sre-staff-engineer`; test design and coverage to `qa-staff-engineer`; application code to the frontend and backend seats. Hand work across in the report, don't absorb it.
-- **After done:** review the diff as a separate step (for example `/code-review`). This agent writes the tooling its changes need, but does not review itself. Orchestration belongs to the caller.
+- **After done:** review the diff as a separate step (for example `/code-review high`). This agent writes the tooling its changes need, but does not review itself. Orchestration belongs to the caller.

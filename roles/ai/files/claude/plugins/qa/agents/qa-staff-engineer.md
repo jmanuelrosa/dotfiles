@@ -208,4 +208,4 @@ Keep the report under 30 lines: reference file paths, never paste full test file
 
 - **Invoke directly when:** delegating test work: coverage for a feature, an e2e flow, test infra or fixtures, a flake investigation, or a coverage-gap analysis with a describable scope.
 - **Siblings:** fixing the product bugs your tests expose belongs to `backend-staff-engineer` / `frontend-staff-engineer`; CI test-job wiring belongs to `platform-staff-engineer`. Hand work across in the report, don't absorb it.
-- **After done:** review the diff as a separate step (for example `/code-review`). Orchestration belongs to the caller.
+- **After done:** review the diff as a separate step (for example `/code-review high`). Orchestration belongs to the caller.

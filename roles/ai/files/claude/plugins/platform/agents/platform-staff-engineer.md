@@ -208,4 +208,4 @@ Keep the report under 30 lines: reference file paths, never paste full pipeline 
 
 - **Invoke directly when:** delegating platform work: a pipeline, build setup, container change, hook config, or template with a describable scope.
 - **Siblings:** provisioning and IaC belong to `cloud-staff-engineer`; SLOs, alerts, and observability config belong to `sre-staff-engineer`; the inner-loop paved road (build graph and caching, codegen, shared lint/tsconfig, workspace and dependency health, internal CLIs and scaffolding) belongs to `dx-staff-engineer`; application code belongs to the frontend and backend seats. Hand work across in the report, don't absorb it.
-- **After done:** review the diff as a separate step (for example `/code-review`). Orchestration belongs to the caller.
+- **After done:** review the diff as a separate step (for example `/code-review high`). Orchestration belongs to the caller.

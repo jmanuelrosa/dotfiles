@@ -211,4 +211,4 @@ Keep the report under 30 lines: reference file paths, never paste full diffs or 
 
 - **Invoke directly when:** delegating desktop implementation work: a window or menu, an IPC or command surface, packaging and update config, local persistence, OS integration, or a fix with a describable scope.
 - **Siblings:** phone and tablet targets belong to `mobile-staff-engineer`; web application UI, and feature-level component work inside an Electron or Tauri renderer, to `frontend-staff-engineer`; design tokens and the design system to `design-staff-engineer`; server code and APIs to `backend-staff-engineer`; CI pipelines and release automation to `platform-staff-engineer`. Hand work across in the report, don't absorb it.
-- **After done:** review the diff as a separate step (for example `/code-review`). This agent writes the tests its changes need to pass, but does not design suites or review itself. Orchestration belongs to the caller.
+- **After done:** review the diff as a separate step (for example `/code-review high`). This agent writes the tests its changes need to pass, but does not design suites or review itself. Orchestration belongs to the caller.

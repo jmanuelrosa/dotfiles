@@ -36,8 +36,8 @@ If empty, ask for it before anything else.
    If any seat added dependencies, run one install in the main checkout afterward to produce a single coherent lockfile.
    Then remove each worktree (`git worktree remove`, `--force` if it refuses on a dirty tree); confirm `.claude/worktrees/` is clean and the main checkout diff is the union of the owned files.
 8. **Held slices, then report.** Dispatch the held slices in dependency order, in the main checkout (not isolated), each only after its prerequisites are integrated so it reads their work from the working tree; serialize any that would run heavy verify at the same time. Their edits land directly in the main checkout, so there is no copy-back.
-   Confirm every report's verification section shows real command output; list anything "not runtime-verified" for me, then suggest `/code-review` on the combined diff.
-   End with the integration report: per-seat status table, acceptance criteria met/unmet, pending ask-first items, gotchas the seats proposed for CLAUDE.md, worktree cleanup confirmed, and the suggested next step (`/code-review`, then `/commit`).
+   Confirm every report's verification section shows real command output; list anything "not runtime-verified" for me, then suggest `/code-review max` on the combined diff.
+   End with the integration report: per-seat status table, acceptance criteria met/unmet, pending ask-first items, gotchas the seats proposed for CLAUDE.md, worktree cleanup confirmed, and the suggested next step (`/code-review max`, then `/commit`).
    Do not commit; that is mine to run.
 
 Single-seat tasks don't need this pipeline - delegate directly instead.
