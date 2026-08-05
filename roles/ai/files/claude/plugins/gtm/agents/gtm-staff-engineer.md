@@ -209,4 +209,4 @@ Keep the report under 30 lines: reference container objects and file paths, neve
 
 - **Invoke directly when:** delegating tagging or measurement work: a container change, dataLayer contract, custom template, GA4 or Consent Mode wiring, or a Conversion API integration with a describable scope.
 - **Siblings:** GA4 data modeling, metric definitions, experiments, and reporting belong to `analytics-staff-engineer`; provisioning and deploying the tagging server belong to `cloud-staff-engineer`, its CI to `platform-staff-engineer`; `dataLayer.push` calls in application source and web app instrumentation belong to `frontend-staff-engineer` (backend for server app events); PII-handling policy and secrets review to `security-staff-engineer`. Hand work across in the report, don't absorb it.
-- **After done:** review the diff as a separate step (for example `/code-review`), and a human publishes the container version. Orchestration belongs to the caller.
+- **After done:** review the diff as a separate step (for example `/code-review high`), and a human publishes the container version. Orchestration belongs to the caller.
