@@ -1,6 +1,6 @@
-"""The review policy reaches every session, and the REVIEW.md template reaches none.
+"""The review policy reaches every session, and no REVIEW.md reaches anything.
 
-Two artifacts state one design, and each has a way of silently ceasing to work.
+One artifact states the design, and it has three ways of silently ceasing to work.
 
 `files/claude/rules/code-review.md` is a user-scope rule: linked into ~/.claude/rules/ it
 loads at launch in every project, which is the whole reason it was written there instead
@@ -10,18 +10,18 @@ wide review policy has. Miss the link task or the parent directory and the polic
 file in a git repo that nothing ever reads, which looks exactly like a policy that is
 working.
 
-`files/claude/templates/REVIEW.md` is the opposite: repo data, for copying into a
-repository root once someone with Owner role enables hosted Code Review. It must stay out
-of ~/.claude entirely. Linked into rules/ it would become an always-on instruction to
-copy a file, and linked at the top level it would sit beside CLAUDE.md as a rule nothing
-scoped.
+Nothing here ships a REVIEW.md, and the one guard left of that is that none appears in
+~/.claude. Linked into rules/ one would become an always-on instruction about a file the
+local review cannot read, and linked at the top level it would sit beside CLAUDE.md as a
+rule nothing scoped. A repository REVIEW.md is written at the root that reads it, on the
+day hosted Code Review is enabled, and never staged here in the meantime.
 
-The third failure is drift. The policy routes each axis to a seat plugin's failure-modes
+The second failure is drift. The policy routes each axis to a seat plugin's failure-modes
 skill rather than to reference filenames, so retitling a reference upstream cannot strand
 it; renaming or dropping a *seat* still can, and a route to a plugin that does not exist
 is a checklist silently never opened.
 
-The fourth is a bare `/code-review`. Effort is the command's first argument and it decides
+The third is a bare `/code-review`. Effort is the command's first argument and it decides
 the whole shape of the run: one diff pass and no verify step at `low`, eight finder angles
 at `medium`, a recall-oriented net from `high` up. `disableModelInvocation: true` means no
 agent can pass it, so every call site here is prose telling a human what to type, and one
@@ -40,7 +40,6 @@ AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 
 RULES = CLAUDE / "rules"
 POLICY = RULES / "code-review.md"
-TEMPLATE = CLAUDE / "templates/REVIEW.md"
 SKILL_REGISTRY = CLAUDE / "skill-registry.json"
 
 DIRS_TASK = "Ensure AI config directories exist"
@@ -51,17 +50,6 @@ CONFIG_TASK = "Symlink claude config files"
 # (Critical/Nit, P0-P2, nitpick/warning, Important/Nit), so a word dropped from it
 # reopens the translation problem it closed.
 SEVERITIES = ("blocker", "important", "nit", "pre-existing")
-
-# The template speaks a subset, and the gap is deliberate rather than drift: the hosted
-# pipeline grades on three levels of its own, machine-readable as
-# {"normal": 2, "nit": 1, "pre_existing": 0}, so a fourth word there would have nothing
-# to map onto. `important` is the local tier, where a finding can be recorded and shipped
-# rather than merged or blocked.
-TEMPLATE_SEVERITIES = ("blocker", "nit", "pre-existing")
-
-# An import Claude Code would have resolved in a CLAUDE.md: @ against a path, not the @ in
-# prose explaining that they do not work here.
-IMPORT = re.compile(r"@[~./\w]+/")
 
 # Named as out of scope during a review because each one writes. A rename here leaves the
 # policy banning something that no longer exists while the renamed skill goes unbanned.
@@ -135,40 +123,21 @@ def test_the_policy_exists_and_is_the_only_kind_of_file_in_the_rules_tree():
     assert stray == [], f"non-rule files in rules/ would confuse the tree: {stray}"
 
 
-def test_the_template_stays_out_of_the_home_directory():
-    """Repo data, like README.md and the two registries.
+def test_no_review_md_reaches_the_home_directory():
+    """The local review reads no REVIEW.md, so one in ~/.claude is a file nothing opens.
 
-    In rules/ it would be an always-on instruction to copy a file. In the top-level loop
-    it would sit beside CLAUDE.md as an unscoped rule. Neither is what a template is for.
+    In rules/ it would be an always-on instruction about an unreadable file. In the
+    top-level loop it would sit beside CLAUDE.md as an unscoped rule. A repository
+    REVIEW.md belongs at the root that reads it, written the day hosted Code Review is
+    enabled, not staged here against a day that may not come.
     """
-    assert TEMPLATE.is_file()
-    assert TEMPLATE.parent.name == "templates"
     assert not (RULES / "REVIEW.md").exists()
     assert "REVIEW.md" not in ai_task(CONFIG_TASK)["loop"]
-    assert "templates" not in ai_task(CONFIG_TASK)["loop"]
 
 
 @pytest.mark.parametrize("severity", SEVERITIES)
 def test_the_policy_holds_the_whole_severity_vocabulary(severity):
     assert severity in POLICY.read_text(), f"the policy dropped `{severity}`"
-
-
-@pytest.mark.parametrize("severity", TEMPLATE_SEVERITIES)
-def test_the_template_speaks_the_hosted_subset(severity):
-    """Three words, because the hosted pipeline grades on three levels."""
-    assert severity in TEMPLATE.read_text(), f"the template dropped `{severity}`"
-
-
-def test_the_template_is_self_contained():
-    """It is pasted verbatim into the review pipeline and `@` imports are not expanded.
-
-    A reference to another file reads as guidance and silently delivers nothing, so the
-    template may not point at one.
-    """
-    body = TEMPLATE.read_text()
-    found = IMPORT.findall(body)
-    assert found == [], f"an @ import in REVIEW.md is dropped, not resolved: {found}"
-    assert "rules/code-review.md" not in body, "the template cannot reach the policy"
 
 
 def test_every_seat_the_policy_routes_to_exists():
