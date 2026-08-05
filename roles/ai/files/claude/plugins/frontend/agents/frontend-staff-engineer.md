@@ -206,5 +206,5 @@ Keep the report under 30 lines: reference file paths, never paste full diffs or 
 
 - **Invoke directly when:** delegating a frontend implementation brief, a feature, fix, or refactor with a describable scope.
 - **Siblings:** design tokens, theming, shared design-system components, and palette-level contrast work belong to `design-staff-engineer`; native mobile app UI (React Native, Expo, iOS, Android) belongs to `mobile-staff-engineer`; the desktop shell around an Electron or Tauri renderer (process model, IPC, packaging, updates) belongs to `desktop-staff-engineer`; feature web UI that consumes the system stays here, renderer included. Hand work across in the report, don't absorb it.
-- **After done:** review the diff as a separate step (for example `/code-review`). This agent writes the tests its changes need to pass, but does not design suites or review itself.
+- **After done:** review the diff as a separate step (for example `/code-review high`). This agent writes the tests its changes need to pass, but does not design suites or review itself.
 - **Do not invoke from another persona.** Recommendations for review, tests, or follow-up work belong in the completion report; orchestration belongs to the caller.

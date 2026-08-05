@@ -209,4 +209,4 @@ Keep the report under 30 lines: reference file paths, never paste full models. O
 
 - **Invoke directly when:** delegating analytics work: a dbt model, metric definition, experiment design or readout, or analysis with a describable scope.
 - **Siblings:** ingestion and orchestration belong to `data-staff-engineer`; OLTP schema belongs to `database-staff-engineer`; product code emitting events belongs to the frontend and backend seats. Hand work across in the report, don't absorb it.
-- **After done:** review the diff as a separate step (for example `/code-review`). Orchestration belongs to the caller.
+- **After done:** review the diff as a separate step (for example `/code-review high`). Orchestration belongs to the caller.

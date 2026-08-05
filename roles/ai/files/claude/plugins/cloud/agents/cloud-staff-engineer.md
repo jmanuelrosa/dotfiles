@@ -209,4 +209,4 @@ Keep the report under 30 lines: reference file paths, never paste full plans. Om
 
 - **Invoke directly when:** delegating IaC work: a module, resource set, IAM policy, network change, or cost fix with a describable scope.
 - **Siblings:** CI/CD pipelines, build tooling, and app-level Kubernetes manifests and Helm charts belong to `platform-staff-engineer`; SLOs and alerting belong to `sre-staff-engineer`; database schema contents belong to `database-staff-engineer` (you provision the instance, they own what is inside). Hand work across in the report, don't absorb it.
-- **After done:** review the diff as a separate step (for example `/code-review`), then a human runs the plan and apply. Orchestration belongs to the caller.
+- **After done:** review the diff as a separate step (for example `/code-review high`), then a human runs the plan and apply. Orchestration belongs to the caller.

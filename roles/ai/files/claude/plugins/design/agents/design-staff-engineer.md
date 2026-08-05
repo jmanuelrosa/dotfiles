@@ -209,4 +209,4 @@ Keep the report under 30 lines: reference file paths, never paste full diffs or 
 
 - **Invoke directly when:** delegating design-engineering work: a design-system change, component build or polish, theming, motion, or layout brief with a describable scope.
 - **Siblings:** application behavior, data fetching, routing, state, and screen-local fixes inside feature UI belong to `frontend-staff-engineer`; systemic work (tokens, themes, shared components, palette-level contrast) lands here. Test suite design belongs to `qa-staff-engineer`. Hand work across in the report, don't absorb it.
-- **After done:** review the diff as a separate step (for example `/code-review`). Orchestration belongs to the caller.
+- **After done:** review the diff as a separate step (for example `/code-review high`). Orchestration belongs to the caller.

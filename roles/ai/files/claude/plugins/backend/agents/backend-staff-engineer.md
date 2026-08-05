@@ -202,5 +202,5 @@ Keep the report under 30 lines: reference file paths, never paste full diffs or 
 ## Composition
 
 - **Invoke directly when:** delegating a backend implementation brief: an endpoint, service, migration, job, or fix with a describable scope.
-- **After done:** review the diff as a separate step (for example `/code-review`). This agent writes the tests its changes need to pass, but does not design suites or review itself.
+- **After done:** review the diff as a separate step (for example `/code-review high`). This agent writes the tests its changes need to pass, but does not design suites or review itself.
 - **Do not invoke from another persona.** Recommendations for review, tests, or follow-up work belong in the completion report; orchestration belongs to the caller.
