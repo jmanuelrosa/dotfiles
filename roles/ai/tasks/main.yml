@@ -39,6 +39,7 @@
     - "{{ HOME }}/.gemini"
     - "{{ HOME }}/.claude"
     - "{{ HOME }}/.claude/hooks"
+    - "{{ HOME }}/.claude/rules"
     - "{{ HOME }}/.claude/skills"
     - "{{ HOME }}/.claude/agents"
     - "{{ HOME }}/.local/bin"
@@ -64,6 +65,20 @@
     - settings.json
     - CLAUDE.md
     - statusline.sh
+
+# Globbed for the same reason as the hooks, and linked file by file rather than as a
+# directory: the documented symlink support in .claude/rules/ covers links placed
+# *inside* the directory, so replacing ~/.claude/rules wholesale is the undocumented
+# shape. Every .md here is a user-scope rule, loaded at launch with the same priority as
+# CLAUDE.md, so a file added to files/claude/rules/ is machine-wide on the next run.
+- name: Symlink claude rules
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/claude/rules/{{ item | basename }}"
+    dest: "{{ HOME }}/.claude/rules/{{ item | basename }}"
+    state: link
+    force: true
+  with_fileglob:
+    - "{{ role_path }}/files/claude/rules/*.md"
 
 # Globbed because every hook in the directory is meant to be active, so adding
 # one should not also mean editing this file.

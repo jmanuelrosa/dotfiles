@@ -162,7 +162,7 @@ The per-story loop:
 1. Take the lowest-id PASS story from `06-dor-report.md`.
 2. Run `/feature-team "<story title + goal>"`, giving the architect three anchors: the story file (its `AC-*` are the acceptance bar), `02-prd.md` (the `R#` source of truth), and `docs/adr/` (immutable constraints).
 3. `architect` writes `docs/specs/<feature>.md` with the owner-split work breakdown; you approve at the gate; the seats implement in isolated waves and the skill returns an integration report.
-4. `/code-review`, then `/commit`, then move the issue to Done and pick the next PASS story.
+4. `/code-review max`, then `/commit`, then move the issue to Done and pick the next PASS story.
 
 **Two design docs, one decision record.** `/product-team:4-tech-shape` already wrote `04-design-doc.md`, and `architect` writes its own `docs/specs/<feature>.md`. Either point the architect at `04-design-doc.md` so it inherits those decisions, or let it design fresh from the PRD for an independent check. Whichever you choose, `docs/adr/` is the shared, immutable tie-breaker: the spec honors accepted ADRs and supersedes (never edits) if it diverges, continuing the same global numbering both pipelines use.
 
@@ -339,9 +339,15 @@ Authoring guidance for all three lives with the generators, and they are the fil
 roles/ai/files/claude/
   skills/                 # Individual skills (directories with SKILL.md)
   agents/                 # Agent .md files
+  rules/                  # User-scope rules, linked into ~/.claude/rules/
+  templates/              # Repo data, copied by hand, never linked
   skill-registry.json     # Tracked upstream + local_skills inventory
   agent-registry.json     # Tracked upstream agents
 ```
+
+Every `.md` in `rules/` is linked into `~/.claude/rules/` and loads at launch in every project, so it is machine-wide the moment the `ai` role runs.
+`templates/` is the opposite by design: `REVIEW.md` there is copied to a repository root by hand, because Claude Code reads a `REVIEW.md` only at a repo root and only for hosted GitHub Code Review.
+See the code review policy section in the repo's root `CLAUDE.md` for why the review bar lives in `rules/` rather than in a `REVIEW.md`.
 
 ## Resources
 
