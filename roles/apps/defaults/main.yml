@@ -54,11 +54,12 @@ BREW_PACKAGES:
     # Infrastructure
     - awscli
     - colima
-    - ctop
+    - dive
     - docker
     - docker-compose
     - docker-buildx
     - docker-credential-helper
+    - lazydocker
     # Multimedia
     - imagemagick
     - mpv

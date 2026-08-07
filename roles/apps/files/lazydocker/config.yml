@@ -1,0 +1,22 @@
+# lazydocker config, managed via dotfiles
+# Format: YAML. Deviations from upstream defaults only.
+# See: https://github.com/jesseduffield/lazydocker/blob/master/docs/Config.md
+# yaml-language-server: $schema=https://json.schemastore.org/lazydocker.json
+
+gui:
+  showBottomLine: false
+  returnImmediately: true
+  # Tokyo Night, matching files/lazygit/config.yml. Hex is resolved by
+  # GetGocuiAttribute; the docs only list the named attributes.
+  theme:
+    activeBorderColor:
+      - "#ff9e64"
+      - "bold"
+    inactiveBorderColor:
+      - "#27a1b9"
+    selectedLineBgColor:
+      - "#283457"
+    optionsTextColor:
+      - "#7aa2f7"
+logs:
+  timestamps: true
