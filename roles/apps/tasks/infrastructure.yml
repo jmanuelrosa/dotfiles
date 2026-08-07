@@ -23,15 +23,40 @@
     state: link
     force: true
 
-- name: Ensure ctop config directory exists
+- name: Remove ctop, superseded by lazydocker
+  # Dropping a formula from BREW_PACKAGES never uninstalls it: the install task
+  # is state=present only. Idempotent: no-op once it's gone.
+  community.general.homebrew:
+    name: ctop
+    state: absent
+
+- name: Remove orphaned ctop config directory
   ansible.builtin.file:
     path: "{{ HOME }}/.config/ctop"
+    state: absent
+
+- name: Ensure lazydocker config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/Library/Application Support/jesseduffield/lazydocker"
     state: directory
     mode: "0755"
 
-- name: Symlink ctop config
+- name: Symlink lazydocker config
   ansible.builtin.file:
-    src: "{{ role_path }}/files/ctop/config"
-    dest: "{{ HOME }}/.config/ctop/config"
+    src: "{{ role_path }}/files/lazydocker/config.yml"
+    dest: "{{ HOME }}/Library/Application Support/jesseduffield/lazydocker/config.yml"
+    state: link
+    force: true
+
+- name: Ensure dive config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/dive"
+    state: directory
+    mode: "0755"
+
+- name: Symlink dive config
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/dive/config.yaml"
+    dest: "{{ HOME }}/.config/dive/config.yaml"
     state: link
     force: true

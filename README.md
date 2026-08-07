@@ -184,7 +184,7 @@ libpq, pgcli, DBeaver
 
 ### Infrastructure
 
-AWS CLI, Colima, Docker, Docker Compose, Docker Buildx, docker-credential-helper, ctop, Google Cloud CLI
+AWS CLI, Colima, Docker, Docker Compose, Docker Buildx, docker-credential-helper, lazydocker, dive, Google Cloud CLI
 
 ### Multimedia
 

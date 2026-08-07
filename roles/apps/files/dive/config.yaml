@@ -1,0 +1,12 @@
+# dive config, managed via dotfiles
+# Format: YAML. Keys verified against the v0.13 options structs, not the README,
+# whose example still documents the pre-0.13 schema (a `log:` block that no
+# longer exists, and the wrong default for layer.show-aggregated-changes).
+# See: https://github.com/wagoodman/dive/tree/main/cmd/dive/cli/internal/options
+
+# The runtime here is colima, which speaks the docker engine API.
+container-engine: docker
+filetree:
+  # Upstream starts every directory expanded, which buries the layer diff in a
+  # deep tree on any image built from a language base image.
+  collapse-dir: true

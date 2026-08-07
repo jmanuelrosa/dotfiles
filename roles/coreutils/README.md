@@ -7,7 +7,7 @@ Installs modern replacements for traditional Unix utilities, plus the configs th
 ## What it does
 
 - Installs utilities listed in `BREW_PACKAGES.formulas` via `community.general.homebrew`.
-- Symlinks per-tool configs (bat, ripgrep, eza, btop, ctop) from `files/` into `~/.config/`.
+- Symlinks per-tool configs (bat, ripgrep, eza, btop) from `files/` into `~/.config/`.
 - Symlinks each tool named in `CORE_SCRIPTS` into `~/.local/bin/`, from `files/scripts/<name>/<name>`. `hostof` is the only one. This role also creates `~/.local/bin` itself, because it runs 15 roles before the `ai` role that otherwise would.
 
 ## Vars
