@@ -229,6 +229,7 @@ def test_global_set_holds_exactly_the_documented_membership(catalog, effective):
     this function is the only implementation and there is nothing left to diverge from.
     """
     assert effective == {
+        "ac",
         "agent-audit",
         "agent-writer",
         "cc-review",
