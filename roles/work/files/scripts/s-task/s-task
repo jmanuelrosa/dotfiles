@@ -400,4 +400,8 @@ if test "$CURRENT_BRANCH" != "$BRANCH_NAME"
 end
 
 echo ""
+if test "$PROVIDER" = jira
+    # The one moment the criteria can still be written before the code they measure.
+    _ui note "Write $ISSUE_REF's acceptance criteria with /ac before implementing."
+end
 _ui done "Created and checked out branch "(_ui paint cyan $BRANCH_NAME)

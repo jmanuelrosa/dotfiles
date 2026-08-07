@@ -23,6 +23,13 @@ each under its fixed status lozenge. Inline `**bold**`, `` `code` ``,
 `*italic*`, `[label](url)` and bare URLs are supported; bullets and numbered
 lists are picked up from the usual markers.
 
+`--comment` builds an acceptance-criteria comment instead of a description:
+only that section is required, only that section is rendered, and a footer
+saying the comment is maintained from the branch is appended. It is what
+`acli jira workitem comment create --body-file` and `comment update
+--body-adf` expect, and it lets one file serve as both the branch's working
+copy of the criteria and the body published to the ticket.
+
 Every ADF shape acli rejects is unreachable from this input: no text node ever
 carries `code` alongside `strong` or `em`, list items are always
 paragraph-wrapped, and a section's blocks are always siblings of its heading.
@@ -59,6 +66,15 @@ SECTIONS = (
     (DESIGN, "red"),
 )
 REQUIRED = (CONTEXT, ACCEPTANCE_CRITERIA)
+
+# A comment carries the criteria alone: the ticket it hangs off already has the
+# Context, and repeating it would read as a second, competing description.
+COMMENT_SECTIONS = ((ACCEPTANCE_CRITERIA, "green"),)
+COMMENT_REQUIRED = (ACCEPTANCE_CRITERIA,)
+COMMENT_FOOTER = (
+    "Maintained from the branch by the /ac skill. Edits made here are overwritten "
+    "the next time it publishes."
+)
 
 ALIASES = {
     "context": CONTEXT,
@@ -344,7 +360,7 @@ def lozenge_heading(title, color):
     }
 
 
-def parse(source):
+def parse(source, required=REQUIRED):
     """Map section title to its numbered lines, refusing anything off-template."""
     found, title = {}, None
     for lineno, line in enumerate(source.splitlines(), 1):
@@ -380,7 +396,7 @@ def parse(source):
                 f"section {name!r} is empty; write it or leave the heading out",
                 numbered[0][0] if numbered else None,
             )
-    missing = [name for name in REQUIRED if name not in found]
+    missing = [name for name in required if name not in found]
     if missing:
         raise InputError(
             EXIT_MISSING_SECTION, f"missing required section(s): {', '.join(missing)}"
@@ -388,10 +404,11 @@ def parse(source):
     return found
 
 
-def build(source, investigation=False):
-    found = parse(source)
+def build(source, investigation=False, comment=False):
+    sections = COMMENT_SECTIONS if comment else SECTIONS
+    found = parse(source, COMMENT_REQUIRED if comment else REQUIRED)
     content = []
-    for title, color in SECTIONS:
+    for title, color in sections:
         if title not in found:
             continue
         numbered = found[title]
@@ -403,6 +420,8 @@ def build(source, investigation=False):
             body.extend(render_prose([INVESTIGATION_NOTE]))
         content.append(lozenge_heading(title, color))
         content.extend(body)
+    if comment:
+        content.extend(render_prose([COMMENT_FOOTER]))
     return {"type": "doc", "version": 1, "content": content}
 
 
@@ -419,10 +438,16 @@ def main():
     parser.add_argument(
         "source", nargs="?", default="-", help="template file, or - to read stdin (default)"
     )
-    parser.add_argument(
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
         "--investigation",
         action="store_true",
         help="append the investigation-only sentence to Context unless it is already there",
+    )
+    mode.add_argument(
+        "--comment",
+        action="store_true",
+        help="build an acceptance-criteria comment body: that section alone, plus a footer",
     )
     parser.add_argument(
         "--out",
@@ -437,7 +462,7 @@ def main():
         fail(f"cannot read {args.source}: {error}", EXIT_USAGE)
 
     try:
-        doc = build(source, investigation=args.investigation)
+        doc = build(source, investigation=args.investigation, comment=args.comment)
     except InputError as error:
         where = f"line {error.lineno}: " if error.lineno else ""
         fail(f"{where}{error}", error.code)
