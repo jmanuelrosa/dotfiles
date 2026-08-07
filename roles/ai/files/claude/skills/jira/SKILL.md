@@ -227,10 +227,12 @@ When the work is research / decision-making and implementation is deferred, use 
 
 ## Auth check
 
-Before pushing a create, edit, or transition, verify with `acli jira auth status`. It works from here: the Bash sandbox can read `acli`'s OAuth token from the macOS Keychain, so a `✓ Authenticated` result is real - trust it and proceed.
+Before pushing a create, edit, or transition, verify with `acli jira auth status`. A `✓ Authenticated` result is real, so trust it and proceed.
 
-- **Trust the status check.** `acli` auth/view/search/create/edit all work under the sandbox. The *only* thing it can't do here is `acli jira auth login` - the one operation that writes `~/.config/acli`, which is read-only in the sandbox. Never copy the config dir to `$TMPDIR` or override `HOME`/`XDG_CONFIG_HOME` to "fix" auth; that is never the problem, and the workaround itself fails.
-- A genuine `unauthorized` here means the session actually lapsed (rarely, a Keychain ACL prompt a spawned process can't answer) - not a false negative to assume away. Recovery: ask the user to run `acli jira auth login --web` once in their own terminal, then re-run `acli jira auth status` yourself to confirm. Don't wait to be told the state changed - re-check it.
+- **A session can lapse mid-run, and it is permanent once it does.** `acli` refreshes its OAuth access token by writing `~/.config/acli/jira_config.yaml`, which the sandbox denies (`Edit(~/.config/acli/**)` in settings.json, and `allowWrite` does not cover it). When the token rotates during a session, that write fails with `no permission to modify files` and *every* later call returns `unauthorized`, including `auth status` and including the reads that worked minutes earlier. This is observed behaviour, not a theory. Nothing you can run from here recovers it.
+- So **never put acli on the critical path of an operation that has already had an irreversible effect.** Do the acli work first, or make it a step that can fail without stranding anything.
+- Recovery is always the same and always the user's: ask them to run `acli jira auth login --web` in their own terminal. Never copy the config dir to `$TMPDIR` or override `HOME`/`XDG_CONFIG_HOME` to work around it; the workaround itself fails.
+- `acli jira workitem view` is the call most likely to trigger the config write. When a read is all you need, `acli jira workitem search --jql "key = <PROJECT>-1234" --json` is the safer form.
 - Keep the drafted sections ready while you wait so nothing is lost; `adf.py` needs no auth, so the description can be built before the session is fixed.
 
 ## Workflow patterns
