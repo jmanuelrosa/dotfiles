@@ -1,7 +1,10 @@
 #!/usr/bin/env fish
 
-# Script to connect to cloud-sql-proxy for different environments
-# Usage: s-db [production|staging] [OPTIONS]
+# Script to work with the addingwell databases
+# Usage: s-db [connect] [production|staging|local] [OPTIONS]
+#        s-db dump [production|staging|local] [OPTIONS]
+#        s-db restore [FILE] [OPTIONS]
+#        s-db dumps
 
 # ============================================================================
 # Configuration
@@ -13,11 +16,23 @@
 
 set -g WORK_DIR "$HOME/Developer/work/addingwell"
 set -g PROXY_BIN "./cloud-sql-proxy"
+set -g DUMP_DIR "$WORK_DIR/backups"
+
+# Hardcoded for the same reason the Cloud SQL instances below are, and s-release's ORG:
+# one org, and a layout that changes rarely enough that a config file would only be a
+# second place to look for it.
+set -g DATABASE addingwell
+set -g DUMP_SCHEMA public
+
+# The dlt pipeline's own bookkeeping tables, excluded from every dump. It is quoted once
+# here rather than at each prompt because an unmatched glob is a hard error in fish, so a
+# retyped command that loses the quotes does not pass the literal through: it fails to
+# launch.
+set -g DUMP_EXCLUDE 'public._dlt*'
 
 set -g ENVIRONMENT ""
-set -g DETACH_MODE 0
-set -g PORT ""
-set -g INSTANCE ""
+set -g DUMP_FILE ""
+set -g DUMPS
 
 # ============================================================================
 # Utility Functions
@@ -29,20 +44,44 @@ function die
 end
 
 function usage
-    echo "Usage: s-db [production|staging] [OPTIONS]"
+    echo "Usage: s-db [connect] [production|staging|local] [OPTIONS]"
+    echo "       s-db dump [production|staging|local] [OPTIONS]"
+    echo "       s-db restore [FILE] [OPTIONS]"
+    echo "       s-db dumps"
     echo ""
-    echo "Connects to cloud-sql-proxy for the specified environment."
+    echo "Connects the Cloud SQL proxy, dumps a database, or loads a dump into local."
     echo ""
     echo "Environments:"
-    echo "  production  - Port 5434, addingwell-prod database"
-    echo "  staging     - Port 5433, addingwell-dev database"
+    echo "  production  - Port 5434, via the Cloud SQL proxy"
+    echo "  staging     - Port 5433, via the Cloud SQL proxy"
+    echo "  local       - Port 5432, already on localhost, no proxy"
     echo ""
-    echo "Options:"
-    echo "  -d, --detach  Run in background (detached mode)"
-    echo "  -h, --help    Show this help message"
+    echo "connect [ENV]   (the default, so 's-db staging' still works)"
+    echo "  -d, --detach       Run the proxy in the background"
     echo ""
-    echo "If no environment is specified, you will be prompted to choose."
-    exit 1
+    echo "dump [ENV]        Writes a custom-format dump into "(_ui path $DUMP_DIR)
+    echo "  -o, --out FILE     Write here instead of the generated name"
+    echo "      --inserts      INSERT statements instead of COPY (much slower to restore)"
+    echo "      --include-dlt  Keep the $DUMP_EXCLUDE tables, which are excluded by default"
+    echo "  -v, --verbose      Pass --verbose to pg_dump"
+    echo "      --dry          Print the command without running it"
+    echo ""
+    echo "restore [FILE]    Loads a dump into local. With no FILE, pick from a list."
+    echo "  -c, --clean        Drop matching objects first (--clean --if-exists), with a prompt"
+    echo "  -v, --verbose      Pass --verbose to pg_restore"
+    echo "      --dry          Print the command without running it"
+    echo ""
+    echo "dumps             Lists "(_ui path $DUMP_DIR)", newest first"
+    echo ""
+    echo "Restore only ever targets local, and there is no flag to reach staging or"
+    echo "production: one typo there is an incident, and a dump is read back locally."
+    exit 0
+end
+
+# Escaped per argument, so a printed command can be pasted back into fish and still carry
+# the _dlt glob unexpanded.
+function show_command
+    string escape -- $argv | string join ' '
 end
 
 # ============================================================================
@@ -55,6 +94,8 @@ function get_port
             echo "5434"
         case staging
             echo "5433"
+        case local
+            echo "5432"
     end
 end
 
@@ -67,93 +108,273 @@ function get_instance
     end
 end
 
+function get_user
+    switch $argv[1]
+        case production staging
+            echo "postgres"
+        case local
+            echo "testuser"
+    end
+end
+
+function get_role
+    switch $argv[1]
+        case local
+            echo "testuser"
+    end
+end
+
+# Local is already on localhost, so it is the one environment with nothing to connect.
+function needs_proxy
+    switch $argv[1]
+        case production staging
+            return 0
+        case '*'
+            return 1
+    end
+end
+
+function normalise_environment
+    switch $argv[1]
+        case production prod p
+            echo production
+        case staging stage stg s dev
+            echo staging
+        case local l localhost
+            echo local
+    end
+end
+
+function proxy_log
+    echo "$WORK_DIR/cloud-sql-proxy-$argv[1].log"
+end
+
 # ============================================================================
 # Validation Functions
 # ============================================================================
 
-function validate_prerequisites
+# PROXY_BIN is relative, so this has to run before anything reads it. fish's cd is not
+# scoped to the function that calls it, which is what lets the two stay separate.
+function require_work_dir
     if not test -d "$WORK_DIR"
         die "Work directory not found: $WORK_DIR"
     end
 
     cd "$WORK_DIR"; or die "Could not change to work directory: $WORK_DIR"
+end
 
+function require_proxy_bin
     if not test -x "$PROXY_BIN"
         die "cloud-sql-proxy not found or not executable at: $WORK_DIR/$PROXY_BIN"
     end
 end
 
-function check_existing_connection
-    set -l port $argv[1]
-    set -l environment $argv[2]
+# libpq ships pg_dump and pg_restore, roles/apps installs it, and roles/shell's
+# config.fish puts its keg-only bin on PATH. So this only turns a bare command-not-found
+# into the thing to run.
+function require_pg_tool
+    if not command -v $argv[1] >/dev/null 2>&1
+        die "$argv[1] is required but not on PATH. Install it with: make run-role ROLE=apps"
+    end
+end
 
-    _ui step "Checking for an existing connection"
+# ============================================================================
+# Proxy Functions
+# ============================================================================
 
-    set -l existing_pid (lsof -ti :$port 2>/dev/null)
+function port_pid
+    set -l pids (lsof -ti :$argv[1] 2>/dev/null)
+    test (count $pids) -gt 0; and echo $pids[1]
+end
 
-    if test -n "$existing_pid"
-        set -l process_info (ps -p $existing_pid -o comm= 2>/dev/null)
+# free    nothing is listening
+# ours    a cloud-sql-proxy is, so it is the happy case for a dump and a no-op for connect
+# foreign something else is, and it is not ours to stop
+function proxy_state
+    set -l pid (port_pid $argv[1])
 
-        if string match -q "*cloud-sql-proxy*" -- $process_info
-            echo ""
-            _ui warn "cloud-sql-proxy is already running for the $environment environment"
-            _ui item "PID: $existing_pid"
-            _ui item "Port: $port"
-            _ui item "Connect on localhost:$port"
-            echo ""
-            _ui note "Stop it with: kill $existing_pid"
-            _ui note "Follow its logs with: tail -f $WORK_DIR/cloud-sql-proxy-$environment.log"
-            exit 0
-        else
-            die "Port $port is already in use by another process (PID: $existing_pid). Stop it first or use a different port."
-        end
+    if test -z "$pid"
+        echo free
+        return 0
     end
 
-    _ui ok "Port $port is available"
-    echo ""
+    if string match -q "*cloud-sql-proxy*" -- (ps -p $pid -o comm= 2>/dev/null)
+        echo ours
+    else
+        echo foreign
+    end
+end
+
+# Echoes the PID.
+function spawn_proxy
+    set -l port $argv[1]
+    set -l instance $argv[2]
+    set -l environment $argv[3]
+    set -l log_file (proxy_log $environment)
+
+    require_work_dir
+    require_proxy_bin
+
+    nohup $PROXY_BIN --port $port $instance >$log_file 2>&1 &
+    set -l proxy_pid $last_pid
+
+    sleep 1
+
+    if not kill -0 $proxy_pid 2>/dev/null
+        die "Failed to start cloud-sql-proxy. Check its log: $log_file"
+    end
+
+    echo $proxy_pid
+end
+
+# Brings the proxy up if it is not already, for a command that wants to use it rather
+# than to report on it.
+function ensure_proxy
+    set -l environment $argv[1]
+    set -l port $argv[2]
+
+    _ui step "Checking the proxy on port $port"
+
+    switch (proxy_state $port)
+        case ours
+            _ui ok "cloud-sql-proxy is already up"
+        case foreign
+            die "Port $port is in use by another process (PID: "(port_pid $port)"). Stop it first or use a different port."
+        case free
+            _ui step "Starting cloud-sql-proxy for $environment in the background"
+            set -l pid (spawn_proxy $port (get_instance $environment) $environment)
+            _ui ok "Connected on localhost:$port (PID: $pid)"
+            _ui note "It stays up after this. Stop it with: kill $pid"
+    end
 end
 
 # ============================================================================
 # Input Functions
 # ============================================================================
 
-function parse_arguments
-    for arg in $argv
-        switch $arg
-            case -d --detach
-                set -g DETACH_MODE 1
-            case -h --help
-                usage
-            case production prod p
-                set -g ENVIRONMENT "production"
-            case staging stage stg s dev
-                set -g ENVIRONMENT "staging"
-            case '*'
-                if test -z "$ENVIRONMENT"
-                    die "Invalid argument: $arg. Use 'production' or 'staging'"
-                end
+# Sets ENVIRONMENT rather than echoing it: prompting prints a menu, and a command
+# substitution would swallow the menu instead of showing it.
+function resolve_environment
+    if test (count $argv) -gt 1
+        die "Expected one environment, got: $argv"
+    end
+
+    if test (count $argv) -eq 1
+        set -l environment (normalise_environment $argv[1])
+        if test -z "$environment"
+            die "Invalid environment: '$argv[1]'. Use production, staging or local."
         end
+        set -g ENVIRONMENT $environment
+        return 0
+    end
+
+    prompt_environment
+end
+
+# An invalid entry is a refusal rather than a re-prompt: a rerun costs nothing.
+function prompt_environment
+    set -l offered staging production local
+
+    _ui title "📋 Select environment:"
+    for i in (seq (count $offered))
+        printf '  %d) %-11s port %s\n' $i $offered[$i] (get_port $offered[$i])
+    end
+    _ui blank
+    read -P "Enter choice [1-"(count $offered)"]: " choice
+
+    # A name is as good as a number, since the names are what the arguments accept.
+    set -l named (normalise_environment $choice)
+    if test -n "$named"; and contains -- $named $offered
+        set -g ENVIRONMENT $named
+        return 0
+    end
+
+    if string match -qr '^[0-9]+$' -- $choice; and test $choice -ge 1 -a $choice -le (count $offered)
+        set -g ENVIRONMENT $offered[$choice]
+        return 0
+    end
+
+    die "Invalid choice: $choice"
+end
+
+# Sets DUMP_FILE, a global for the same reason ENVIRONMENT is one.
+function resolve_dump
+    if test (count $argv) -gt 1
+        die "Expected one dump file, got: $argv"
+    end
+
+    if test (count $argv) -eq 1
+        if not test -f "$argv[1]"
+            die "No such dump file: $argv[1]"
+        end
+        set -g DUMP_FILE $argv[1]
+        return 0
+    end
+
+    scan_dumps
+    if test (count $DUMPS) -eq 0
+        die "No dumps in "(_ui path $DUMP_DIR)". Make one with: s-db dump staging"
+    end
+
+    render_dumps
+    set -l offered (count $DUMPS)
+    _ui blank
+    read -P "Restore which? [1-$offered, empty to abort]: " choice
+
+    if test -z "$choice"
+        _ui blank
+        _ui warn "Nothing selected, so nothing was restored"
+        exit 0
+    end
+
+    if not string match -qr '^[0-9]+$' -- $choice
+        die "'$choice' is not one of 1-$offered."
+    end
+
+    if test $choice -lt 1 -o $choice -gt $offered
+        die "$choice is out of range. Pick from 1-$offered."
+    end
+
+    set -g DUMP_FILE $DUMPS[$choice]
+end
+
+# ============================================================================
+# Dump Inventory Functions
+# ============================================================================
+
+function dump_size
+    set -l fields (du -h "$argv[1]" 2>/dev/null | string split \t)
+    echo $fields[1]
+end
+
+function dump_stamp
+    stat -f '%Sm' -t '%Y-%m-%d %H:%M' "$argv[1]" 2>/dev/null
+end
+
+# Sets DUMPS, newest first. Ordered by mtime rather than by name, so an --out file that
+# never followed the naming convention still sorts where it belongs.
+function scan_dumps
+    set -g DUMPS
+
+    test -d "$DUMP_DIR"; or return 0
+
+    set -l rows
+    for file in $DUMP_DIR/*.dump
+        set -a rows (stat -f '%m' $file)\t$file
+    end
+
+    test (count $rows) -eq 0; and return 0
+
+    for row in (printf '%s\n' $rows | sort -rn)
+        set -l fields (string split -m 1 \t -- $row)
+        set -a DUMPS $fields[2]
     end
 end
 
-function prompt_environment_selection
-    if test -n "$ENVIRONMENT"
-        return
-    end
-
-    _ui title "🗄️  Select environment:"
-    echo "  1) Staging (port 5433)"
-    echo "  2) Production (port 5434)"
-    echo ""
-    read -P "Enter choice [1-2]: " choice
-
-    switch $choice
-        case 1 staging s
-            set -g ENVIRONMENT "staging"
-        case 2 production p
-            set -g ENVIRONMENT "production"
-        case '*'
-            die "Invalid choice: $choice"
+function render_dumps
+    _ui title "📦 Dumps in "(_ui path $DUMP_DIR)":"
+    for i in (seq (count $DUMPS))
+        printf '  %d) %-42s %6s  %s\n' $i (basename $DUMPS[$i]) (dump_size $DUMPS[$i]) (dump_stamp $DUMPS[$i])
     end
 end
 
@@ -161,58 +382,253 @@ end
 # Display Functions
 # ============================================================================
 
-function success
-    set -l port $argv[1]
-    set -l instance $argv[2]
-    set -l environment $argv[3]
+function report_connected
+    set -l environment $argv[1]
+    set -l port $argv[2]
+    set -l instance $argv[3]
 
-    echo ""
-    _ui done "Connected to $ENVIRONMENT"
-    _ui item "Server: localhost:$PORT"
+    _ui blank
+    _ui done "Connected to $environment"
+    _ui item "Server: localhost:$port"
     _ui item "Instance: $instance"
 end
 
+function report_running
+    set -l environment $argv[1]
+    set -l port $argv[2]
+    set -l pid $argv[3]
+
+    _ui blank
+    _ui warn "cloud-sql-proxy is already running for the $environment environment"
+    _ui item "PID: $pid"
+    _ui item "Port: $port"
+    _ui item "Connect on localhost:$port"
+    _ui blank
+    _ui note "Stop it with: kill $pid"
+    _ui note "Follow its logs with: tail -f "(proxy_log $environment)
+end
+
 # ============================================================================
-# Proxy Management Functions
+# Subcommands
 # ============================================================================
 
-function start_proxy_detached
-    set -l port $argv[1]
-    set -l instance $argv[2]
-    set -l environment $argv[3]
-    set -l log_file "$WORK_DIR/cloud-sql-proxy-$environment.log"
+function cmd_connect
+    argparse -n 's-db' 'h/help' 'd/detach' -- $argv
+    or exit 1
+    set -q _flag_help; and usage
 
-    _ui step "Connecting to $environment in the background"
+    resolve_environment $argv
+    set -l environment $ENVIRONMENT
+    set -l port (get_port $environment)
 
-    nohup $PROXY_BIN --port $port $instance > $log_file 2>&1 &
-    set -l proxy_pid $last_pid
+    if not needs_proxy $environment
+        _ui ok "Nothing to connect: $environment is already on localhost:$port"
+        _ui note "Use it with: s-db dump $environment, or s-db restore <file>"
+        return 0
+    end
 
-    sleep 1
+    set -l instance (get_instance $environment)
 
-    if kill -0 $proxy_pid 2>/dev/null
-        success $PORT $INSTANCE $ENVIRONMENT
-        _ui item "PID: $proxy_pid"
-        _ui item "Logs: "(_ui path $log_file)
-        echo ""
-        _ui note "Stop it with: kill $proxy_pid"
+    _ui step "Checking for an existing connection"
+
+    switch (proxy_state $port)
+        case ours
+            report_running $environment $port (port_pid $port)
+            return 0
+        case foreign
+            die "Port $port is already in use by another process (PID: "(port_pid $port)"). Stop it first or use a different port."
+    end
+
+    _ui ok "Port $port is available"
+    _ui blank
+
+    if set -q _flag_detach
+        _ui step "Connecting to $environment in the background"
+
+        set -l pid (spawn_proxy $port $instance $environment)
+
+        report_connected $environment $port $instance
+        _ui item "PID: $pid"
+        _ui item "Logs: "(_ui path (proxy_log $environment))
+        _ui blank
+        _ui note "Stop it with: kill $pid"
         _ui note "Or find it with: ps aux | grep cloud-sql-proxy"
     else
-        die "Failed to start cloud-sql-proxy. Check logs: $log_file"
+        _ui step "Connecting to $environment"
+
+        report_connected $environment $port $instance
+        _ui note "Press Ctrl+C to stop"
+
+        require_work_dir
+        require_proxy_bin
+        exec $PROXY_BIN --port $port $instance
     end
 end
 
-function start_proxy_foreground
-    set -l port $argv[1]
-    set -l instance $argv[2]
-    set -l environment $argv[3]
+function cmd_dump
+    argparse -n 's-db dump' 'h/help' 'v/verbose' 'o/out=' dry inserts include-dlt -- $argv
+    or exit 1
+    set -q _flag_help; and usage
 
-    _ui step "Connecting to $environment"
+    require_pg_tool pg_dump
+    resolve_environment $argv
 
-    success $PORT $INSTANCE $ENVIRONMENT
-    _ui note "Press Ctrl+C to stop"
+    set -l environment $ENVIRONMENT
+    set -l port (get_port $environment)
+    set -l user (get_user $environment)
 
-    exec $PROXY_BIN --port $port $instance
+    set -l target
+    if set -q _flag_out
+        set target $_flag_out
+    else
+        set target "$DUMP_DIR/$DATABASE-$environment-"(date +%Y%m%d-%H%M%S)".dump"
+    end
 
+    set -l cmd pg_dump --dbname=$DATABASE --host=localhost --port=$port --username=$user \
+        --schema=$DUMP_SCHEMA --format=custom --no-owner
+
+    set -q _flag_include_dlt; or set -a cmd --exclude-table=$DUMP_EXCLUDE
+
+    # COPY by default. --inserts is legal with a custom-format archive, but pg_dump's own
+    # manual calls the resulting restore "very slow" and the flag mainly useful for dumps
+    # bound for something that is not PostgreSQL, which is not what these are for.
+    set -q _flag_inserts; and set -a cmd --inserts
+
+    set -q _flag_verbose; and set -a cmd --verbose
+
+    # --file rather than a redirect, so a failure is pg_dump's to report rather than
+    # something to infer from a short file.
+    set -a cmd --file=$target
+
+    _ui title "📦 Dumping $environment"
+    _ui item "Source: localhost:$port/$DATABASE as $user"
+    _ui item "File: "(_ui path $target)
+
+    if set -q _flag_dry
+        _ui blank
+        _ui step "Would run:"
+        _ui note (show_command $cmd)
+        _ui blank
+        _ui done "Dry run: nothing was dumped"
+        return 0
+    end
+
+    needs_proxy $environment; and ensure_proxy $environment $port
+
+    set -l parent (dirname $target)
+    if not test -d "$parent"
+        mkdir -p "$parent"; or die "Could not create $parent"
+    end
+
+    _ui blank
+    _ui step "Dumping"
+
+    $cmd
+    or die "pg_dump failed, so "(_ui path $target)" is not a usable dump"
+
+    _ui blank
+    _ui done "Dumped $environment"
+    _ui item "File: "(_ui path $target)
+    _ui item "Size: "(dump_size $target)
+    _ui blank
+    _ui note "Load it into local with: s-db restore "(_ui path $target)
+end
+
+function cmd_restore
+    argparse -n 's-db restore' 'h/help' 'v/verbose' 'c/clean' dry -- $argv
+    or exit 1
+    set -q _flag_help; and usage
+
+    require_pg_tool pg_restore
+
+    # Local only, and deliberately no flag to reach staging or production: a dump is read
+    # back locally, and one typo on a target flag is an incident.
+    set -l environment local
+    set -l port (get_port $environment)
+    set -l user (get_user $environment)
+    set -l role (get_role $environment)
+
+    resolve_dump $argv
+    set -l file $DUMP_FILE
+
+    set -l cmd pg_restore --dbname=$DATABASE --host=localhost --port=$port --username=$user \
+        --role=$role --schema=$DUMP_SCHEMA --no-owner
+
+    # --clean alone errors on an object that is not there, which on a first restore is
+    # every object, so the two always travel together.
+    set -q _flag_clean; and set -a cmd --clean --if-exists
+
+    set -q _flag_verbose; and set -a cmd --verbose
+    set -a cmd $file
+
+    _ui title "🔄 Restoring into $environment"
+    _ui item "File: "(_ui path $file)" ("(dump_size $file)")"
+    _ui item "Target: localhost:$port/$DATABASE as $user"
+
+    if set -q _flag_dry
+        _ui blank
+        _ui step "Would run:"
+        _ui note (show_command $cmd)
+        _ui blank
+        _ui done "Dry run: nothing was restored"
+        return 0
+    end
+
+    if set -q _flag_clean
+        _ui blank
+        _ui warn "--clean drops every matching object in $DUMP_SCHEMA before loading"
+        read -P "Type '$environment' to confirm: " reply
+        if test "$reply" != "$environment"
+            _ui blank
+            _ui warn "Not confirmed, so nothing was restored"
+            return 0
+        end
+    end
+
+    _ui blank
+    _ui step "Restoring"
+
+    $cmd
+    set -l code $status
+
+    _ui blank
+
+    # pg_restore exits non-zero for warnings as well as for failures, so this is worth
+    # naming: a half-loaded database looks fine right up until it does not.
+    if test $code -ne 0
+        _ui warn "pg_restore exited $code, so some objects may not have been restored"
+        _ui note "Re-run with --clean to drop what is already there first, or with -v to see each object"
+        return $code
+    end
+
+    _ui done "Restored into $environment"
+    _ui note "Inspect it with: psql -h localhost -p $port -U $user -d $DATABASE -c '\\dt $DUMP_SCHEMA.*'"
+end
+
+function cmd_dumps
+    argparse -n 's-db dumps' 'h/help' -- $argv
+    or exit 1
+    set -q _flag_help; and usage
+
+    if test (count $argv) -gt 0
+        die "s-db dumps takes no arguments, got: $argv"
+    end
+
+    scan_dumps
+
+    if test (count $DUMPS) -eq 0
+        _ui warn "No dumps in "(_ui path $DUMP_DIR)
+        _ui note "Make one with: s-db dump staging"
+        return 0
+    end
+
+    render_dumps
+
+    set -l label dumps
+    test (count $DUMPS) -eq 1; and set label dump
+
+    _ui blank
+    _ui done (count $DUMPS)" $label in "(_ui path $DUMP_DIR)
 end
 
 # ============================================================================
@@ -220,19 +636,19 @@ end
 # ============================================================================
 
 function main
-    validate_prerequisites
-    parse_arguments $argv
-    prompt_environment_selection
-
-    set -g PORT (get_port $ENVIRONMENT)
-    set -g INSTANCE (get_instance $ENVIRONMENT)
-
-    check_existing_connection $PORT $ENVIRONMENT
-
-    if test $DETACH_MODE -eq 1
-        start_proxy_detached $PORT $INSTANCE $ENVIRONMENT
-    else
-        start_proxy_foreground $PORT $INSTANCE $ENVIRONMENT
+    switch "$argv[1]"
+        case dump
+            cmd_dump $argv[2..-1]
+        case restore
+            cmd_restore $argv[2..-1]
+        case dumps
+            cmd_dumps $argv[2..-1]
+        case connect
+            cmd_connect $argv[2..-1]
+        case '*'
+            # Everything else is the call shape that predates the subcommands, and stays
+            # exactly that: `s-db`, `s-db staging`, `s-db -d prod`, `s-db --help`.
+            cmd_connect $argv
     end
 end
 
