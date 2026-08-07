@@ -728,6 +728,18 @@
       "note": "Locally authored"
     },
     {
+      "name": "ac",
+      "groups": [
+        "productivity",
+        "workflow",
+        "global"
+      ],
+      "dependencies": [
+        "jira"
+      ],
+      "note": "Locally authored"
+    },
+    {
       "name": "research",
       "groups": [
         "engineering",

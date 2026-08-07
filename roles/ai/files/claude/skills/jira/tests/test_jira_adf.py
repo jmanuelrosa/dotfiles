@@ -435,6 +435,58 @@ def test_out_creates_the_directory_it_is_pointed_at(adf, tmp_path):
     assert json.loads(target.read_text())["type"] == "doc"
 
 
+def test_a_criteria_only_file_builds_a_comment_but_not_a_description(adf):
+    """Given a file holding acceptance criteria and nothing else, When it is built,
+    Then --comment succeeds where the default refuses it for want of a Context."""
+    body = f"## Acceptance criteria\n{GHERKIN}"
+    assert adf(body).returncode == EXIT_MISSING_SECTION
+    document = doc(adf(body, "--comment"))
+    assert headings(document) == [("Acceptance criteria", "green")]
+
+
+def test_a_comment_renders_the_criteria_alone(adf):
+    """Given a file that also carries Context and Design, When a comment is built, Then
+    only the criteria are rendered, because the ticket it hangs off holds the rest."""
+    body = template(context="Reported by the billing squad.", design="Sequence in Figma.")
+    document = doc(adf(body, "--comment"))
+    assert headings(document) == [("Acceptance criteria", "green")]
+    assert "billing squad" not in flat_text(document["content"])
+    assert "Figma" not in flat_text(document["content"])
+
+
+def test_a_comment_ends_with_the_maintained_from_the_branch_footer(adf):
+    """Given a comment body, When it is built, Then its last node is a plain paragraph
+    warning that edits are overwritten, which is the only notice a human editing the
+    comment in Jira ever gets."""
+    document = doc(adf(template(), "--comment"))
+    footer = document["content"][-1]
+    assert footer["type"] == "paragraph"
+    assert "overwritten" in flat_text([footer])
+    assert all(mark_kinds(node) == set() for node in footer["content"])
+
+
+def test_a_comment_still_holds_the_criteria_to_strict_gherkin(adf):
+    """Given criteria written as bullets, When a comment is built, Then it is refused:
+    the relaxed section requirement does not relax the grammar."""
+    result = adf("## Acceptance criteria\n- the payload is rejected\n", "--comment")
+    assert result.returncode == EXIT_BAD_GHERKIN
+
+
+def test_a_comment_with_no_criteria_is_refused(adf):
+    """Given a file holding only Context, When a comment is built, Then it exits on the
+    missing section rather than publishing an empty comment."""
+    result = adf("## Context\nThe handler crashes.\n", "--comment")
+    assert result.returncode == EXIT_MISSING_SECTION
+    assert "Acceptance criteria" in result.stderr
+
+
+def test_a_comment_cannot_also_be_an_investigation(adf):
+    """Given both mode flags, When the ADF is built, Then it is a usage error, because
+    the investigation sentence lands in a Context a comment never renders."""
+    result = adf(template(), "--comment", "--investigation")
+    assert result.returncode == EXIT_USAGE
+
+
 def test_the_script_is_executable_and_stdlib_only():
     """Given the script on disk, When it is inspected, Then it is executable, carries
     the plain python3 shebang, and imports nothing third-party."""
