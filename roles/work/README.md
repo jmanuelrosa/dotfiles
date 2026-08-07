@@ -17,7 +17,12 @@ executable carries the directory's name. The role links the ones named in `WORK_
 here takes effect without re-running the playbook.
 
 - `s-task <ref>`: creates a git branch from an issue, off an up-to-date default branch, and pushes it so the issue links back to it. It is dual-provider and infers which from the reference shape: `PROJ-123` goes to Jira via `acli`, while `456`, `#456`, or a GitHub issue URL goes to GitHub via `gh` (installed by the `apps` role). Force either with `--jira` / `--github`. Branch names are `<type>/PROJ-123-<slug>` for Jira and `<type>/gh-456-<slug>` for GitHub, capped at 50 chars to stay under commitlint's `header-max-length`, truncating the slug at a hyphen boundary. The branch type comes from the Jira issue type, or for GitHub from the issue's native type first and its labels second; `--type` overrides it and `--dry` prints the branch name without creating anything. The `commit` and `pr` skills parse both ticket shapes back out of the branch name, so keep the three in sync. See [Issue linking](#issue-linking) for the push behavior and `--no-push`.
-- `s-db [production|staging]`: connects to cloud-sql-proxy for the given environment.
+- `s-db [production|staging|local]`: connects to cloud-sql-proxy for the given environment. Three subcommands
+  work on the databases themselves rather than on the connection: `s-db dump [ENV]` writes a custom-format dump
+  into `backups/`, `s-db restore [FILE]` loads one into local (with no `FILE` it lists what is there and you pick),
+  and `s-db dumps` prints that listing. `--dry` prints the exact `pg_dump` / `pg_restore` command without running
+  it. Anything that is not a subcommand is still the connect call, so `s-db staging` and `s-db -d prod` are
+  unchanged. See [Database dumps](#database-dumps).
 - `s-release [REPO ...]`: opens the pull request that deploys to production, which at addingwell means merging
   `develop` into `master`. With no argument it lists every repo that still deploys that way and you pick from it;
   naming repos skips both the lookup and the prompt, which is the point when several ship at once. `--list` prints
@@ -41,6 +46,35 @@ here takes effect without re-running the playbook.
 **The push only ever covers a branch `s-task` just created**, off the default branch's tip, with no commits on it. Re-run it on a branch that already exists and it switches to the branch and pushes nothing, because that branch may hold work, and pushing work is `/pr`'s job and its confirmation gate. This is the property that lets `git-skill-gate.sh` leave `s-task` alone: the hook sees Bash commands, not the subprocesses they spawn, so `s-task` could push whatever it wanted, and the script is what keeps that narrow. Its docstring records the exception.
 
 Because the script pushes, running it creates a remote ref before `/pr` does. Branch-push CI will fire on an empty branch, and abandoning the work leaves a ref on the remote.
+
+### Database dumps
+
+`s-db` holds one environment table and every subcommand reads it, which is the reason `dump` and `restore` live here rather than in a script of their own:
+
+| env | port | proxy | user | role |
+|---|---|---|---|---|
+| `production` | 5434 | yes | `postgres` | - |
+| `staging` | 5433 | yes | `postgres` | - |
+| `local` | 5432 | no | `testuser` | `testuser` |
+
+`local` is the environment added for these subcommands, and it is the one with nothing to connect: `s-db local` says so and exits 0 rather than treating it as an error.
+Database is `addingwell` throughout. All of it is hardcoded, for the same reason the Cloud SQL instances and `s-release`'s `ORG` are: one org, and a layout that changes rarely enough that a config file would only be a second place to look.
+
+Four decisions carry the design, and the first two are the ones not to weaken:
+
+- **`restore` only ever targets local, and no flag reaches further.** Not a confirmation prompt, no `--to`: the option does not exist. A dump is read back locally, and one typo on a target flag would be a production incident. This is the same argument that keeps `s-release`'s base and head constants.
+- **`--exclude-table='public._dlt*'` is quoted once, in the script.** In fish an unmatched glob is a hard error, so a retyped command that loses the quotes does not pass the literal through: it fails to launch. `--include-dlt` keeps those tables when they are actually wanted.
+- **COPY rather than `--inserts`.** The flag is legal with a custom-format archive, but `man pg_dump` calls the resulting restore "very slow" and the flag "mainly useful for making dumps that can be loaded into non-PostgreSQL databases", which these are not. It survives as `--inserts` for the day a dump has to go somewhere else.
+- **No `--password`.** Per the same manual it "is never essential, since pg_dump will automatically prompt for a password if the server demands password authentication"; it only saves a round trip. Dropping it is what lets a `~/.pgpass` or `PGPASSWORD` be honoured if one ever appears, and changes nothing while none does.
+
+`dump` brings the proxy up detached when the port is quiet and reuses it when it is already serving, so one command is the whole job; the proxy stays up afterwards and the script prints the `kill` for it.
+Dumps land in `$WORK_DIR/backups/` as `addingwell-<env>-<YYYYMMDD-HHMMSS>.dump`, and the time is in there because a second dump on the same day must not silently overwrite the first.
+`--out` overrides the path, and the listing orders by mtime rather than by name so an `--out` file still sorts where it belongs.
+
+`pg_restore` exits non-zero for warnings as well as for failures, so a non-zero exit is reported as a warning naming the code rather than as a `✓`: a half-loaded database looks fine right up until it does not.
+`--clean` (which implies `--if-exists`, since `--clean` alone errors on every object that is not there yet) is what to reach for when the objects are already present, and it prompts before dropping anything.
+
+**`backups/` holds real staging and production data.** It sits in the work directory rather than in any checkout, and nothing here ever commits it.
 
 ### Release PRs
 

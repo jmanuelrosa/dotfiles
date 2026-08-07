@@ -8,9 +8,9 @@ os:
   editInTerminal: false
   openDirInEditor: "code {{dir}}"
 git:
-  pagers:
+  diffRenderers:
     - colorArg: always
-      pager: delta --paging=never --line-numbers --hyperlinks --hyperlinks-file-link-format="lazygit-edit://{path}:{line}"
+      command: delta --paging=never --line-numbers --hyperlinks --hyperlinks-file-link-format="lazygit-edit://{path}:{line}"
 gui:
   skipDiscardChangeWarning: true
   showCommandLog: false
