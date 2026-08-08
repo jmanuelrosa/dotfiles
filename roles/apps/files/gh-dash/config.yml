@@ -88,7 +88,17 @@ keybindings:
   universal:
     - key: g
       name: lazygit
-      command: cd {{.RepoPath}} && lazygit
+
+    - key: ctrl+a
+      command: >
+        gh pr review --repo {{.RepoName}} --approve --body "$(gum input --prompt='Approval Comment: ')" {{.PrNumber}}
+      name: approve
+
+    - key: ctrl+m
+      command: >
+        gh pr merge --repo {{.RepoName}} {{.PrNumber}} --squash --admin --delete-branch
+      name: merge (admin, squash)
+
   prs:
     - key: e
       name: code
@@ -104,3 +114,6 @@ repoPaths:
 # Same diff pager as git (pager.diff in .gitconfig)
 pager:
   diff: diffnav
+
+showAuthorIcons: true
+confirmQuit: true
