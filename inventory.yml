@@ -4,3 +4,10 @@ localhost
 [local:vars]
 ansible_connection=local
 ansible_python_interpreter=/usr/bin/python3
+# How long Ansible waits for sudo to print its password prompt or the success
+# marker. The default 10s is not enough here: pam_tid.so is first in /etc/pam.d/sudo,
+# so every escalation shows a Touch ID sheet and only falls through to the password
+# prompt once biometrics give up, which has been observed anywhere from 4s to past
+# the limit. The local connection plugin declares this as a var and gives it no ini
+# or env key, so ansible.cfg cannot set it.
+ansible_local_become_success_timeout=120
