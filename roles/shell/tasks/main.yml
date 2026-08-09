@@ -133,8 +133,18 @@
     force: true
   with_items:
     - fish/config.fish
-    - fish/conf.d/aliases.fish
-    - fish/conf.d/exports.fish
+
+# Globbed for the same reason the functions below are: fish sources conf.d by
+# filename, so a hand-maintained list leaves a new file unsourced and silent, with
+# nothing to notice until the setting it carries turns out never to have applied.
+- name: Symlink fish conf.d
+  ansible.builtin.file:
+    src: "{{ item }}"
+    dest: "{{ HOME }}/.config/fish/conf.d/{{ item | basename }}"
+    state: link
+    force: true
+  with_fileglob:
+    - "{{ role_path }}/files/fish/conf.d/*.fish"
 
 # Globbed rather than listed: fish autoloads by filename, so a hand-maintained list
 # silently leaves any new function dead in the shell. It had already drifted by six

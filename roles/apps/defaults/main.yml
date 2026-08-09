@@ -17,6 +17,10 @@ VSCODE_EXTENSIONS:
   - Prisma.prisma
   - bradlc.vscode-tailwindcss
 
+# Where the Homebrew-provided caddy service reads its config from. The service
+# runs `caddy run --config <this>`, so it is the only path Caddy will look at.
+CADDYFILE_PATH: /opt/homebrew/etc/Caddyfile
+
 BREW_PACKAGES:
   taps:
     - oven-sh/bun
@@ -64,6 +68,7 @@ BREW_PACKAGES:
     - imagemagick
     - mpv
     # Network
+    - caddy
     - nextdns
     # System / window management
     - mole
