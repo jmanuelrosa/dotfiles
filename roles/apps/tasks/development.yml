@@ -125,18 +125,27 @@
     state: link
     force: true
 
-# Caddy binds :80, which needs root, so it runs as a LaunchDaemon rather than a
-# user agent. `brew services` is the one brew subcommand Homebrew sanctions under
-# sudo, and the list has to be read as root too: a root daemon does not appear in
-# the user's own service list, so checking without become would restart it forever.
-- name: Check whether Caddy is already running as a service
+# Caddy binds :80, which needs root, so `brew services` under sudo is the only way to
+# drive it. It is deliberately not started here: the dev domains are wanted on demand,
+# and `dev:start` / `dev:stop` in the shell role are the on switch.
+#
+# `stop` is what removes the LaunchDaemon, so this converts a machine that ran the
+# earlier `brew services start` and is a no-op on every run after. It cannot stop a
+# hand-started Caddy by accident: `dev:start` uses `brew services run`, which bootstraps
+# the keg's own plist and writes nothing to the boot path, so `removes` sees no file.
+#
+# Homebrew derives its cache from $HOME, and become runs `sudo -H`, so root lands on
+# /var/root/Library/Caches/Homebrew, where the packages API JSON is absent; brew then
+# aborts rather than download it as root. Handing it this user's cache is read-only in
+# practice: brew skips every cache download outright when it runs as root over a
+# user-owned prefix. Bootsnap is the one thing that would still write, and root-owned
+# compile caches in there are files the user's own brew could no longer replace.
+- name: Ensure Caddy is not registered to start at boot
   become: true
-  ansible.builtin.command: brew services list
-  register: caddy_service_list
-  changed_when: false
-
-- name: Start Caddy as a root service
-  become: true
-  ansible.builtin.command: brew services start caddy
-  when: caddy_service_list.stdout is not search('caddy\s+started')
+  environment:
+    HOMEBREW_CACHE: "{{ HOME }}/Library/Caches/Homebrew"
+    HOMEBREW_NO_BOOTSNAP: "1"
+  ansible.builtin.command:
+    cmd: brew services stop caddy
+    removes: "{{ CADDY_BOOT_PLIST }}"
   changed_when: true

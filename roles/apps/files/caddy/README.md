@@ -51,11 +51,16 @@ echo "127.0.0.1 front.localhost" | sudo tee -a /etc/hosts   # or this
 
 ## Service
 
-Caddy binds `:80`, which needs root, so it runs as a LaunchDaemon:
+Caddy binds `:80`, which needs root, so it runs under launchd. It is **off until you ask for it**: nothing starts it at login or boot.
 
 ```fish
-sudo brew services list          # caddy should be "started"
-sudo brew services restart caddy # after changing the global options block
+dev:start     # sudo brew services run caddy
+dev:stop      # sudo brew services stop caddy
+dev:status    # Running / Loaded / PID
+dev:validate  # parse the Caddyfile without touching the running process
 ```
 
-`caddy reload` is enough for a site change. A restart is only needed for the global block at the top of the Caddyfile.
+`run` is the load-bearing subcommand. `brew services start` writes `/Library/LaunchDaemons/homebrew.mxcl.caddy.plist`, whose `RunAtLoad` is what made Caddy come up with the machine; `run` bootstraps the keg's own plist instead and writes nothing there, so the daemon lasts until `dev:stop` or the next reboot.
+The playbook keeps that boot plist deleted, so a `brew services start` typed by hand is undone on the next `make run`.
+
+`caddy reload --config /opt/homebrew/etc/Caddyfile` is enough for a site change. A stop and start is only needed for the global block at the top of the Caddyfile.
