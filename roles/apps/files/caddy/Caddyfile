@@ -1,0 +1,45 @@
+# Per-project development domains, so each project gets its own cookie jar.
+#
+# Three things here are load-bearing:
+#
+#   http://   Without the scheme Caddy treats the site as HTTPS, issues a
+#             certificate from its internal CA and asks to be trusted. Nothing
+#             on loopback gains anything from that.
+#   Host      Caddy forwards the original Host header by default, unlike nginx.
+#             That is what satisfies Vite, whose allowedHosts permits localhost
+#             and *.localhost and nothing else. Do not override it.
+#   websocket reverse_proxy upgrades connections with no extra directive, which
+#             is what lets Vite HMR reconnect through the proxy.
+#
+# Browsers resolve *.localhost to 127.0.0.1 themselves and never read
+# /etc/hosts, so none of these need an entry there. curl does. See README.md.
+
+{
+	auto_https off
+}
+
+# Six worktrees of one repo, every one declaring port 3000. Start each with
+# `pnpm dev -- --port N`; front keeps the declared port and needs no flag.
+http://front.localhost               { reverse_proxy 127.0.0.1:3000 }
+http://front-e2e.localhost           { reverse_proxy 127.0.0.1:3001 }
+http://front-sentry.localhost        { reverse_proxy 127.0.0.1:3002 }
+http://front-ser-1227.localhost      { reverse_proxy 127.0.0.1:3003 }
+http://update-dependencies.localhost { reverse_proxy 127.0.0.1:3004 }
+http://front-debug.localhost         { reverse_proxy 127.0.0.1:3005 }
+
+# strictPort: true on every app here, so these ports are not suggestions. The
+# server exits rather than incrementing when one is taken, and the API allowlists
+# the exact origin. Never reassign them.
+http://app.pickleballontime.localhost     { reverse_proxy 127.0.0.1:5173 }
+http://admin.pickleballontime.localhost   { reverse_proxy 127.0.0.1:5174 }
+http://landing.pickleballontime.localhost { reverse_proxy 127.0.0.1:4321 }
+http://api.pickleballontime.localhost     { reverse_proxy 127.0.0.1:8787 }
+
+# All three sit above 4321 rather than starting on it, because 4321 belongs to
+# pickleballontime's landing under strictPort and cannot move. Two hostnames on one
+# upstream would mean drivein.localhost silently serving the landing page. The dev
+# script hardcodes --port 4321 and a second --port is not a reliable override, so
+# start these with `npx astro dev --port N` rather than `pnpm dev`.
+http://drivein.localhost           { reverse_proxy 127.0.0.1:4322 }
+http://drivein-dev.localhost       { reverse_proxy 127.0.0.1:4323 }
+http://drivein-instagram.localhost { reverse_proxy 127.0.0.1:4324 }

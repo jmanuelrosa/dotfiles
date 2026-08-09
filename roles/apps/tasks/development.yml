@@ -116,3 +116,27 @@
     dest: "{{ HOME }}/.config/herdr/config.toml"
     state: link
     force: true
+
+# No become: the Homebrew prefix is owned by this user on Apple Silicon.
+- name: Symlink the Caddyfile
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/caddy/Caddyfile"
+    dest: "{{ CADDYFILE_PATH }}"
+    state: link
+    force: true
+
+# Caddy binds :80, which needs root, so it runs as a LaunchDaemon rather than a
+# user agent. `brew services` is the one brew subcommand Homebrew sanctions under
+# sudo, and the list has to be read as root too: a root daemon does not appear in
+# the user's own service list, so checking without become would restart it forever.
+- name: Check whether Caddy is already running as a service
+  become: true
+  ansible.builtin.command: brew services list
+  register: caddy_service_list
+  changed_when: false
+
+- name: Start Caddy as a root service
+  become: true
+  ansible.builtin.command: brew services start caddy
+  when: caddy_service_list.stdout is not search('caddy\s+started')
+  changed_when: true
