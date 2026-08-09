@@ -21,6 +21,11 @@ VSCODE_EXTENSIONS:
 # runs `caddy run --config <this>`, so it is the only path Caddy will look at.
 CADDYFILE_PATH: /opt/homebrew/etc/Caddyfile
 
+# The LaunchDaemon `brew services start caddy` writes. Its presence is the whole
+# difference between Caddy running from boot and running when asked, and Caddy is
+# wanted on demand only, so the play's job is to keep this path absent.
+CADDY_BOOT_PLIST: /Library/LaunchDaemons/homebrew.mxcl.caddy.plist
+
 BREW_PACKAGES:
   taps:
     - oven-sh/bun
