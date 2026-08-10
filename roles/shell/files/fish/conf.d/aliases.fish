@@ -51,19 +51,17 @@ alias clean:all=clean_all
 alias docker:start='colima start'
 alias docker:stop='colima stop'
 
-# Dev environments. Caddy fronts the per-project *.localhost domains and binds :80, so
-# starting it needs root. Caddy's own `start` daemonizes and writes nothing anywhere,
-# which is what keeps it off the boot path; `brew services` cannot do this at all, since
-# it refuses `run` as root outright and its `start` writes a LaunchDaemon into
-# /Library/LaunchDaemons whose RunAtLoad brings Caddy up with the machine.
+# Dev environments. The five lokl: aliases that lived here are gone: `lokl` is a real
+# command now (roles/apps/files/scripts/lokl), and it owns the domains as well as the
+# proxy, because a domain is a hosts entry and a Caddy site file that have to agree.
 #
-# Only start takes sudo. The rest either read a file or post to the admin API on
-# 127.0.0.1:2019, which is unauthenticated over loopback, so root buys them nothing.
-alias lokl:start='sudo caddy start --config /opt/homebrew/etc/Caddyfile'
-alias lokl:stop='caddy stop'
-alias lokl:status='pgrep -lf "caddy run" || echo "caddy is not running"'
-alias lokl:validate='caddy validate --config /opt/homebrew/etc/Caddyfile'
-alias lokl:config='caddy reload --config /opt/homebrew/etc/Caddyfile'
+#   lokl add outdoor-maps       lokl list      lokl start
+#   lokl remove outdoor-maps    lokl sync      lokl status
+#
+# The port is derived from the working directory when `add` is given none, and
+# `lokl port <name>` prints it for a dev script to read:
+#
+#   astro dev --host outdoor-maps.localhost --port (lokl port outdoor-maps)
 
 # claude-kit. Functions rather than aliases: fish's alias builtin appends $argv to the
 # body unconditionally, so an alias holding $argv passes every argument twice.
