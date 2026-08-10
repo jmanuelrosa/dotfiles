@@ -1,98 +1,155 @@
-# Caddy: per-project development domains
+# Per-project development domains
 
 Every project on `localhost` shares one cookie jar and one `localStorage`, so signing into one admin panel clobbers another's session even on a different port.
 Cookies isolate by hostname and ignore the port entirely, so a distinct hostname is the whole fix.
 
-```
-http://front.localhost        ->  127.0.0.1:3000
-http://front-e2e.localhost    ->  127.0.0.1:3001
-```
-
-Both live at once, separate sessions, no repo change in either worktree.
-
-## Adding a project
-
-One block in [Caddyfile](Caddyfile), then reload:
-
-```
-http://outdoor-maps.localhost {
-	reverse_proxy 127.0.0.1:3001 [::1]:3001 {
-		lb_policy first
-		fail_duration 5s
-	}
-}
+```fish
+lokl add outdoor-maps
+astro dev --host outdoor-maps.localhost --port (lokl port outdoor-maps)
 ```
 
-The braces are not a style choice. Caddy needs the opening brace at end of line and the closing brace on a line of its own, so the same entry collapsed onto one line fails to parse and the proxy refuses to start.
+```
+http://outdoor-maps.localhost        # through the proxy on :80
+http://outdoor-maps.localhost:3001   # straight at the dev server
+```
 
-## Why the upstream is a pair
+Both spellings work, both live at once beside every other project, separate sessions, and no repo change in any worktree.
 
-A dev server may bind IPv6 loopback only, listening on `[::1]:3001` and nothing on IPv4. A lone `127.0.0.1` upstream is then refused and Caddy answers 502 while `lsof` plainly shows the port held, which the browser renders as "This page isn't working" without saying which leg failed. Listing both addresses covers either choice, and covers a server on `0.0.0.0` too, since that includes loopback.
+## The two halves
 
-`lb_policy first` is what makes the pair a failover rather than a round robin. Caddy's default selection policy is random, so two upstreams with no policy would send about half the requests to whichever address nothing is listening on: intermittent 502s that read as a flaky dev server rather than a config error. `fail_duration` is what marks a refused address down instead of retrying it on every request.
+A dev domain is two things that have to agree, and [`lokl`](../scripts/lokl/lokl) exists because keeping them in agreement by hand is what went wrong before.
 
-**Never write `0.0.0.0` as an upstream.** It is a bind address meaning every interface, and dialing it does not fail fast, it times out, so each request stalls for the full dial timeout instead of erroring. A server bound to `0.0.0.0` is already reachable through the `127.0.0.1` entry above.
+**A `/etc/hosts` entry**, so the name resolves.
+macOS does not resolve `*.localhost` at all.
+Browsers implement RFC 6761 and resolve it internally, which is why these domains always worked in Chrome while `getaddrinfo`, `curl` and every dev server's `--host` flag did not.
+That is the whole reason `--host outdoor-maps.localhost` used to fail: the server never got as far as binding.
 
-When a project does not answer, this is the one command that gives the answer directly:
+**A site file in [sites/](sites/)**, so the portless URL answers.
+One file per domain, imported by the [Caddyfile](Caddyfile), reverse-proxying `:80` to the port the dev server binds.
+
+The site files are the record and are committed here; the hosts block is derived from them.
+That is what makes `lokl sync` enough to bring a fresh clone up, and it is why nothing in `/etc/hosts` is worth editing by hand.
+
+## Why not dnsmasq
+
+Wildcard DNS through `dnsmasq` and `/etc/resolver/localhost` is the usual answer to this, and it does not work on macOS 26.
+mDNSResponder intercepts every TLD absent from the IANA root zone, `.localhost` and `.test` and `.internal` alike, and answers it as multicast DNS without ever consulting the nameserver the resolver file names.
+The symptom is that `dig @127.0.0.1 foo.localhost` succeeds, `ping` and `curl` and `getaddrinfo` all fail, and `tcpdump` shows zero packets reaching dnsmasq, so the setup looks correct from the one angle that does not matter.
+A hosts entry is what is left, and one line per project is a cheaper price than a daemon that silently does nothing.
+
+This is also why the suffix stays `.localhost` rather than something prettier.
+Vite's `allowedHosts` permits `localhost` and `*.localhost` and rejects everything else over plain HTTP, so any other suffix would need `allowedHosts` written into a committed `vite.config.ts` where the team would see it.
+
+## Commands
+
+```fish
+lokl add outdoor-maps        # site file, hosts entry, reload, and a resolution check
+lokl add outdoor-maps 3001   # the same, on a port you name rather than one derived
+lokl remove outdoor-maps     # both halves
+lokl port outdoor-maps       # the bare number, for a dev script to read
+lokl list                    # every domain, its port, and whether anything answers
+lokl sync                    # rebuild the hosts block from the site files
+lokl start                   # bind :80 (sudo), without registering anything at boot
+lokl stop
+lokl status
+lokl reload                  # a site change into the running proxy
+lokl validate                # parse the config without touching the proxy
+```
+
+`add` is idempotent: the same port again is a no-op, a different port repoints the domain and says so.
+It refuses `:80` and `:2019`, which Caddy holds for itself and its admin API, since a site pointing at either proxies to itself.
+It warns rather than refuses when two domains name the same port, because that is occasionally deliberate and always worth knowing.
+
+The last thing `add` does is ask the system resolver whether the name now resolves.
+Writing the file proves nothing on its own, and this is the one assumption the whole design rests on.
+
+## Ports, which you no longer pick
+
+Leave the port off and it is derived from the working directory:
+
+```fish
+cd ~/Developer/outdoor-maps
+lokl add outdoor-maps          # :26445, and the same number every time
+```
+
+The seed is the directory, so two worktrees of one repo sitting side by side get different ports without anybody keeping a list.
+The digest is sha256 rather than Python's `hash`, which is salted per process and would hand out a different port on every run.
+
+The window is `20000-39999`, and both edges are chosen:
+
+- **Below 49152**, where macOS starts the ephemeral range it hands to outbound sockets, so a derived port is never one the kernel might have already given away.
+- **Above 19999**, clear of every port a dev server picks by default (3000, 3001, 4321, 5173, 8000, 8080) and of the databases beside them, so a derived port cannot collide with something started by hand.
+
+Two projects can still hash into one slot: 20000 slots make that about a one-in-a-thousand event at ten projects, not an impossible one.
+`lokl` walks forward from the hashed slot until it finds a port no other domain holds, so the answer stays a function of the directory and of what is already assigned, and the collision is invisible.
+A domain that already has a port keeps it, because re-deriving would let an unrelated project taking the slot silently move a domain that was working.
+
+To use it in a dev script, ask for the recorded port by name:
+
+```fish
+astro dev --host outdoor-maps.localhost --port (lokl port outdoor-maps)
+```
+
+`lokl port <name>` reads the site file, which is the number the proxy is actually pointing at and is the same on every clone.
+`lokl port` with no name answers for the working directory instead, which is what `add` would assign there.
+Prefer the named form in anything committed: run bare from a subdirectory and you get that subdirectory's number, not the project's.
+
+Its output is a bare number with no glyph and no colour, which is the one place here that steps outside the shared line vocabulary, for the same reason `claude-kit list --json` does: the whole content is a fact rather than an account of what a command did.
+
+## Naming a port yourself
+
+Pass it explicitly and nothing is derived.
+Two cases need this:
+
+- **The script hardcodes `--port`.** `drivein` runs `astro dev --host 0.0.0.0 --port 4321`, and appending a second `--port` is not reliably an override. Run the binary instead: `npx astro dev --port 4322`.
+- **The project sets `strictPort: true`.** `pickleballontime` does, on every app. Those ports cannot move, and the server exits rather than incrementing if something else holds one. Give `lokl` the port they already use.
+
+Either way the dev server still has to be started on that port.
+Nothing discovers a running server, so a worktree started with neither the flag nor `lokl port` will pick a port of its own and the domain will proxy to nothing.
+When a page loads the wrong project, or none, that is why.
+
+When a domain does not answer, this is the one command that gives the answer directly:
 
 ```fish
 lsof -nP -iTCP:3001 -sTCP:LISTEN    # the address family it prints is the whole story
 ```
 
-```fish
-lokl:config   # caddy reload --config /opt/homebrew/etc/Caddyfile
-lokl:validate # parse it first if you want the error without touching the running process
-```
+## Why the upstream is a pair
 
-Reload goes through the admin API on `127.0.0.1:2019` rather than restarting anything, so an in-flight request survives it. That API only exists while Caddy runs, so `lokl:config` against a stopped proxy fails with `dial tcp [::1]:2019: connect: connection refused`, which means "start it" rather than anything about the Caddyfile. `lokl:start` is the whole fix.
+A dev server may bind IPv6 loopback only, listening on `[::1]:3001` and nothing on IPv4.
+A lone `127.0.0.1` upstream is then refused and Caddy answers 502 while `lsof` plainly shows the port held, which the browser renders as "This page isn't working" without saying which leg failed.
+Listing both addresses covers either choice, and covers a server on `0.0.0.0` too, since that includes loopback.
 
-`caddy fmt` treats a comment as attached to whatever follows it, and collapses a blank line between the two. That is why the global block below the header carries a comment of its own: without it, every reload warns that the file is unformatted.
+`lb_policy first` is what makes the pair a failover rather than a round robin.
+Caddy's default selection policy is random, so two upstreams with no policy would send about half the requests to whichever address nothing is listening on: intermittent 502s that read as a flaky dev server rather than a config error.
+`fail_duration` is what marks a refused address down instead of retrying it on every request.
 
-## Assigning a port
+**Never write `0.0.0.0` as an upstream.**
+It is a bind address meaning every interface, and dialling it does not fail fast, it times out, so each request stalls for the full dial timeout instead of erroring.
+A server bound to `0.0.0.0` is already reachable through the `127.0.0.1` entry.
 
-Pick one nothing else uses and start that worktree with it:
+The hosts entry is deliberately the opposite: one address, `127.0.0.1`, where the file would happily carry `::1` as well.
+Listing both would let the dev server's own resolver pick a family, and "which family did it bind" is exactly the question the upstream pair exists to stop anyone having to ask.
 
-```fish
-pnpm dev -- --port 3001
-```
+## Two symlinks, not one
 
-This is the deliberate trade. Nothing discovers ports for you, so a second worktree started without the flag will increment into some port of its own choosing, which may or may not be the one its Caddy entry names.
-When a page loads the wrong project, that is why.
-
-Two cases need more than the flag:
-
-- **The script hardcodes `--port`.** `drivein` runs `astro dev --host 0.0.0.0 --port 4321`, and appending a second `--port` is not reliably an override. Run the binary instead: `npx astro dev --port 4322`.
-- **The project sets `strictPort: true`.** `pickleballontime` does, on every app. Those ports cannot move, and the server exits rather than incrementing if something else holds one. Leave them as they are.
-
-## Why the hostnames need no /etc/hosts
-
-Browsers implement RFC 6761 by resolving `*.localhost` to `127.0.0.1` internally, without consulting the hosts file.
-That is also why the suffix cannot be changed to something prettier: Vite's `allowedHosts` permits `localhost` and `*.localhost` and rejects everything else over plain HTTP, so any other suffix would need `allowedHosts` written into a committed `vite.config.ts` where the team would see it.
-
-macOS itself does not special-case the suffix, so anything using `getaddrinfo` does need an entry:
-
-```fish
-curl http://front.localhost                      # fails to resolve
-curl --resolve front.localhost:80:127.0.0.1 ...  # works
-echo "127.0.0.1 front.localhost" | sudo tee -a /etc/hosts   # or this
-```
+The playbook links the Caddyfile into the Homebrew prefix, and links [sites/](sites/) beside it.
+The second link is not redundant.
+Caddy resolves an `import` path against the directory of the file it was handed and does not follow that file's symlink back into this repo, so without it the glob matches nothing.
+A glob matching nothing is a warning rather than an error, so the proxy would start, validate clean, and serve no domains at all.
 
 ## Service
 
-Caddy binds `:80`, which needs root, so `lokl:start` takes sudo. It is **off until you ask for it**: nothing starts it at login or boot.
+Caddy binds `:80`, which needs root, so `lokl start` takes sudo.
+It is **off until you ask for it**: nothing starts it at login or boot.
 
-```fish
-lokl:start     # sudo caddy start --config /opt/homebrew/etc/Caddyfile
-lokl:stop      # caddy stop
-lokl:status    # the pid and command line, or "caddy is not running"
-lokl:validate  # parse the Caddyfile without touching the running process
-lokl:config    # reload a site change into the running process
-```
-
-`brew services` drives none of this, and cannot. Its `run` is refused as root unconditionally (`Services::CLI`, `elsif System.root?`), so the combination this needs (root, and nothing on the boot path) is unreachable through it; its `start` is the only verb allowed as root and writes `/Library/LaunchDaemons/homebrew.mxcl.caddy.plist`, whose `RunAtLoad` is exactly what brings Caddy up with the machine.
-Caddy's own `start` daemonizes and writes nothing at all, so the process lasts until `lokl:stop` or the next reboot.
+`brew services` drives none of this, and cannot.
+Its `run` is refused as root unconditionally (`Services::CLI`, `elsif System.root?`), so the combination this needs (root, and nothing on the boot path) is unreachable through it.
+Its `start` is the only verb allowed as root and writes `/Library/LaunchDaemons/homebrew.mxcl.caddy.plist`, whose `RunAtLoad` is exactly what brings Caddy up with the machine.
+Caddy's own `start` daemonizes and writes nothing at all, so the process lasts until `lokl stop` or the next reboot.
 The playbook still deletes that boot plist, which converts a machine that ran the earlier `brew services start` and is otherwise a no-op.
 
-Only `lokl:start` needs root, because only it binds the port. The other four read a file or post to the admin API on `127.0.0.1:2019`, which is unauthenticated over loopback. Running one under sudo is harmless but buys nothing.
-
-`lokl:config` is enough for a site change. A `lokl:stop` and `lokl:start` is only needed for the global block at the top of the Caddyfile.
+Only `start` needs root, because only it binds the port.
+The rest either read a file or post to the admin API on `127.0.0.1:2019`, which is unauthenticated over loopback, so running one under sudo is harmless and buys nothing.
+`lokl add` reloads through that API rather than restarting anything, so an in-flight request survives a new domain being added.
+A `lokl stop` and `lokl start` is only needed for a change to the global block at the top of the Caddyfile.

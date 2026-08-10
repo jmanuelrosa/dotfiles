@@ -1,0 +1,764 @@
+#!/usr/bin/env python3
+"""Per-project development domains on http://<name>.localhost.
+
+Every project on `localhost` shares one cookie jar, because cookies isolate by hostname
+and ignore the port entirely, so signing into one admin panel clobbers another's session
+even when the two run on different ports. A distinct hostname per project is the whole fix.
+
+Two separate things have to be true for `astro dev --host outdoor-maps.localhost` to work,
+and this tool owns both:
+
+  /etc/hosts  macOS does not resolve *.localhost at all. Browsers implement RFC 6761 and
+              resolve it internally, which is why these domains always worked in Chrome
+              while getaddrinfo, curl and every dev server's --host flag did not. dnsmasq
+              behind /etc/resolver is not the alternative it is elsewhere: on macOS 26
+              mDNSResponder intercepts every TLD absent from the IANA root zone and answers
+              it as multicast DNS, never consulting the nameserver the resolver file names,
+              so `dig @127.0.0.1` succeeds while the system resolver still returns nothing.
+              A hosts entry is what is left.
+  sites/      One Caddy site file per domain, imported by the Caddyfile, so the portless
+              http://outdoor-maps.localhost keeps answering next to the port the dev server
+              actually binds.
+
+The two are kept consistent by deriving one from the other. The site files are the record,
+committed to this repo, and the /etc/hosts block is rewritten from them on every change,
+which is what makes `lokl sync` enough to bring a fresh machine up from a clone.
+"""
+
+import argparse
+import collections
+import hashlib
+import os
+import re
+import shutil
+import socket
+import subprocess
+import sys
+from pathlib import Path
+
+# The shared line vocabulary, reached the same way the claude-kit shim reaches its package:
+# by putting this file's own directory on sys.path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from dotkit import ui  # noqa: E402
+
+EXIT_OK = 0
+EXIT_USAGE = 1
+EXIT_NOT_FOUND = 2
+EXIT_INVALID = 3
+EXIT_PRIVILEGE = 4
+EXIT_UNRESOLVED = 5
+
+# The suffix cannot be prettier than this. Vite's `allowedHosts` permits `localhost` and
+# `*.localhost` and rejects every other name over plain HTTP, so any other choice would
+# need `allowedHosts` written into a committed vite.config.ts in each project.
+SUFFIX = "localhost"
+
+# One address, deliberately, where /etc/hosts would happily carry two. Listing ::1 as well
+# would let a dev server's resolver pick IPv6 on some runs and IPv4 on others, and "which
+# family did it bind" is exactly the question behind the 502s the upstream pair below
+# exists to absorb. One address is one behaviour.
+LOOPBACK = "127.0.0.1"
+
+BEGIN = "# lokl: development domains. Rewritten by `lokl`, hand edits below are lost."
+END = "# lokl: end"
+
+# Caddy binds the first and serves its admin API on the second, so a site pointing at
+# either is a proxy loop rather than a project.
+RESERVED = {
+    80: "Caddy itself binds :80, so a site pointing there would proxy to itself",
+    2019: "Caddy's admin API listens on :2019",
+}
+
+# The window a derived port falls in. Both edges are chosen rather than round:
+#
+#   below 49152  where macOS starts its ephemeral range, so a port here is never one the
+#                kernel might already have handed to an outbound connection.
+#   above 19999  clear of every port a dev server picks by default (3000, 3001, 4321,
+#                5173, 8000, 8080) and of the databases beside them (5432, 6379, 27017),
+#                so a derived port cannot collide with something started by hand.
+PORT_FLOOR = 20000
+PORT_CEILING = 39999
+PORT_SPAN = PORT_CEILING - PORT_FLOOR + 1
+
+LABEL = re.compile(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$")
+SITE_HOST = re.compile(r"^http://(\S+)\s*\{", re.M)
+SITE_PORT = re.compile(r"^\s*reverse_proxy\s+\S+?:(\d+)", re.M)
+
+Paths = collections.namedtuple("Paths", "caddyfile sites hosts overridden")
+
+
+def fail(code, message):
+    ui.err(message)
+    return code
+
+
+def resolve_paths():
+    """Where the Caddyfile, the site files and the hosts file live.
+
+    `LOKL_CADDYFILE` and `LOKL_HOSTS` are the only environmental seams, which is what lets
+    the whole tool be driven against a tmp_path. The literal prefix is the same constant
+    the playbook writes into `CADDYFILE_PATH`, and this repo is Apple Silicon only.
+
+    Either override sets `overridden`, and the two steps that reach past the files being
+    edited (reloading the live proxy, and asking the system resolver whether the entry
+    took) stand down when it is set. Both would be answering about the machine while the
+    tool is working on something else.
+    """
+    override = os.environ.get("LOKL_CADDYFILE")
+    prefix = os.environ.get("HOMEBREW_PREFIX", "/opt/homebrew")
+    caddyfile = Path(override) if override else Path(prefix) / "etc" / "Caddyfile"
+    hosts_override = os.environ.get("LOKL_HOSTS")
+    hosts = Path(hosts_override) if hosts_override else Path("/etc/hosts")
+    return Paths(caddyfile, caddyfile.parent / "sites", hosts, bool(override or hosts_override))
+
+
+def normalise(raw):
+    """A bare name or a full domain, as (label, domain), or (None, complaint).
+
+    Accepts both spellings because both read naturally at the prompt, and lowercases
+    before validating: DNS is case-insensitive, but the file name and the hosts entry
+    should have one canonical form.
+    """
+    name = (raw or "").strip().lower().rstrip(".")
+    if name.endswith(f".{SUFFIX}"):
+        name = name[: -len(SUFFIX) - 1]
+    if not name:
+        return None, "Give a project name, as in `lokl add outdoor-maps 4321`."
+    if not LABEL.match(name):
+        return None, (
+            f"{raw!r} is not a usable name. Use lowercase letters, digits and hyphens, "
+            "starting and ending with a letter or digit."
+        )
+    return name, f"{name}.{SUFFIX}"
+
+
+def derive_port(seed, taken=()):
+    """A stable port for a project, from a digest of `seed`, stepping over `taken`.
+
+    sha256 rather than the built-in `hash`, which is salted per process unless PYTHONHASHSEED
+    is pinned, so `hash` would hand out a different port on every run. Any stable digest
+    would do and none of this depends on the hash being cryptographic; what it depends on is
+    the same directory always giving the same answer.
+
+    A collision walks forward from the hashed slot rather than rehashing, which keeps the
+    answer a function of the seed and of what is already assigned. 20000 slots put a
+    collision well past the number of projects one machine holds, and probing makes the
+    one that does happen invisible. Returns None only when every slot is taken.
+    """
+    digest = hashlib.sha256(str(seed).encode()).digest()
+    start = int.from_bytes(digest[:8], "big") % PORT_SPAN
+    blocked = set(taken) | set(RESERVED)
+    for step in range(PORT_SPAN):
+        candidate = PORT_FLOOR + (start + step) % PORT_SPAN
+        if candidate not in blocked:
+            return candidate
+    return None
+
+
+def assigned_ports(configured):
+    return {port for port, _ in configured.values() if port}
+
+
+def render_site(domain, port):
+    """One site file, in the exact shape `caddy fmt` produces.
+
+    Both loopback families are listed because a dev server may bind `[::1]` only, as Vite
+    and Next both may, and an IPv4-only upstream then answers 502 while `lsof` plainly
+    shows the port held. `lb_policy first` is what makes the pair a failover rather than
+    the default random selection, which would send about half the requests to whichever
+    address nothing is holding. Never `0.0.0.0`: that is a bind address meaning every
+    interface, and dialling it times out rather than being refused, so a request stalls
+    instead of failing.
+    """
+    return (
+        f"http://{domain} {{\n"
+        f"\treverse_proxy {LOOPBACK}:{port} [::1]:{port} {{\n"
+        f"\t\tlb_policy first\n"
+        f"\t\tfail_duration 5s\n"
+        f"\t}}\n"
+        f"}}\n"
+    )
+
+
+def parse_site(text):
+    """(domain, port) out of a site file, with either half allowed to be missing.
+
+    A hand-written file that this tool did not generate still gets listed, with its port
+    reported as unknown rather than the whole file being ignored.
+    """
+    host = SITE_HOST.search(text)
+    if not host:
+        return None, None
+    port = SITE_PORT.search(text)
+    return host.group(1), int(port.group(1)) if port else None
+
+
+def sites(directory):
+    """Every configured domain, as an ordered {domain: (port, path)}."""
+    found = {}
+    if not directory.is_dir():
+        return found
+    for path in sorted(directory.glob("*.caddyfile")):
+        try:
+            domain, port = parse_site(path.read_text())
+        except OSError:
+            continue
+        if domain:
+            found[domain] = (port, path)
+    return found
+
+
+def hosts_block(domains):
+    """The managed block, or an empty string when there is nothing to manage."""
+    if not domains:
+        return ""
+    lines = [BEGIN] + [f"{LOOPBACK}\t{domain}" for domain in domains] + [END]
+    return "\n".join(lines) + "\n"
+
+
+def replace_block(content, block):
+    """Swap the managed block, append it when absent, or drop it when the block is empty.
+
+    Raises ValueError on a half-marked or doubly-marked file rather than guessing. A BEGIN
+    with no END means somebody edited /etc/hosts by hand mid-block, and appending a second
+    block there would leave the first one live, resolving names nothing lists any more.
+    """
+    lines = content.splitlines()
+    starts = [i for i, line in enumerate(lines) if line.strip() == BEGIN]
+    ends = [i for i, line in enumerate(lines) if line.strip() == END]
+    if len(starts) > 1 or len(ends) > 1 or len(starts) != len(ends):
+        raise ValueError(
+            "the lokl markers in the hosts file are unbalanced, so the managed block "
+            "cannot be located. Repair them by hand and run `lokl sync`."
+        )
+    if starts and ends[0] < starts[0]:
+        raise ValueError("the lokl end marker precedes its begin marker in the hosts file.")
+
+    before = lines[: starts[0]] if starts else lines
+    after = lines[ends[0] + 1 :] if ends else []
+    before = list(before)
+    after = list(after)
+    while before and not before[-1].strip():
+        before.pop()
+    while after and not after[0].strip():
+        after.pop(0)
+
+    kept = list(before)
+    for section in (block.splitlines(), after):
+        if not section:
+            continue
+        if kept:
+            kept.append("")
+        kept.extend(section)
+    return "\n".join(kept) + "\n" if kept else ""
+
+
+def foreign_entries(content, domains):
+    """Hosts entries for our domains that sit outside the managed block.
+
+    The setup this replaces told people to append these by hand, so a machine that followed
+    it carries duplicates the block cannot see. Resolution still works, which is why this
+    warns rather than refuses, but a stale hand-written line pointing somewhere else is a
+    genuinely hard failure to debug.
+    """
+    wanted = set(domains)
+    found = []
+    for line in replace_block(content, "").splitlines():
+        fields = line.split("#", 1)[0].split()
+        if len(fields) >= 2 and wanted.intersection(fields[1:]):
+            found.append(" ".join(fields))
+    return found
+
+
+def write_hosts(path, content):
+    """Replace the hosts file, escalating only when this user cannot write it.
+
+    `tee` rather than a copy so the file keeps its inode, owner and mode, and sudo reads a
+    password from the tty rather than from stdin, so piping the content in is safe. The
+    writable branch is not a convenience: it is what lets every command here be driven
+    against a tmp_path with no privilege at all.
+    """
+    if os.access(path, os.W_OK):
+        path.write_text(content)
+        return None
+    try:
+        proc = subprocess.run(
+            ["sudo", "tee", str(path)], input=content.encode(), stdout=subprocess.DEVNULL
+        )
+    except FileNotFoundError:
+        return "sudo is not on PATH, so the hosts file cannot be written."
+    if proc.returncode != 0:
+        return f"`sudo tee {path}` exited {proc.returncode}, so the hosts file is unchanged."
+    # A name that failed to resolve a moment ago is cached as failing, so a fresh entry
+    # reads as ignored until that negative answer lapses.
+    subprocess.run(["sudo", "dscacheutil", "-flushcache"], check=False)
+    subprocess.run(
+        ["sudo", "killall", "-HUP", "mDNSResponder"], check=False, stderr=subprocess.DEVNULL
+    )
+    return None
+
+
+def apply_hosts(paths, domains):
+    """Converge the hosts file on `domains`. Returns (changed, error, code).
+
+    The two failures are kept apart because they ask for different things: a broken marker
+    is a file to repair by hand, and a refused write is a password to retype.
+    """
+    try:
+        current = paths.hosts.read_text()
+    except OSError as exc:
+        return False, f"cannot read {ui.path(paths.hosts)}: {exc.strerror or exc}", EXIT_PRIVILEGE
+    try:
+        wanted = replace_block(current, hosts_block(domains))
+    except ValueError as exc:
+        return False, str(exc), EXIT_INVALID
+    if wanted == current:
+        return False, None, EXIT_OK
+    return True, write_hosts(paths.hosts, wanted), EXIT_PRIVILEGE
+
+
+def resolves(domain):
+    """Every address the system resolver returns for a name, as it would for a dev server."""
+    try:
+        return sorted({info[4][0] for info in socket.getaddrinfo(domain, None)})
+    except socket.gaierror:
+        return []
+
+
+def listening(port):
+    """Whether anything holds the port, on either loopback family."""
+    if not port:
+        return False
+    for family, address in ((socket.AF_INET, (LOOPBACK, port)), (socket.AF_INET6, ("::1", port))):
+        try:
+            with socket.socket(family, socket.SOCK_STREAM) as probe:
+                probe.settimeout(0.2)
+                if probe.connect_ex(address) == 0:
+                    return True
+        except OSError:
+            continue
+    return False
+
+
+def caddy_running():
+    proc = subprocess.run(["pgrep", "-f", "caddy run"], capture_output=True, text=True)
+    return proc.returncode == 0
+
+
+def run_caddy(paths, *args):
+    """One caddy invocation against our config. Returns (ok, output)."""
+    if shutil.which("caddy") is None:
+        return False, "caddy is not on PATH"
+    proc = subprocess.run(
+        ["caddy", *args, "--config", str(paths.caddyfile)], capture_output=True, text=True
+    )
+    return proc.returncode == 0, (proc.stderr or proc.stdout).strip()
+
+
+def validate(paths):
+    """Parse the config without touching a running process. Returns a complaint, or None.
+
+    A missing caddy degrades to no check rather than to a refusal: the site file is written
+    either way, and refusing to record a domain because the proxy is not installed would
+    make the tool useless on a machine that has not run the playbook yet.
+    """
+    if shutil.which("caddy") is None:
+        return None
+    ok, output = run_caddy(paths, "validate")
+    return None if ok else output
+
+
+def reload_proxy(paths):
+    """Reload a running proxy after a change here, and say nothing when none is running.
+
+    Reload goes through the admin API rather than restarting anything, so an in-flight
+    request survives it. That API only exists while Caddy runs, which is why this is gated
+    rather than attempted and reported as a failure.
+
+    An overridden config is never pushed. `caddy reload` replaces the running instance's
+    whole configuration with the file it is handed, so pointing this tool at some other
+    Caddyfile and having it swap the machine's live config for that one is never what the
+    override means. An explicit `lokl reload` still does as it is told.
+    """
+    if paths.overridden:
+        ui.note(f"not reloading: {ui.path(paths.caddyfile)} is not the machine's config")
+        return
+    if not caddy_running():
+        ui.note("the proxy is not running, so `lokl start` is what serves this")
+        return
+    ok, output = run_caddy(paths, "reload")
+    if ok:
+        ui.ok("reloaded the running proxy")
+    else:
+        ui.warn(f"the running proxy refused the reload: {output}")
+
+
+def report_resolution(paths, domain):
+    """Confirm the entry took, because every other step succeeding proves nothing.
+
+    This is the one check covering the assumption the whole design rests on: that a hosts
+    entry still beats mDNSResponder's interception of TLDs absent from the IANA root zone.
+    Writing the file is not evidence of that, and the failure is silent everywhere else.
+    """
+    if paths.overridden:
+        return EXIT_OK
+    addresses = resolves(domain)
+    if addresses == [LOOPBACK]:
+        ui.ok(f"{domain} resolves to {LOOPBACK}")
+        return EXIT_OK
+    if LOOPBACK in addresses:
+        ui.warn(f"{domain} resolves to {', '.join(addresses)}, not {LOOPBACK} alone")
+        return EXIT_OK
+    ui.err(f"{domain} still does not resolve.")
+    ui.note("The hosts entry is written, so the system resolver is ignoring it.")
+    ui.note("`dscacheutil -q host -a name " + domain + "` shows what it thinks.")
+    return EXIT_UNRESOLVED
+
+
+def cmd_add(args, paths):
+    label, domain = normalise(args.name)
+    if label is None:
+        return fail(EXIT_USAGE, domain)
+
+    existing = sites(paths.sites)
+    previous = existing.get(domain, (None, None))[0]
+
+    # An omitted port is derived from the working directory, and an already-configured
+    # domain keeps the port it has. Re-deriving there would let an unrelated project
+    # taking the hashed slot silently move a domain that was working.
+    derived = False
+    port = args.port
+    if port is None:
+        port = previous
+    if port is None:
+        port = derive_port(Path.cwd(), assigned_ports(existing))
+        derived = True
+        if port is None:
+            return fail(EXIT_NOT_FOUND, "every port in the derived range is already assigned.")
+
+    if port in RESERVED:
+        return fail(EXIT_USAGE, f"Port {port} is unavailable: {RESERVED[port]}.")
+    if not 1 <= port <= 65535:
+        return fail(EXIT_USAGE, f"Port {port} is outside the usable range.")
+
+    clashes = [other for other, (taken, _) in existing.items() if taken == port and other != domain]
+
+    # Never conjured on the machine's own prefix. That path is a symlink the playbook owns,
+    # and a real directory sitting there is what `ansible.builtin.file state=link` cannot
+    # replace, so creating one here would quietly break the task that repairs it.
+    if not paths.sites.is_dir() and not paths.overridden:
+        return fail(
+            EXIT_NOT_FOUND,
+            f"{ui.path(paths.sites)} is missing. Run `make run-role ROLE=apps` to link it.",
+        )
+
+    target = paths.sites / f"{label}.caddyfile"
+    try:
+        paths.sites.mkdir(parents=True, exist_ok=True)
+        restore = target.read_text() if target.exists() else None
+        target.write_text(render_site(domain, port))
+    except OSError as exc:
+        return fail(EXIT_PRIVILEGE, f"cannot write {ui.path(target)}: {exc.strerror or exc}")
+
+    complaint = validate(paths)
+    if complaint:
+        if restore is None:
+            target.unlink(missing_ok=True)
+        else:
+            target.write_text(restore)
+        ui.err("Caddy rejected the config, so nothing was changed.")
+        ui.note(complaint)
+        return EXIT_INVALID
+
+    ui.title(f"🔌 {domain}")
+    if previous == port:
+        ui.note(f"already proxying to :{port}")
+    elif previous is not None:
+        ui.step(f"repointed from :{previous} to :{port}")
+    else:
+        ui.step(f"proxying :80 to :{port}")
+    if derived:
+        ui.note(f"port derived from {ui.path(Path.cwd())}")
+        if listening(port):
+            ui.warn(f"something already answers on :{port}, so name a port if it is not yours")
+    for other in clashes:
+        ui.warn(f"{other} also points at :{port}, so both serve the same process")
+
+    changed, error, code = apply_hosts(paths, sorted(sites(paths.sites)))
+    if error:
+        return fail(code, error)
+    if changed:
+        ui.step(f"added {LOOPBACK}\t{domain} to {ui.path(paths.hosts)}")
+
+    warn_foreign(paths)
+    reload_proxy(paths)
+
+    status = report_resolution(paths, domain)
+    ui.done(f"http://{domain} and http://{domain}:{port}")
+    return status
+
+
+def cmd_remove(args, paths):
+    label, domain = normalise(args.name)
+    if label is None:
+        return fail(EXIT_USAGE, domain)
+    existing = sites(paths.sites)
+    if domain not in existing:
+        return fail(EXIT_NOT_FOUND, f"{domain} is not configured. `lokl list` shows what is.")
+
+    target = existing[domain][1]
+    try:
+        target.unlink()
+    except OSError as exc:
+        return fail(EXIT_PRIVILEGE, f"cannot remove {ui.path(target)}: {exc.strerror or exc}")
+
+    ui.title(f"🔌 {domain}")
+    ui.step(f"removed {ui.path(target)}")
+
+    changed, error, code = apply_hosts(paths, sorted(sites(paths.sites)))
+    if error:
+        return fail(code, error)
+    if changed:
+        ui.step(f"dropped its entry from {ui.path(paths.hosts)}")
+
+    reload_proxy(paths)
+    ui.done(f"{domain} removed")
+    return EXIT_OK
+
+
+def warn_foreign(paths):
+    try:
+        stray = foreign_entries(paths.hosts.read_text(), sorted(sites(paths.sites)))
+    except (OSError, ValueError):
+        return
+    for line in stray:
+        ui.warn(f"{ui.path(paths.hosts)} also carries `{line}` outside the managed block")
+
+
+def cmd_port(args, paths):
+    """Print one port and nothing else, so a shell can read it.
+
+    The only command here whose stdout is a value rather than a report, which is why it
+    carries no glyph and no colour: `astro dev --port (lokl port outdoor-maps)` cannot be
+    handed a decorated line. `claude-kit list --json` holds the same exemption for the same
+    reason, that its whole content is a fact rather than an account of what a command did.
+
+    A configured domain answers from its site file rather than from the hash. That is the
+    number the proxy is actually pointing at, it is stable across machines because the site
+    file is committed, and it does not move when another project takes the hashed slot.
+    Naming the domain is therefore the form to use in a script; the bare form answers for
+    the working directory, which is what `lokl add` would assign there.
+    """
+    configured = sites(paths.sites)
+    if args.name:
+        label, domain = normalise(args.name)
+        if label is None:
+            return fail(EXIT_USAGE, domain)
+        if domain in configured:
+            port = configured[domain][0]
+            if port is None:
+                return fail(EXIT_NOT_FOUND, f"{domain} carries no reverse_proxy port to read.")
+            print(port)
+            return EXIT_OK
+
+    port = derive_port(Path.cwd(), assigned_ports(configured))
+    if port is None:
+        return fail(EXIT_NOT_FOUND, "every port in the derived range is already assigned.")
+    print(port)
+    return EXIT_OK
+
+
+def cmd_list(args, paths):
+    configured = sites(paths.sites)
+    if not configured:
+        ui.title("🔌 Development domains")
+        ui.note("none configured yet. `lokl add outdoor-maps 4321` is the first one.")
+        ui.done("0 domains")
+        return EXIT_OK
+
+    try:
+        hosts_text = paths.hosts.read_text()
+    except OSError:
+        hosts_text = ""
+    # Every name on every entry, not just the first: a hosts line may carry several
+    # aliases against one address, and reading only the first reports a domain as
+    # missing while it resolves perfectly well.
+    resolved = set()
+    for line in hosts_text.splitlines():
+        fields = line.split("#", 1)[0].split()
+        if len(fields) >= 2:
+            resolved.update(fields[1:])
+
+    ui.title("🔌 Development domains")
+    width = max(len(domain) for domain in configured)
+    serving = 0
+    for domain, (port, _) in configured.items():
+        target = f":{port}" if port else "unparsed"
+        if port and listening(port):
+            state, colour = "serving", "green"
+            serving += 1
+        elif port:
+            state, colour = "nothing listening", "dim"
+        else:
+            state, colour = "no reverse_proxy line", "yellow"
+        row = f"{ui.paint(domain.ljust(width), 'cyan')}  {target.ljust(7)} {ui.paint(state, colour)}"
+        ui.item(row)
+        if domain not in resolved:
+            ui.note(f"no hosts entry, so --host {domain} will not bind. Run `lokl sync`.", indent=4)
+
+    ui.blank()
+    ui.done(f"{len(configured)} domain{'' if len(configured) == 1 else 's'}, {serving} serving")
+    return EXIT_OK
+
+
+def cmd_sync(args, paths):
+    configured = sorted(sites(paths.sites))
+    ui.title("🔄 Reconciling the hosts file with the site files")
+    changed, error, code = apply_hosts(paths, configured)
+    if error:
+        return fail(code, error)
+    for domain in configured:
+        ui.item(domain)
+    warn_foreign(paths)
+    if not changed:
+        ui.done(f"already in sync, {len(configured)} domain{'' if len(configured) == 1 else 's'}")
+        return EXIT_OK
+    ui.done(f"wrote {len(configured)} domain{'' if len(configured) == 1 else 's'} to {ui.path(paths.hosts)}")
+    return EXIT_OK
+
+
+def cmd_start(args, paths):
+    """Bind :80, which needs root, and daemonize without registering anything at boot.
+
+    Caddy's own `start` writes nothing anywhere, which is the whole reason it is used here
+    rather than `brew services`: the latter refuses `run` as root outright, and its `start`
+    writes a LaunchDaemon whose RunAtLoad brings the proxy up with the machine.
+    """
+    if not paths.caddyfile.exists():
+        return fail(
+            EXIT_NOT_FOUND,
+            f"{ui.path(paths.caddyfile)} is missing. Run `make run-role ROLE=apps` first.",
+        )
+    if caddy_running():
+        ui.ok("the proxy is already running")
+        ui.done("nothing to do")
+        return EXIT_OK
+    proc = subprocess.run(["sudo", "caddy", "start", "--config", str(paths.caddyfile)])
+    if proc.returncode != 0:
+        return fail(EXIT_INVALID, f"`caddy start` exited {proc.returncode}.")
+    ui.done("the proxy is serving :80")
+    return EXIT_OK
+
+
+def cmd_stop(args, paths):
+    if not caddy_running():
+        ui.note("the proxy is not running")
+        ui.done("nothing to do")
+        return EXIT_OK
+    proc = subprocess.run(["caddy", "stop"])
+    if proc.returncode != 0:
+        return fail(EXIT_INVALID, f"`caddy stop` exited {proc.returncode}.")
+    ui.done("the proxy is stopped")
+    return EXIT_OK
+
+
+def cmd_status(args, paths):
+    ui.title("🔌 Proxy")
+    proc = subprocess.run(["pgrep", "-lf", "caddy run"], capture_output=True, text=True)
+    if proc.returncode == 0:
+        for line in proc.stdout.strip().splitlines():
+            ui.ok(line.strip())
+    else:
+        ui.note("not running. `lokl start` binds :80.")
+    count = len(sites(paths.sites))
+    ui.done(f"{count} domain{'' if count == 1 else 's'} configured")
+    return EXIT_OK
+
+
+def cmd_reload(args, paths):
+    if not caddy_running():
+        return fail(EXIT_NOT_FOUND, "the proxy is not running, so there is nothing to reload.")
+    ok, output = run_caddy(paths, "reload")
+    if not ok:
+        return fail(EXIT_INVALID, output or "`caddy reload` failed.")
+    ui.done("reloaded")
+    return EXIT_OK
+
+
+def cmd_validate(args, paths):
+    if shutil.which("caddy") is None:
+        return fail(EXIT_NOT_FOUND, "caddy is not on PATH.")
+    complaint = validate(paths)
+    if complaint:
+        ui.err("the config does not parse.")
+        ui.note(complaint)
+        return EXIT_INVALID
+    ui.done(f"{ui.path(paths.caddyfile)} is valid")
+    return EXIT_OK
+
+
+COMMANDS = {
+    "add": cmd_add,
+    "remove": cmd_remove,
+    "port": cmd_port,
+    "list": cmd_list,
+    "sync": cmd_sync,
+    "start": cmd_start,
+    "stop": cmd_stop,
+    "status": cmd_status,
+    "reload": cmd_reload,
+    "validate": cmd_validate,
+}
+
+
+class Parser(argparse.ArgumentParser):
+    """argparse exits 2 on a usage error; this script defines its own codes."""
+
+    def error(self, message):
+        self.print_usage(sys.stderr)
+        self.exit(EXIT_USAGE, ui.render("err", message, stream=sys.stderr) + "\n")
+
+
+def build_parser():
+    parser = Parser(prog="lokl", description=__doc__.splitlines()[0])
+    subparsers = parser.add_subparsers(dest="command", metavar="<command>")
+
+    add = subparsers.add_parser("add", help="serve a project on http://<name>.localhost")
+    add.add_argument("name", help="the project name, with or without the .localhost suffix")
+    add.add_argument(
+        "port",
+        type=int,
+        nargs="?",
+        help="the port the dev server binds; derived from this directory when omitted",
+    )
+
+    remove = subparsers.add_parser("remove", help="drop a domain and its hosts entry")
+    remove.add_argument("name", help="the project name")
+
+    port = subparsers.add_parser("port", help="print a domain's port, for a dev script to read")
+    port.add_argument(
+        "name", nargs="?", help="the project name; without one, the port for this directory"
+    )
+
+    subparsers.add_parser("list", help="every domain, its port, and whether it answers")
+    subparsers.add_parser("sync", help="rewrite the hosts block from the site files")
+    subparsers.add_parser("start", help="bind :80 (needs sudo), without touching boot")
+    subparsers.add_parser("stop", help="stop the proxy")
+    subparsers.add_parser("status", help="whether the proxy runs, and how many domains exist")
+    subparsers.add_parser("reload", help="reload a site change into the running proxy")
+    subparsers.add_parser("validate", help="parse the config without touching the proxy")
+    return parser
+
+
+def main(argv=None):
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if not args.command:
+        parser.print_help()
+        return EXIT_USAGE
+    return COMMANDS[args.command](args, resolve_paths())
+
+
+if __name__ == "__main__":
+    sys.exit(main())
