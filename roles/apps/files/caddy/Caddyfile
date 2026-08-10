@@ -1,6 +1,6 @@
 # Per-project development domains, so each project gets its own cookie jar.
 #
-# Three things here are load-bearing:
+# Five things here are load-bearing:
 #
 #   http://   Without the scheme Caddy treats the site as HTTPS, issues a
 #             certificate from its internal CA and asks to be trusted. Nothing
@@ -10,36 +10,33 @@
 #             and *.localhost and nothing else. Do not override it.
 #   websocket reverse_proxy upgrades connections with no extra directive, which
 #             is what lets Vite HMR reconnect through the proxy.
+#   { ... }   A site block cannot be written on one line. Caddy needs the
+#             opening brace at end of line and the closing brace on its own, or
+#             it reports "Unexpected '}' because no matching opening brace" and
+#             refuses to start at all.
+#   upstream  Both loopback families are listed, because a dev server may bind
+#             [::1] only, as Vite and Next both may, and an IPv4-only upstream
+#             then answers 502 while the server is plainly up on the port.
+#             `lb_policy first` is what makes the pair a failover instead of a
+#             round robin: the default selection is random, so without it half
+#             the requests would go to whichever address nothing is holding.
+#             Never 0.0.0.0 here. That is a bind address meaning every
+#             interface, and dialing it times out rather than being refused,
+#             so a request stalls instead of failing. A server bound to it is
+#             reached through 127.0.0.1 anyway, loopback being one of them.
 #
 # Browsers resolve *.localhost to 127.0.0.1 themselves and never read
 # /etc/hosts, so none of these need an entry there. curl does. See README.md.
 
+# Covers a site added without the http:// prefix above: without this, Caddy
+# would still reach for a certificate from its internal CA for that one.
 {
 	auto_https off
 }
 
-# Six worktrees of one repo, every one declaring port 3000. Start each with
-# `pnpm dev -- --port N`; front keeps the declared port and needs no flag.
-http://front.localhost               { reverse_proxy 127.0.0.1:3000 }
-http://front-e2e.localhost           { reverse_proxy 127.0.0.1:3001 }
-http://front-sentry.localhost        { reverse_proxy 127.0.0.1:3002 }
-http://front-ser-1227.localhost      { reverse_proxy 127.0.0.1:3003 }
-http://update-dependencies.localhost { reverse_proxy 127.0.0.1:3004 }
-http://front-debug.localhost         { reverse_proxy 127.0.0.1:3005 }
-
-# strictPort: true on every app here, so these ports are not suggestions. The
-# server exits rather than incrementing when one is taken, and the API allowlists
-# the exact origin. Never reassign them.
-http://app.pickleballontime.localhost     { reverse_proxy 127.0.0.1:5173 }
-http://admin.pickleballontime.localhost   { reverse_proxy 127.0.0.1:5174 }
-http://landing.pickleballontime.localhost { reverse_proxy 127.0.0.1:4321 }
-http://api.pickleballontime.localhost     { reverse_proxy 127.0.0.1:8787 }
-
-# All three sit above 4321 rather than starting on it, because 4321 belongs to
-# pickleballontime's landing under strictPort and cannot move. Two hostnames on one
-# upstream would mean drivein.localhost silently serving the landing page. The dev
-# script hardcodes --port 4321 and a second --port is not a reliable override, so
-# start these with `npx astro dev --port N` rather than `pnpm dev`.
-http://drivein.localhost           { reverse_proxy 127.0.0.1:4322 }
-http://drivein-dev.localhost       { reverse_proxy 127.0.0.1:4323 }
-http://drivein-instagram.localhost { reverse_proxy 127.0.0.1:4324 }
+http://outdoor-maps.localhost {
+	reverse_proxy 127.0.0.1:3001 [::1]:3001 {
+		lb_policy first
+		fail_duration 5s
+	}
+}
