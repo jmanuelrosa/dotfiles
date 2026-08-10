@@ -125,15 +125,41 @@
     state: link
     force: true
 
+# The Caddyfile's `import sites/*.caddyfile` is resolved against the directory holding
+# the file Caddy was handed, which is the Homebrew prefix rather than this repo: Caddy
+# does not follow the symlink above before resolving it. Without this second link the
+# glob matches nothing, which is only a warning, so every dev domain would silently stop
+# being served while the config still validated.
+- name: Symlink the Caddy site directory
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/caddy/sites"
+    dest: "{{ CADDY_SITES_PATH }}"
+    state: link
+    force: true
+
+# ~/.local/bin is created by the coreutils role, which runs before this one in every
+# profile, so this role links into it without creating it.
+- name: Link app scripts into the user bin directory
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/scripts/{{ item }}/{{ item }}"
+    dest: "{{ HOME }}/.local/bin/{{ item }}"
+    state: link
+    force: true
+  # One directory per tool, and the executable inside carries the tool's name, so the
+  # source is <name>/<name>. src stays absolute: ansible.builtin.file does not resolve it
+  # through the role search path the way copy and template do, and a relative one would
+  # be read against ~/.local/bin and written as a dangling link that still reports changed.
+  loop: "{{ APPS_SCRIPTS }}"
+
 # Caddy is deliberately not started here: the dev domains are wanted on demand, and
-# `lokl:start` / `lokl:stop` in the shell role are the on switch. Those drive Caddy's own
+# `lokl start` / `lokl stop` are the on switch. Those drive Caddy's own
 # `start` subcommand rather than brew services, which cannot express what this needs:
 # binding :80 requires root, and `brew services run` is refused as root outright, leaving
 # only `start`, which registers the boot plist this task exists to remove.
 #
 # `stop` is what removes the LaunchDaemon, so this converts a machine that ran the
 # earlier `brew services start` and is a no-op on every run after. It cannot stop a
-# hand-started Caddy by accident: nothing in `lokl:start` involves launchd at all, so
+# hand-started Caddy by accident: nothing in `lokl start` involves launchd at all, so
 # `removes` sees no file.
 #
 # Homebrew derives its cache from $HOME, and become runs `sudo -H`, so root lands on

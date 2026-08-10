@@ -21,10 +21,23 @@ VSCODE_EXTENSIONS:
 # runs `caddy run --config <this>`, so it is the only path Caddy will look at.
 CADDYFILE_PATH: /opt/homebrew/etc/Caddyfile
 
+# Where the per-domain site files the Caddyfile imports have to be reachable. Derived
+# rather than restated: Caddy resolves an `import` against the directory of the file
+# holding it and never follows the Caddyfile symlink back into this repo, so the same
+# directory has to exist beside the Caddyfile under whatever prefix that one uses.
+CADDY_SITES_PATH: "{{ CADDYFILE_PATH | dirname }}/sites"
+
 # The LaunchDaemon `brew services start caddy` writes. Its presence is the whole
 # difference between Caddy running from boot and running when asked, and Caddy is
 # wanted on demand only, so the play's job is to keep this path absent.
 CADDY_BOOT_PLIST: /Library/LaunchDaemons/homebrew.mxcl.caddy.plist
+
+# Tools symlinked onto PATH from files/scripts/, named rather than globbed, for the same
+# reason the ai, work and coreutils roles name theirs: every entry is a directory, and
+# Ansible's fileglob lookup filters matches through os.path.isfile, so a glob would match
+# nothing and silently install no tools.
+APPS_SCRIPTS:
+  - lokl
 
 BREW_PACKAGES:
   taps:
