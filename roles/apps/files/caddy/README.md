@@ -12,13 +12,41 @@ Both live at once, separate sessions, no repo change in either worktree.
 
 ## Adding a project
 
-One line in [Caddyfile](Caddyfile), then reload:
+One block in [Caddyfile](Caddyfile), then reload:
 
-```fish
-caddy reload --config /opt/homebrew/etc/Caddyfile
+```
+http://outdoor-maps.localhost {
+	reverse_proxy 127.0.0.1:3001 [::1]:3001 {
+		lb_policy first
+		fail_duration 5s
+	}
+}
 ```
 
-No sudo: reload goes through the admin API on `127.0.0.1:2019`, which is already running as root.
+The braces are not a style choice. Caddy needs the opening brace at end of line and the closing brace on a line of its own, so the same entry collapsed onto one line fails to parse and the proxy refuses to start.
+
+## Why the upstream is a pair
+
+A dev server may bind IPv6 loopback only, listening on `[::1]:3001` and nothing on IPv4. A lone `127.0.0.1` upstream is then refused and Caddy answers 502 while `lsof` plainly shows the port held, which the browser renders as "This page isn't working" without saying which leg failed. Listing both addresses covers either choice, and covers a server on `0.0.0.0` too, since that includes loopback.
+
+`lb_policy first` is what makes the pair a failover rather than a round robin. Caddy's default selection policy is random, so two upstreams with no policy would send about half the requests to whichever address nothing is listening on: intermittent 502s that read as a flaky dev server rather than a config error. `fail_duration` is what marks a refused address down instead of retrying it on every request.
+
+**Never write `0.0.0.0` as an upstream.** It is a bind address meaning every interface, and dialing it does not fail fast, it times out, so each request stalls for the full dial timeout instead of erroring. A server bound to `0.0.0.0` is already reachable through the `127.0.0.1` entry above.
+
+When a project does not answer, this is the one command that gives the answer directly:
+
+```fish
+lsof -nP -iTCP:3001 -sTCP:LISTEN    # the address family it prints is the whole story
+```
+
+```fish
+lokl:config   # caddy reload --config /opt/homebrew/etc/Caddyfile
+lokl:validate # parse it first if you want the error without touching the running process
+```
+
+Reload goes through the admin API on `127.0.0.1:2019` rather than restarting anything, so an in-flight request survives it. That API only exists while Caddy runs, so `lokl:config` against a stopped proxy fails with `dial tcp [::1]:2019: connect: connection refused`, which means "start it" rather than anything about the Caddyfile. `lokl:start` is the whole fix.
+
+`caddy fmt` treats a comment as attached to whatever follows it, and collapses a blank line between the two. That is why the global block below the header carries a comment of its own: without it, every reload warns that the file is unformatted.
 
 ## Assigning a port
 
@@ -51,16 +79,20 @@ echo "127.0.0.1 front.localhost" | sudo tee -a /etc/hosts   # or this
 
 ## Service
 
-Caddy binds `:80`, which needs root, so it runs under launchd. It is **off until you ask for it**: nothing starts it at login or boot.
+Caddy binds `:80`, which needs root, so `lokl:start` takes sudo. It is **off until you ask for it**: nothing starts it at login or boot.
 
 ```fish
-dev:start     # sudo brew services run caddy
-dev:stop      # sudo brew services stop caddy
-dev:status    # Running / Loaded / PID
-dev:validate  # parse the Caddyfile without touching the running process
+lokl:start     # sudo caddy start --config /opt/homebrew/etc/Caddyfile
+lokl:stop      # caddy stop
+lokl:status    # the pid and command line, or "caddy is not running"
+lokl:validate  # parse the Caddyfile without touching the running process
+lokl:config    # reload a site change into the running process
 ```
 
-`run` is the load-bearing subcommand. `brew services start` writes `/Library/LaunchDaemons/homebrew.mxcl.caddy.plist`, whose `RunAtLoad` is what made Caddy come up with the machine; `run` bootstraps the keg's own plist instead and writes nothing there, so the daemon lasts until `dev:stop` or the next reboot.
-The playbook keeps that boot plist deleted, so a `brew services start` typed by hand is undone on the next `make run`.
+`brew services` drives none of this, and cannot. Its `run` is refused as root unconditionally (`Services::CLI`, `elsif System.root?`), so the combination this needs (root, and nothing on the boot path) is unreachable through it; its `start` is the only verb allowed as root and writes `/Library/LaunchDaemons/homebrew.mxcl.caddy.plist`, whose `RunAtLoad` is exactly what brings Caddy up with the machine.
+Caddy's own `start` daemonizes and writes nothing at all, so the process lasts until `lokl:stop` or the next reboot.
+The playbook still deletes that boot plist, which converts a machine that ran the earlier `brew services start` and is otherwise a no-op.
 
-`caddy reload --config /opt/homebrew/etc/Caddyfile` is enough for a site change. A stop and start is only needed for the global block at the top of the Caddyfile.
+Only `lokl:start` needs root, because only it binds the port. The other four read a file or post to the admin API on `127.0.0.1:2019`, which is unauthenticated over loopback. Running one under sudo is harmless but buys nothing.
+
+`lokl:config` is enough for a site change. A `lokl:stop` and `lokl:start` is only needed for the global block at the top of the Caddyfile.

@@ -125,14 +125,16 @@
     state: link
     force: true
 
-# Caddy binds :80, which needs root, so `brew services` under sudo is the only way to
-# drive it. It is deliberately not started here: the dev domains are wanted on demand,
-# and `dev:start` / `dev:stop` in the shell role are the on switch.
+# Caddy is deliberately not started here: the dev domains are wanted on demand, and
+# `lokl:start` / `lokl:stop` in the shell role are the on switch. Those drive Caddy's own
+# `start` subcommand rather than brew services, which cannot express what this needs:
+# binding :80 requires root, and `brew services run` is refused as root outright, leaving
+# only `start`, which registers the boot plist this task exists to remove.
 #
 # `stop` is what removes the LaunchDaemon, so this converts a machine that ran the
 # earlier `brew services start` and is a no-op on every run after. It cannot stop a
-# hand-started Caddy by accident: `dev:start` uses `brew services run`, which bootstraps
-# the keg's own plist and writes nothing to the boot path, so `removes` sees no file.
+# hand-started Caddy by accident: nothing in `lokl:start` involves launchd at all, so
+# `removes` sees no file.
 #
 # Homebrew derives its cache from $HOME, and become runs `sudo -H`, so root lands on
 # /var/root/Library/Caches/Homebrew, where the packages API JSON is absent; brew then
