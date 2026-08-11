@@ -1,0 +1,329 @@
+#!/usr/bin/env python3
+"""What a stretch of Claude Code work cost, read back off the session transcripts.
+
+Claude Code writes one JSONL per session under ~/.claude/projects/<slug>/, and every
+assistant record carries a `message.usage` block plus the `attributionSkill` that was
+active when it was produced. That is enough to price work after the fact and to say
+which skill or agent spent it, which is the only way to compare two workflows without
+guessing.
+
+    tokencost                                    the projects available
+    tokencost outdoor-maps --sessions            one row per session, oldest first
+    tokencost outdoor-maps                       cost per attribution bucket
+    tokencost outdoor-maps --session <id>        one session only
+    tokencost outdoor-maps --match product-team  a subtotal over the buckets that match
+
+The project is named by any substring that identifies one directory under
+~/.claude/projects. That is not sugar: a slug is the project's absolute path with the
+separators replaced, so every one of them begins with `-` and argparse would read the
+full name as a flag.
+
+Three things it deliberately does not do. It never groups subagent transcripts under a
+guessed agent name: the bucket is the transcript stem verbatim, because parsing a slug
+out of it is how a first attempt at this counted four unrelated agents as pipeline
+cost. It reads only the top-level `usage`, never the `iterations` list nested inside it,
+which repeats the same counts and would double every figure. And it prices nothing it
+cannot see a TTL for without saying so: the closing note reports how many cache-write
+tokens fell back to the assumed TTL, so a run whose transcripts predate the
+`cache_creation` breakdown is visibly less certain rather than quietly wrong.
+"""
+
+import argparse
+import json
+import sys
+from collections import defaultdict
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from dotkit import ui
+
+EXIT_OK = 0
+EXIT_USAGE = 1
+EXIT_NOT_FOUND = 2
+
+# USD per million tokens, (input, output), from Anthropic list pricing as of 2026-06-24.
+# External facts with no runtime source, so they are stated once here rather than
+# derived. Sonnet 5 carries a $2/$10 introductory rate through 2026-08-31 that this
+# table does not model: a promotional window would need pricing per message date, and
+# every comparison these figures serve is Opus-dominated. A Sonnet-heavy run priced
+# here is therefore an upper bound.
+RATES = {
+    "fable": (10.0, 50.0),
+    "opus": (5.0, 25.0),
+    "sonnet": (3.0, 15.0),
+    "haiku": (1.0, 5.0),
+}
+
+# Multipliers on the model's input rate. A 1-hour cache write costs 2x fresh input and
+# a 5-minute write 1.25x; a read of either costs 0.1x.
+WRITE_MULTIPLIER = {"1h": 2.0, "5m": 1.25}
+READ_MULTIPLIER = 0.10
+
+TOKEN_CLASSES = (
+    "input_tokens",
+    "cache_creation_input_tokens",
+    "cache_read_input_tokens",
+    "output_tokens",
+)
+
+UNATTRIBUTED = "<unattributed>"
+
+
+def projects_root(home=None):
+    return Path(home or Path.home()) / ".claude" / "projects"
+
+
+def tier(model):
+    """Which rate row a model id falls in, defaulting to the most expensive.
+
+    Defaulting up rather than down keeps an unrecognised model from making a run look
+    cheap, which is the failure mode that matters when the number is used to choose
+    between two workflows.
+    """
+    lowered = (model or "").lower()
+    for name in RATES:
+        if name in lowered:
+            return name
+    return "opus"
+
+
+def price(usage, model, assumed_ttl):
+    """(usd, tokens_priced_by_assumption) for one usage block."""
+    rate_in, rate_out = RATES[tier(model)]
+    breakdown = usage.get("cache_creation") or {}
+    long_write = breakdown.get("ephemeral_1h_input_tokens", 0)
+    short_write = breakdown.get("ephemeral_5m_input_tokens", 0)
+
+    assumed = 0
+    if not (long_write or short_write):
+        assumed = usage.get("cache_creation_input_tokens", 0)
+        if assumed_ttl == "1h":
+            long_write = assumed
+        else:
+            short_write = assumed
+
+    micros = (
+        usage.get("input_tokens", 0) * rate_in
+        + long_write * rate_in * WRITE_MULTIPLIER["1h"]
+        + short_write * rate_in * WRITE_MULTIPLIER["5m"]
+        + usage.get("cache_read_input_tokens", 0) * rate_in * READ_MULTIPLIER
+        + usage.get("output_tokens", 0) * rate_out
+    )
+    return micros / 1e6, assumed
+
+
+def bucket_of(record, path, is_sidechain):
+    if is_sidechain:
+        return f"agent:{path.stem}"
+    return record.get("attributionSkill") or UNATTRIBUTED
+
+
+def session_of(path):
+    """The session a transcript belongs to, whether it is the session's own or a subagent's.
+
+    A subagent transcript sits at <session-id>/subagents/agent-<slug>-<hash>.jsonl, so
+    the id is a grandparent directory rather than the stem.
+    """
+    if "subagents" in path.parts:
+        return path.parent.parent.name
+    return path.stem
+
+
+def walk(project_dir, session=None, since=None):
+    """Yield (bucket, model, usage, session, timestamp) per priced assistant record."""
+    for path in sorted(project_dir.rglob("*.jsonl")):
+        session_id = session_of(path)
+        if session and session_id != session:
+            continue
+        is_sidechain = "subagents" in path.parts
+        for line in path.read_text(errors="replace").splitlines():
+            try:
+                record = json.loads(line)
+            except ValueError:
+                continue
+            if record.get("type") != "assistant":
+                continue
+            usage = (record.get("message") or {}).get("usage")
+            if not usage:
+                continue
+            stamp = record.get("timestamp") or ""
+            # A record with no timestamp is kept rather than dropped: --since is a
+            # filter on known-old work, not a licence to discard what it cannot date.
+            if since and stamp and stamp[:10] < since:
+                continue
+            model = (record.get("message") or {}).get("model", "")
+            marked = is_sidechain or bool(record.get("isSidechain"))
+            yield bucket_of(record, path, marked), model, usage, session_id, stamp
+
+
+def collect(project_dir, session, since, assumed_ttl):
+    costs = defaultdict(float)
+    tokens = defaultdict(lambda: defaultdict(int))
+    sessions = defaultdict(lambda: {"cost": 0.0, "first": "", "last": ""})
+    models = defaultdict(set)
+    assumed_total = 0
+
+    for name, model, usage, session_id, stamp in walk(project_dir, session, since):
+        amount, assumed = price(usage, model, assumed_ttl)
+        costs[name] += amount
+        assumed_total += assumed
+        models[name].add(tier(model))
+        for key in TOKEN_CLASSES:
+            tokens[name][key] += usage.get(key, 0)
+
+        row = sessions[session_id]
+        row["cost"] += amount
+        if stamp:
+            row["first"] = min(row["first"] or stamp, stamp)
+            row["last"] = max(row["last"], stamp)
+
+    return costs, tokens, sessions, models, assumed_total
+
+
+def resolve_project(root, needle):
+    """The one project directory `needle` identifies, or None with a reason printed.
+
+    An exact directory name wins outright, so a substring that happens to be another
+    project's whole name can still be reached.
+    """
+    candidates = sorted(entry for entry in root.iterdir() if entry.is_dir())
+    for entry in candidates:
+        if entry.name == needle:
+            return entry
+    matches = [entry for entry in candidates if needle in entry.name]
+    if not matches:
+        ui.err(f"no project matches {needle!r}")
+        ui.note(f"run with no arguments to list what is under {ui.path(root)}")
+        return None
+    if len(matches) > 1:
+        ui.err(f"{needle!r} matches {len(matches)} projects, narrow it")
+        for entry in matches:
+            ui.item(entry.name)
+        return None
+    return matches[0]
+
+
+def list_projects(root):
+    if not root.is_dir():
+        ui.err(f"no transcripts directory at {ui.path(root)}")
+        return EXIT_NOT_FOUND
+    names = sorted(entry.name for entry in root.iterdir() if entry.is_dir())
+    if not names:
+        ui.warn(f"no projects under {ui.path(root)}")
+        return EXIT_OK
+    ui.title("📊 Projects with transcripts:")
+    for name in names:
+        ui.item(name)
+    ui.done(f"{len(names)} projects")
+    return EXIT_OK
+
+
+def print_sessions(sessions):
+    ui.title("📊 Sessions, oldest first:")
+    ordered = sorted(sessions.items(), key=lambda kv: kv[1]["first"] or kv[0])
+    for session_id, row in ordered:
+        span = row["first"][:10] if row["first"] else "undated"
+        if row["last"][:10] != row["first"][:10] and row["last"]:
+            span = f"{row['first'][:10]} to {row['last'][:10]}"
+        print(f"  {session_id}  {row['cost']:>8.2f}  {span}")
+    ui.done(f"{len(sessions)} sessions, ${sum(r['cost'] for r in sessions.values()):.2f}")
+
+
+def print_buckets(costs, tokens, models, matches, assumed_total, assumed_ttl, top):
+    total = sum(costs.values())
+    ordered = sorted(costs.items(), key=lambda kv: -kv[1])
+    shown = ordered if top <= 0 else ordered[:top]
+
+    ui.title("📊 Cost by attribution bucket:")
+    print(f"  {'bucket':<52}{'usd':>9}{'Mtok':>8}  models")
+    for name, amount in shown:
+        volume = sum(tokens[name][key] for key in TOKEN_CLASSES) / 1e6
+        print(f"  {name:<52}{amount:>9.2f}{volume:>8.1f}  {','.join(sorted(models[name]))}")
+
+    elided = ordered[len(shown):]
+    if elided:
+        ui.note(f"{len(elided)} more buckets totalling ${sum(v for _, v in elided):.2f}, --top 0 for all")
+
+    if matches:
+        matched = {name: value for name, value in costs.items() if any(m in name for m in matches)}
+        subtotal = sum(matched.values())
+        ui.blank()
+        share = f" ({subtotal / total * 100:.1f}% of the project total)" if total else ""
+        ui.ok(f"matched {len(matched)} buckets: ${subtotal:.2f}{share}")
+        ui.note(f"patterns: {', '.join(matches)}")
+
+    ui.blank()
+    if assumed_total:
+        ui.warn(f"{assumed_total:,} cache-write tokens had no TTL breakdown, priced as {assumed_ttl}")
+    ui.done(f"${total:.2f} across {len(costs)} buckets")
+
+
+def as_json(costs, tokens, sessions, models, assumed_total, assumed_ttl):
+    payload = {
+        "assumed_ttl": assumed_ttl,
+        "cache_tokens_priced_by_assumption": assumed_total,
+        "total_usd": sum(costs.values()),
+        "buckets": [
+            {
+                "bucket": name,
+                "usd": costs[name],
+                "models": sorted(models[name]),
+                "tokens": {key: tokens[name][key] for key in TOKEN_CLASSES},
+            }
+            for name in sorted(costs, key=lambda k: -costs[k])
+        ],
+        "sessions": [
+            {"session": key, "usd": row["cost"], "first": row["first"], "last": row["last"]}
+            for key, row in sorted(sessions.items(), key=lambda kv: kv[1]["first"] or kv[0])
+        ],
+    }
+    print(json.dumps(payload, indent=2))
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        prog="tokencost",
+        description="Price Claude Code work from its session transcripts.",
+    )
+    parser.add_argument("project", nargs="?",
+                        help="any substring identifying one directory under ~/.claude/projects")
+    parser.add_argument("--session", help="restrict to one session id, subagents included")
+    parser.add_argument("--match", action="append", default=[], metavar="PATTERN",
+                        help="subtotal the buckets whose name contains PATTERN (repeatable)")
+    parser.add_argument("--since", metavar="YYYY-MM-DD", help="skip records stamped before this date")
+    parser.add_argument("--sessions", action="store_true", help="one row per session instead of per bucket")
+    parser.add_argument("--top", type=int, default=20, metavar="N",
+                        help="list only the N costliest buckets, 0 for all (default 20)")
+    parser.add_argument("--assume-ttl", choices=sorted(WRITE_MULTIPLIER), default="1h",
+                        help="TTL to price cache writes that carry no breakdown (default 1h)")
+    parser.add_argument("--json", action="store_true", help="machine-readable output")
+    args = parser.parse_args(argv)
+
+    root = projects_root()
+    if not root.is_dir():
+        ui.err(f"no transcripts directory at {ui.path(root)}")
+        return EXIT_NOT_FOUND
+    if not args.project:
+        return list_projects(root)
+
+    project_dir = resolve_project(root, args.project)
+    if project_dir is None:
+        return EXIT_NOT_FOUND
+
+    costs, tokens, sessions, models, assumed = collect(project_dir, args.session, args.since, args.assume_ttl)
+    if not costs:
+        ui.warn("no priced records matched")
+        return EXIT_OK
+
+    if args.json:
+        as_json(costs, tokens, sessions, models, assumed, args.assume_ttl)
+    elif args.sessions:
+        print_sessions(sessions)
+    else:
+        print_buckets(costs, tokens, models, args.match, assumed, args.assume_ttl, args.top)
+    return EXIT_OK
+
+
+if __name__ == "__main__":
+    sys.exit(main())
