@@ -1,0 +1,293 @@
+name: product-team
+version: 1
+description: >-
+  spec-driven plus the three stages it lacks - research before the proposal,
+  a UX spec before the design, and an adversarial pass before decomposition
+
+# A fork of OpenSpec's stock `spec-driven`, built from a measured result rather than a
+# hunch. Running both workflows on the same initiative (docs/research/openspec-arm-rubric.md)
+# put stock spec-driven at 13 of 18 requirements and 5 of 7 open decisions for 7% of the
+# product-team pipeline's cost. Every miss fell inside a stage spec-driven does not have,
+# and none fell in the four it shares. So the four stock artifacts are kept as they are,
+# and the three missing stages are added around them.
+#
+# The stock instructions for proposal, specs, design and tasks are upstream text with a
+# short paragraph appended where a new artifact has to be read. Keeping the rest
+# byte-identical is deliberate: it makes the next `openspec schema fork spec-driven`
+# diffable against this file.
+
+artifacts:
+  - id: research
+    generates: research.md
+    description: Evidence the proposal has to survive, gathered before it is written
+    template: research.md
+    instruction: |
+      Establish what is actually known before anything is proposed.
+
+      **Delegate this.** If the `product-team` plugin is installed, dispatch its
+      `product-team:competitive-researcher` and `product-team:user-evidence-researcher`
+      agents and assemble their returns. Fresh context is the point: an agent that has
+      not read the idea document cannot inherit its assumptions. If the plugin is not
+      installed, do the work inline against the discipline below and say in the output
+      that it was not delegated.
+
+      Sections:
+      - **What exists already**: how the problem is solved today, by whom, and what those
+        solutions cost the user. Name products, not categories.
+      - **Evidence for the problem**: what the user or the repo actually shows, as opposed
+        to what the idea document asserts.
+      - **What this rules out**: options the evidence closes, with the reason.
+      - **Unknowns**: each one `UNKNOWN`, with an owner and what would resolve it.
+
+      Discipline, and it is the whole value of this artifact:
+      - Every claim carries a source, or it is labelled `assumption`.
+      - Never invent a number. A market size, a baseline, a conversion rate or a citation
+        that cannot be sourced is written `UNKNOWN` with an owner, never estimated.
+      - A finding that changes the proposal is stated as such, in one sentence, at the top.
+
+      Keep it short. This artifact exists to change the proposal, not to be comprehensive:
+      if nothing here would alter what gets built, say so explicitly and stop.
+    requires: []
+
+  - id: proposal
+    generates: proposal.md
+    description: Initial proposal document outlining the change
+    template: proposal.md
+    instruction: |
+      Create the proposal document that establishes WHY this change is needed.
+
+      Sections:
+      - **Why**: 1-2 sentences on the problem or opportunity. What problem does this solve? Why now?
+      - **What Changes**: Bullet list of changes. Be specific about new capabilities, modifications, or removals. Mark breaking changes with **BREAKING**.
+      - **Capabilities**: Identify which specs will be created or modified:
+        - **New Capabilities**: List capabilities being introduced. Each becomes a new `specs/<name>/spec.md`. Use kebab-case names (e.g., `user-auth`, `data-export`).
+        - **Modified Capabilities**: List existing capabilities whose REQUIREMENTS are changing. Only include if spec-level behavior changes (not just implementation details). Each needs a delta spec file. Check `openspec/specs/` for existing spec names. Leave empty if no requirement changes.
+      - **Impact**: Affected code, APIs, dependencies, or systems.
+
+      IMPORTANT: The Capabilities section is critical. It creates the contract between
+      proposal and specs phases. Research existing specs before filling this in.
+      Each capability listed here will need a corresponding spec file.
+
+      Every change must either declare at least one capability (new or
+      modified) or explicitly opt out of specs: `openspec validate` rejects a
+      change with zero deltas unless the change's `.openspec.yaml` sets
+      `skip_specs: true`. Use `skip_specs: true` only when no spec-level
+      behavior changes (pure refactor, tooling, docs) - specs describe
+      behavior, so if behavior does not change, no spec should change either.
+      Do not invent a requirement just to satisfy validation.
+
+      Keep it concise (1-2 pages). Focus on the "why" not the "how" -
+      implementation details belong in design.md.
+
+      This is the foundation - specs, design, and tasks all build on this.
+
+      Read `research.md` first, and let it bind. Any finding it flagged as changing the
+      proposal must be visible here, and any `UNKNOWN` it recorded travels into Impact as
+      an open question with its owner rather than being quietly resolved.
+
+      Then check the proposal against what the product will need to know about itself.
+      A requirement that exists to measure an objective, or to let the user trust what
+      they are looking at, is the class this workflow most reliably drops: how many items
+      the thing holds, when its data was last refreshed, when a record was created. If the
+      project has objectives or key results, name the requirement that makes each one
+      measurable, or state that measurement is manual and who does it.
+    requires:
+      - research
+
+  - id: specs
+    generates: "specs/**/*.md"
+    description: Detailed specifications for the change
+    template: spec.md
+    instruction: |
+      Create specification files that define WHAT the system should do.
+
+      A spec is a behavior contract, not an implementation plan.
+
+      Good spec content:
+      - Observable behavior users or downstream systems rely on
+      - Inputs, outputs, and error conditions
+      - External constraints (security, privacy, reliability, compatibility)
+
+      Each requirement uses SHALL, and carries at least one scenario in
+      WHEN/THEN form. Specs should be testable - each scenario is a potential
+      test case.
+
+      A constraint is a requirement. If a value is unbounded, if a field has no ceiling,
+      if data must survive a condition the platform can impose (eviction under storage
+      pressure, a cold start, a revoked permission), state it as a SHALL with a scenario.
+      A property nobody wrote down is a property nobody implements.
+    requires:
+      - proposal
+
+  - id: ux-spec
+    generates: ux-spec.md
+    description: Every flow, every surface, and every state each surface can reach
+    template: ux-spec.md
+    instruction: |
+      Pin down user-facing behaviour before the data contract is designed, because states
+      drive that contract: a paginated empty state changes the API sketch and an
+      optimistic interaction changes the mutation contract. Designing first and
+      discovering the states later is how a contract ships that one of them cannot render.
+
+      **Delegate this.** If the `ux-shaper` agent is available, dispatch it. It inventories
+      the project's real design system read-only and writes the spec. If it is not
+      available, install it (`claude-kit add ux-shaper --type agent --global`) or do the
+      work inline against the shape below and say it was not delegated.
+
+      Sections:
+      - **Flows**: each one anchored, so a task can point at it.
+      - **Surfaces**: every screen, panel, dialog or output the flows reach.
+      - **States per surface**: default, loading, empty, partial, error, offline,
+        permission-denied. A surface with an unlisted state is unfinished.
+      - **New system pieces**: tokens, components and patterns that do not exist yet,
+        listed so they can be routed to whoever owns the design system.
+
+      Run on every change, including one with no interface. Where there is no user-facing
+      surface, argue the absence per requirement in a `## No user-facing surface` section:
+      absence is argued, never asserted. A bare "N/A" is a failure of this artifact.
+    requires:
+      - specs
+
+  - id: design
+    generates: design.md
+    description: Technical design document with implementation details
+    template: design.md
+    instruction: |
+      Create the design document that explains HOW to implement the change.
+
+      When to include design.md (create only if any apply):
+      - Cross-cutting change (multiple services/modules) or new architectural pattern
+      - New external dependency or significant data model changes
+      - Security, performance, or migration complexity
+      - Ambiguity that benefits from technical decisions before coding
+
+      Sections:
+      - **Context**: Only the current state and constraints needed to explain the approach. Reference the proposal for motivation instead of restating it (e.g., "See proposal.md - Why").
+      - **Goals / Non-Goals**: What this design achieves and explicitly excludes. Don't restate the proposal's scope - add only design-level boundaries.
+      - **Decisions**: Key technical choices with rationale (why X over Y?). Include alternatives considered for each decision.
+      - **Risks / Trade-offs**: Known limitations, things that could go wrong. Format: [Risk] → Mitigation
+      - **Migration Plan**: Steps to deploy, rollback strategy (if applicable)
+      - **Open Questions**: Unknowns that can safely be answered later without
+        changing the specs, the approach, or the task breakdown. Omit if none.
+
+      Open questions are for genuinely deferrable unknowns, not decisions you
+      skipped. If a question would change the specs, the chosen approach, or
+      the task breakdown, resolve it now - ask the user instead of guessing.
+
+      Focus on architecture and approach, not line-by-line implementation.
+      The proposal covers why and what; design covers how. Reference the
+      proposal for motivation and, once written, the specs for requirements -
+      if a section would only restate them, point to them instead.
+
+      Good design docs explain the "why" behind technical decisions.
+
+      Read `ux-spec.md` before deciding the data contract: every state it lists is
+      something the contract has to be able to produce, and a state it names that the
+      design cannot render is a design defect rather than a UX detail.
+
+      Two decisions this workflow reliably leaves implicit, so make both explicitly:
+      - **Where validity is enforced relative to deploy.** If the change validates
+        anything, say which command runs that validation and whether a failure blocks
+        publishing or merely reports. Validation that only ever runs on a developer's
+        machine does not stop a bad artifact reaching production.
+      - **Who can read the deployed thing.** State the access posture and the alternative
+        rejected. "No credential is required" is a decision with consequences, not an
+        absence of one.
+    requires:
+      - specs
+      - ux-spec
+
+  - id: red-team
+    generates: red-team.md
+    description: An adversarial pass over the proposal, specs and design
+    template: red-team.md
+    instruction: |
+      Attack what has been decided, before it is decomposed into tasks.
+
+      **Delegate this, and it matters more here than anywhere else.** If the
+      `product-team` plugin is installed, dispatch `product-team:pm-red-team`. The value
+      is fresh eyes: an agent that did not write the proposal has no investment in it.
+      Reviewing your own design in the same context reliably produces agreement. If the
+      plugin is not installed, do it inline and say it was not delegated, and be harder
+      on yourself than feels comfortable.
+
+      Report each finding at one of three severities:
+      - **blocker**: the change is wrong or unshippable as written. It must be resolved,
+        and the resolution recorded here, before `tasks` is written.
+      - **concern**: a real cost that can ship if it is recorded and owned.
+      - **note**: worth knowing, blocks nothing.
+
+      Every finding names the artifact and section it attacks, states the concrete failure
+      (inputs or conditions, then the wrong outcome), and proposes what would resolve it.
+      A finding that cannot state a failure is an opinion; drop it.
+
+      Attack at least these, because each is a class this workflow has actually missed:
+      - **Enforcement gaps.** A rule stated in a spec that nothing in the design enforces
+        at the moment it matters.
+      - **Security and privacy defaults.** What the design makes readable, writable or
+        collectable by default, and whether that was chosen or inherited.
+      - **Self-knowledge.** Whether the objectives can be measured from what is being
+        built, or whether measurement quietly depends on a human remembering.
+      - **Unstated states.** A failure, empty or offline condition the specs assume away.
+      - **Reversibility.** What happens if this ships and has to be undone an hour later.
+      - **The strongest objection to the whole approach**, stated in its best form even
+        when you go on to reject it.
+
+      Close with a `## Disposition` section: every blocker marked resolved (with what
+      changed) or accepted (with who accepted it and why). An unresolved blocker means the
+      change is not ready for `tasks`.
+    requires:
+      - proposal
+      - specs
+      - design
+
+  - id: tasks
+    generates: tasks.md
+    description: Implementation checklist with trackable tasks
+    template: tasks.md
+    instruction: |
+      Create the task list that breaks down the implementation work.
+
+      Before writing tasks, check design.md for Open Questions. If any of them
+      would change what gets built, resolve them with the user first - do not
+      bake an unstated assumption into the task list.
+
+      **IMPORTANT: Follow the template below exactly.** The apply phase parses
+      checkbox format to track progress. Tasks not using `- [ ]` won't be tracked.
+
+      Guidelines:
+      - Group related tasks under ## numbered headings
+      - Each task MUST be a checkbox: `- [ ] X.Y Task description`
+      - Tasks should be small enough to complete in one session
+      - Order tasks by dependency (what must be done first?)
+
+      Example:
+      ```
+      ## 1. Setup
+
+      - [ ] 1.1 Create new module structure
+      - [ ] 1.2 Add dependencies to package.json
+      ```
+
+      Reference specs for what needs to be built, design for how to build it.
+      Each task should be verifiable - you know when it's done.
+
+      Read `red-team.md` first. Every blocker must read resolved or accepted in its
+      Disposition section; if one does not, stop and resolve it rather than writing tasks
+      over it. Every concern that survives becomes either a task or an explicitly recorded
+      acceptance, never a silence.
+
+      Then cover `ux-spec.md`: each state it lists is either implemented by a task or
+      named as deliberately out of scope. A state with neither is the gap this workflow
+      exists to close.
+    requires:
+      - specs
+      - design
+      - red-team
+
+apply:
+  requires: [tasks]
+  tracks: tasks.md
+  instruction: |
+    Read context files, work through pending tasks, mark complete as you go.
+    Pause if you hit blockers or need clarification.

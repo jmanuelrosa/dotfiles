@@ -141,4 +141,6 @@ So the schema engine is not the weak part; the missing stages are. A custom sche
 
 **Recommended next step, and it is not another comparison:** fork the `spec-driven` schema, add the three artifacts, and run it on the next real initiative. The cost to beat is $7.33 plus three agent dispatches, against $100.83.
 
+**Built.** [roles/ai/files/openspec/schemas/product-team/](../../roles/ai/files/openspec/schemas/product-team/README.md) is that schema: `research → proposal → specs → ux-spec → design → red-team → tasks`, validating clean, with the DAG confirmed to gate (`research` ready, all six others blocked on real edges). The three added instructions encode the eleven misses above as explicit obligations, so each one is checked by construction rather than by hoping the model thinks of it.
+
 One caveat that survives the result. This is a single initiative, on a solved problem, with a rich idea doc that had already made four of the architectural decisions. A second initiative would test whether 13/18 holds where the input is thinner, and the hybrid run above is the cheapest way to find out, since it produces that data point as a side effect of being useful.
