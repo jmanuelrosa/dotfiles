@@ -97,7 +97,21 @@ OpenSpec: the telemetry notice prints to stdout and breaks `--json` piping until
 | Ceremony floor | High: 8 stages even for small features (mitigable by skipping to stage 4, but that is convention, not tooling) | Low: propose/apply/archive; own docs admit overkill for tiny fixes |
 | Tooling maturity | Self-maintained prose skills (~1,430 lines); no validators | CLI with strict validation, JSON introspection, 60k-star project, monthly releases, one breaking pivot in history |
 | Maintenance / bus factor | You maintain everything; zero external risk | MIT dependency; healthy but young; telemetry on by default |
-| Cost per feature (observed) | ~284k subagent tokens + hours + 5 human decision points | Well under half that, no dispatches, minutes-to-hour |
+| Cost per feature (**measured**, see below) | $100.83, 3 days, 6 human decision points, 2 of them rework | $7.33, 18.6 minutes, 0 human decision points |
+
+## Measured follow-up
+
+This study reasoned from one simulated run of each track. It was later settled empirically: both tracks were run on the same real initiative, `outdoor-maps/route-catalog`, from the same idea document, scored against a rubric written and committed before the OpenSpec arm started. Protocol in [docs/plans/openspec-vs-product-team-measurement.md](../plans/openspec-vs-product-team-measurement.md), full sheet with a `file:line` citation behind every cell in [openspec-arm-rubric.md](openspec-arm-rubric.md).
+
+Three things it changed.
+
+**The cost guess above was wrong by an order of magnitude, in OpenSpec's favour.** "Well under half" was $7.33 against $100.83, which is 7%, in 18.6 minutes against 3 days, with nobody interrupted against six decision points.
+
+**The quality gap is real but narrower than this study assumed, and it is not where this study put it.** OpenSpec covered 13 of the 18 requirements, settled 5 of the 7 genuinely-open Gate 2 decisions, and passed `validate --strict`. It also settled 2 decisions at spec time that the pipeline did not reach until implementation. This study's "no mechanism to catch" framing overstated it: the schema engine caught plenty.
+
+**Every miss landed inside a stage OpenSpec does not have**, which is what turns the verdict from a choice into a composition. The three requirements that let the product report on itself (R14, R17, R18) trace to PRD-stage OKR reasoning; the deploy-time enforcement gap seen three times and the unexamined public-readability decision are red-team shaped; the styling decision is `ux-shaper` shaped. Nothing was missed in the four stages the two systems share.
+
+So recommendation 1 below stands as written, and recommendation 2 is superseded by something stronger: rather than hand-rolling living specs, **fork OpenSpec's `spec-driven` schema and add `research`, `red-team` and `ux-spec` artifacts that delegate to `competitive-researcher`, `pm-red-team` and `ux-shaper`.** A schema's per-artifact `instruction` can name a skill or command to invoke, and `openspec schema fork` makes the schema project-local, so this keeps every agent while replacing `STATUS.md`, the hand-rolled gate protocol and the mechanical half of `6-gate-check` with a `requires:` DAG and `validate --strict`.
 
 ## Recommendation
 
@@ -127,6 +141,6 @@ If the dual-tree overhead annoys in practice, drop the tool and keep recommendat
 
 **Deviations from real pipeline use, logged during Track A**: no git branches/commits/PRs (no remote; the commit hook correctly reserves `git commit` for the human `/commit` flow), gates simulated by editing STATUS.md with a note, interviews answered by a scenario PM persona, stage 7 described but not executed.
 
-**Track A subagent usage**: strategy-checker 16.7k, competitive-researcher 59.8k, user-evidence-researcher 40.1k, market-sizer 42.1k, pm-red-team 22.4k, adr-scribe 34.3k, ac-writer 32.9k + 35.9k (resume) = ~284k tokens, 8 dispatches.
+**Track A subagent usage**: strategy-checker 16.7k, competitive-researcher 59.8k, user-evidence-researcher 40.1k, market-sizer 42.1k, pm-red-team 22.4k, adr-scribe 34.3k, ac-writer 32.9k + 35.9k (resume) = ~284k tokens, 8 dispatches. This counts **subagents only**, which is 10 to 15% of an initiative: it was the smallest component and it was reported as the headline. `tokencost` supersedes it.
 
 **OpenSpec sources**: [openspec.dev](https://openspec.dev), [GitHub README](https://github.com/Fission-AI/OpenSpec), docs (concepts, cli, commands, supported-tools), [v1.0.0](https://github.com/Fission-AI/OpenSpec/releases/tag/v1.0.0) and [v1.6.0](https://github.com/Fission-AI/OpenSpec/releases/tag/v1.6.0) release notes, npm registry + GitHub API (2026-07-12: v1.6.0, ~60.2k stars, MIT), [Martin Fowler: understanding SDD tools](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html), [codemyspec: Kiro vs OpenSpec](https://codemyspec.com/blog/kiro-vs-openspec), [Augment Code roundup](https://www.augmentcode.com/tools/best-spec-driven-development-tools), [Reenbit: BMAD vs Spec Kit vs OpenSpec](https://reenbit.com/bmad-vs-spec-kit-vs-openspec-choosing-your-spec-driven-ai-framework/).
