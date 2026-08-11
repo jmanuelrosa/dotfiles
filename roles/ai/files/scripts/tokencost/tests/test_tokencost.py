@@ -37,11 +37,37 @@ ROUND_USAGE = {
 ROUND_COST = 40.50
 
 
-def record(usage, skill=None, model="claude-opus-5", stamp="2026-08-07T12:00:00.000Z"):
-    entry = {"type": "assistant", "timestamp": stamp, "message": {"model": model, "usage": usage}}
+def record(usage, skill=None, model="claude-opus-5", stamp="2026-08-07T12:00:00.000Z",
+           request_id=None, message_id=None):
+    message = {"model": model, "usage": usage}
+    if message_id:
+        message["id"] = message_id
+    entry = {"type": "assistant", "timestamp": stamp, "message": message}
     if skill:
         entry["attributionSkill"] = skill
+    if request_id:
+        entry["requestId"] = request_id
     return entry
+
+
+def sized(context, output=0):
+    """A usage block whose prompt is exactly `context` tokens, so peaks read by eye."""
+    return {
+        "input_tokens": context,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "output_tokens": output,
+        "cache_creation": {"ephemeral_1h_input_tokens": 0, "ephemeral_5m_input_tokens": 0},
+    }
+
+
+def compact(pre, stamp="2026-08-07T12:00:00.000Z"):
+    return {
+        "type": "system",
+        "subtype": "compact_boundary",
+        "timestamp": stamp,
+        "compactMetadata": {"trigger": "manual", "preTokens": pre, "postTokens": 0},
+    }
 
 
 def write_transcript(home, project, session, records, agent=None):
@@ -244,6 +270,114 @@ def test_json_output_carries_the_totals_and_the_assumption(home):
     assert payload["buckets"][0]["bucket"] == "pr"
     assert payload["buckets"][0]["tokens"]["output_tokens"] == MILLION
     assert payload["sessions"][0]["session"] == "s1"
+
+
+def test_one_response_split_across_content_blocks_is_priced_once(home):
+    # The transcript writes a line per content block and repeats the identical usage on
+    # every one, so a reply with a thinking block and two tool calls lands three times.
+    write_transcript(home, "-tmp-demo", "s1", [
+        record(ROUND_USAGE, skill="pr", request_id="req_1"),
+        record(ROUND_USAGE, skill="pr", request_id="req_1"),
+        record(ROUND_USAGE, skill="pr", request_id="req_1"),
+    ])
+    result = run(home, "demo")
+    assert f"{ROUND_COST:.2f}" in result.stdout
+    assert "121.50" not in result.stdout
+
+
+def test_the_message_id_dedupes_when_there_is_no_request_id(home):
+    write_transcript(home, "-tmp-demo", "s1", [
+        record(ROUND_USAGE, skill="pr", message_id="msg_1"),
+        record(ROUND_USAGE, skill="pr", message_id="msg_1"),
+    ])
+    result = run(home, "demo")
+    assert f"{ROUND_COST:.2f}" in result.stdout
+    assert "81.00" not in result.stdout
+
+
+def test_records_carrying_neither_identifier_are_each_counted(home):
+    # The fallback is load-bearing rather than defensive: a key defaulting to a constant
+    # would collapse every multi-record case in this file to one priced entry.
+    write_transcript(home, "-tmp-demo", "s1", [
+        record(ROUND_USAGE, skill="pr"),
+        record(ROUND_USAGE, skill="pr"),
+    ])
+    assert "81.00" in run(home, "demo").stdout
+
+
+def test_session_peak_is_the_largest_prompt_not_their_sum(home):
+    write_transcript(home, "-tmp-demo", "s1", [
+        record(sized(120_000), skill="pr", stamp="2026-08-07T01:00:00.000Z"),
+        record(sized(200_000), skill="pr", stamp="2026-08-07T02:00:00.000Z"),
+        record(sized(150_000), skill="pr", stamp="2026-08-07T03:00:00.000Z"),
+    ])
+    result = run(home, "demo", "--context")
+    assert "200.0k" in result.stdout
+    assert "470.0k" not in result.stdout
+
+
+def test_a_compaction_states_the_peak_and_is_counted(home):
+    write_transcript(home, "-tmp-demo", "s1", [
+        record(sized(100_000), skill="pr", stamp="2026-08-07T01:00:00.000Z"),
+        compact(389_648, stamp="2026-08-07T02:00:00.000Z"),
+        record(sized(20_000), skill="pr", stamp="2026-08-07T03:00:00.000Z"),
+    ])
+    # At a boundary the harness states the context it had, which is at least as high as
+    # anything a request reports, so it is a peak candidate rather than a footnote.
+    assert "389.6k" in run(home, "demo", "--context").stdout
+
+    session = json.loads(run(home, "demo", "--json").stdout)["sessions"][0]
+    assert session["peak_context"] == 389_648
+    assert session["compactions"] == 1
+
+
+def test_final_context_is_the_last_record_by_timestamp(home):
+    write_transcript(home, "-tmp-demo", "s1", [
+        record(sized(50_000), skill="pr", stamp="2026-08-09T03:00:00.000Z"),
+        record(sized(10_000), skill="pr", stamp="2026-08-09T01:00:00.000Z"),
+    ])
+    session = json.loads(run(home, "demo", "--json").stdout)["sessions"][0]
+    assert session["final_context"] == 50_000
+
+
+def test_a_subagent_context_never_lands_in_its_session_figure(home):
+    write_transcript(home, "-tmp-demo", "s1", [record(sized(40_000), skill="pr")])
+    write_transcript(home, "-tmp-demo", "s1", [record(sized(900_000))], agent="agent-deep")
+
+    payload = json.loads(run(home, "demo", "--json").stdout)
+    session = payload["sessions"][0]
+    # A subagent runs in a window of its own; folding it in would describe a context
+    # that never existed.
+    assert session["peak_context"] == 40_000
+    assert session["final_context"] == 40_000
+    peaks = {entry["bucket"]: entry["peak_context"] for entry in payload["buckets"]}
+    assert peaks["agent:agent-deep"] == 900_000
+
+
+def test_a_session_of_only_subagent_work_reports_no_context_of_its_own(home):
+    write_transcript(home, "-tmp-demo", "s1", [record(sized(70_000))], agent="agent-only")
+    assert "       -" in run(home, "demo", "--context").stdout
+    session = json.loads(run(home, "demo", "--json").stdout)["sessions"][0]
+    assert session["peak_context"] is None
+
+
+def test_context_view_prints_both_sections_and_top_elides_the_buckets(home):
+    write_transcript(home, "-tmp-demo", "s1",
+                     [record(sized(10_000 * (n + 1)), skill=f"skill-{n}") for n in range(5)])
+    result = run(home, "demo", "--context", "--top", "2")
+    assert "Context by session" in result.stdout
+    assert "Peak context by attribution bucket" in result.stdout
+    assert "50.0k" in result.stdout
+    assert "3 more buckets, --top 0 for all" in result.stdout
+
+
+def test_json_carries_context_without_being_asked_for_it(home):
+    write_transcript(home, "-tmp-demo", "s1", [record(ROUND_USAGE, skill="pr")])
+    payload = json.loads(run(home, "demo", "--json").stdout)
+    assert payload["buckets"][0]["peak_context"] == 3 * MILLION, "output is not carried context"
+    assert payload["sessions"][0]["peak_context"] == 3 * MILLION
+    assert payload["sessions"][0]["final_context"] == 3 * MILLION
+    assert payload["sessions"][0]["compactions"] == 0
 
 
 def test_a_substring_resolves_to_the_one_project_it_names(home):

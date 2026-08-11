@@ -12,26 +12,37 @@ guessing.
     tokencost outdoor-maps                       cost per attribution bucket
     tokencost outdoor-maps --session <id>        one session only
     tokencost outdoor-maps --match product-team  a subtotal over the buckets that match
+    tokencost outdoor-maps --context             peak and final context, by session and bucket
 
 The project is named by any substring that identifies one directory under
 ~/.claude/projects. That is not sugar: a slug is the project's absolute path with the
 separators replaced, so every one of them begins with `-` and argparse would read the
 full name as a flag.
 
+`--context` answers the other half of the question off the same records. The prompt
+handed to the model at a request is `input + cache_read + cache_creation`, so the
+maximum of that over a session is the peak context the session reached, and a
+compaction boundary states the figure itself in `compactMetadata.preTokens` and is
+folded in as a candidate. No percentage of a window is printed: nothing on a transcript
+says which window was in force, and a 1M-window session sits in the same tree as a
+200k one.
+
 Three things it deliberately does not do. It never groups subagent transcripts under a
 guessed agent name: the bucket is the transcript stem verbatim, because parsing a slug
 out of it is how a first attempt at this counted four unrelated agents as pipeline
-cost. It reads only the top-level `usage`, never the `iterations` list nested inside it,
-which repeats the same counts and would double every figure. And it prices nothing it
-cannot see a TTL for without saying so: the closing note reports how many cache-write
-tokens fell back to the assumed TTL, so a run whose transcripts predate the
-`cache_creation` breakdown is visibly less certain rather than quietly wrong.
+cost. It counts a response once rather than once per content block, and reads only the
+top-level `usage` rather than the `iterations` list nested inside it: both repeat the
+same counts, and the first of them inflated every figure this tool printed by the block
+count until it was deduped by request. And it prices nothing it cannot see a TTL for
+without saying so: the closing note reports how many cache-write tokens fell back to
+the assumed TTL, so a run whose transcripts predate the `cache_creation` breakdown is
+visibly less certain rather than quietly wrong.
 """
 
 import argparse
 import json
 import sys
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -67,7 +78,15 @@ TOKEN_CLASSES = (
     "output_tokens",
 )
 
+# The prompt the model was handed, which is the context in force at that request. Output
+# is excluded: it is what came back, not what was carried.
+CONTEXT_CLASSES = TOKEN_CLASSES[:-1]
+
 UNATTRIBUTED = "<unattributed>"
+
+# `context` holds the prompt size for a usage event and `compactMetadata.preTokens` for
+# a compaction one, which is the same quantity stated by the harness rather than summed.
+Event = namedtuple("Event", "kind bucket model usage session stamp context sidechain")
 
 
 def projects_root(home=None):
@@ -131,54 +150,103 @@ def session_of(path):
 
 
 def walk(project_dir, session=None, since=None):
-    """Yield (bucket, model, usage, session, timestamp) per priced assistant record."""
+    """Yield an Event per priced assistant record and per compaction boundary.
+
+    Deduped by request, which is the whole reason this is not a filter over lines.
+    Claude Code writes one line per content block of a reply and repeats the identical
+    `usage` on every one of them, so a response carrying a thinking block and two tool
+    calls appears three times over. The key falls back to `message.id` and then to the
+    line's position, so a record carrying neither identifier is still counted once
+    rather than folded into its neighbours.
+    """
     for path in sorted(project_dir.rglob("*.jsonl")):
         session_id = session_of(path)
         if session and session_id != session:
             continue
         is_sidechain = "subagents" in path.parts
-        for line in path.read_text(errors="replace").splitlines():
+        seen = set()
+        for position, line in enumerate(path.read_text(errors="replace").splitlines()):
             try:
                 record = json.loads(line)
             except ValueError:
-                continue
-            if record.get("type") != "assistant":
-                continue
-            usage = (record.get("message") or {}).get("usage")
-            if not usage:
                 continue
             stamp = record.get("timestamp") or ""
             # A record with no timestamp is kept rather than dropped: --since is a
             # filter on known-old work, not a licence to discard what it cannot date.
             if since and stamp and stamp[:10] < since:
                 continue
-            model = (record.get("message") or {}).get("model", "")
+            if record.get("type") == "system" and record.get("subtype") == "compact_boundary":
+                pre = (record.get("compactMetadata") or {}).get("preTokens") or 0
+                yield Event("compact", None, "", None, session_id, stamp, pre, is_sidechain)
+                continue
+            if record.get("type") != "assistant":
+                continue
+            message = record.get("message") or {}
+            usage = message.get("usage")
+            if not usage:
+                continue
+            key = record.get("requestId") or message.get("id") or position
+            if key in seen:
+                continue
+            seen.add(key)
             marked = is_sidechain or bool(record.get("isSidechain"))
-            yield bucket_of(record, path, marked), model, usage, session_id, stamp
+            yield Event(
+                "usage",
+                bucket_of(record, path, marked),
+                message.get("model", ""),
+                usage,
+                session_id,
+                stamp,
+                sum(usage.get(name, 0) for name in CONTEXT_CLASSES),
+                marked,
+            )
+
+
+def raise_peak(row, value):
+    row["peak"] = value if row["peak"] is None else max(row["peak"], value)
 
 
 def collect(project_dir, session, since, assumed_ttl):
     costs = defaultdict(float)
     tokens = defaultdict(lambda: defaultdict(int))
-    sessions = defaultdict(lambda: {"cost": 0.0, "first": "", "last": ""})
+    peaks = defaultdict(int)
     models = defaultdict(set)
+    sessions = defaultdict(lambda: {"cost": 0.0, "first": "", "last": "",
+                                    "peak": None, "final": None, "final_stamp": "", "compacts": 0})
     assumed_total = 0
 
-    for name, model, usage, session_id, stamp in walk(project_dir, session, since):
-        amount, assumed = price(usage, model, assumed_ttl)
-        costs[name] += amount
+    for event in walk(project_dir, session, since):
+        if event.kind == "compact":
+            if event.sidechain:
+                continue
+            row = sessions[event.session]
+            row["compacts"] += 1
+            raise_peak(row, event.context)
+            continue
+
+        amount, assumed = price(event.usage, event.model, assumed_ttl)
+        costs[event.bucket] += amount
         assumed_total += assumed
-        models[name].add(tier(model))
+        models[event.bucket].add(tier(event.model))
+        peaks[event.bucket] = max(peaks[event.bucket], event.context)
         for key in TOKEN_CLASSES:
-            tokens[name][key] += usage.get(key, 0)
+            tokens[event.bucket][key] += event.usage.get(key, 0)
 
-        row = sessions[session_id]
+        row = sessions[event.session]
         row["cost"] += amount
-        if stamp:
-            row["first"] = min(row["first"] or stamp, stamp)
-            row["last"] = max(row["last"], stamp)
+        if event.stamp:
+            row["first"] = min(row["first"] or event.stamp, event.stamp)
+            row["last"] = max(row["last"], event.stamp)
+        # A subagent runs in a window of its own, so folding its prompt into the
+        # session's figure would describe a context that never existed. Its peak is
+        # reported against its own bucket, where its cost already is.
+        if not event.sidechain:
+            raise_peak(row, event.context)
+            if event.stamp >= row["final_stamp"]:
+                row["final_stamp"] = event.stamp
+                row["final"] = event.context
 
-    return costs, tokens, sessions, models, assumed_total
+    return costs, tokens, sessions, models, assumed_total, peaks
 
 
 def resolve_project(root, needle):
@@ -230,6 +298,39 @@ def print_sessions(sessions):
     ui.done(f"{len(sessions)} sessions, ${sum(r['cost'] for r in sessions.values()):.2f}")
 
 
+def human(value):
+    """A token count at the scale a reader compares them in, or `-` for nothing measured."""
+    if value is None:
+        return "-"
+    if value >= 1e6:
+        return f"{value / 1e6:.1f}M"
+    return f"{value / 1e3:.1f}k"
+
+
+def print_context(sessions, peaks, top):
+    ui.title("📊 Context by session, oldest first:")
+    print(f"  {'session':<38}{'peak':>8}{'final':>9}{'compacts':>10}")
+    for session_id, row in sorted(sessions.items(), key=lambda kv: kv[1]["first"] or kv[0]):
+        print(f"  {session_id:<38}{human(row['peak']):>8}"
+              f"{human(row['final']):>9}{row['compacts']:>10}")
+
+    ui.blank()
+    ordered = sorted(peaks.items(), key=lambda kv: -kv[1])
+    shown = ordered if top <= 0 else ordered[:top]
+    ui.title("📊 Peak context by attribution bucket:")
+    print(f"  {'bucket':<52}{'peak':>9}")
+    for name, value in shown:
+        print(f"  {name:<52}{human(value):>9}")
+
+    elided = ordered[len(shown):]
+    if elided:
+        ui.note(f"{len(elided)} more buckets, --top 0 for all")
+
+    ui.blank()
+    reached = [row["peak"] for row in sessions.values() if row["peak"] is not None]
+    ui.done(f"peak {human(max(reached) if reached else None)} across {len(sessions)} sessions")
+
+
 def print_buckets(costs, tokens, models, matches, assumed_total, assumed_ttl, top):
     total = sum(costs.values())
     ordered = sorted(costs.items(), key=lambda kv: -kv[1])
@@ -259,7 +360,12 @@ def print_buckets(costs, tokens, models, matches, assumed_total, assumed_ttl, to
     ui.done(f"${total:.2f} across {len(costs)} buckets")
 
 
-def as_json(costs, tokens, sessions, models, assumed_total, assumed_ttl):
+def as_json(costs, tokens, sessions, models, assumed_total, assumed_ttl, peaks):
+    """Every fact the walk produced, whether or not the run asked to see it printed.
+
+    The context figures are unconditional here, unlike in the tables: this is the one
+    output whose content is facts rather than a report of what was asked for.
+    """
     payload = {
         "assumed_ttl": assumed_ttl,
         "cache_tokens_priced_by_assumption": assumed_total,
@@ -269,12 +375,21 @@ def as_json(costs, tokens, sessions, models, assumed_total, assumed_ttl):
                 "bucket": name,
                 "usd": costs[name],
                 "models": sorted(models[name]),
+                "peak_context": peaks[name],
                 "tokens": {key: tokens[name][key] for key in TOKEN_CLASSES},
             }
             for name in sorted(costs, key=lambda k: -costs[k])
         ],
         "sessions": [
-            {"session": key, "usd": row["cost"], "first": row["first"], "last": row["last"]}
+            {
+                "session": key,
+                "usd": row["cost"],
+                "first": row["first"],
+                "last": row["last"],
+                "peak_context": row["peak"],
+                "final_context": row["final"],
+                "compactions": row["compacts"],
+            }
             for key, row in sorted(sessions.items(), key=lambda kv: kv[1]["first"] or kv[0])
         ],
     }
@@ -293,6 +408,9 @@ def main(argv=None):
                         help="subtotal the buckets whose name contains PATTERN (repeatable)")
     parser.add_argument("--since", metavar="YYYY-MM-DD", help="skip records stamped before this date")
     parser.add_argument("--sessions", action="store_true", help="one row per session instead of per bucket")
+    parser.add_argument("--context", action="store_true",
+                        help="peak and final context per session and per bucket instead of cost "
+                             "(--json wins over this, and this wins over --sessions)")
     parser.add_argument("--top", type=int, default=20, metavar="N",
                         help="list only the N costliest buckets, 0 for all (default 20)")
     parser.add_argument("--assume-ttl", choices=sorted(WRITE_MULTIPLIER), default="1h",
@@ -311,13 +429,16 @@ def main(argv=None):
     if project_dir is None:
         return EXIT_NOT_FOUND
 
-    costs, tokens, sessions, models, assumed = collect(project_dir, args.session, args.since, args.assume_ttl)
+    costs, tokens, sessions, models, assumed, peaks = collect(
+        project_dir, args.session, args.since, args.assume_ttl)
     if not costs:
         ui.warn("no priced records matched")
         return EXIT_OK
 
     if args.json:
-        as_json(costs, tokens, sessions, models, assumed, args.assume_ttl)
+        as_json(costs, tokens, sessions, models, assumed, args.assume_ttl, peaks)
+    elif args.context:
+        print_context(sessions, peaks, args.top)
     elif args.sessions:
         print_sessions(sessions)
     else:
