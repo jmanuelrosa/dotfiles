@@ -13,7 +13,7 @@ name = "nord"
 
 # Follow host terminal light/dark appearance and switch Herdr UI themes.
 # Existing manual behavior is unchanged unless this is true.
-# auto_switch = false
+auto_switch = false
 # dark_name = "catppuccin"
 # light_name = "catppuccin-latte"
 
@@ -244,8 +244,8 @@ rows = [
 # herdr = show in-app toasts
 # terminal = ask the outer terminal to show a desktop notification
 # system = ask the OS notification service directly
-# delivery = "off"
-# delay_seconds = 1
+delivery = "system"
+delay_seconds = 1
 
 [ui.toast.herdr]
 position = "bottom-right"
