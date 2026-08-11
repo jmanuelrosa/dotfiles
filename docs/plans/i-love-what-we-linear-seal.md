@@ -93,11 +93,11 @@ Add a test asserting that neither `skills/pr/SKILL.md` nor `skills/commit/SKILL.
 
 Without this, a future edit re-introduces the hole with no visible symptom, which is precisely how it nearly landed here.
 
-### 6. Correct the prior study's cost line
+### 6. Correct the pipeline's cost line
 
-The prior cost study (since removed from `docs/research/`) reported "~284k subagent tokens" as the pipeline's cost.
+An earlier estimate reported "~284k subagent tokens" as the pipeline's cost.
 Subagents are 10 to 15% of an initiative, so that headline measures the smallest component.
-Replace the cost row and the Appendix figure with the measured per-stage bands, note the instrument (`attributionSkill` in the transcripts) so it is reproducible, and record that its recommendations 4a (local mode) and 4b (expedited path) landed while recommendation 2 (living capability specs) and the `ADR-FORMAT.md` reconciliation are still open.
+Replace it with the measured per-stage bands, and note the instrument (`attributionSkill` in the transcripts) so it is reproducible.
 
 ## Out of scope, and why
 

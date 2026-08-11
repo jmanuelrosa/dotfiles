@@ -1,24 +1,17 @@
-# Port the comparison-arm lessons into product-team, without the tool
+# Rework the product-team pipeline: scenarios, a task layer, two gates and a checker
 
 ## Context
 
+The pipeline works, but it pays for structure it does not need and omits structure it does.
+The ten changes here, taken together, bring the full profile to near **$65 to $70** and the light profile to near **$35**, and they close the three gaps every initiative on disk has hit.
 
+- **A requirement and its criteria are three stages apart.** The requirement is written in stage 2, its acceptance criteria in stage 5, by a different agent into a different file. What goes unwritten is every constraint nobody thought to phrase as a feature: `outdoor-maps/route-catalog` shipped a note field whose "unbounded" was agreed in conversation and stated in no artifact. Given/When/Then itself already exists (`templates/story.md:36-38`, enforced by `dor-checklist.md:9`); what is missing is the requirement carrying its own scenario.
+- **Nothing describes the build spine.** A story must trace to a requirement and no requirement asks for a toolchain, so setting the project up, deploying it and accepting it where it runs could never become stories. Requirement coverage is not the weak spot (route-catalog carried 18 of 18); the spine is, and the cause is one line, `5-decompose/SKILL.md:39`: "a story with no R# reference does not get written". All 15 route-catalog stories carried none of the three groups, and all three were rediscovered at implementation time.
+- **`STATUS.md` holds a state machine the filesystem already answers.** Eight rows, read and rewritten twice per stage per run, every one derivable from which artifacts exist on disk.
 
-Every miss in that arm fell inside a stage it does not have; none fell in the four the two share.
-
-The decision here is to take the lessons and not the engine, so that engine stays out of the dependency set and the seven agents, the strategy layer and the board export stay exactly where they are.
-That decision has a price worth stating first: two of the nine items are engine features of that tool (stateless sequencing, requirement-level spec merge), so this plan hand-rolls them in a small tested script instead of getting them free.
-Expect the full profile to land near **$65 to $70** and the light profile near **$35**.
-The irreducible remainder is generation: the PRD, the UX spec, the design and the task list are the product, and its $7.33 was partly the cost of producing less of it.
-
-Two claims on the input list were checked and are wrong as stated, and the plan reflects the corrected version:
-
-- Given/When/Then already exists (`templates/story.md:36-38`, enforced by `dor-checklist.md:9`). What is missing is the requirement carrying its own scenario, three stages earlier.
-- **Nothing describes the build spine.** Requirement coverage is not the weak spot (route-catalog carried 18 of 18); the spine is. Its task groups would need `1. Toolchain and skeleton`, `12. Deployment` and `13. Field acceptance`, and the 15 route-catalog stories have none of the three. The cause is one line: `5-decompose/SKILL.md:39`, "a story with no R# reference does not get written".
-
-The deferral handshake is not a feature of that engine at all.
-
-What the rubric saw was emergent behaviour in a single run, so this is ours to invent and it needs a checker or it is a comment.
+Two of the ten items are machinery the pipeline does not have and would otherwise take a dependency for (stateless sequencing, requirement-level spec merge), so the plan hand-rolls both in one small tested script.
+The deferral handshake is the one item invented here rather than fixed, so it needs a checker or it is a comment.
+The irreducible remainder is generation: the PRD, the UX spec, the design and the task list are the product, and no restructuring makes producing them free.
 
 ## Changes
 
@@ -36,7 +29,7 @@ The Catalog SHALL store an editable note per Route whose length is bounded only 
 ```
 
 Scenario ids are `R{n}.S{k}` and they become the unit of traceability everywhere downstream.
-This is what failed as R3 in the arm ("no length contract is stated anywhere") and it is the same fix the schema's spec instruction already carries.
+This is the fix for a requirement like R3, where without a scenario no length contract is stated anywhere.
 
 `agents/ac-writer.md` changes contract: it **claims and completes** rather than invents.
 Per story it lists the scenario ids the slice satisfies, and writes a story-local Given/When/Then block only where the slice needs a scenario the PRD does not have, which is still a reportable PRD gap rather than something it may author.
@@ -83,7 +76,7 @@ The point is not bookkeeping: an artifact that may legally say "not mine, the de
 ### 5. STATUS.md keeps the decisions and loses the state machine
 
 The eight-row stage table goes.
-Sequencing is derived from file existence by `pt status`, which is what that engine's DAG actually is (`artifact-graph/state.js` is pure `existsSync`), and every stage stops spending tokens parsing and rewriting a markdown table twice per run.
+Sequencing is derived from file existence by `pt status`, so every stage stops spending tokens parsing and rewriting a markdown table twice per run.
 
 What stays in `templates/status.md` is what a DAG cannot hold: the two gate rows with decider and date, the skip notes, and the kill reason with its folder kept forever.
 
