@@ -12,6 +12,7 @@ allowed-tools:
   - AskUserQuestion
   - Skill
   - Agent
+  - Bash(python3 *product-lead/scripts/pt.py *)
   - Bash(git status *)
   - Bash(git branch *)
   - Bash(git switch *)
@@ -30,10 +31,11 @@ First read `../product-lead/references/conventions.md` (sibling of this skill's 
 ## Preflight
 
 1. `docs/strategy/strategy.md` must exist; otherwise stop and point at `/product-team:setup-strategy "<the raw idea>"` - passing the idea along so ideation happens there with the idea in hand.
-2. ARGUMENTS empty -> ask for the raw idea before anything else.
-3. Slugify the idea. `docs/initiatives/{slug}/` already exists -> this is a **revision** of an existing brief: switch to its Gate 0 branch (`docs/{slug}-gate-0-brief`) and follow the revision flow in conventions.md against the Gate 0 PR.
-4. New initiative: enter the Gate 0 branch per conventions.md Branching (cut `docs/{slug}-gate-0-brief` fresh from the default branch). Dirty tree with unrelated changes -> stop and ask.
-5. Instantiate `docs/initiatives/{slug}/STATUS.md` from `../product-lead/references/templates/status.md`.
+2. Read `docs/strategy/product-team.yml` for `gate_medium` and `profile` (absent -> `session` and `full`).
+3. ARGUMENTS empty -> ask for the raw idea before anything else.
+4. Slugify the idea. `docs/initiatives/{slug}/` already exists -> this is a **revision**: follow the revision flow in conventions.md against the recorded Gate 0 reason, or its PR under `gate_medium: pr`.
+5. New initiative under `gate_medium: pr`: cut `docs/{slug}-gate-0-brief` fresh from the default branch per conventions.md. Under `session`: stay where you are. Dirty tree with unrelated changes -> stop and ask.
+6. Instantiate `docs/initiatives/{slug}/STATUS.md` from `../product-lead/references/templates/status.md`.
 
 ## Ideation pre-work (optional)
 
@@ -57,12 +59,16 @@ One question at a time, recommended answer with each, challenging weak answers. 
 2. Spawn the **product-team:strategy-checker** agent with this prompt contract: read `docs/initiatives/{slug}/00-brief.md`, `docs/strategy/strategy.md`, and `docs/strategy/okrs.md`; return the alignment verdict as final text.
 3. Paste the verdict verbatim into the brief's Strategy alignment section. Never soften it; a "none - recommend kill" verdict goes in exactly as written.
 
-## Gate handoff
+## Gate 0
 
-Follow the gate protocol in conventions.md with n=0, stage name `opportunity brief`: update STATUS.md (stage 0 -> `gate-open`), print files written, commit subject `docs({slug}): gate 0 opportunity brief`, PR body framing the decision as kill vs proceed with the product-team:strategy-checker verdict quoted. Then stop; the human runs `/commit` and `/pr`.
+Follow the gate protocol in conventions.md with n=0, stage name `opportunity brief`. Frame the decision as kill vs proceed with the strategy-checker verdict quoted, and say plainly that killing here is the pipeline working.
+
+Under `gate_medium: session`, ask with `AskUserQuestion` (proceed / kill / not yet) and write the answer into the STATUS.md Gate 0 row: status, decided by, date, and **one line on what convinced them or which concern they accepted**. That reason is the only record this gate leaves; without it, `approved` is indistinguishable from nobody having read the brief.
+
+Then suggest `/commit` (subject `docs({slug}): gate 0 opportunity brief`) and stop.
 
 ## Boundaries
 
-- ✅ Always: label every evidence item; run the product-team:strategy-checker before opening the gate; update STATUS.md.
+- ✅ Always: label every evidence item; run the product-team:strategy-checker before asking for the gate decision; record the gate reason, not just the verdict.
 - ⚠️ Ask first: proceeding when the only evidence is assumptions (requires the explicit "assumption, untested" acknowledgment); reusing a dirty working tree.
-- 🚫 Never: proceed without at least one evidence item or the explicit assumption label; soften or summarize the product-team:strategy-checker verdict; run `git commit` / `git push` / `gh pr create`.
+- 🚫 Never: proceed without at least one evidence item or the explicit assumption label; soften or summarize the product-team:strategy-checker verdict; write a stage-status row (`pt.py status` derives it); run `git commit` / `git push` / `gh pr create`.

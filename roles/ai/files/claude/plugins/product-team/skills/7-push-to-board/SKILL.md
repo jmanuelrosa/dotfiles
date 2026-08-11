@@ -1,6 +1,6 @@
 ---
 name: 7-push-to-board
-description: Product Team stage 7 - exports the all-PASS backlog to GitHub as epic parent issues with story sub-issues on the configured Project, after a confirmed dry-run; writes issue URLs back and appends the docs/LEARNINGS.md retrospective.
+description: Product Team stage 7 - exports the all-PASS backlog to GitHub as epic parent issues with story sub-issues on the configured Project, after a confirmed dry-run, expanding each story's claimed scenarios into the issue body; writes issue URLs back. Full profile only.
 argument-hint: "[initiative slug, if not inferable from the branch]"
 disable-model-invocation: true
 allowed-tools:
@@ -10,6 +10,7 @@ allowed-tools:
   - Write
   - Edit
   - AskUserQuestion
+  - Bash(python3 *product-lead/scripts/pt.py *)
   - Bash(git status *)
   - Bash(git branch *)
   - Bash(git switch *)
@@ -24,25 +25,27 @@ allowed-tools:
   - Bash(gh api *)
 ---
 
-# Stage 7: push to board + retrospective
+# Stage 7: push to board
 
-The only stage that touches the live board. Export epics and stories as GitHub issues on the configured Project, write the URLs back, and close the loop with a retrospective. Nothing is created before the human confirms a dry-run.
+The only stage that touches the live board. Export epics and stories as GitHub issues on the configured Project and write the URLs back. Nothing is created before the human confirms a dry-run.
+
+The retrospective is no longer here. It moved to `/product-team:8-living-spec`, because a retrospective written at board-export time is written before anything has shipped, and because the `solo` profile never runs this stage and so would never get one.
 
 First read `../product-lead/references/conventions.md` (sibling of this skill's base directory).
 
 ## Preflight (all must pass)
 
-1. Resolve the initiative (ARGUMENTS, branch, or ask). Gate 3 `approved` in STATUS.md (reconcile per conventions.md).
-2. `06-dor-report.md` says ALL PASS. Any FAIL -> refuse, point at the fix list, stop. No exceptions.
-3. Read the Product Team config from this repo's CLAUDE.md: `github_repo`, `project_number`, labels. `github_repo` UNSET (local mode) -> refuse: this stage needs a real GitHub repo and Project; say what to configure. `project_number` UNSET -> ask for it and offer to record it in CLAUDE.md.
+1. Resolve the initiative (ARGUMENTS, branch, or ask). `pt.py status {slug}` must read this stage `ready`.
+2. Read `docs/strategy/product-team.yml`: `profile` must be `full` (in `solo` there is no board and no backlog, so refuse and say so), plus `github_repo`, `project_number` and `labels`. `github_repo` UNSET -> refuse: this stage needs a real GitHub repo and Project; say what to configure. `project_number` UNSET -> ask for it and offer to record it in the config file.
+3. `06-dor-report.md` says ALL PASS. Any FAIL -> refuse, point at the fix list, stop. No exceptions.
 4. `gh auth status` must show the `project` scope; missing -> print `gh auth refresh -s project` for the user to run in a terminal, then stop.
-5. Enter the board-export branch per conventions.md Branching (`docs/{slug}-board`, cut fresh from the updated default branch); mark stage 7 `in-progress`.
 
 ## Dry-run (mandatory)
 
 Build the full plan from `05-backlog/` without creating anything:
 
-- One parent issue per epic (title from the epic file, label `initiative:{slug}`, `epic:{n}`), one issue per story (title `Story {n.m}: {title}`, body = the story file content, labels `initiative:{slug}`, `epic:{n}`, `type:story`), linked as native sub-issues of their epic.
+- One parent issue per epic (title from the epic file, label `initiative:{slug}`, `epic:{n}`), one issue per story (title `Story {n.m}: {title}`, labels `initiative:{slug}`, `epic:{n}`, `type:story`), linked as native sub-issues of their epic.
+- **The story body expands its claimed scenarios.** Take each `R{n}.S{k}` from the story's Scenarios row and copy that scenario's WHEN/THEN text out of `02-prd.md` into the issue, under the requirement's SHALL sentence. A story file claims ids because two copies of a scenario in the repo drift; an issue reading "satisfies R3.S1" is unreadable in the one place it is actually used, and an issue is a throwaway projection of the docs rather than a second source of truth. Also carry the task-group numbers, so the board links to the work.
 - A story whose `Needs design seat` field reads `yes` also gets `needs:design`. That label is the whole point of the field: it makes design work countable on the board before anyone picks a story up, instead of surfacing when an implementer seat stops mid-task to ask for a token that does not exist.
 - Labels that do not exist yet, listed as to-create.
 - Every issue added to Project `{project_number}`.
@@ -58,14 +61,15 @@ Print the whole table (N issues, titles, labels, parent links), then a structure
 5. Write each issue URL into its story file's Board issue field and each epic's URL into `epic-{n}.md`.
 6. Failures mid-run: stop, report exactly what was and was not created; re-running must skip issues whose story files already carry a Board issue URL (idempotent resume).
 
-## Retrospective + wrap
+## Wrap
 
-1. Append to `docs/LEARNINGS.md`: date, initiative, what the agents got wrong this run, which template sections caused friction, what to change before the next initiative.
-2. Update STATUS.md: stage 7 -> `approved`, notes with issue counts and the Project URL.
-3. Suggest `/commit` (subject `docs({slug}): board export urls and retrospective`) then `/pr` (title `Board export: {initiative name}`). Then stop.
+1. Report the issue counts and the Project URL.
+2. Suggest `/commit` (subject `docs({slug}): board export urls`). Then stop.
+
+The board issue urls written back into the story files are what make `pt.py status` read this stage done, so there is no status row to write.
 
 ## Boundaries
 
-- ✅ Always: refuse on any DoR FAIL; dry-run + structured confirmation before creating anything; write URLs back; append the retrospective.
-- ⚠️ Ask first: creating labels beyond the configured set; recording a Project number in CLAUDE.md.
-- 🚫 Never: delete or close existing issues; touch the board without a confirmed dry-run; run `git commit` / `git push` / `gh pr create`.
+- ✅ Always: refuse on any DoR FAIL; dry-run + structured confirmation before creating anything; expand claimed scenarios into the issue body; write URLs back.
+- ⚠️ Ask first: creating labels beyond the configured set; recording a Project number in the config file.
+- 🚫 Never: delete or close existing issues; touch the board without a confirmed dry-run; push an issue body that names scenario ids without their text; write a stage-status row; run `git commit` / `git push` / `gh pr create`.

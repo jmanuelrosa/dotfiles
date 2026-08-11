@@ -1,8 +1,8 @@
 {
   "$schema": "https://www.schemastore.org/claude-code-plugin-manifest.json",
   "name": "product-team",
-  "description": "Gated product pipeline: the eight numbered stage skills plus setup-strategy and the product-lead hub, bundled with the seven agents the stages dispatch.",
-  "version": "0.1.0",
+  "description": "Two-gate product pipeline: the nine numbered stage skills plus setup-strategy and the product-lead hub, bundled with the seven agents the stages dispatch and the pt.py checker they run.",
+  "version": "0.2.0",
   "author": {
     "name": "Jose Manuel Rosa",
     "email": "josemanuel.rosamoncayo@gmail.com"

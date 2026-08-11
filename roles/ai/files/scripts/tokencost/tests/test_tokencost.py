@@ -223,7 +223,7 @@ def test_since_filters_by_date_but_keeps_undated_records(home):
 def test_match_subtotals_the_buckets_that_contain_the_pattern(home):
     write_transcript(home, "-tmp-demo", "s1", [
         record(ROUND_USAGE, skill="product-team:5-decompose"),
-        record(ROUND_USAGE, skill="product-team:6-gate-check"),
+        record(ROUND_USAGE, skill="product-team:6-verify"),
         record(ROUND_USAGE, skill="feature-team"),
     ])
     result = run(home, "demo", "--match", "product-team")

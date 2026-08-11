@@ -1,6 +1,6 @@
 ---
 name: setup-strategy
-description: One-time Product Team foundation - interviews you for vision, bets, non-bets, and OKRs (optionally seeded by an /idea-refine ideation session when you arrive with a raw idea), then scaffolds docs/strategy/, docs/LEARNINGS.md, CODEOWNERS, and the CLAUDE.md config in the current repo.
+description: One-time Product Team foundation - interviews you for vision, bets, non-bets, and OKRs (optionally seeded by an /idea-refine ideation session when you arrive with a raw idea), then scaffolds docs/strategy/ including product-team.yml, docs/LEARNINGS.md, CODEOWNERS, and a three-line CLAUDE.md pointer.
 argument-hint: "[guidance or revision notes]"
 disable-model-invocation: true
 allowed-tools:
@@ -27,7 +27,7 @@ First read `../product-lead/references/conventions.md` (sibling of this skill's 
 
 ## Preflight
 
-1. Must run inside a git repo. With an `origin` remote, resolve `github_repo` via `gh repo view --json nameWithOwner`; without one, continue in **local mode** per conventions.md and record `github_repo | UNSET (local mode)` in the CLAUDE.md config.
+1. Must run inside a git repo. With an `origin` remote, resolve `github_repo` via `gh repo view --json nameWithOwner`; without one, write `github_repo: UNSET`, which is what makes stage 7 refuse later.
 2. `docs/strategy/strategy.md` already exists -> this is a **revision**: if a strategy PR is open, follow the revision flow in conventions.md; otherwise interview only about what the user wants changed (ARGUMENTS may say).
 3. Switch to branch `chore/product-strategy` (`git switch -c` if new). Dirty tree with unrelated changes -> stop and ask.
 
@@ -52,29 +52,38 @@ One question at a time, each with a recommended answer, drilling into vagueness.
 3. **Non-bets**: at least 2 attractive things the team is explicitly not doing, and why. These do the killing at Gate 0; refuse to accept an empty set.
 4. **Target users**: precise segments. Never assume a market or segment; every one comes from the human.
 5. **OKRs**: quarterly objectives with numeric key results. Every target AND baseline comes from the human; never invent, never extrapolate. Missing baseline -> written as `UNKNOWN` with an owner to measure it.
-6. **Config**: gate owners (GitHub handles for gates 0/1/3, gate 2, strategy, and the design gate owner who approves each initiative's UX spec; default all to the repo owner if solo, and accept "none" for the design owner if the team has no designer), Project number (may stay UNSET until stage 7), extra codebase paths for stage 4 (default none).
+6. **Config**, which is `docs/strategy/product-team.yml` and is the one place these live:
+   - **profile**: `full` or `solo`. Recommend `solo` when the answer to "will anyone other than you read the backlog" is no: it drops stories, the DoR report, the board export and all PR machinery, roughly half the cost and nearly all of the latency, and gives up no stage that produces a finding. Recommend `full` when there is a board and a team.
+   - **gate_medium**: `session` or `pr`. Recommend `session` unless real reviewers will read a PR; a session gate takes seconds and a PR gate takes a day.
+   - **gate_owners**: handles for Gate 0, Gate 1 and strategy. Default all to the repo owner if solo. Ask for those three and no others: two gates is the whole set.
+   - **roster**: which researchers run, whether the UX spec comes from `ux-shaper` or inline, whether the red team is the agent or inline. Recommend the full roster, and name the one case worth dropping: a tool with no market has nothing for `market-sizer` to find.
+   - **project_number** (may stay UNSET until stage 7) and **extra_codebase_paths** for stage 4 (default none).
 
 ## Write & scaffold
 
 Templates live in `../product-lead/references/templates/` (sibling of this skill's base directory):
 
 1. `docs/strategy/strategy.md` from `strategy.md`, `docs/strategy/okrs.md` from `okrs.md`.
-2. `docs/LEARNINGS.md` if absent: a title line plus "Appended by /product-team:7-push-to-board after each initiative."
-3. `.github/CODEOWNERS` if absent (or missing these lines):
+2. `docs/strategy/product-team.yml` from `config.yml`, every value filled from the interview.
+3. `docs/LEARNINGS.md` if absent: a title line plus "Appended by /product-team:8-living-spec as each initiative ships."
+4. `.github/CODEOWNERS` if absent (or missing these lines):
    ```
    /docs/strategy/     {strategy owner}
    /docs/initiatives/  {PM gate owner}
    /docs/initiatives/*/04-ux-spec.md  {design gate owner}
+   /docs/adr/          {tech lead}
    ```
-   Keep that order: CODEOWNERS applies the **last** matching pattern, so the specific line must follow the general one or the PM owns the UX spec too. The single `*` matches exactly the slug level, which is what the initiative layout needs. Omit the third line entirely when there is no design gate owner; Gate 2 then behaves as it did before.
-4. Append `claude-md-section.md` (placeholders filled from the interview) to the repo's CLAUDE.md; create the file if absent. If the section already exists, update values in place.
+   Keep that order: CODEOWNERS applies the **last** matching pattern, so a specific line must follow the general one or the PM owns the UX spec too. The single `*` matches exactly the slug level, which is what the initiative layout needs. Omit the UX line entirely when there is no design gate owner.
 
-## Gate handoff
+   The `docs/adr/` line is load-bearing rather than tidiness. There is no design gate any more, so this is the only review an ADR gets, and an ADR is the one artifact class this pipeline treats as immutable and hard to reverse. Ask for a tech lead handle even in a solo repo, where it is the repo owner: the line then costs nothing and starts working the day someone else joins.
+5. Append `claude-md-section.md` to the repo's CLAUDE.md; create the file if absent. It is three lines and holds no configuration, because CLAUDE.md is loaded on every turn of every session in the repo and the config belongs in a file the stages open when they run. If an older, longer Product Team section is already there, replace it wholesale rather than updating values in it.
 
-Follow the gate protocol in conventions.md with: commit subject `docs(strategy): product strategy, okrs, and pipeline scaffold`, PR body asking the team to challenge the bets and non-bets specifically. Then stop: the human runs `/commit`, `/pr`, and merges after team review.
+## Handoff
+
+Follow the gate protocol in conventions.md for the chosen `gate_medium`, with commit subject `docs(strategy): product strategy, okrs, and pipeline scaffold`. Under `pr`, the body asks the team to challenge the bets and non-bets specifically. Under `session`, ask the strategy owner directly and record their answer. Then stop: the human runs `/commit`.
 
 ## Boundaries
 
-- ✅ Always: one question at a time; recommend an answer with each; confirm every ideation-extracted seed with the human before writing it; record every config value in the CLAUDE.md section.
+- ✅ Always: one question at a time; recommend an answer with each; confirm every ideation-extracted seed with the human before writing it; record every config value in `docs/strategy/product-team.yml`; write the `docs/adr/` CODEOWNERS line.
 - ⚠️ Ask first: rewriting an existing strategy section the user did not mention; adding a bet the human did not state.
-- 🚫 Never: invent OKR numbers, baselines, markets, or segments; run `git commit` / `git push` / `gh pr create`; proceed past a vague answer without one follow-up.
+- 🚫 Never: invent OKR numbers, baselines, markets, or segments; put configuration in CLAUDE.md; run `git commit` / `git push` / `gh pr create`; proceed past a vague answer without one follow-up.

@@ -9,27 +9,32 @@ Everything below was run against this repo's catalogue, so the commands are lite
 
 There are two systems here and they meet at exactly one artifact, a story.
 
+```mermaid
+%%{init: {"flowchart": {"rankSpacing": 46, "nodeSpacing": 26}}}%%
+graph TD
+    a["setup-strategy<br/>0-refine-idea"] --> g0{"GATE 0"}
+    g0 -->|kill| killed(["STATUS.md keeps<br/>the reason"])
+    g0 -->|proceed| b["1-research<br/>2-write-prd<br/>3-red-team"]
+    b --> g1{"GATE 1"}
+    g1 --> c["4-tech-shape<br/>5-decompose"]
+    c --> v["6-verify<br/>7-push-to-board"]
+    v -->|"one story at a time"| d["/feature-team<br/>spec, you approve,<br/>seats implement"]
+    d --> e["/code-review max<br/>/commit, /pr"]
+    e --> f["8-living-spec<br/>at ship time"]
+    classDef fullonly stroke-dasharray: 6 4
+    class v fullonly
 ```
-  idea
-    │
-    │   PRODUCT SIDE  -  what to build and why      (product-team plugin, per repo)
-    ▼
-  strategy → brief → research → PRD → red team → design doc → epics + stories → DoR → board
-    │                                                            │
-    │                                          docs/initiatives/{slug}/05-backlog/story-1.2.md
-    ▼                                                            │
-  ENGINEERING SIDE  -  how to build it                           │  one story at a time
-    │                                                            ▼
-    └─→ /feature-team → architect writes docs/specs/*.md → you approve → seats implement
-                                                                 │
-                                                                 ▼
-                                                /code-review max → /commit → /pr
-```
+
+Gate 0 asks whether this is worth building at all and Gate 1 whether the requirements are the right ones; kill is a first-class answer to both. The dashed pair is what `profile: solo` drops, along with the `05-backlog/` story headers and all PR machinery, and nothing that produces a finding is ever dropped.
+
+Stages are grouped between the gates rather than drawn one box each, and which artifact each one writes is in the walkthrough below instead of in the diagram, so there is one copy of that list to keep true.
+
+Editing the diagram has one rule: **break every label yourself with `<br/>` and keep each line under about 24 characters.** Mermaid measures wrapping against a default width near 200px, and a renderer that does not then wrap the line clips it instead, which is how `seats implement` silently disappeared off the end of a node that still looked fine locally.
 
 Three rules hold across both halves, and they are the ones to remember:
 
-- **The filesystem is the orchestrator.** No process is long-running. Each stage reads the previous stage's file from disk and writes its own, so a session that dies loses nothing.
-- **Every gate is a human.** A product gate is a merged PR; the engineering gate is you approving the architect's spec before any seat is dispatched.
+- **The filesystem is the orchestrator.** No process is long-running. Each stage reads the previous stage's file from disk and writes its own, so a session that dies loses nothing. Which stage is next is derived from what is on disk, never from a table someone maintained.
+- **Every gate is a human.** Two product gates, answered in the conversation by default and recorded in `STATUS.md` with the reason that convinced you (`gate_medium: pr` turns each one into a reviewed PR instead); the engineering gate is you approving the architect's spec before any seat is dispatched.
 - **No agent ever commits, pushes, or merges.** Agents write files. You run `/commit` and `/pr`.
 
 ## What you already have in every repo
@@ -100,9 +105,11 @@ Greenfield. You have an idea and an empty repo. Running example: *Ledger*, a sub
 /product-team:setup-strategy
 ```
 
-It interviews you one question at a time for vision, 3-5 bets, non-bets, and OKRs, then writes `docs/strategy/strategy.md` and `docs/strategy/okrs.md` and scaffolds the repo. Arrive with a raw idea instead of a strategy and it runs `/idea-refine` first, whose one-pager in `docs/ideas/` seeds the interview. The numbers are always yours: it will not invent a baseline.
+It interviews you one question at a time for vision, 3-5 bets, non-bets, and OKRs, then writes `docs/strategy/strategy.md`, `docs/strategy/okrs.md` and `docs/strategy/product-team.yml`, and scaffolds the repo. Arrive with a raw idea instead of a strategy and it runs `/idea-refine` first, whose one-pager in `docs/ideas/` seeds the interview. The numbers are always yours: it will not invent a baseline.
 
-Then `/commit`, then `/pr`. Merge before running any initiative.
+`product-team.yml` is worth a look before you go further. It holds the **profile** (`full`, or `solo` to drop stories, the readiness report, the board export and all PR machinery), the **gate medium** (`session` to answer a gate in the conversation, `pr` to answer it as a review), and the **roster** of agents each stage dispatches. Two gates exist, not four.
+
+Then `/commit`. Merge before running any initiative.
 
 **2. Open the initiative.**
 
@@ -110,37 +117,50 @@ Then `/commit`, then `/pr`. Merge before running any initiative.
 /product-team:0-refine-idea "let a team see every subscription they pay for in one place"
 ```
 
-Creates the branch, writes `docs/initiatives/subscription-visibility/00-brief.md` and `STATUS.md`, and dispatches `product-team:strategy-checker` for a blunt fit verdict against the strategy you just wrote. `/commit`, `/pr`, merge. Merging is Gate 0.
+Writes `docs/initiatives/subscription-visibility/00-brief.md` and `STATUS.md`, and dispatches `product-team:strategy-checker` for a blunt fit verdict against the strategy you just wrote. Then it asks you **Gate 0**: proceed, or kill.
 
-A healthy funnel kills most ideas here. Killing at Gate 0 is the pipeline working.
+A healthy funnel kills most ideas here. Killing at Gate 0 is the pipeline working. Whatever you answer, the reason goes in `STATUS.md` next to your name: a gate that records only "approved" is indistinguishable from one nobody read.
 
-**3. Research, PRD, red team.**
-
-```
-/product-team:1-research      # 3 agents in parallel: competitive, user evidence, sizing
-/product-team:2-write-prd     # 02-prd.md, requirements numbered R1..Rn
-/product-team:3-red-team      # pm-red-team attacks the PRD, fixes fold back in
-```
-
-All three ride one branch. `/commit`, `/pr`, merge passes Gate 1. On a small, low-risk feature you may explicitly skip 1 and 3; that skip is yours to call, never the skill's, and it gets recorded in `STATUS.md`.
-
-**4. Technical shape, then decompose, then the readiness gate.**
+**3. Research, PRD, red team, and Gate 1.**
 
 ```
-/product-team:4-tech-shape    # 04-ux-spec.md + 04-design-doc.md + ADRs  → Gate 2
-/product-team:5-decompose     # 05-backlog/ epics + vertically-sliced stories + ACs
-/product-team:6-gate-check    # 06-dor-report.md, PASS/FAIL per story    → Gate 3
+/product-team:1-research      # the roster's researchers, in parallel
+/product-team:2-write-prd     # 02-prd.md: SHALL requirements, each with WHEN/THEN scenarios
+/product-team:3-red-team      # pm-red-team attacks the PRD, fixes fold back in  → Gate 1
 ```
 
-Merge only on ALL PASS.
+Requirements are written as `### R3: {name}` plus a SHALL sentence plus `#### R3.S1` scenarios. Those scenario ids are the traceability currency for everything downstream, so a story claims `R3.S1` rather than restating it.
 
-**5. Push to the board.**
+Gate 1 comes after the red team on purpose. It is the requirements gate, and requirements worth approving are the ones that have survived an attack; on a real initiative the gate was answered first and the report then had to amend an already-approved PRD.
+
+**4. Technical shape, then decompose.**
 
 ```
-/product-team:7-push-to-board
+/product-team:4-tech-shape    # 04-ux-spec.md + 04-design-doc.md + ADRs
+/product-team:5-decompose     # 05-tasks.md, plus thin story headers in the full profile
+/product-team:6-verify        # runs pt.py check, then judges what a script cannot
 ```
 
-Dry-runs first and waits for your Go, then creates the GitHub epic and story issues, links them, adds them to the Project, and appends a retrospective to `docs/LEARNINGS.md`.
+No gate on either. The design gate went because the open decisions at that stage resolve unaided, and the ADRs it used to review are now covered by a `docs/adr/` line in CODEOWNERS. The readiness gate went too, because its mechanical half is now a script:
+
+```
+python3 .claude/skills/product-team/skills/product-lead/scripts/pt.py check subscription-visibility
+```
+
+That decides scenario coverage (every requirement claimed by some story or task), id resolution, UX anchors, deferral closure, and size rationales. Run it yourself whenever you like; `6-verify` runs it first and never re-decides it.
+
+`05-tasks.md` is the layer that used to be missing: the whole build, dependency-ordered from an empty repo to accepted, including the toolchain, deploy and acceptance work that could never be a story because no requirement asks for it.
+
+**5. Push to the board, then record what shipped.**
+
+```
+/product-team:7-push-to-board   # full profile only
+/product-team:8-living-spec     # at ship time, not before
+```
+
+Stage 7 dry-runs first and waits for your Go, then creates the GitHub epic and story issues with each story's claimed scenarios expanded into the body, links them, and adds them to the Project.
+
+Stage 8 is the one that outlives the initiative. When a requirement's tasks are all checked off, it merges that requirement into `docs/specs/{capability}/spec.md`, so the repo carries a current description of what the system does rather than a folder of proposals going stale. It appends the retrospective to `docs/LEARNINGS.md` too.
 
 Lost at any point:
 
@@ -148,7 +168,7 @@ Lost at any point:
 /product-team:product-lead
 ```
 
-reads every `docs/initiatives/*/STATUS.md`, reconciles stale gates against merged PRs, and prints the exact next command.
+It runs `pt.py status` over every initiative and tells you the exact next command. Nothing maintains a stage table: which stage is next is derived from the files on disk.
 
 ### Engineering side
 
@@ -158,8 +178,8 @@ The handoff is the story file, not the epic. Work **one story at a time**: a sto
 
 ```
 /feature-team "Story 1.2 - export the subscription list as CSV.
-Story: docs/initiatives/subscription-visibility/05-backlog/story-1.2.md (its AC-* are the acceptance bar)
-Requirements: docs/initiatives/subscription-visibility/02-prd.md (the R# source of truth)
+Story: docs/initiatives/subscription-visibility/05-backlog/story-1.2.md (the scenario ids it claims are the acceptance bar)
+Requirements: docs/initiatives/subscription-visibility/02-prd.md (where those R#.S# scenarios are written)
 Constraints: docs/adr/ (accepted ADRs are immutable)"
 ```
 
@@ -184,7 +204,7 @@ Then move the issue to Done and pick the next PASS story.
 
 **Two design docs, one decision record.** `4-tech-shape` already wrote `04-design-doc.md` and the architect writes its own `docs/specs/<feature>.md`. Either point the architect at the design doc so it inherits those decisions, or let it design fresh from the PRD as an independent check. `docs/adr/` is the shared tie-breaker either way: a spec honors an accepted ADR and supersedes it, never edits it.
 
-**One UX spec, though.** Point the architect at `04-ux-spec.md` rather than letting it ask for a second one: the states a surface can reach were reviewed and possibly rewritten by the design owner at Gate 2, so re-deriving them from the PRD throws that review away. Outside the pipeline the architect has no UX spec to read, and for a brief touching UI it returns `needs-decision` asking you to run `ux-shaper` first. It cannot dispatch the agent itself, by design: orchestration stays with you.
+**One UX spec, though.** Point the architect at `04-ux-spec.md` rather than letting it ask for a second one: the states a surface can reach were reviewed and possibly rewritten by the design owner where CODEOWNERS names one, so re-deriving them from the PRD throws that review away. Outside the pipeline the architect has no UX spec to read, and for a brief touching UI it returns `needs-decision` asking you to run `ux-shaper` first. It cannot dispatch the agent itself, by design: orchestration stays with you.
 
 ## Scenario 2: a new feature in an existing product
 
@@ -192,7 +212,7 @@ Same pipeline, less of it. The only real difference is that stage 4 has a real c
 
 1. `claude-kit scout` in the repo, install what it suggests, plus `product-team` if the repo runs initiatives.
 2. `/product-team:setup-strategy` **once**, if `docs/strategy/` does not exist yet. Skip it forever after.
-3. Every feature is its own initiative: `/product-team:0-refine-idea` through `/product-team:7-push-to-board` on a fresh `docs/{slug}` branch.
+3. Every feature is its own initiative: `/product-team:0-refine-idea` through `/product-team:8-living-spec`.
 4. Stage 4 reads the real code, cites `path:line` for every design claim, fits the existing patterns, and numbers new ADRs after the ones already in `docs/adr/`.
 5. Engineering side is identical: one story, `/feature-team`, review, commit.
 
@@ -233,7 +253,7 @@ What comes back is a **completion report**, not a chat reply: status (`done` / `
 
 Then `/code-review high`, `/commit`.
 
-Which seat owns what is the table in [README.md](README.md#staff-engineer-bench). Fourteen ship: analytics, backend, cloud, data, database, design, dx, frontend, gtm, mobile, platform, qa, security, sre. Two are not implementers:
+Which seat owns what is the table in [README.md](README.md#staff-engineer-bench). Fifteen ship: analytics, backend, cloud, data, database, design, desktop, dx, frontend, gtm, mobile, platform, qa, security, sre. Two are not implementers:
 
 - **`security:security-staff-engineer`** is read-only and advisory: threat models, dependency audits, authn/authz review. It never edits. For a pending diff use `/security-review` instead.
 - **`architect`** designs and never implements.
@@ -296,16 +316,18 @@ No pipeline, no architect, often no seat.
 
 **Agents do not commit.** Not the seats, not the architect, not the product stages. If something needs to land in git, that is `/commit` and `/pr` in the main conversation.
 
-**Gates block on `STATUS.md`.** A product stage refuses to run until its predecessor's row reads `approved`. If a PR was merged outside the session, the next stage reconciles it against GitHub itself; you do not hand-edit the file.
+**Stages block on the files, not on a table.** A stage refuses to run when `pt.py status` reports it `blocked`, and it names the missing artifact and the command that produces it. `STATUS.md` holds only what a file listing cannot derive: who decided each gate, when, why, which stages were skipped, and the kill reason. There is no stage table to hand-edit, and no skill may write one.
 
-**Local mode.** A repo with no `origin` remote runs the whole product pipeline with no PR machinery: same stages, same artifacts, gate decisions recorded directly in `STATUS.md`, single branch. Stage 7 is the one that refuses, since it needs a real repo and Project number.
+**`partial` is not a reason to re-run a stage.** It means an older initiative finished that stage before one of its artifacts existed (the two initiatives in this repo that predate `04-ux-spec.md`, for instance). The missing file is named, so nothing is left to guess.
+
+**No remote is a profile, not a mode.** `profile: solo` plus the default `gate_medium: session` is how a repo with no `origin` runs the pipeline: both gates answered in the conversation, no PR machinery, no board. Stage 7 is the one that cannot run, since it needs a real repo and a Project number.
 
 ## Where each thing is defined
 
 | Thing | File |
 |---|---|
 | The reference for all of this | [README.md](README.md) |
-| Product pipeline mechanics (gates, branching, local mode, expedited path) | [plugins/product-team/skills/product-lead/references/conventions.md](plugins/product-team/skills/product-lead/references/conventions.md) |
+| Product pipeline mechanics (the two gates, gate medium, profiles, deferrals) | [plugins/product-team/skills/product-lead/references/conventions.md](plugins/product-team/skills/product-lead/references/conventions.md) |
 | The engineering pipeline, step by step | [skills/feature-team/SKILL.md](skills/feature-team/SKILL.md) |
 | The spec contract and the ADR rules | [agents/architect.md](agents/architect.md) |
 | The UX spec contract (flows, surfaces, the state matrix) | [agents/ux-shaper.md](agents/ux-shaper.md), [plugins/product-team/skills/product-lead/references/templates/ux-spec.md](plugins/product-team/skills/product-lead/references/templates/ux-spec.md) |

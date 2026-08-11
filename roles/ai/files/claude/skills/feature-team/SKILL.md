@@ -39,6 +39,7 @@ If empty, ask for it before anything else.
    Confirm every report's verification section shows real command output; list anything "not runtime-verified" for me, then suggest `/code-review max` on the combined diff.
    End with the integration report: per-seat status table, acceptance criteria met/unmet, pending ask-first items, gotchas the seats proposed for CLAUDE.md, worktree cleanup confirmed, and the suggested next step (`/code-review max`, then `/commit`).
    Do not commit; that is mine to run.
+   Where the work came from a `docs/initiatives/` story, tick off the `05-tasks.md` lines it completed and name `/product-team:8-living-spec` in the suggested next steps. That stage merges every requirement whose tasks are all done into `docs/specs/`, and nothing in the pipeline is present at ship time to notice it was skipped.
 
 Single-seat tasks don't need this pipeline - delegate directly instead.
 Use this skill when the work spans two or more seats or needs the architect's spec first.
