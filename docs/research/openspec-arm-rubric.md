@@ -63,18 +63,20 @@ Verdicts are one of **specified** (implementable as written), **underspecified**
 
 Seventeen decisions that this initiative genuinely had to make. Eleven were settled by product-team at Gate 2; six only surfaced during implementation, which makes them the fair-baseline column: product-team missed those too, so an arm that also misses them loses nothing.
 
+Four rows are **pre-decided in the shared input** and are struck from the scored set, because `docs/ideas/route-catalog.md` states them outright and both arms were handed them. Crediting either workflow for settling a decision it was given would inflate both columns equally and measure nothing.
+
 | ADR | Decision | Settled / deferred / absent |
 |---|---|---|
-| 0001 | Deliver the Catalog as an installed PWA | |
-| 0002 | Git-tracked files, published by committing to the default branch, are the entire write path | |
+| ~~0001~~ | ~~Deliver the Catalog as an installed PWA~~ (idea doc: "a read-only PWA on Cloudflare Pages, installed to the phone's home screen") | pre-decided |
+| ~~0002~~ | ~~Git-tracked files are the entire write path~~ (idea doc: "the repo is the source of truth ... a script on the laptop is the only write path") | pre-decided |
 | 0003 | A single build-emitted JSON manifest is the contract between build and service worker | |
 | 0004 | Hand-write the service worker rather than adopt a plugin | |
 | 0005 | Categories are a first-class collection, not derived from directory structure | |
 | 0006 | Derive Trailhead at build time from the GPX, with no author override | |
 | 0007 | Run the catalog check inside the hosting build command, not a CI workflow | |
 | 0008 | Implement R11 live at view time rather than fetching at update time | |
-| 0009 | Host on Cloudflare Pages rather than GitHub Pages | |
-| 0010 | Use an unkeyed weather source rather than a keyed provider | |
+| ~~0009~~ | ~~Host on Cloudflare Pages rather than GitHub Pages~~ (idea doc names Cloudflare Pages) | pre-decided |
+| ~~0010~~ | ~~Use an unkeyed weather source~~ (idea doc: "Open-Meteo (free, no API key ...)") | pre-decided |
 | 0011 | Accept a publicly readable deployed Catalog, reject access control | |
 | **0012** | Route page URLs are flat and independent of the Category tree | |
 | **0013** | Style with CSS custom properties, not a utility framework | |
@@ -83,7 +85,9 @@ Seventeen decisions that this initiative genuinely had to make. Eleven were sett
 | **0016** | Compose the catalog check into the build script | |
 | **0017** | The catalog check validates per-entry shape itself | |
 
-Bold are the six that surfaced late. **Counts: PENDING settled / PENDING deferred / PENDING absent, of 17, and separately of the 11 Gate 2 ones.**
+Bold are the six that surfaced late. **Counts: PENDING settled / PENDING deferred / PENDING absent, of the 13 scored rows, and separately of the 7 scored Gate 2 ones.**
+
+So the honest Gate 2 figure for product-team is **7 decisions genuinely made, not 11**: four of its eleven ADRs ratify a choice the idea doc had already made. That correction lands here rather than in the results, because it was found by reading the shared input before the run and it lowers the incumbent's score.
 
 "Deferred" means the output names the decision as one to be made and does not make it. That is a legitimate outcome and is scored separately from "absent", because a spec that flags an open decision is doing its job while one that never notices is not.
 
@@ -111,9 +115,11 @@ The red-team row is the one to read closely: on this initiative it raised 3 bloc
 | Rework cycles | 2 (Gate 3 re-run twice on one mechanical defect) | PENDING |
 | Sheet A, requirements covered | 18 / 18 | PENDING |
 | Sheet B, stories specified | 4 / 4 | PENDING |
-| Sheet C, Gate 2 decisions settled | 11 / 11 | PENDING |
+| Sheet C, Gate 2 decisions settled | 7 / 7 scored (4 more were pre-decided in the idea doc) | PENDING |
 | `openspec validate --strict` | n/a | PENDING |
-| OpenSpec version | n/a | PENDING |
+| OpenSpec version | n/a | 1.7.0 |
+
+`idea-refine` is excluded from both columns. It ran once, cost $1.67, and produced the `docs/ideas/route-catalog.md` that both arms consume, so it is a shared input rather than a cost either workflow incurs. Adding it to both would move both totals by the same $1.67 and change nothing.
 
 product-team's column is 18/18, 4/4 and 11/11 by construction: these lists were extracted from its output, so it scores full marks on its own sheet and that is not evidence of anything. The sheet measures the arm against a known-sufficient result, not two arms against each other.
 
