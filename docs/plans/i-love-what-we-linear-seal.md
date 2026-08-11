@@ -95,7 +95,7 @@ Without this, a future edit re-introduces the hole with no visible symptom, whic
 
 ### 6. Correct the prior study's cost line
 
-An earlier estimate reported "~284k subagent tokens" as the pipeline's cost.
+The prior cost study (since removed from `docs/research/`) reported "~284k subagent tokens" as the pipeline's cost.
 Subagents are 10 to 15% of an initiative, so that headline measures the smallest component.
 Replace the cost row and the Appendix figure with the measured per-stage bands, note the instrument (`attributionSkill` in the transcripts) so it is reproducible, and record that its recommendations 4a (local mode) and 4b (expedited path) landed while recommendation 2 (living capability specs) and the `ADR-FORMAT.md` reconciliation are still open.
 

@@ -1,22 +1,22 @@
-# Rework the product-team pipeline: scenarios, a task layer, two gates and a checker
+# Port the comparison-arm lessons into product-team, without the tool
 
 ## Context
 
 
 
+Every miss in that arm fell inside a stage it does not have; none fell in the four the two share.
 
-
-The seven agents, the strategy layer and the board export stay exactly where they are.
-Two of the items are machinery the pipeline does not have and would otherwise take a dependency for (stateless sequencing, requirement-level spec merge), so the plan hand-rolls both in one small tested script.
+The decision here is to take the lessons and not the engine, so that engine stays out of the dependency set and the seven agents, the strategy layer and the board export stay exactly where they are.
+That decision has a price worth stating first: two of the nine items are engine features of that tool (stateless sequencing, requirement-level spec merge), so this plan hand-rolls them in a small tested script instead of getting them free.
 Expect the full profile to land near **$65 to $70** and the light profile near **$35**.
-The irreducible remainder is generation: the PRD, the UX spec, the design and the task list are the product, and no restructuring makes producing them free.
+The irreducible remainder is generation: the PRD, the UX spec, the design and the task list are the product, and its $7.33 was partly the cost of producing less of it.
 
 Two claims on the input list were checked and are wrong as stated, and the plan reflects the corrected version:
 
 - Given/When/Then already exists (`templates/story.md:36-38`, enforced by `dor-checklist.md:9`). What is missing is the requirement carrying its own scenario, three stages earlier.
-- The build spine is the gap (its task groups include `1. Toolchain and skeleton`, `12. Deployment`, `13. Field acceptance`; the 15 route-catalog stories have none of the three) and wrong about requirements (18/18 against 13/18). The cause is one line: `5-decompose/SKILL.md:39`, "a story with no R# reference does not get written".
+- **Nothing describes the build spine.** Requirement coverage is not the weak spot (route-catalog carried 18 of 18); the spine is. Its task groups would need `1. Toolchain and skeleton`, `12. Deployment` and `13. Field acceptance`, and the 15 route-catalog stories have none of the three. The cause is one line: `5-decompose/SKILL.md:39`, "a story with no R# reference does not get written".
 
-The deferral handshake is invented here rather than fixed.
+The deferral handshake is not a feature of that engine at all.
 
 What the rubric saw was emergent behaviour in a single run, so this is ours to invent and it needs a checker or it is a comment.
 
@@ -83,7 +83,7 @@ The point is not bookkeeping: an artifact that may legally say "not mine, the de
 ### 5. STATUS.md keeps the decisions and loses the state machine
 
 The eight-row stage table goes.
-Sequencing is derived from file existence by `pt status`, so every stage stops spending tokens parsing and rewriting a markdown table twice per run.
+Sequencing is derived from file existence by `pt status`, which is what that engine's DAG actually is (`artifact-graph/state.js` is pure `existsSync`), and every stage stops spending tokens parsing and rewriting a markdown table twice per run.
 
 What stays in `templates/status.md` is what a DAG cannot hold: the two gate rows with decider and date, the skip notes, and the kill reason with its folder kept forever.
 
@@ -134,7 +134,7 @@ Ship time is both the honest moment for it and the only one both profiles reach.
 
 ### 9. Port the three instruction hardenings already written
 
-
+The eleven misses found on route-catalog were each written up as an explicit obligation while they were still fresh.
 Copy them into the stages that own them, which costs a paragraph each and targets the misses directly:
 
 - `2-write-prd`: the self-knowledge class (how many items it holds, when data was last refreshed, when a record was created), and the requirement that makes each key result measurable. This is R14, R17 and R18.
@@ -171,7 +171,6 @@ Read-only apart from `spec-merge`.
 - Stage skills: all eight, plus `setup-strategy` (scaffold the config) and `product-lead` (read it, new map). `6-gate-check` renamed `6-verify` with the Sonnet pin. New thin `8-living-spec`.
 - `agents/ac-writer.md`: claim-and-complete contract.
 - `roles/ai/files/claude/GETTING-STARTED.md`, `README.md`, and this repo's `CLAUDE.md` product-team section: the map, the gate count, the config file, the renamed command.
-
 
 ## What a new project gets
 
