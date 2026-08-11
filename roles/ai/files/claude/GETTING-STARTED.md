@@ -29,8 +29,6 @@ Gate 0 asks whether this is worth building at all and Gate 1 whether the require
 
 Stages are grouped between the gates rather than drawn one box each, and which artifact each one writes is in the walkthrough below instead of in the diagram, so there is one copy of that list to keep true.
 
-Editing the diagram has one rule: **break every label yourself with `<br/>` and keep each line under about 24 characters.** Mermaid measures wrapping against a default width near 200px, and a renderer that does not then wrap the line clips it instead, which is how `seats implement` silently disappeared off the end of a node that still looked fine locally.
-
 Three rules hold across both halves, and they are the ones to remember:
 
 - **The filesystem is the orchestrator.** No process is long-running. Each stage reads the previous stage's file from disk and writes its own, so a session that dies loses nothing. Which stage is next is derived from what is on disk, never from a table someone maintained.
