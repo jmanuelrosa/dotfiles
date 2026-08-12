@@ -45,7 +45,7 @@
             "backend",
             "testing"
           ],
-          "updated_at": "2026-07-25T09:44:06Z"
+          "updated_at": "2026-08-12T04:49:15Z"
         },
         {
           "upstream_path": "skills/spec-driven-development",
@@ -69,7 +69,7 @@
             "pm",
             "planning"
           ],
-          "updated_at": "2026-07-30T14:15:49Z"
+          "updated_at": "2026-08-12T04:49:15Z"
         },
         {
           "upstream_path": "skills/code-simplification",
@@ -88,7 +88,7 @@
             "backend",
             "frontend"
           ],
-          "updated_at": "2026-07-25T09:44:06Z"
+          "updated_at": "2026-08-12T04:49:15Z"
         },
         {
           "upstream_path": "skills/performance-optimization",
@@ -98,7 +98,7 @@
             "frontend",
             "review"
           ],
-          "updated_at": "2026-07-30T14:15:49Z"
+          "updated_at": "2026-08-12T04:49:15Z"
         },
         {
           "upstream_path": "skills/incremental-implementation",
@@ -108,7 +108,7 @@
             "frontend",
             "workflow"
           ],
-          "updated_at": "2026-07-30T14:15:49Z"
+          "updated_at": "2026-08-12T04:49:15Z"
         },
         {
           "upstream_path": "skills/ci-cd-and-automation",
@@ -423,7 +423,7 @@
             "planning"
           ],
           "dependency_only": true,
-          "updated_at": "2026-07-25T09:44:18Z"
+          "updated_at": "2026-08-12T04:49:25Z"
         },
         {
           "upstream_path": "skills/engineering/domain-modeling",
@@ -517,7 +517,7 @@
             "ios",
             "swift"
           ],
-          "updated_at": "2026-07-25T09:44:10Z"
+          "updated_at": "2026-08-12T04:49:18Z"
         }
       ]
     },
@@ -648,22 +648,22 @@
       "branch": "main",
       "skills": [
         {
-          "upstream_path": "terraform/code-generation/skills/terraform-style-guide",
+          "upstream_path": "plugins/terraform/skills/terraform-style-guide",
           "groups": [
             "engineering",
             "devops",
             "infrastructure"
           ],
-          "updated_at": "2026-08-01T13:17:57Z"
+          "updated_at": "2026-08-12T04:52:12Z"
         },
         {
-          "upstream_path": "terraform/module-generation/skills/terraform-stacks",
+          "upstream_path": "plugins/terraform/skills/terraform-stacks",
           "groups": [
             "engineering",
             "devops",
             "infrastructure"
           ],
-          "updated_at": "2026-08-01T13:17:57Z"
+          "updated_at": "2026-08-12T04:52:12Z"
         }
       ]
     }
