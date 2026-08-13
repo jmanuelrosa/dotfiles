@@ -1,3 +1,68 @@
 {
-  "providers": {}
+  "providers": {
+    "openai-codex": {
+      "modelOverrides": {
+        "gpt-5.6-sol": {
+          "contextWindow": 200000
+        },
+        "gpt-5.6-terra": {
+          "contextWindow": 200000
+        }
+      }
+    },
+    "xai": {
+      "api": "openai-responses",
+      "baseUrl": "https://api.x.ai/v1",
+      "models": [
+        {
+          "id": "grok-build",
+          "name": "Grok Build (Best for coding agents)",
+          "reasoning": true,
+          "input": ["text", "image"],
+          "contextWindow": 500000,
+          "maxTokens": 131072
+        },
+        {
+          "id": "grok-4.6",
+          "name": "Grok 4.6 (Newest)",
+          "reasoning": true,
+          "input": ["text", "image"],
+          "contextWindow": 500000,
+          "maxTokens": 131072,
+          "thinkingLevelMap": {
+            "low": "low",
+            "medium": "medium",
+            "high": "high",
+            "xhigh": "xhigh"
+          }
+        },
+        {
+          "id": "grok-4.5",
+          "name": "Grok 4.5 (Best overall)",
+          "reasoning": true,
+          "input": ["text", "image"],
+          "contextWindow": 500000,
+          "maxTokens": 131072,
+          "thinkingLevelMap": {
+            "low": "low",
+            "medium": "medium",
+            "high": "high"
+          }
+        }
+      ]
+    },
+    "opencode": {
+      "apiKey": "YOUR_OPENCODE_API_KEY",
+      "baseUrl": "https://opencode.ai/zen/v1",
+      "models": [
+        {
+          "id": "big-pickle",
+          "name": "Big Pickle",
+          "reasoning": true,
+          "contextWindow": 200000,
+          "maxTokens": 32000
+        }
+      ]
+    }
+  }
 }
