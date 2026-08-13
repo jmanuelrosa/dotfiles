@@ -15,7 +15,10 @@ BREW_PACKAGES:
   trusted:
     - steipete/tap
   formulas:
+    - aria2
     - gemini-cli
+    - llama.cpp
+    - ollama
     - pi-coding-agent
     - rtk
     # Runs the bundled Claude skill validators (e.g. skill-writer's
@@ -40,4 +43,5 @@ BREW_PACKAGES:
 # used to keep the README off PATH, and gates per tool instead of per role.
 AI_SCRIPTS:
   - claude-kit
+  - local-ai
   - tokencost

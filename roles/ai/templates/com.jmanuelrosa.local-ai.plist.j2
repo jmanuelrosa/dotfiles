@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.jmanuelrosa.local-ai</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/ollama</string>
+    <string>serve</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key>
+    <string>{{ HOME }}</string>
+    <key>OLLAMA_CONTEXT_LENGTH</key>
+    <string>32768</string>
+    <key>OLLAMA_FLASH_ATTENTION</key>
+    <string>1</string>
+    <key>OLLAMA_HOST</key>
+    <string>127.0.0.1:11434</string>
+    <key>OLLAMA_IGPU_ENABLE</key>
+    <string>1</string>
+    <key>OLLAMA_KEEP_ALIVE</key>
+    <string>5m</string>
+    <key>OLLAMA_KV_CACHE_TYPE</key>
+    <string>q8_0</string>
+    <key>OLLAMA_MAX_LOADED_MODELS</key>
+    <string>1</string>
+    <key>OLLAMA_NO_CLOUD</key>
+    <string>1</string>
+    <key>OLLAMA_NUM_PARALLEL</key>
+    <string>1</string>
+    <key>LLAMA_ARG_FIT_TARGET</key>
+    <string>2048</string>
+  </dict>
+  <key>KeepAlive</key>
+  <true/>
+  <key>LimitLoadToSessionType</key>
+  <array>
+    <string>Aqua</string>
+    <string>Background</string>
+    <string>LoginWindow</string>
+    <string>StandardIO</string>
+    <string>System</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardErrorPath</key>
+  <string>{{ HOME }}/Library/Logs/local-ai/ollama.err.log</string>
+  <key>StandardOutPath</key>
+  <string>{{ HOME }}/Library/Logs/local-ai/ollama.out.log</string>
+  <key>ThrottleInterval</key>
+  <integer>5</integer>
+  <key>WorkingDirectory</key>
+  <string>/opt/homebrew/var</string>
+</dict>
+</plist>

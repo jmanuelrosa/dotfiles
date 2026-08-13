@@ -1,13 +1,24 @@
 {
   "collapseChangelog": false,
-  "defaultThinkingLevel": "xhigh",
+  "compaction": {
+    "enabled": true,
+    "keepRecentTokens": 10000,
+    "reserveTokens": 8192
+  },
+  "defaultThinkingLevel": "high",
   "doubleEscapeAction": "tree",
   "editorPaddingX": 2,
   "enableInstallTelemetry": false,
+  "enabledModels": [
+    "local/local-code-quality:32k",
+    "local/local-code-fast:32k",
+    "local/local-code-quality:64k",
+    "local/local-code-fast:64k"
+  ],
   "extensions": [],
   "followUpMode": "one-at-a-time",
   "hideThinkingBlock": true,
-  "lastChangelogVersion": "0.75.5",
+  "lastChangelogVersion": "0.84.1",
   "packages": [
     "npm:@plannotator/pi-extension",
     "git:github.com/earendil-works/pi-review"
@@ -20,5 +31,5 @@
   },
   "theme": "tokyo-night",
   "transport": "auto",
-  "treeFilterMode": "default",
+  "treeFilterMode": "default"
 }

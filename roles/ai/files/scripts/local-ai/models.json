@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "candidates": {
+    "qwen36": {
+      "label": "Qwen3.6 35B-A3B Q3_K_M",
+      "repository": "bartowski/Qwen_Qwen3.6-35B-A3B-GGUF",
+      "revision": "5c2410d71524f4f72b023ce8daf7a80528226d5f",
+      "file": "Qwen_Qwen3.6-35B-A3B-Q3_K_M.gguf",
+      "bytes": 17117951616,
+      "sha256": "17350b1355d32397cffe7d4b446fd9361dbb01aa26bbf41fc950aa595033794f",
+      "ollama": "local-qwen3.6-35b-a3b",
+      "reasoning": true,
+      "parameters": {
+        "temperature": "0.6",
+        "top_k": "20",
+        "top_p": "0.95",
+        "repeat_penalty": "1.0"
+      }
+    },
+    "glm47": {
+      "label": "GLM-4.7-Flash IQ4_XS",
+      "repository": "bartowski/zai-org_GLM-4.7-Flash-GGUF",
+      "revision": "464d07505b441959737cd04d900f047469614c8d",
+      "file": "zai-org_GLM-4.7-Flash-IQ4_XS.gguf",
+      "bytes": 16250044288,
+      "sha256": "e6472e66ad5671d72142ca5f304fbace0c771f706ae081ecbbc17b7a2bb6cc09",
+      "ollama": "local-glm-4.7-flash",
+      "reasoning": true,
+      "parameters": {
+        "temperature": "0.7",
+        "top_p": "1.0",
+        "min_p": "0.01",
+        "repeat_penalty": "1.0"
+      }
+    },
+    "devstral2": {
+      "label": "Devstral Small 2 24B Q4_K_M",
+      "source": "ollama",
+      "repository": "devstral-small-2:latest",
+      "revision": "24277f07f62db8f9cb68e9dfc679ea1818a7fbac47a50eff0a701d3f645b63c8",
+      "file": "sha256-c580819bed79c92d01a42227bd6d8fd66b9ec60d5329f5eb73f812f156af7807",
+      "bytes": 15177370240,
+      "sha256": "c580819bed79c92d01a42227bd6d8fd66b9ec60d5329f5eb73f812f156af7807",
+      "ollama": "local-devstral-small-2",
+      "reasoning": false,
+      "parameters": {
+        "temperature": "0.15",
+        "top_p": "1.0",
+        "repeat_penalty": "1.0"
+      }
+    }
+  }
+}

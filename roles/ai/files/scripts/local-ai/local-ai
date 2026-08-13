@@ -1,0 +1,1033 @@
+#!/usr/bin/env python3
+"""Install, benchmark, select, and diagnose the offline coding models.
+
+The immutable artifact catalog beside this executable is the source of truth. Model
+weights live outside the dotfiles checkout, while Ollama manifests and the benchmark
+selection are cheap, reproducible state. No normal operation contacts a model vendor;
+only the explicit `install` command downloads pinned GGUF artifacts from Hugging Face
+or the Ollama registry.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import plistlib
+import resource
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+EXIT_OK = 0
+EXIT_USAGE = 2
+EXIT_RUNTIME = 3
+EXIT_INTERRUPTED = 130
+LABEL = "com.jmanuelrosa.local-ai"
+OLLAMA_URL = "http://127.0.0.1:11434"
+ROOT = Path(__file__).resolve().parent
+MANIFEST = ROOT / "models.json"
+DATA = Path(
+    os.environ.get(
+        "LOCAL_AI_DATA_DIR",
+        Path.home() / "Library" / "Application Support" / "local-ai",
+    )
+)
+MODEL_DIR = DATA / "models"
+RESULTS_DIR = DATA / "benchmarks"
+SELECTION = DATA / "selection.json"
+
+
+def fail(message: str, code: int = EXIT_RUNTIME) -> int:
+    print(f"local-ai: {message}", file=sys.stderr)
+    return code
+
+
+def catalog() -> dict:
+    try:
+        parsed = json.loads(MANIFEST.read_text())
+    except (OSError, ValueError) as error:
+        raise RuntimeError(f"cannot read {MANIFEST}: {error}") from error
+    candidates = parsed.get("candidates")
+    if parsed.get("schema") != 1 or not isinstance(candidates, dict) or not candidates:
+        raise RuntimeError(f"invalid artifact catalog: {MANIFEST}")
+    required = {
+        "label",
+        "repository",
+        "revision",
+        "file",
+        "bytes",
+        "sha256",
+        "ollama",
+        "reasoning",
+    }
+    for key, model in candidates.items():
+        missing = required - model.keys()
+        if missing:
+            raise RuntimeError(
+                f"{key} is missing catalog fields: {', '.join(sorted(missing))}"
+            )
+    return parsed
+
+
+def chosen(keys: list[str], parsed: dict) -> list[str]:
+    available = parsed["candidates"]
+    keys = keys or [key for key in ("devstral2", "glm47", "qwen36") if key in available]
+    unknown = sorted(set(keys) - set(available))
+    if unknown:
+        raise RuntimeError(f"unknown candidate(s): {', '.join(unknown)}")
+    return keys
+
+
+def command(argv: list[str], **kwargs) -> subprocess.CompletedProcess:
+    return subprocess.run(argv, text=True, check=False, **kwargs)
+
+
+def api(
+    path: str, payload: dict | None = None, port: int = 11434, timeout: int = 10
+) -> dict:
+    data = json.dumps(payload).encode() if payload is not None else None
+    request = urllib.request.Request(
+        f"http://127.0.0.1:{port}{path}",
+        data=data,
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return json.load(response)
+
+
+def server_ready() -> bool:
+    try:
+        api("/api/version", timeout=2)
+        return True
+    except (OSError, ValueError, urllib.error.URLError):
+        return False
+
+
+def wait_for_server(seconds: int = 30) -> bool:
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        if server_ready():
+            return True
+        time.sleep(0.25)
+    return False
+
+
+def launch_domain() -> str:
+    return f"gui/{os.getuid()}"
+
+
+def launch_plist() -> Path:
+    return Path.home() / "Library" / "LaunchAgents" / f"{LABEL}.plist"
+
+
+def start_server() -> int:
+    if server_ready():
+        print("Ollama is ready on 127.0.0.1:11434")
+        return EXIT_OK
+    target = f"{launch_domain()}/{LABEL}"
+    status = command(["launchctl", "print", target], capture_output=True)
+    if status.returncode:
+        plist = launch_plist()
+        if not plist.is_file():
+            return fail(f"launch agent missing at {plist}; run the ai Ansible role")
+        launched = command(
+            ["launchctl", "bootstrap", launch_domain(), str(plist)], capture_output=True
+        )
+        if launched.returncode:
+            return fail(
+                launched.stderr.strip() or "could not load the Ollama launch agent"
+            )
+    else:
+        command(["launchctl", "kickstart", target], capture_output=True)
+    if not wait_for_server():
+        return fail(
+            "Ollama did not become ready; inspect ~/Library/Logs/local-ai/ollama.err.log"
+        )
+    print("Ollama is ready on 127.0.0.1:11434")
+    return EXIT_OK
+
+
+def stop_server() -> int:
+    stopped = command(
+        ["launchctl", "bootout", f"{launch_domain()}/{LABEL}"],
+        capture_output=True,
+    )
+    if stopped.returncode and "No such process" not in stopped.stderr:
+        return fail(
+            stopped.stderr.strip() or "could not unload the Ollama launch agent"
+        )
+    print("Ollama launch agent stopped")
+    return EXIT_OK
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(8 * 1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def artifact_url(model: dict) -> str:
+    repo = model["repository"]
+    revision = model["revision"]
+    filename = model["file"]
+    return f"https://huggingface.co/{repo}/resolve/{revision}/{filename}?download=true"
+
+
+def download(key: str, model: dict) -> Path:
+    MODEL_DIR.mkdir(parents=True, exist_ok=True)
+    destination = MODEL_DIR / model["file"]
+    aria_control = destination.with_name(destination.name + ".aria2")
+    if aria_control.is_file():
+        print(f"[{key}] resuming segmented download for {model['label']}")
+    elif destination.is_file():
+        size = destination.stat().st_size
+        if size == model["bytes"]:
+            actual = sha256(destination)
+            if actual == model["sha256"]:
+                print(f"[{key}] verified existing {destination.name}")
+                return destination
+            raise RuntimeError(
+                f"checksum mismatch for {destination}; move the bad file aside and rerun install"
+            )
+        if size > model["bytes"]:
+            raise RuntimeError(
+                f"oversized artifact at {destination}; move it aside and rerun install"
+            )
+        print(
+            f"[{key}] resuming {model['label']} at {size / 1e9:.1f} of {model['bytes'] / 1e9:.1f} GB"
+        )
+    else:
+        print(f"[{key}] downloading {model['label']} ({model['bytes'] / 1e9:.1f} GB)")
+    if shutil.which("aria2c"):
+        fetched = command(
+            [
+                "aria2c",
+                "--continue=true",
+                "--file-allocation=none",
+                "--max-connection-per-server=4",
+                "--min-split-size=64M",
+                "--split=4",
+                "--dir",
+                str(destination.parent),
+                "--out",
+                destination.name,
+                artifact_url(model),
+            ]
+        )
+    else:
+        fetched = command(
+            [
+                "curl",
+                "--fail",
+                "--location",
+                "--continue-at",
+                "-",
+                "--output",
+                str(destination),
+                artifact_url(model),
+            ]
+        )
+    if fetched.returncode:
+        raise RuntimeError(f"download failed for {key}; partial file kept for resume")
+    actual = sha256(destination)
+    if actual != model["sha256"]:
+        raise RuntimeError(f"checksum mismatch for downloaded {destination}")
+    print(f"[{key}] SHA-256 verified")
+    return destination
+
+
+def ollama_manifest(model: dict) -> Path:
+    name, _, tag = model["repository"].partition(":")
+    tag = tag or "latest"
+    return (
+        Path.home()
+        / ".ollama"
+        / "models"
+        / "manifests"
+        / "registry.ollama.ai"
+        / "library"
+        / name
+        / tag
+    )
+
+
+def pull_registry(key: str, model: dict) -> Path:
+    manifest = ollama_manifest(model)
+    if not manifest.is_file() or sha256(manifest) != model["revision"]:
+        print(
+            f"[{key}] pulling official {model['repository']} ({model['bytes'] / 1e9:.1f} GB)"
+        )
+        pulled = command(["ollama", "pull", model["repository"]])
+        if pulled.returncode:
+            raise RuntimeError(f"Ollama registry download failed for {key}")
+    if not manifest.is_file() or sha256(manifest) != model["revision"]:
+        raise RuntimeError(
+            f"registry manifest for {key} does not match the pinned revision"
+        )
+    blob = Path.home() / ".ollama" / "models" / "blobs" / model["file"]
+    if (
+        not blob.is_file()
+        or blob.stat().st_size != model["bytes"]
+        or sha256(blob) != model["sha256"]
+    ):
+        raise RuntimeError(
+            f"registry model blob for {key} failed size or SHA-256 verification"
+        )
+    print(f"[{key}] official manifest and model blob verified")
+    return blob
+
+
+def model_names() -> set[str]:
+    if not server_ready():
+        return set()
+    response = api("/api/tags")
+    return {row.get("name", "") for row in response.get("models", [])}
+
+
+def metal_ready() -> bool:
+    if shutil.which("llama-server") is None:
+        return False
+    devices = command(["llama-server", "--list-devices"], capture_output=True)
+    return devices.returncode == 0 and "Metal" in (devices.stdout + devices.stderr)
+
+
+def modelfile(model: dict, path: Path | str, context: int) -> str:
+    lines = [f"FROM {path}", f"PARAMETER num_ctx {context}"]
+    for name, value in model.get("parameters", {}).items():
+        lines.append(f"PARAMETER {name} {value}")
+    return "\n".join(lines) + "\n"
+
+
+def import_model(key: str, model: dict, path: Path) -> None:
+    installed = model_names()
+    base = model["repository"] if model.get("source") == "ollama" else path
+    for tag, context in (("32k", 32768), ("64k", 65536)):
+        name = f"{model['ollama']}:{tag}"
+        if name in installed:
+            print(f"[{key}] {name} already exists")
+            continue
+        DATA.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".Modelfile", dir=DATA, delete=False
+        ) as handle:
+            handle.write(modelfile(model, base, context))
+            definition = Path(handle.name)
+        try:
+            made = command(["ollama", "create", name, "--file", str(definition)])
+        finally:
+            definition.unlink(missing_ok=True)
+        if made.returncode:
+            raise RuntimeError(f"Ollama could not import {name}")
+
+
+def install(keys: list[str]) -> int:
+    if shutil.which("ollama") is None:
+        return fail("ollama is not installed; run the ai Ansible role")
+    if start_server():
+        return EXIT_RUNTIME
+    parsed = catalog()
+    for key in chosen(keys, parsed):
+        model = parsed["candidates"][key]
+        path = (
+            pull_registry(key, model)
+            if model.get("source") == "ollama"
+            else download(key, model)
+        )
+        import_model(key, model, path)
+    return EXIT_OK
+
+
+FIXTURES = {
+    "session": {
+        "src/session.ts": """export type Session = { userId: string; expiresAt: number };
+
+export function isSessionActive(session: Session, now = Date.now()): boolean {
+  if (!session.userId.trim()) return true;
+  return session.expiresAt <= now;
+}
+""",
+        "tests/session.test.ts": """import test from 'node:test';
+import assert from 'node:assert/strict';
+import { isSessionActive } from '../src/session.ts';
+
+test('valid future session is active', () => assert.equal(isSessionActive({userId: 'u1', expiresAt: 200}, 100), true));
+test('expired or boundary session is inactive', () => {
+  assert.equal(isSessionActive({userId: 'u1', expiresAt: 99}, 100), false);
+  assert.equal(isSessionActive({userId: 'u1', expiresAt: 100}, 100), false);
+});
+test('blank user is inactive', () => assert.equal(isSessionActive({userId: '  ', expiresAt: 200}, 100), false));
+""",
+        "prompt": "Fix the authentication/session bug. Inspect the repository, make the smallest correct TypeScript edit, and run the tests. Do not add dependencies.",
+    },
+    "state": {
+        "src/cart.ts": """export type Cart = Readonly<{ items: readonly string[]; coupon?: string }>;
+export type Action = { type: 'add'; sku: string } | { type: 'coupon'; code: string } | { type: 'unknown' };
+
+export function reduceCart(cart: Cart, action: Action): Cart {
+  const mutable = cart as { items: string[]; coupon?: string };
+  if (action.type === 'add') mutable.items.push(action.sku);
+  if (action.type === 'coupon') mutable.coupon = action.code.trim();
+  return { ...mutable };
+}
+""",
+        "tests/cart.test.ts": """import test from 'node:test';
+import assert from 'node:assert/strict';
+import { reduceCart } from '../src/cart.ts';
+
+test('add is immutable', () => {
+  const before = Object.freeze({items: Object.freeze(['a'])});
+  const after = reduceCart(before, {type: 'add', sku: 'b'});
+  assert.deepEqual(before.items, ['a']); assert.deepEqual(after.items, ['a', 'b']); assert.notEqual(after.items, before.items);
+});
+test('coupon is trimmed without mutation', () => {
+  const before = Object.freeze({items: Object.freeze([])}) as const;
+  assert.deepEqual(reduceCart(before, {type: 'coupon', code: ' SAVE '}), {items: [], coupon: 'SAVE'});
+});
+test('unknown action preserves identity', () => {
+  const before = Object.freeze({items: Object.freeze(['a'])});
+  assert.equal(reduceCart(before, {type: 'unknown'}), before);
+});
+""",
+        "prompt": "Repair the cart reducer so it is immutable and preserves identity for an unknown action. Inspect the code, make a focused TypeScript edit, and run the tests. Do not add dependencies.",
+    },
+    "accessibility": {
+        "src/render.ts": """export function renderSubmit(label: string, pending: boolean): string {
+  return `<div class="submit" onclick="submit()">${pending ? 'Working' : label}</div>`;
+}
+""",
+        "tests/render.test.ts": """import test from 'node:test';
+import assert from 'node:assert/strict';
+import { renderSubmit } from '../src/render.ts';
+
+test('renders a native submit control', () => assert.equal(renderSubmit('Save', false), '<button type="submit" class="submit">Save</button>'));
+test('pending state is announced and disabled', () => assert.equal(renderSubmit('Save', true), '<button type="submit" class="submit" disabled aria-busy="true">Working</button>'));
+test('escapes the label', () => assert.equal(renderSubmit('<Save & go>', false), '<button type="submit" class="submit">&lt;Save &amp; go&gt;</button>'));
+""",
+        "prompt": "Fix the server-rendered submit control for semantics, pending-state accessibility, and safe text output. Inspect the TypeScript, edit it without dependencies, and run the tests.",
+    },
+}
+
+
+def write_fixture(target: Path, task: dict) -> None:
+    (target / "package.json").write_text(
+        json.dumps(
+            {
+                "type": "module",
+                "scripts": {"test": "node --test tests/*.test.ts"},
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    for relative, content in task.items():
+        if relative == "prompt":
+            continue
+        path = target / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+
+
+def usage_tokens(event: dict) -> int:
+    message = event.get("message") or {}
+    usage = message.get("usage") or {}
+    return int(
+        usage.get("output", usage.get("outputTokens", usage.get("output_tokens", 0)))
+        or 0
+    )
+
+
+def parse_events(output: str) -> dict:
+    events = []
+    for line in output.splitlines():
+        try:
+            events.append(json.loads(line))
+        except ValueError:
+            continue
+    tools = [event for event in events if event.get("type") == "tool_execution_start"]
+    ends = [event for event in events if event.get("type") == "tool_execution_end"]
+    messages = [event for event in events if event.get("type") == "message_end"]
+    names = [event.get("toolName", "") for event in tools]
+    api_errors = sum(
+        (event.get("message") or {}).get("stopReason") == "error"
+        or bool((event.get("message") or {}).get("errorMessage"))
+        for event in messages
+    )
+    return {
+        "tool_calls": len(tools),
+        "tool_names": names,
+        "tool_errors": sum(bool(event.get("isError")) for event in ends),
+        "output_tokens": sum(usage_tokens(event) for event in messages),
+        "api_errors": api_errors,
+        "agent_end": any(event.get("type") == "agent_end" for event in events),
+    }
+
+
+def loaded_size() -> int:
+    try:
+        rows = api("/api/ps").get("models", [])
+        return max((int(row.get("size", 0)) for row in rows), default=0)
+    except (OSError, ValueError, urllib.error.URLError):
+        return 0
+
+
+def run_task(model_name: str, reasoning: bool, task_name: str, task: dict) -> dict:
+    with tempfile.TemporaryDirectory(prefix=f"local-ai-{task_name}-") as raw:
+        target = Path(raw)
+        write_fixture(target, task)
+        started = time.monotonic()
+        environment = os.environ.copy()
+        environment.update({"PI_OFFLINE": "1", "PI_TELEMETRY": "0"})
+        try:
+            result = command(
+                [
+                    "pi",
+                    "--offline",
+                    "--mode",
+                    "json",
+                    "--no-session",
+                    "--approve",
+                    "--no-extensions",
+                    "--no-skills",
+                    "--no-prompt-templates",
+                    "--no-context-files",
+                    "--provider",
+                    "local",
+                    "--model",
+                    model_name,
+                    "--thinking",
+                    "medium" if reasoning else "off",
+                    task["prompt"],
+                ],
+                cwd=target,
+                capture_output=True,
+                env=environment,
+                timeout=600,
+            )
+            timed_out = False
+        except subprocess.TimeoutExpired as error:
+            result = subprocess.CompletedProcess(
+                error.cmd, 124, error.stdout or "", error.stderr or ""
+            )
+            timed_out = True
+        elapsed = time.monotonic() - started
+        parsed = parse_events(result.stdout)
+        tested = command(["npm", "test"], cwd=target, capture_output=True)
+        parsed.update(
+            {
+                "task": task_name,
+                "elapsed_seconds": round(elapsed, 2),
+                "pi_exit": result.returncode,
+                "timed_out": timed_out,
+                "tests_passed": tested.returncode == 0,
+                "test_output": (tested.stdout + tested.stderr)[-2000:],
+                "pi_output": result.stdout[-2000:],
+                "pi_stderr": result.stderr[-2000:],
+                "loaded_bytes": loaded_size(),
+            }
+        )
+        tokens = parsed["output_tokens"]
+        parsed["tokens_per_second"] = round(tokens / elapsed, 2) if tokens else 0.0
+        return parsed
+
+
+def score(rows: dict[str, dict]) -> None:
+    throughputs = {key: value["tokens_per_second"] for key, value in rows.items()}
+    memories = {
+        key: value["loaded_bytes"]
+        for key, value in rows.items()
+        if value["loaded_bytes"]
+    }
+    fastest = max(throughputs.values(), default=1) or 1
+    smallest = min(memories.values(), default=1) or 1
+    for row in rows.values():
+        tasks = row["tasks"]
+        correctness = 50 * sum(item["tests_passed"] for item in tasks) / len(tasks)
+        tool_units = []
+        for item in tasks:
+            names = item["tool_names"]
+            tool_units.append(
+                sum(
+                    (
+                        bool(names),
+                        bool({"edit", "write"} & set(names)),
+                        "bash" in names,
+                        item["agent_end"] and not item["api_errors"],
+                    )
+                )
+                / 4
+            )
+        tool_score = 25 * sum(tool_units) / len(tool_units)
+        speed_score = 15 * row["tokens_per_second"] / fastest
+        memory_score = 10 * smallest / row["loaded_bytes"] if row["loaded_bytes"] else 0
+        row.update(
+            {
+                "correctness_score": round(correctness, 2),
+                "tool_score": round(tool_score, 2),
+                "speed_score": round(speed_score, 2),
+                "memory_score": round(memory_score, 2),
+                "score": round(
+                    correctness + tool_score + speed_score + memory_score, 2
+                ),
+            "accepted": all(item["tests_passed"] for item in tasks)
+            and all(item["pi_exit"] == 0 and not item["api_errors"] for item in tasks)
+            and tool_score >= 18.75,
+            }
+        )
+
+
+def alias(source: str, destination: str) -> None:
+    copied = command(["ollama", "cp", source, destination], capture_output=True)
+    if copied.returncode:
+        raise RuntimeError(
+            copied.stderr.strip() or f"could not alias {source} as {destination}"
+        )
+
+
+def select_models(
+    quality: str,
+    fast: str,
+    parsed: dict,
+    results_path: Path | None = None,
+    evaluated: list[str] | None = None,
+) -> None:
+    for profile, key in (("quality", quality), ("fast", fast)):
+        model = parsed["candidates"][key]
+        for context in ("32k", "64k"):
+            alias(f"{model['ollama']}:{context}", f"local-code-{profile}:{context}")
+    DATA.mkdir(parents=True, exist_ok=True)
+    selection = {
+        "selected_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "quality": quality,
+        "fast": fast,
+        "benchmark": str(results_path) if results_path else None,
+        "evaluated": evaluated,
+        "complete_bakeoff": set(evaluated or []) == set(parsed["candidates"]),
+    }
+    SELECTION.write_text(json.dumps(selection, indent=2) + "\n")
+
+
+def benchmark(keys: list[str]) -> int:
+    if shutil.which("pi") is None:
+        return fail("pi is not installed")
+    if start_server():
+        return EXIT_RUNTIME
+    parsed = catalog()
+    keys = chosen(keys, parsed)
+    missing = [
+        key
+        for key in keys
+        if f"{parsed['candidates'][key]['ollama']}:32k" not in model_names()
+    ]
+    if missing:
+        return fail(f"install these candidates first: {', '.join(missing)}")
+    results: dict[str, dict] = {}
+    for key in keys:
+        model = parsed["candidates"][key]
+        name = f"{model['ollama']}:32k"
+        print(f"[{key}] benchmarking {model['label']}", flush=True)
+        tasks = []
+        for task_name, task in FIXTURES.items():
+            print(f"[{key}]   {task_name}...", flush=True)
+            item = run_task(name, model["reasoning"], task_name, task)
+            tasks.append(item)
+            verdict = "pass" if item["tests_passed"] else "FAIL"
+            print(
+                f"[{key}]   {task_name}: {verdict}, {item['elapsed_seconds']:.1f}s, {item['tool_calls']} tool calls",
+                flush=True,
+            )
+        output_tokens = sum(item["output_tokens"] for item in tasks)
+        elapsed = sum(item["elapsed_seconds"] for item in tasks)
+        results[key] = {
+            "label": model["label"],
+            "tasks": tasks,
+            "output_tokens": output_tokens,
+            "elapsed_seconds": round(elapsed, 2),
+            "tokens_per_second": round(output_tokens / elapsed, 2)
+            if output_tokens
+            else 0,
+            "loaded_bytes": max((item["loaded_bytes"] for item in tasks), default=0),
+        }
+        command(["ollama", "stop", name], capture_output=True)
+    score(results)
+    accepted = [key for key in keys if results[key]["accepted"]]
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    result_path = RESULTS_DIR / time.strftime("%Y%m%d-%H%M%S.json")
+    document = {
+        "schema": 1,
+        "accelerator": "metal" if metal_ready() else "cpu",
+        "weights": {"correctness": 50, "tools": 25, "throughput": 15, "memory": 10},
+        "models": results,
+    }
+    result_path.write_text(json.dumps(document, indent=2) + "\n")
+    print("\nmodel       score  tests  tools  tok/s  loaded")
+    for key in sorted(keys, key=lambda item: results[item]["score"], reverse=True):
+        row = results[key]
+        passed = sum(item["tests_passed"] for item in row["tasks"])
+        print(
+            f"{key:<11} {row['score']:>5.1f}  {passed}/{len(row['tasks']):<3}  {row['tool_score']:>5.1f}  {row['tokens_per_second']:>5.1f}  {row['loaded_bytes'] / 1e9:>5.1f} GB"
+        )
+    print(f"Full results: {result_path}")
+    if not accepted:
+        return fail(
+            "no finalist passed every task with a complete tool loop; aliases were not changed"
+        )
+    if not metal_ready():
+        return fail(
+            "Metal is unavailable in this process; correctness results were saved but aliases were not changed"
+        )
+    quality = max(accepted, key=lambda key: results[key]["score"])
+    threshold = results[quality]["score"] - 15
+    fast_pool = [key for key in accepted if results[key]["score"] >= threshold]
+    fast = max(fast_pool, key=lambda key: results[key]["tokens_per_second"])
+    select_models(quality, fast, parsed, result_path, keys)
+    print(f"Selected quality={quality}; fast={fast}")
+    return EXIT_OK
+
+
+def completion(port: int, model: str, payload: dict) -> tuple[dict, float]:
+    request = dict(payload)
+    request["model"] = model
+    started = time.monotonic()
+    response = api("/v1/chat/completions", request, port=port, timeout=300)
+    return response, time.monotonic() - started
+
+
+def tool_succeeded(response: dict) -> bool:
+    try:
+        calls = response["choices"][0]["message"].get("tool_calls") or []
+        return bool(
+            calls and calls[0].get("function", {}).get("name") == "inspect_file"
+        )
+    except (IndexError, KeyError, TypeError):
+        return False
+
+
+def output_count(response: dict) -> int:
+    usage = response.get("usage") or {}
+    return int(usage.get("completion_tokens", usage.get("output_tokens", 0)) or 0)
+
+
+def compare_runtime(key: str | None) -> int:
+    if start_server():
+        return EXIT_RUNTIME
+    if not metal_ready():
+        return fail(
+            "Metal is unavailable; a CPU runtime comparison would be misleading"
+        )
+    parsed = catalog()
+    if key is None:
+        if not SELECTION.is_file():
+            return fail("run benchmark first or name a candidate")
+        key = json.loads(SELECTION.read_text())["quality"]
+    chosen([key], parsed)
+    model = parsed["candidates"][key]
+    source = (
+        Path.home() / ".ollama" / "models" / "blobs" / model["file"]
+        if model.get("source") == "ollama"
+        else MODEL_DIR / model["file"]
+    )
+    ollama_model = f"{model['ollama']}:32k"
+    if not source.is_file() or ollama_model not in model_names():
+        return fail(f"{key} is not fully installed")
+    speed_payload = {
+        "messages": [
+            {
+                "role": "user",
+                "content": "In about 180 words, explain how TypeScript discriminated unions make reducer state transitions safer. Include one compact code example.",
+            }
+        ],
+        "temperature": 0,
+        "max_tokens": 320,
+        "stream": False,
+    }
+    tool_payload = {
+        "messages": [
+            {
+                "role": "user",
+                "content": "Call inspect_file for package.json. Do not answer in prose.",
+            }
+        ],
+        "temperature": 0,
+        "max_tokens": 128,
+        "stream": False,
+        "tools": [
+            {
+                "type": "function",
+                "function": {
+                    "name": "inspect_file",
+                    "description": "Read a repository file",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"path": {"type": "string"}},
+                        "required": ["path"],
+                    },
+                },
+            }
+        ],
+        "tool_choice": "auto",
+    }
+    print(f"Comparing Ollama and llama.cpp for {model['label']}")
+    completion(
+        11434,
+        ollama_model,
+        {
+            "messages": [{"role": "user", "content": "Reply OK"}],
+            "max_tokens": 8,
+            "stream": False,
+        },
+    )
+    ollama_response, ollama_elapsed = completion(11434, ollama_model, speed_payload)
+    ollama_tool, _ = completion(11434, ollama_model, tool_payload)
+    ollama_memory = loaded_size()
+    command(["ollama", "stop", ollama_model], capture_output=True)
+
+    server = subprocess.Popen(
+        [
+            "llama-server",
+            "--model",
+            str(source),
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "11435",
+            "--ctx-size",
+            "32768",
+            "--parallel",
+            "1",
+            "--n-gpu-layers",
+            "all",
+            "--flash-attn",
+            "on",
+            "--cache-type-k",
+            "q8_0",
+            "--cache-type-v",
+            "q8_0",
+            "--jinja",
+            "--metrics",
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        deadline = time.monotonic() + 300
+        while time.monotonic() < deadline:
+            if server.poll() is not None:
+                return fail("llama-server exited while loading the model")
+            try:
+                api("/health", port=11435, timeout=2)
+                break
+            except (OSError, ValueError, urllib.error.URLError):
+                time.sleep(0.5)
+        else:
+            return fail("llama-server did not become ready in five minutes")
+        completion(
+            11435,
+            model["file"],
+            {
+                "messages": [{"role": "user", "content": "Reply OK"}],
+                "max_tokens": 8,
+                "stream": False,
+            },
+        )
+        direct_response, direct_elapsed = completion(
+            11435, model["file"], speed_payload
+        )
+        direct_tool, _ = completion(11435, model["file"], tool_payload)
+    finally:
+        server.terminate()
+        try:
+            server.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            server.kill()
+            server.wait()
+    direct_memory = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+    ollama_tps = output_count(ollama_response) / ollama_elapsed if ollama_elapsed else 0
+    direct_tps = output_count(direct_response) / direct_elapsed if direct_elapsed else 0
+    result = {
+        "candidate": key,
+        "ollama": {
+            "tokens_per_second": round(ollama_tps, 2),
+            "tool_call": tool_succeeded(ollama_tool),
+            "loaded_bytes": ollama_memory,
+        },
+        "llama_cpp": {
+            "tokens_per_second": round(direct_tps, 2),
+            "tool_call": tool_succeeded(direct_tool),
+            "loaded_bytes": direct_memory,
+        },
+    }
+    result["direct_speedup_percent"] = (
+        round((direct_tps / ollama_tps - 1) * 100, 2) if ollama_tps else 0
+    )
+    result["recommendation"] = (
+        "llama.cpp"
+        if (
+            result["direct_speedup_percent"] >= 15
+            and result["llama_cpp"]["tool_call"] == result["ollama"]["tool_call"]
+            and (not ollama_memory or direct_memory <= ollama_memory)
+        )
+        else "ollama"
+    )
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    path = RESULTS_DIR / time.strftime("runtime-%Y%m%d-%H%M%S.json")
+    path.write_text(json.dumps(result, indent=2) + "\n")
+    print(json.dumps(result, indent=2))
+    print(f"Full result: {path}")
+    return EXIT_OK
+
+
+def doctor() -> int:
+    parsed = catalog()
+    failures = 0
+    checks = []
+    for executable in ("ollama", "llama-server", "pi", "node"):
+        path = shutil.which(executable)
+        checks.append((executable, bool(path), path or "not found"))
+    checks.append(("loopback server", server_ready(), OLLAMA_URL))
+    checks.append(("Metal accelerator", metal_ready(), "llama-server device discovery"))
+    policy = Path.home() / ".ollama" / "server.json"
+    try:
+        offline = json.loads(policy.read_text()).get("disable_ollama_cloud") is True
+    except (OSError, ValueError):
+        offline = False
+    checks.append(("cloud disabled", offline, str(policy)))
+    plist = launch_plist()
+    try:
+        values = plistlib.loads(plist.read_bytes()).get("EnvironmentVariables", {})
+        hardened = (
+            values.get("OLLAMA_HOST") == "127.0.0.1:11434"
+            and values.get("OLLAMA_NO_CLOUD") == "1"
+        )
+    except (OSError, ValueError):
+        hardened = False
+    checks.append(("launch policy", hardened, str(plist)))
+    names = model_names()
+    for alias_name in (
+        "local-code-quality:32k",
+        "local-code-quality:64k",
+        "local-code-fast:32k",
+        "local-code-fast:64k",
+    ):
+        checks.append((alias_name, alias_name in names, "Ollama alias"))
+    for name, okay, detail in checks:
+        print(f"[{'ok' if okay else 'MISS'}] {name}: {detail}")
+        failures += not okay
+    if SELECTION.is_file():
+        print(f"selection: {SELECTION.read_text().strip()}")
+    else:
+        print("selection: benchmark has not selected aliases yet")
+    print("\nPinned candidates:")
+    for key, model in parsed["candidates"].items():
+        print(f"  {key:<10} {model['label']}")
+    return EXIT_OK if not failures else EXIT_RUNTIME
+
+
+def list_catalog() -> int:
+    parsed = catalog()
+    installed = model_names()
+    for key, model in parsed["candidates"].items():
+        yes = f"{model['ollama']}:32k" in installed
+        print(
+            f"{key:<10} {'installed' if yes else 'missing':<10} {model['bytes'] / 1e9:>4.1f} GB  {model['label']}"
+        )
+    return EXIT_OK
+
+
+def run_pi(profile: str, context: str, extra: list[str]) -> int:
+    if start_server():
+        return EXIT_RUNTIME
+    model = f"local/local-code-{profile}:{context}"
+    environment = os.environ.copy()
+    environment.update({"PI_OFFLINE": "1", "PI_TELEMETRY": "0"})
+    if extra and extra[0] == "--":
+        extra = extra[1:]
+    return command(
+        ["pi", "--offline", "--model", model, *extra], env=environment
+    ).returncode
+
+
+def parser() -> argparse.ArgumentParser:
+    cli = argparse.ArgumentParser(prog="local-ai", description=__doc__)
+    actions = cli.add_subparsers(dest="action", required=True)
+    actions.add_parser("catalog", help="show pinned finalists and installation state")
+    actions.add_parser("start", help="start the loopback-only Ollama launch agent")
+    actions.add_parser("stop", help="stop the Ollama launch agent")
+    actions.add_parser("doctor", help="verify the runtime, offline policy, and aliases")
+    install_parser = actions.add_parser(
+        "install", help="download, verify, and import finalists"
+    )
+    install_parser.add_argument(
+        "candidates", nargs="*", help="qwen36, glm47, devstral2; defaults to all"
+    )
+    benchmark_parser = actions.add_parser(
+        "benchmark", help="run the TypeScript agent bake-off and choose aliases"
+    )
+    benchmark_parser.add_argument(
+        "candidates", nargs="*", help="defaults to all installed finalists"
+    )
+    runtime_parser = actions.add_parser(
+        "compare-runtime", help="compare Ollama with direct llama.cpp for a finalist"
+    )
+    runtime_parser.add_argument(
+        "candidate", nargs="?", help="defaults to the selected quality model"
+    )
+    select_parser = actions.add_parser(
+        "select", help="manually point the stable aliases at installed finalists"
+    )
+    select_parser.add_argument("quality")
+    select_parser.add_argument("fast")
+    pi_parser = actions.add_parser(
+        "pi", help="run Pi in enforced offline mode with a selected profile"
+    )
+    pi_parser.add_argument(
+        "profile", choices=("quality", "fast"), nargs="?", default="quality"
+    )
+    pi_parser.add_argument("context", choices=("32k", "64k"), nargs="?", default="32k")
+    pi_parser.add_argument("extra", nargs=argparse.REMAINDER)
+    return cli
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parser().parse_args(argv)
+    try:
+        if args.action == "catalog":
+            return list_catalog()
+        if args.action == "start":
+            return start_server()
+        if args.action == "stop":
+            return stop_server()
+        if args.action == "doctor":
+            return doctor()
+        if args.action == "install":
+            return install(args.candidates)
+        if args.action == "benchmark":
+            return benchmark(args.candidates)
+        if args.action == "compare-runtime":
+            return compare_runtime(args.candidate)
+        if args.action == "select":
+            parsed = catalog()
+            keys = chosen([args.quality, args.fast], parsed)
+            select_models(keys[0], keys[1], parsed)
+            return EXIT_OK
+        if args.action == "pi":
+            return run_pi(args.profile, args.context, args.extra)
+    except RuntimeError as error:
+        return fail(str(error))
+    except KeyboardInterrupt:
+        return fail(
+            "interrupted; partial downloads were kept for resume", EXIT_INTERRUPTED
+        )
+    return fail("unknown action", EXIT_USAGE)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

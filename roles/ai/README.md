@@ -1,13 +1,18 @@
 # ai
 
-Installs and configures AI tooling: Claude Code, Gemini CLI, Pi (mariozechner), ChatGPT desktop, CodexBar.
+Installs and configures AI tooling: Claude Code, Gemini CLI, Pi (mariozechner), local
+Ollama/llama.cpp coding models, ChatGPT desktop, and CodexBar.
 
 ## What it does
 
-- Installs gemini-cli, pi-coding-agent, and casks for ChatGPT/Claude/Claude Code/Cursor/CodexBar via `BREW_PACKAGES`.
+- Installs gemini-cli, pi-coding-agent, Ollama, llama.cpp, and casks for ChatGPT/Claude/Claude Code/Cursor/CodexBar via `BREW_PACKAGES`.
 - Symlinks per-tool configs into `~/.claude/`, `~/.gemini/`, `~/.pi/agent/`.
 - Symlinks `files/claude/skills/` into `~/.pi/agent/skills/` so Claude skills are reusable from the Pi agent.
-- Symlinks each tool named in `AI_SCRIPTS` into `~/.local/bin/`, from `files/scripts/<name>/<name>`. Two today, `claude-kit` and `tokencost`, both of which read only Claude Code's own trees: `weekly-recap` belongs to the `work` role, whose Jira, GitHub and GitLab accounts it actually queries.
+- Symlinks each tool named in `AI_SCRIPTS` into `~/.local/bin/`, from `files/scripts/<name>/<name>`. `local-ai` owns verified model installation, benchmarking, stable Pi aliases, and runtime diagnostics; `claude-kit` and `tokencost` manage Claude-specific artifacts and transcripts.
+- Runs an Ollama launch agent bound to `127.0.0.1`, with cloud features disabled,
+  Flash Attention, Q8 KV cache, one loaded model, and 32K default context. Pi defaults
+  to the benchmark-selected `local-code-quality:32k`; 64K and fast profiles are
+  explicit choices. See `files/scripts/local-ai/README.md`.
 - `tokencost` reports what a stretch of Claude Code work cost and how much context it used, read back off the session transcripts under `~/.claude/projects/`. It buckets by the `attributionSkill` on each record, so a skill or a subagent can be priced on its own: `tokencost <project>` for cost per bucket, `--sessions` for one row per session, `--context` for the peak and final context each session and bucket reached, `--json` for all of it at once.
 - Runs `claude-kit sync`, which links every artifact tagged `global` into `~/.claude/skills/` and `~/.claude/agents/` so it is available to Claude Code in every project without a per-project `add`, and **unlinks** any link there that is no longer in the derived set. Those directories are role-owned: what belongs in them is decided by the `global` group tag, not by where you ran a command from. Under `make check` the task passes `--dry-run`, so a check reports what it would change without changing it.
 
@@ -15,7 +20,9 @@ Installs and configures AI tooling: Claude Code, Gemini CLI, Pi (mariozechner), 
 
 ## Vars
 
-- `BREW_PACKAGES` (defaults/main.yml) — taps (`steipete/tap`), formulas (gemini-cli, pi-coding-agent), casks (chatgpt, claude, claude-code, cursor, codexbar).
+- `BREW_PACKAGES` (defaults/main.yml) — taps (`steipete/tap`), formulas (aria2,
+  gemini-cli, pi-coding-agent, ollama, llama.cpp), casks (chatgpt, claude, claude-code, cursor,
+  codexbar).
 - **There is no var for the global set, and nothing to maintain by hand.** `claude-kit sync` derives it from the `global` group tag in `skill-registry.json`, `agent-registry.json` and the plugin manifests, then expands the skills by one level of declared dependencies, which is why `~/.claude/skills/` holds more than the tagged set (`grilling` and `jira` arrive that way). Tag an entry `global` to add it. This role once derived the same set itself, in about 130 lines of Jinja; it is now one `command` task, because the tool already had to compute the set to answer "does this need `--global`?" and two copies of that rule drifted.
 
 ## Notes

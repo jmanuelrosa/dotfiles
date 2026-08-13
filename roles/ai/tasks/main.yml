@@ -43,8 +43,55 @@
     - "{{ HOME }}/.claude/skills"
     - "{{ HOME }}/.claude/agents"
     - "{{ HOME }}/.local/bin"
+    - "{{ HOME }}/.ollama"
     - "{{ HOME }}/.pi/agent"
+    - "{{ HOME }}/.pi/agent/themes"
+    - "{{ HOME }}/Library/LaunchAgents"
+    - "{{ HOME }}/Library/Logs/local-ai"
     - "{{ HOME }}/Library/Application Support/rtk"
+
+- name: Symlink the offline Ollama server policy
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/ollama/server.json"
+    dest: "{{ HOME }}/.ollama/server.json"
+    state: link
+    force: true
+
+- name: Install the local AI launch agent
+  ansible.builtin.template:
+    src: com.jmanuelrosa.local-ai.plist.j2
+    dest: "{{ HOME }}/Library/LaunchAgents/com.jmanuelrosa.local-ai.plist"
+    mode: "0644"
+  register: local_ai_launch_agent
+
+# launchd caches a job's environment at bootstrap, so a changed plist must be
+# booted out before it is loaded again. Both commands are skipped under --check:
+# the template diff is the useful output there and a dry run must not start services.
+- name: Check whether the local AI launch agent is loaded
+  ansible.builtin.command:
+    cmd: "launchctl print gui/{{ ansible_user_uid }}/com.jmanuelrosa.local-ai"
+  register: local_ai_launch_agent_status
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: not ansible_check_mode
+
+- name: Unload a changed local AI launch agent
+  ansible.builtin.command:
+    cmd: "launchctl bootout gui/{{ ansible_user_uid }}/com.jmanuelrosa.local-ai"
+  when:
+    - not ansible_check_mode
+    - local_ai_launch_agent is changed
+    - local_ai_launch_agent_status.rc == 0
+  changed_when: true
+
+- name: Load the local AI launch agent
+  ansible.builtin.command:
+    cmd: "launchctl bootstrap gui/{{ ansible_user_uid }} {{ HOME }}/Library/LaunchAgents/com.jmanuelrosa.local-ai.plist"
+  when:
+    - not ansible_check_mode
+    - local_ai_launch_agent is changed or local_ai_launch_agent_status.rc != 0
+  changed_when: true
 
 - name: Symlink gemini config
   ansible.builtin.file:
@@ -171,6 +218,15 @@
     - pi/SYSTEM.md
     # Pi reads Claude's skills directly rather than keeping a second copy.
     - claude/skills
+
+- name: Symlink pi themes
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/pi/themes/{{ item | basename }}"
+    dest: "{{ HOME }}/.pi/agent/themes/{{ item | basename }}"
+    state: link
+    force: true
+  with_fileglob:
+    - "{{ role_path }}/files/pi/themes/*.json"
 
 # rtk ignores XDG_CONFIG_HOME and only reads the macOS Application Support path.
 - name: Symlink rtk config
