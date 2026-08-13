@@ -6,6 +6,7 @@ Installs and configures AI tooling: Claude Code, Gemini CLI, Pi (mariozechner), 
 
 - Installs gemini-cli, pi-coding-agent, and casks for ChatGPT/Claude/Claude Code/Cursor/CodexBar via `BREW_PACKAGES`.
 - Symlinks per-tool configs into `~/.claude/`, `~/.gemini/`, `~/.pi/agent/`.
+- Symlinks custom Pi themes into `~/.pi/agent/themes/`.
 - Symlinks `files/claude/skills/` into `~/.pi/agent/skills/` so Claude skills are reusable from the Pi agent.
 - Symlinks each tool named in `AI_SCRIPTS` into `~/.local/bin/`, from `files/scripts/<name>/<name>`. Two today, `claude-kit` and `tokencost`, both of which read only Claude Code's own trees: `weekly-recap` belongs to the `work` role, whose Jira, GitHub and GitLab accounts it actually queries.
 - `tokencost` reports what a stretch of Claude Code work cost and how much context it used, read back off the session transcripts under `~/.claude/projects/`. It buckets by the `attributionSkill` on each record, so a skill or a subagent can be priced on its own: `tokencost <project>` for cost per bucket, `--sessions` for one row per session, `--context` for the peak and final context each session and bucket reached, `--json` for all of it at once.
