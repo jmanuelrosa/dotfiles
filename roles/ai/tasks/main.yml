@@ -44,6 +44,7 @@
     - "{{ HOME }}/.claude/agents"
     - "{{ HOME }}/.local/bin"
     - "{{ HOME }}/.pi/agent"
+    - "{{ HOME }}/.pi/agent/themes"
     - "{{ HOME }}/Library/Application Support/rtk"
 
 - name: Symlink gemini config
@@ -171,6 +172,15 @@
     - pi/SYSTEM.md
     # Pi reads Claude's skills directly rather than keeping a second copy.
     - claude/skills
+- name: Symlink pi themes
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/pi/themes/{{ item | basename }}"
+    dest: "{{ HOME }}/.pi/agent/themes/{{ item | basename }}"
+    state: link
+    force: true
+  with_fileglob:
+    - "{{ role_path }}/files/pi/themes/*.json"
+
 
 # rtk ignores XDG_CONFIG_HOME and only reads the macOS Application Support path.
 - name: Symlink rtk config
