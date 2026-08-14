@@ -17,15 +17,23 @@
     "openai-codex/gpt-5.6-luna",
     "grok-4.6",
     "grok-4.5",
-    "grok-build"
+    "grok-build",
+    "cursor/auto",
+    "cursor/grok-4.6",
+    "cursor/composer-2-5",
+    "cursor/claude-opus-5",
+    "cursor/gpt-5.6-sol",
+    "cursor/claude-fable-5",
+    "cursor/grok-4.5"
   ],
   "extensions": [],
   "followUpMode": "one-at-a-time",
   "hideThinkingBlock": true,
-  "lastChangelogVersion": "0.75.5",
+  "lastChangelogVersion": "0.84.1",
   "packages": [
-    "npm:@plannotator/pi-extension",
-    "git:github.com/earendil-works/pi-review"
+    "git:github.com/earendil-works/pi-review",
+    "npm:pi-cursor-sdk",
+    "npm:pi-cc-patch"
   ],
   "quietStartup": true,
   "showHardwareCursor": true,
@@ -33,7 +41,7 @@
   "terminal": {
     "showTerminalProgress": true
   },
-  "theme": "tokyo-night",
+  "theme": "solarized-dark",
   "transport": "auto",
-  "treeFilterMode": "default",
+  "treeFilterMode": "default"
 }

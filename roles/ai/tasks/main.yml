@@ -45,6 +45,7 @@
     - "{{ HOME }}/.local/bin"
     - "{{ HOME }}/.pi/agent"
     - "{{ HOME }}/.pi/agent/themes"
+    - "{{ HOME }}/.pi/agent/extensions"
     - "{{ HOME }}/Library/Application Support/rtk"
 
 - name: Symlink gemini config
@@ -64,8 +65,20 @@
     force: true
   loop:
     - settings.json
-    - CLAUDE.md
     - statusline.sh
+
+# AGENTS.md is the one agent-neutral instructions file, and each agent reads it under the
+# name it expects: Claude Code only ever loads ~/.claude/CLAUDE.md, Pi only ever loads
+# ~/.pi/agent/AGENTS.md. Its own task rather than an entry in the loop above, because that
+# loop derives the destination from the source name and here the two differ. The
+# Claude-only mechanics moved to rules/claude.md, which the rules glob below links and
+# which loads at launch with the same priority.
+- name: Symlink the shared global instructions as claude's CLAUDE.md
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/claude/AGENTS.md"
+    dest: "{{ HOME }}/.claude/CLAUDE.md"
+    state: link
+    force: true
 
 # Globbed for the same reason as the hooks, and linked file by file rather than as a
 # directory: the documented symlink support in .claude/rules/ covers links placed
@@ -170,8 +183,11 @@
     - pi/settings.json
     - pi/models.json
     - pi/SYSTEM.md
-    # Pi reads Claude's skills directly rather than keeping a second copy.
+    # Pi reads Claude's skills and the shared instructions directly rather than keeping a
+    # second copy. AGENTS.md is Pi's one global context file, and the basename rule above
+    # lands it at the name Pi expects, so this needs no task of its own.
     - claude/skills
+    - claude/AGENTS.md
 - name: Symlink pi themes
   ansible.builtin.file:
     src: "{{ role_path }}/files/pi/themes/{{ item | basename }}"
@@ -180,6 +196,19 @@
     force: true
   with_fileglob:
     - "{{ role_path }}/files/pi/themes/*.json"
+
+# Globbed for the same reason as the claude hooks: every extension here is meant to be
+# active, and pi auto-discovers whatever lands in this directory, so there is no
+# settings.json entry to keep in step. guardrails.ts resolves its own symlink to find the
+# claude hooks it drives, which is what lets it live under files/pi/ and still reach them.
+- name: Symlink pi extensions
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/pi/extensions/{{ item | basename }}"
+    dest: "{{ HOME }}/.pi/agent/extensions/{{ item | basename }}"
+    state: link
+    force: true
+  with_fileglob:
+    - "{{ role_path }}/files/pi/extensions/*.ts"
 
 
 # rtk ignores XDG_CONFIG_HOME and only reads the macOS Application Support path.
