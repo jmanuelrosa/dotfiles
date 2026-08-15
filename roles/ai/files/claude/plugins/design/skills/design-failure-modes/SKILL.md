@@ -4,7 +4,8 @@ description: >-
   Failure-mode checklists for design-engineering work, split by domain.
   Use when implementing or reviewing changes that touch design tokens and theming,
   component APIs and variants, typography and spacing, color and contrast,
-  motion and animation, interaction states and focus, responsive layout, or CSS architecture.
+  motion and animation, interaction states and focus, responsive layout, CSS architecture,
+  or the craft and distinctiveness of a new surface.
   Read only the reference files whose triggers match the change.
 ---
 
@@ -27,9 +28,12 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | Breakpoints, container queries, grids, fluid sizing, viewport or zoom behavior | [references/responsive-and-layout.md](references/responsive-and-layout.md) |
 | Stylesheet structure, specificity, cascade layers, custom properties, z-index | [references/css-architecture.md](references/css-architecture.md) |
 | Error and empty states, error boundaries, fallback UI, preserving error-tracking wiring | [references/errors-and-resilience.md](references/errors-and-resilience.md) |
+| A new surface, a visual direction, a landing or marketing page, a re-skin, or any screen a user forms a first impression of | [references/craft-and-distinctiveness.md](references/craft-and-distinctiveness.md) |
 
 Most real changes fire two or three rows (a new component brief fires at least component-api-and-variants, interaction-states-and-focus, and color-and-contrast).
 Read all of them; skip the rest.
+
+The last row is the one that asks whether the result is any good rather than whether it is correct; every other reference here is a floor, and a design can clear all of them and still be the median answer.
 
 ## How each reference is structured
 
