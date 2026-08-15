@@ -182,12 +182,49 @@
   loop:
     - pi/settings.json
     - pi/models.json
-    - pi/SYSTEM.md
-    # Pi reads Claude's skills and the shared instructions directly rather than keeping a
-    # second copy. AGENTS.md is Pi's one global context file, and the basename rule above
-    # lands it at the name Pi expects, so this needs no task of its own.
-    - claude/skills
+    # APPEND_SYSTEM.md rather than SYSTEM.md: the latter *replaces* pi's own system
+    # prompt, so shipping one traded every harness instruction pi ships for the 30
+    # lines below it. This one is appended, so the rules add to the defaults.
+    - pi/APPEND_SYSTEM.md
+    # Pi reads the shared instructions directly rather than keeping a second copy.
+    # AGENTS.md is Pi's one global context file, and the basename rule above lands it at
+    # the name Pi expects, so this needs no task of its own.
     - claude/AGENTS.md
+
+# Pi's global skills are Claude's global skills, the same set and by the same
+# derivation, because ~/.claude/skills is what `claude-kit sync` above converges from
+# the `global` tag. Pointing at the repo instead gave pi every skill in the tree: 69
+# descriptions in every session's system prompt against Claude's 19, most of them
+# project-scoped, several `dependency_only` and one (`claude-api`) about a harness pi
+# is not. Tag an entry `global` to reach both, and note that a non-global skill still
+# reaches pi in any project that adds it, since `add` links `.agents/skills` there.
+#
+# Its own task because the source is outside the repo, and after the sync task so the
+# set is converged before pi is pointed at it; the directory itself is created by the
+# directories task above, so the link is never dangling even on a first run.
+- name: Point pi at the global claude skills
+  ansible.builtin.file:
+    src: "{{ HOME }}/.claude/skills"
+    dest: "{{ HOME }}/.pi/agent/skills"
+    state: link
+    force: true
+
+# The link the task above used to write. Left behind it is not inert: pi reads
+# ~/.pi/agent/SYSTEM.md as a replacement system prompt, and a dangling one is a
+# machine whose prompt depends on which run last touched it. Only a symlink is
+# removed, so a SYSTEM.md someone wrote by hand is theirs to keep.
+- name: Check for the superseded pi SYSTEM.md link
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.pi/agent/SYSTEM.md"
+    follow: false
+  register: pi_system_prompt
+
+- name: Remove the superseded pi SYSTEM.md link
+  ansible.builtin.file:
+    path: "{{ HOME }}/.pi/agent/SYSTEM.md"
+    state: absent
+  when: pi_system_prompt.stat.islnk | default(false)
+
 - name: Symlink pi themes
   ansible.builtin.file:
     src: "{{ role_path }}/files/pi/themes/{{ item | basename }}"
