@@ -44,7 +44,7 @@ Roles whose name does not tell you what is inside:
 | Role | Holds |
 |---|---|
 | [coreutils](roles/coreutils/) | Modern Unix replacements (bat, eza, fd, ripgrep, television, btop). **Not** the GNU `coreutils` package. Domain CLIs (awscli, gh, docker, lazygit) live in `apps` beside their configs |
-| [ai](roles/ai/) | Claude Code / Gemini / Pi tooling. Skills under `files/claude/skills/` are shared with Pi by symlink. `rtk` ships here and is opt-in per shell via `RTK_ENABLE` |
+| [ai](roles/ai/) | Claude Code / Gemini / Pi tooling. Pi runs over Claude's payload rather than a copy of it, described in [the pi harness](docs/internals/pi-harness.md). `rtk` ships here and is opt-in per shell via `RTK_ENABLE` |
 | [shell](roles/shell/) | fish, Ghostty, Starship, Television, plus the custom fish functions and the vendored television cables |
 | [ssh](roles/ssh/) | Drives off `SSH_KEYS + SSH_KEYS_EXTRA`; per-profile keys go in `host_vars/<profile>.yml` |
 | [macos](roles/macos/) | `osx_defaults` plus nvram/pmset firmware tweaks |
@@ -66,6 +66,7 @@ Open the one you are working in, and only that one.
 | [Where a test lives](docs/internals/testing-layout.md) | Adding a test suite, or changing `pytest.ini` roots |
 | [Plan files](docs/internals/plan-files.md) | Touching `plansDirectory`, the plan date-stamp hook, or `docs/plans/` |
 | [Acceptance criteria](docs/internals/acceptance-criteria.md) | Working on the `ac` skill or its Jira publishing path |
+| [The pi harness](docs/internals/pi-harness.md) | Working on Pi: what it shares with Claude Code by symlink, the translated guardrail hooks, the footer segment, or `tokencost --pi` |
 | [Context hygiene](docs/internals/context-hygiene.md) | Investigating token or usage spend, or deciding where a piece of documentation should live |
 
 Two rules that apply without opening anything: a **name must mean one artifact** across `skill-registry.json`, `agent-registry.json` and `plugins/`, and `~/.claude/skills/` and `~/.claude/agents/` are **role-owned and pruned** by `claude-kit sync`, so a link there that is not derived from the `global` tag is deleted on the next run.
