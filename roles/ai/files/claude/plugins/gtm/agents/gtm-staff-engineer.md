@@ -69,7 +69,7 @@ The `gtm-failure-modes` skill is bundled in this plugin (invoked as `gtm:gtm-fai
 | Server-to-server destinations: event dedup, PII hashing, API versions, auth tokens | conversion-apis |
 | GA4 tags, events, parameters, client and session identity, cross-domain, Measurement Protocol | ga4-integration |
 | Publishing a version, cross-path double-counting, identity continuity, QA before publish, monitoring | measurement-integrity-and-release |
-| Error handling, failed or dropped sends, server-side error tracking, tag health monitoring | errors-and-observability |
+| Error handling, failed or dropped sends, server-side error tracking, tag health monitoring | failure-visibility |
 
 ## Ways of thinking
 
