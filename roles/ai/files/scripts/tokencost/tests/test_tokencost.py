@@ -472,3 +472,194 @@ def test_errors_go_to_stderr_so_a_piped_report_stays_clean(home):
     result = run(home, "nonexistent")
     assert "no project matches" in result.stderr
     assert result.stdout.strip() == "" or "no project matches" not in result.stdout
+
+
+# --- pi transcripts ----------------------------------------------------------
+#
+# The pi reader is pinned separately from the Claude one, and the cases are chosen to
+# pin what is *different*: pi states the price, so the assertions are about the tool
+# reading a recorded figure faithfully rather than computing one. A test that recomputed
+# pi's arithmetic here would be asserting pi's catalog, which is not ours to hold.
+
+
+def pi_message(cost, model="gpt-5.6-sol", provider="openai-codex", entry_id="e1",
+               stamp="2026-08-13T13:19:06.968Z", tokens=(1000, 100, 0, 0), role="assistant"):
+    """One pi assistant record. `tokens` is (input, output, cacheRead, cacheWrite)."""
+    read_in, out, cache_read, cache_write = tokens
+    usage = {
+        "input": read_in,
+        "output": out,
+        "cacheRead": cache_read,
+        "cacheWrite": cache_write,
+        "totalTokens": read_in + out,
+    }
+    if cost is not None:
+        usage["cost"] = {"input": cost, "output": 0, "cacheRead": 0,
+                         "cacheWrite": 0, "total": cost}
+    return {
+        "type": "message",
+        "id": entry_id,
+        "timestamp": stamp,
+        "message": {"role": role, "model": model, "provider": provider,
+                    "api": "openai-codex-responses", "usage": usage},
+    }
+
+
+def pi_compaction(before, cost=None, entry_id="c1", stamp="2026-08-13T13:20:00.000Z",
+                  kind="compaction"):
+    entry = {"type": kind, "id": entry_id, "timestamp": stamp, "summary": "...",
+             "firstKeptEntryId": "e1"}
+    if kind == "compaction":
+        entry["tokensBefore"] = before
+    if cost is not None:
+        entry["usage"] = {"input": 500, "output": 50, "cacheRead": 0, "cacheWrite": 0,
+                          "cost": {"total": cost}}
+    return entry
+
+
+def write_pi(home, project, session, records, stamp="2026-08-13T13-19-06-968Z"):
+    target = home / ".pi" / "agent" / "sessions" / project / f"{stamp}_{session}.jsonl"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("a") as handle:
+        for entry in records:
+            handle.write(json.dumps(entry) + "\n")
+    return target
+
+
+def test_pi_reads_the_cost_pi_recorded(home):
+    write_pi(home, "--tmp-demo--", "s1", [pi_message(0.068)])
+    result = run(home, "--pi", "demo")
+    assert result.returncode == EXIT_OK
+    assert "0.07" in result.stdout
+
+
+def test_pi_ignores_the_rate_table_entirely(home):
+    """The whole point of the reader. A million tokens of a model the table would call
+    opus costs what pi says it cost, which for a subscription or local model is nothing."""
+    write_pi(home, "--tmp-demo--", "s1",
+             [pi_message(0.0, model="composer-latest", provider="cursor",
+                         tokens=(MILLION, MILLION, 0, 0))])
+    result = run(home, "--pi", "demo")
+    assert "0.00" in result.stdout
+    assert f"{ROUND_COST:.2f}" not in result.stdout
+
+
+def test_pi_buckets_by_provider_and_model(home):
+    """Same model id, two providers, two prices. Folding them by id would hide the one
+    comparison a multi-model setup exists to make."""
+    write_pi(home, "--tmp-demo--", "s1", [
+        pi_message(1.0, model="grok-4.6", provider="xai", entry_id="a"),
+        pi_message(0.0, model="grok-4.6", provider="cursor", entry_id="b"),
+    ])
+    result = run(home, "--pi", "demo")
+    assert "xai/grok-4.6" in result.stdout
+    assert "cursor/grok-4.6" in result.stdout
+
+
+def test_pi_drops_the_tier_column(home):
+    """tier() defaults up to opus, so labelling pi's buckets with it would call every
+    local and subscription model the dearest on the machine."""
+    write_pi(home, "--tmp-demo--", "s1",
+             [pi_message(0.0, model="composer-latest", provider="cursor")])
+    result = run(home, "--pi", "demo")
+    assert "opus" not in result.stdout
+
+
+def test_pi_names_a_response_it_could_not_price(home):
+    write_pi(home, "--tmp-demo--", "s1", [pi_message(None)])
+    result = run(home, "--pi", "demo")
+    assert "no recorded cost" in result.stdout
+
+
+def test_pi_counts_a_free_model_as_priced(home):
+    """A recorded zero is a price, not a gap, which is why the reader distinguishes None
+    from 0.0 rather than treating both as falsey."""
+    write_pi(home, "--tmp-demo--", "s1", [pi_message(0.0)])
+    result = run(home, "--pi", "demo")
+    assert "no recorded cost" not in result.stdout
+
+
+def test_pi_only_counts_assistant_records(home):
+    write_pi(home, "--tmp-demo--", "s1", [
+        pi_message(0.5, entry_id="a"),
+        pi_message(9.0, entry_id="b", role="user"),
+    ])
+    result = run(home, "--pi", "demo")
+    assert "0.50" in result.stdout
+    assert "9.00" not in result.stdout
+
+
+def test_pi_charges_for_a_compaction(home):
+    """Claude's boundary record carries no usage; pi's carries the summarising call's, so
+    it is real spend and lands under a bucket named for the act."""
+    write_pi(home, "--tmp-demo--", "s1",
+             [pi_message(0.10), pi_compaction(50_000, cost=0.25, entry_id="c")])
+    result = run(home, "--pi", "demo")
+    assert "<compaction>" in result.stdout
+    assert "0.25" in result.stdout
+
+
+def test_pi_reports_a_compaction_as_a_context_peak(home):
+    write_pi(home, "--tmp-demo--", "s1",
+             [pi_message(0.10, tokens=(1000, 10, 0, 0)),
+              pi_compaction(120_000, entry_id="c")])
+    result = run(home, "--pi", "demo", "--context")
+    assert "120.0k" in result.stdout
+    assert "1" in result.stdout.split("compacts")[1]
+
+
+def test_pi_charges_for_a_branch_summary(home):
+    write_pi(home, "--tmp-demo--", "s1",
+             [pi_compaction(0, cost=0.15, entry_id="b", kind="branch_summary")])
+    result = run(home, "--pi", "demo")
+    assert "<branch summary>" in result.stdout
+
+
+def test_pi_session_id_is_the_uuid_without_the_timestamp(home):
+    """So a row can be pasted straight into `pi --session`."""
+    write_pi(home, "--tmp-demo--", "019ffb46-c4d8-7bba-a6e7-29e1793b234f", [pi_message(0.1)])
+    result = run(home, "--pi", "demo", "--sessions")
+    assert "019ffb46-c4d8-7bba-a6e7-29e1793b234f" in result.stdout
+    assert "2026-08-13T13-19" not in result.stdout
+
+
+def test_pi_counts_a_copied_entry_once(home):
+    """A fork or resume can write a parent's entries into a second file under the same
+    project. The entry id is the only thing that makes it the same spend."""
+    write_pi(home, "--tmp-demo--", "s1", [pi_message(2.0, entry_id="shared")])
+    write_pi(home, "--tmp-demo--", "s2", [pi_message(2.0, entry_id="shared")],
+             stamp="2026-08-13T14-00-00-000Z")
+    result = run(home, "--pi", "demo")
+    assert "2.00" in result.stdout
+    assert "4.00" not in result.stdout
+
+
+def test_pi_restricts_to_one_session(home):
+    write_pi(home, "--tmp-demo--", "aaa", [pi_message(1.0, entry_id="a")])
+    write_pi(home, "--tmp-demo--", "bbb", [pi_message(3.0, entry_id="b")],
+             stamp="2026-08-13T14-00-00-000Z")
+    result = run(home, "--pi", "demo", "--session", "bbb")
+    assert "3.00" in result.stdout
+    assert "4.00" not in result.stdout
+
+
+def test_pi_and_claude_read_different_trees(home):
+    """The same project name under both roots, so a --pi run that fell back to Claude's
+    tree (or the reverse) shows up as the wrong figure rather than as no output."""
+    write_transcript(home, "-tmp-demo", "s1", [record(ROUND_USAGE, skill="pr")])
+    write_pi(home, "--tmp-demo--", "s1", [pi_message(0.11)])
+    assert "0.11" in run(home, "--pi", "demo").stdout
+    assert f"{ROUND_COST:.2f}" in run(home, "demo").stdout
+
+
+def test_pi_with_no_sessions_directory_is_a_clean_refusal(home):
+    result = run(home, "--pi", "demo")
+    assert result.returncode == EXIT_NOT_FOUND
+    assert ".pi" in result.stderr + result.stdout
+
+
+def test_pi_json_reports_the_unpriced_count(home):
+    write_pi(home, "--tmp-demo--", "s1", [pi_message(None)])
+    payload = json.loads(run(home, "--pi", "demo", "--json").stdout)
+    assert payload["responses_without_recorded_cost"] == 1
+    assert payload["buckets"][0]["models"] == []

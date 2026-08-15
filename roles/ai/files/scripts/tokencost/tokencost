@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""What a stretch of Claude Code work cost, read back off the session transcripts.
+"""What a stretch of agent work cost, read back off the session transcripts.
 
 Claude Code writes one JSONL per session under ~/.claude/projects/<slug>/, and every
 assistant record carries a `message.usage` block plus the `attributionSkill` that was
@@ -13,11 +13,37 @@ guessing.
     tokencost outdoor-maps --session <id>        one session only
     tokencost outdoor-maps --match product-team  a subtotal over the buckets that match
     tokencost outdoor-maps --context             peak and final context, by session and bucket
+    tokencost outdoor-maps --pi                  the same, over pi's transcripts
 
 The project is named by any substring that identifies one directory under
 ~/.claude/projects. That is not sugar: a slug is the project's absolute path with the
 separators replaced, so every one of them begins with `-` and argparse would read the
 full name as a flag.
+
+**`--pi` reads pi's transcripts instead**, from ~/.pi/agent/sessions/<slug>/, and every
+question above is asked the same way of them. One tool rather than two, because the
+questions are identical and the difference is a reader: `walk` and `walk_pi` both yield
+the same Event, and everything downstream of them is shared. Three things do differ, and
+each is a fact about pi rather than a choice made here:
+
+  - **Pi records the cost, so nothing is priced from a table.** Every response carries
+    `usage.cost.total` in USD, computed by pi against the catalog that served the
+    request. Reading it is not merely easier, it is the only correct answer available: a
+    third of the models on this machine are reached through a Cursor or Codex
+    subscription and two are local, and RATES below could only ever have guessed at
+    those. Its `tier()` defaults *up* to opus, so a table-priced local run would have
+    read as the most expensive work in the project. A response that somehow carries no
+    recorded cost counts as zero and is named in the closing note, so a gap is visible
+    rather than invented.
+  - **The bucket is `provider/model`, since pi has no attribution.** That is the axis
+    worth having here anyway: pi exists to run several models, and the same model id
+    reached through two providers (`cursor/grok-4.6` and `xai/grok-4.6`) is two different
+    prices for the same work. Folding them by id would hide the one comparison the
+    multi-model setup is for.
+  - **A compaction is spend, not just a boundary.** Claude's `compact_boundary` carries
+    no usage; pi's `compaction` and `branch_summary` entries carry the summarising call's
+    own, so it is counted, under a bucket named for the act rather than the model, which
+    the entry does not record.
 
 `--context` answers the other half of the question off the same records. The prompt
 handed to the model at a request is `input + cache_read + cache_creation`, so the
@@ -87,13 +113,29 @@ CONTEXT_CLASSES = TOKEN_CLASSES[:-1]
 
 UNATTRIBUTED = "<unattributed>"
 
+# What a bucket means, which is the one thing the two harnesses disagree about in the
+# output. Claude buckets by the skill or agent that was active; pi has no attribution and
+# buckets by the model that answered.
+BUCKET_LABEL = "attribution bucket"
+PI_BUCKET_LABEL = "provider/model"
+
 # `context` holds the prompt size for a usage event and `compactMetadata.preTokens` for
 # a compaction one, which is the same quantity stated by the harness rather than summed.
-Event = namedtuple("Event", "kind bucket model usage session stamp context sidechain")
+#
+# `cost` is the USD the harness itself recorded, or None when it records none and the
+# rate table has to answer. It is the seam between the two readers: Claude states token
+# counts and leaves pricing to us, pi states the price. None rather than 0.0, because a
+# free local model legitimately costs nothing and must not read as unpriced.
+Event = namedtuple("Event", "kind bucket model usage session stamp context sidechain cost")
 
 
 def projects_root(home=None):
     return Path(home or Path.home()) / ".claude" / "projects"
+
+
+def pi_root(home=None):
+    """Pi's transcripts. Same shape as Claude's: one directory per project, slugged."""
+    return Path(home or Path.home()) / ".pi" / "agent" / "sessions"
 
 
 def tier(model):
@@ -198,7 +240,7 @@ def walk(project_dir, session=None, since=None):
                 continue
             if record.get("type") == "system" and record.get("subtype") == "compact_boundary":
                 pre = (record.get("compactMetadata") or {}).get("preTokens") or 0
-                yield Event("compact", None, "", None, session_id, stamp, pre, is_sidechain)
+                yield Event("compact", None, "", None, session_id, stamp, pre, is_sidechain, None)
                 continue
             if record.get("type") != "assistant":
                 continue
@@ -220,14 +262,147 @@ def walk(project_dir, session=None, since=None):
                 stamp,
                 sum(usage.get(name, 0) for name in CONTEXT_CLASSES),
                 marked,
+                # Claude states counts and leaves the pricing to RATES.
+                None,
             )
+
+
+# Pi's usage keys, mapped onto the ones every function below already speaks. Normalising
+# at the reader rather than teaching the tables two vocabularies is what keeps the whole
+# of collect(), the three printers and --json shared between the harnesses.
+#
+# `reasoning` is deliberately absent: pi reports it beside `output` but its `totalTokens`
+# is input + output alone, so it is already counted inside output and adding it would
+# inflate every reasoning model's volume.
+PI_TOKEN_KEYS = (
+    ("input", "input_tokens"),
+    ("cacheWrite", "cache_creation_input_tokens"),
+    ("cacheRead", "cache_read_input_tokens"),
+    ("output", "output_tokens"),
+)
+
+# The two entries that spend money without being a reply. Named for the act because the
+# entry records no model, and a bucket claiming one would be a guess.
+PI_SUMMARY_BUCKETS = {"compaction": "<compaction>", "branch_summary": "<branch summary>"}
+
+
+def pi_session_of(path):
+    """`2026-08-13T13-19-06-968Z_019ffb46-....jsonl` -> the uuid after the stamp.
+
+    The uuid alone, because that is what `pi --session` and `--resume` accept, so a row
+    in this table can be pasted straight back into pi. The timestamp prefix is what pi
+    sorts the files by and is recovered from the records' own stamps anyway.
+    """
+    _, _, tail = path.stem.partition("_")
+    return tail or path.stem
+
+
+def pi_usage(usage):
+    return {ours: usage.get(theirs) or 0 for theirs, ours in PI_TOKEN_KEYS}
+
+
+def pi_cost(usage):
+    """The USD pi recorded, or None when the record carries none."""
+    recorded = (usage.get("cost") or {}).get("total")
+    return float(recorded) if isinstance(recorded, (int, float)) else None
+
+
+def walk_pi(project_dir, session=None, since=None):
+    """Yield an Event per pi response, and per compaction or branch summary.
+
+    Deduped by entry id rather than by request, and for a different reason than `walk`:
+    pi writes one record per response, holding every content block, so there is nothing
+    to fold. What there is instead is forking and resuming, which can write a parent's
+    entries into a second file under the same project; an id is the only thing that makes
+    a copied entry recognisable as the same spend. A record with no id is kept.
+
+    Abandoned branches are counted, and that is not an oversight. A session file holds a
+    tree rather than a list, and a branch the user backed out of was still paid for.
+    """
+    seen = set()
+    for path in sorted(project_dir.rglob("*.jsonl")):
+        session_id = pi_session_of(path)
+        if session and session_id != session:
+            continue
+        for line in path.read_text(errors="replace").splitlines():
+            try:
+                record = json.loads(line)
+            except ValueError:
+                continue
+            kind = record.get("type")
+            if kind not in PI_SUMMARY_BUCKETS and kind != "message":
+                continue
+            stamp = record.get("timestamp") or ""
+            if since and stamp and stamp[:10] < since:
+                continue
+            identity = record.get("id")
+            if identity is not None:
+                if identity in seen:
+                    continue
+                seen.add(identity)
+
+            if kind == "message":
+                message = record.get("message") or {}
+                if message.get("role") != "assistant":
+                    continue
+                usage = message.get("usage")
+                if not usage:
+                    continue
+                model = message.get("model") or "?"
+                provider = message.get("provider") or "?"
+                yield Event(
+                    "usage",
+                    f"{provider}/{model}",
+                    model,
+                    pi_usage(usage),
+                    session_id,
+                    stamp,
+                    sum(usage.get(theirs) or 0 for theirs, _ in PI_TOKEN_KEYS[:-1]),
+                    False,
+                    pi_cost(usage),
+                )
+                continue
+
+            # `tokensBefore` is the context the summary was taken from, which is pi's
+            # statement of the same quantity Claude's preTokens gives.
+            before = record.get("tokensBefore") or 0
+            if kind == "compaction" and before:
+                yield Event("compact", None, "", None, session_id, stamp, before, False, None)
+            usage = record.get("usage")
+            if usage:
+                yield Event(
+                    "usage",
+                    PI_SUMMARY_BUCKETS[kind],
+                    "",
+                    pi_usage(usage),
+                    session_id,
+                    stamp,
+                    sum(usage.get(theirs) or 0 for theirs, _ in PI_TOKEN_KEYS[:-1]),
+                    False,
+                    pi_cost(usage),
+                )
 
 
 def raise_peak(row, value):
     row["peak"] = value if row["peak"] is None else max(row["peak"], value)
 
 
-def collect(project_dir, session, since, assumed_ttl):
+def collect(events, assumed_ttl, recorded=False):
+    """Fold a reader's events into the views the printers read.
+
+    Takes the events rather than a directory, which is what lets one implementation serve
+    both harnesses: the reader decides what a bucket is and what a cost is, and everything
+    here is arithmetic over whatever it yielded.
+
+    `recorded` says the harness prices its own work, which decides what a missing cost
+    means. With it, a gap is a gap and lands in `unpriced`; without it, the rate table is
+    the answer and always has one. The flag rather than "cost is None" alone, because
+    those two are the same value and opposite situations.
+
+    The model tier is only collected when it was used to price, so pi's buckets carry no
+    tier: they name the model already, and `tier()` defaults up to opus, which would
+    label every local and subscription model as the dearest one on the machine.
+    """
     costs = defaultdict(float)
     tokens = defaultdict(lambda: defaultdict(int))
     peaks = defaultdict(int)
@@ -235,8 +410,9 @@ def collect(project_dir, session, since, assumed_ttl):
     sessions = defaultdict(lambda: {"cost": 0.0, "first": "", "last": "",
                                     "peak": None, "final": None, "final_stamp": "", "compacts": 0})
     assumed_total = 0
+    unpriced = 0
 
-    for event in walk(project_dir, session, since):
+    for event in events:
         if event.kind == "compact":
             if event.sidechain:
                 continue
@@ -245,10 +421,14 @@ def collect(project_dir, session, since, assumed_ttl):
             raise_peak(row, event.context)
             continue
 
-        amount, assumed = price(event.usage, event.model, assumed_ttl)
+        if recorded:
+            amount, assumed = (event.cost or 0.0), 0
+            unpriced += event.cost is None
+        else:
+            amount, assumed = price(event.usage, event.model, assumed_ttl)
+            models[event.bucket].add(tier(event.model))
         costs[event.bucket] += amount
         assumed_total += assumed
-        models[event.bucket].add(tier(event.model))
         peaks[event.bucket] = max(peaks[event.bucket], event.context)
         for key in TOKEN_CLASSES:
             tokens[event.bucket][key] += event.usage.get(key, 0)
@@ -267,7 +447,7 @@ def collect(project_dir, session, since, assumed_ttl):
                 row["final_stamp"] = event.stamp
                 row["final"] = event.context
 
-    return costs, tokens, sessions, models, assumed_total, peaks
+    return costs, tokens, sessions, models, assumed_total, peaks, unpriced
 
 
 def resolve_project(root, needle):
@@ -328,7 +508,7 @@ def human(value):
     return f"{value / 1e3:.1f}k"
 
 
-def print_context(sessions, peaks, top):
+def print_context(sessions, peaks, top, label=BUCKET_LABEL):
     ui.title("📊 Context by session, oldest first:")
     print(f"  {'session':<38}{'peak':>8}{'final':>9}{'compacts':>10}")
     for session_id, row in sorted(sessions.items(), key=lambda kv: kv[1]["first"] or kv[0]):
@@ -338,7 +518,7 @@ def print_context(sessions, peaks, top):
     ui.blank()
     ordered = sorted(peaks.items(), key=lambda kv: -kv[1])
     shown = ordered if top <= 0 else ordered[:top]
-    ui.title("📊 Peak context by attribution bucket:")
+    ui.title(f"📊 Peak context by {label}:")
     print(f"  {'bucket':<52}{'peak':>9}")
     for name, value in shown:
         print(f"  {name:<52}{human(value):>9}")
@@ -352,16 +532,21 @@ def print_context(sessions, peaks, top):
     ui.done(f"peak {human(max(reached) if reached else None)} across {len(sessions)} sessions")
 
 
-def print_buckets(costs, tokens, models, matches, assumed_total, assumed_ttl, top):
+def print_buckets(costs, tokens, models, matches, assumed_total, assumed_ttl, top,
+                  label=BUCKET_LABEL, unpriced=0):
     total = sum(costs.values())
     ordered = sorted(costs.items(), key=lambda kv: -kv[1])
     shown = ordered if top <= 0 else ordered[:top]
 
-    ui.title("📊 Cost by attribution bucket:")
-    print(f"  {'bucket':<52}{'usd':>9}{'Mtok':>8}  models")
+    # The tier column is dropped rather than left blank when nothing populated it, which
+    # is every pi run: a bucket that names its own model has no second thing to say.
+    tiers = any(models.values())
+    ui.title(f"📊 Cost by {label}:")
+    print(f"  {'bucket':<52}{'usd':>9}{'Mtok':>8}" + ("  models" if tiers else ""))
     for name, amount in shown:
         volume = sum(tokens[name][key] for key in TOKEN_CLASSES) / 1e6
-        print(f"  {name:<52}{amount:>9.2f}{volume:>8.1f}  {','.join(sorted(models[name]))}")
+        suffix = f"  {','.join(sorted(models[name]))}" if tiers else ""
+        print(f"  {name:<52}{amount:>9.2f}{volume:>8.1f}{suffix}")
 
     elided = ordered[len(shown):]
     if elided:
@@ -378,10 +563,12 @@ def print_buckets(costs, tokens, models, matches, assumed_total, assumed_ttl, to
     ui.blank()
     if assumed_total:
         ui.warn(f"{assumed_total:,} cache-write tokens had no TTL breakdown, priced as {assumed_ttl}")
+    if unpriced:
+        ui.warn(f"{unpriced:,} responses carried no recorded cost and count as $0")
     ui.done(f"${total:.2f} across {len(costs)} buckets")
 
 
-def as_json(costs, tokens, sessions, models, assumed_total, assumed_ttl, peaks):
+def as_json(costs, tokens, sessions, models, assumed_total, assumed_ttl, peaks, unpriced=0):
     """Every fact the walk produced, whether or not the run asked to see it printed.
 
     The context figures are unconditional here, unlike in the tables: this is the one
@@ -390,6 +577,7 @@ def as_json(costs, tokens, sessions, models, assumed_total, assumed_ttl, peaks):
     payload = {
         "assumed_ttl": assumed_ttl,
         "cache_tokens_priced_by_assumption": assumed_total,
+        "responses_without_recorded_cost": unpriced,
         "total_usd": sum(costs.values()),
         "buckets": [
             {
@@ -420,10 +608,14 @@ def as_json(costs, tokens, sessions, models, assumed_total, assumed_ttl, peaks):
 def main(argv=None):
     parser = argparse.ArgumentParser(
         prog="tokencost",
-        description="Price Claude Code work from its session transcripts.",
+        description="Price Claude Code or pi work from its session transcripts.",
     )
     parser.add_argument("project", nargs="?",
-                        help="any substring identifying one directory under ~/.claude/projects")
+                        help="any substring identifying one directory under ~/.claude/projects, "
+                             "or under ~/.pi/agent/sessions with --pi")
+    parser.add_argument("--pi", action="store_true",
+                        help="read pi's transcripts instead, bucketed by provider/model and "
+                             "priced from the cost pi recorded rather than from the rate table")
     parser.add_argument("--session", help="restrict to one session id, subagents included")
     parser.add_argument("--match", action="append", default=[], metavar="PATTERN",
                         help="subtotal the buckets whose name contains PATTERN (repeatable)")
@@ -439,7 +631,7 @@ def main(argv=None):
     parser.add_argument("--json", action="store_true", help="machine-readable output")
     args = parser.parse_args(argv)
 
-    root = projects_root()
+    root = pi_root() if args.pi else projects_root()
     if not root.is_dir():
         ui.err(f"no transcripts directory at {ui.path(root)}")
         return EXIT_NOT_FOUND
@@ -450,20 +642,23 @@ def main(argv=None):
     if project_dir is None:
         return EXIT_NOT_FOUND
 
-    costs, tokens, sessions, models, assumed, peaks = collect(
-        project_dir, args.session, args.since, args.assume_ttl)
+    reader = walk_pi if args.pi else walk
+    label = PI_BUCKET_LABEL if args.pi else BUCKET_LABEL
+    costs, tokens, sessions, models, assumed, peaks, unpriced = collect(
+        reader(project_dir, args.session, args.since), args.assume_ttl, recorded=args.pi)
     if not costs:
         ui.warn("no priced records matched")
         return EXIT_OK
 
     if args.json:
-        as_json(costs, tokens, sessions, models, assumed, args.assume_ttl, peaks)
+        as_json(costs, tokens, sessions, models, assumed, args.assume_ttl, peaks, unpriced)
     elif args.context:
-        print_context(sessions, peaks, args.top)
+        print_context(sessions, peaks, args.top, label)
     elif args.sessions:
         print_sessions(sessions)
     else:
-        print_buckets(costs, tokens, models, args.match, assumed, args.assume_ttl, args.top)
+        print_buckets(costs, tokens, models, args.match, assumed, args.assume_ttl, args.top,
+                      label, unpriced)
     return EXIT_OK
 
 
