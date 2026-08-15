@@ -1,8 +1,8 @@
 {
   "$schema": "https://www.schemastore.org/claude-code-plugin-manifest.json",
   "name": "design",
-  "description": "Design staff-engineer seat bundled with its design-failure-modes checklists.",
-  "version": "0.1.0",
+  "description": "Design staff-engineer seat bundled with its design-failure-modes checklists, including the craft and distinctiveness gate.",
+  "version": "0.2.0",
   "author": {
     "name": "Jose Manuel Rosa",
     "email": "josemanuel.rosamoncayo@gmail.com"
@@ -10,6 +10,10 @@
   "groups": [
     "engineering",
     "designer",
-    "observability"
+    "ui"
+  ],
+  "skillDependencies": [
+    "frontend-design",
+    "emil-design-eng"
   ]
 }

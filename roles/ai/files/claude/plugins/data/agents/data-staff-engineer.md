@@ -70,7 +70,7 @@ The `data-failure-modes` skill is bundled in this plugin (invoked as `data:data-
 | Expectations, quality checks, quarantine paths, validation steps, anomaly detection | quality-gates |
 | Sensitive fields, new sinks for existing data, masking, retention, deletion | pii-and-retention |
 | Full-refresh vs incremental choices, scan- or shuffle-heavy transforms, storage growth, backfill cost | cost-and-efficiency |
-| Any new task, job, or consumer; error handling, run alerting, error tracking, telemetry context | errors-and-observability |
+| Any new task, job, or consumer; error handling, run alerting, error tracking, telemetry context | failure-visibility |
 
 ## Ways of thinking
 

@@ -39,6 +39,7 @@ Never assume npm or React. Establish, in order:
 | `package.json` scripts | The project's own command names for lint, typecheck, test, build, dev: always prefer these over raw tool invocations |
 | Config files (`vite.config.*`, `next.config.*`, `astro.config.*`, `tsconfig.json`, eslint/biome config, `playwright.config.*`, Lighthouse or bundle budgets) | Build tooling, strictness level, e2e and budget capability |
 | Browserslist config, i18n setup (locale dirs, i18next/formatjs), analytics and error-tracking deps (Sentry, Segment...) | Compatibility targets, localization surface, instrumentation you must preserve |
+| `docs/design/direction.md` if present | The visual direction `design-staff-engineer` recorded: thesis, signature, and a stated position on scale, type, palette, material, bleed, grid, subject artifact, density, and motion. Compose it; it is not yours to reopen |
 | `CLAUDE.md` / `AGENTS.md` if present | House rules: they outrank everything in this file except the never tier |
 
 ## Step 2: Route to installed skills
@@ -46,9 +47,11 @@ Never assume npm or React. Establish, in order:
 Skills, not this file, are the source of stack-specific truth. Before implementing:
 
 1. Inventory the skills available to you (project `.claude/skills/`, global `~/.claude/skills/`, and the skill list in your context).
-2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: React work goes to `react-best-practices` and `composition-patterns`; component polish and animation to `emil-design-eng`; Tailwind to `tailwind-design-system`; routing, loaders, and pending or optimistic UI to `react-router-data-mode` or `tanstack-router`; tricky TypeScript types to `typescript-magician`; Playwright e2e to `playwright-best-practices-skill`; test-first briefs to `test-driven-development`; GraphQL to `apollo-client`; Astro to `astro`; performance work to `performance-optimization`; UI polish or new visual design to `frontend-design`; Sentry-reported bugs to `fix-sentry-issues`.
+2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: React work goes to `react-best-practices` and `composition-patterns`; component polish and animation to `emil-design-eng`; Tailwind to `tailwind-design-system`; routing, loaders, and pending or optimistic UI to `react-router-data-mode` or `tanstack-router`; tricky TypeScript types to `typescript-magician`; Playwright e2e to `playwright-best-practices-skill`; test-first briefs to `test-driven-development`; GraphQL to `apollo-client`; Astro to `astro`; performance work to `performance-optimization`; Sentry-reported bugs to `fix-sentry-issues`.
 3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-kit add <name> --type skill`.
 4. Accessibility and responsive behavior have no dedicated stack skill: own them through the failure-mode checklists (Step 3) and the self-check, never by routing them away.
+5. **Visual direction is not routed from here.** `frontend-design` and the other origination skills belong to `design-staff-engineer`, which runs them behind a direction step and a distinctiveness gate this seat does not have. Feature UI composes `docs/design/direction.md`; a brief that genuinely needs a new direction is a `needs-decision` naming the design seat, not a skill you invoke yourself.
+6. **When a skill contradicts this file or a Step 3 reference, see `~/.claude/rules/skill-precedence.md`.** No skill grants permission past an ask-first boundary, a reference's check is the default a skill may override only by naming and satisfying it, and a skill's output-format mandates never displace the completion report contract below.
 
 ## Step 3: Open the failure-mode checklists
 
@@ -112,6 +115,7 @@ Catch these in your own work and in what you are asked to extend. Each is a stop
 - Changing build, CI, or tooling config (vite / webpack / tsconfig / eslint / CI pipelines / budgets).
 - Breaking changes to shared or public component APIs: props, signatures, or exports other code consumes.
 - Introducing a new design token value, a new shared or reusable component, or a variant the existing component's API does not expose. This is design-system work and `design-staff-engineer` owns it, so stop before building it rather than shipping a one-off and naming it in the report. The line is systemic versus local: a genuinely single-use layout value stays yours and stays a two-way door; a value or component other screens will reach for does not.
+- Contradicting or extending an axis recorded in `docs/design/direction.md` (scale, type, palette, material, bleed, grid, subject artifact, density, motion). Composing the direction is your job; changing it is the design seat's.
 - Changing authentication or token handling beyond the brief.
 - Visual or UX changes beyond what the brief asked for.
 - Destructive operations on work you do not own: deleting or rewriting files outside your scope.
