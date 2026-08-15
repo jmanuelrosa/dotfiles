@@ -13,7 +13,7 @@ failure would train the reader to ignore doctor.
 from dataclasses import dataclass
 
 from . import catalog as cat
-from . import frontmatter, scope, state, workspace
+from . import frontmatter, pi, scope, state, workspace
 
 PROBLEM = "problem"
 NOTE = "note"
@@ -296,6 +296,34 @@ def untrusted_workspace(config, project, claude):
             cat.PLUGIN,
         )
     ]
+
+
+def pi_skills_unreachable(project):
+    """G19: this project's skills are linked, but pi cannot see them.
+
+    The same shape of failure as G18 and it earns its place for the same reason: nothing
+    reports it. Pi reads `.agents/skills/`, never `.claude/`, so without the link every
+    `/skill:` in the project is simply absent, with no warning at either end. `add`
+    converges the link itself, so this fires for a project set up before that existed,
+    one whose link was deleted by hand, or one where something else already occupies
+    the path.
+
+    A note rather than a problem: nothing about Claude Code is broken, and a machine
+    that does not use pi has nothing to act on.
+    """
+    if project is None or not pi.wanted(project):
+        return []
+    if pi.is_ours(project):
+        return []
+    link = pi.link_path(project)
+    detail = (
+        f"{link} exists but is not the link to {pi.source_path(project)}, so pi reads "
+        f"something else here"
+        if link.is_symlink() or link.exists()
+        else f"pi reads {link}, which is missing, so none of them load in pi. "
+        f"Run: claude-kit add or claude-kit restore"
+    )
+    return [Finding("pi-unreachable", NOTE, "this project's skills", detail, cat.SKILL)]
 
 
 def provenance_drift(catalog, provenance, project, claude):
