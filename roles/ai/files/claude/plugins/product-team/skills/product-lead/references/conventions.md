@@ -1,6 +1,6 @@
 # Product Team conventions
 
-Shared mechanics for every stage skill. Load this file before doing anything else in a stage. Templates referenced here live in `templates/` next to this file; stage skills resolve both as siblings of their own base directory: `<skill base dir>/../product-lead/references/`.
+Shared mechanics for every stage skill. Load this file before doing anything else in a stage. Templates referenced here live in `templates/` next to this file; stage skills resolve both as siblings of their own base directory: `<skill base dir>/../product-lead/references/`. The per-medium gate protocol lives in [gates.md](gates.md) and is loaded only by the stages that open a gate.
 
 ## Artifact layout in the target repo
 
@@ -13,103 +13,97 @@ docs/
   strategy/
     strategy.md            # /product-team:setup-strategy
     okrs.md
-  LEARNINGS.md             # appended by stage 7 retrospectives
+    product-team.yml       # profile, gate medium, gate owners, roster
+  specs/{capability}/spec.md  # living capability specs, merged at ship time from shipped requirements
+  LEARNINGS.md             # appended by /product-team:8-living-spec at ship time
   initiatives/{slug}/
-    STATUS.md              # the state machine for this initiative
+    STATUS.md              # gate decisions and kills only; stage order is derived, see below
     00-brief.md
     01-research/           # competitive.md, user-evidence.md, sizing.md, summary.md
-    02-prd.md
+    02-prd.md              # SHALL requirements, each with scenarios: R{n}.S{k}
     03-red-team-report.md
-    04-ux-spec.md          # ux-shaper writes it before the design doc; the design gate owner approves it
+    04-ux-spec.md          # ux-shaper writes it before the design doc
     04-design-doc.md       # its ADR index points at the ADRs in docs/adr/
-    05-backlog/            # epic-{n}.md, story-{n.m}.md
-    06-dor-report.md
-.github/CODEOWNERS         # gate ownership, including the design owner of 04-ux-spec.md
+    05-tasks.md            # the whole build, dependency-ordered, from empty repo to accepted
+    05-backlog/            # epic-{n}.md, story-{n.m}.md - thin board headers; absent in the solo profile
+    06-dor-report.md       # full profile only
+.github/CODEOWNERS         # gate ownership, and docs/adr/ so an ADR still needs an approver
 ```
 
 Slug rule: lowercase, `a-z0-9-` only, words joined by single hyphens, max 40 chars, derived from the idea's core noun phrase (`"let customers export their data as CSV"` -> `csv-data-export`).
 
-Every artifact starts with the YAML metadata header its template defines (`initiative`, `stage`, `status`, `authors`, `date`, `sources`). Authors list both the human and the producing skill or agent. Dates are absolute (YYYY-MM-DD).
+Every artifact starts with the YAML metadata header its template defines (`initiative`, `stage`, `status`, `authors`, `date`, `sources`). Authors list both the human and the producing skill or agent. Dates are absolute (YYYY-MM-DD). That header is also the only record of when a stage ran, now that STATUS.md no longer tracks transitions, so it is not decoration.
 
-## STATUS.md is the state machine
+## The config file
 
-Statuses per stage: `pending | in-progress | gate-open | approved | killed`.
+`docs/strategy/product-team.yml`, scaffolded by `/product-team:setup-strategy` from `templates/config.yml`. Read it in every stage's preflight. It decides four things a stage would otherwise have to guess: the `profile`, the `gate_medium`, the `gate_owners`, and the `roster` of agents that take part.
 
-- A stage skill MUST refuse to run if its predecessor's row is not `approved` (see reconciliation below for the one exception). Print the blocking row and the command or review that unblocks it, then stop.
-- Every stage updates its own row when it starts (`in-progress`) and when it hands off (`gate-open` for gated stages, `approved` with note `no gate` for ungated ones).
-- Ungated stages (1-research, 3-red-team, 5-decompose) feed the next gate; they mark themselves `approved` directly, `decided by: n/a (no gate)`.
-- Killed: the human can kill at any gate. Record `killed` on the current stage row, fill the kill reason field, and leave the whole folder in place forever. Institutional memory of dead ideas is a feature. Killing at Gate 0 is success, not failure.
+It is not in CLAUDE.md, and that is deliberate: CLAUDE.md is loaded on every turn of every session in the repo, so a config block there is paid for by every conversation that has nothing to do with this pipeline.
 
-## Branching
+A missing config file means the defaults: `profile: full`, `gate_medium: session`, `github_repo: UNSET`, the full roster.
 
-Each gate gets its own branch, cut fresh from the up-to-date default branch when the gate begins. A gate PR must never carry the previous gate's already-merged commits: repos that squash-merge collapse each merged gate into a new commit that is not an ancestor of a reused branch, so a shared branch diverges and every later gate PR conflicts. A fresh branch off current `default` avoids this entirely. Branch names are deterministic per gate (`docs` prefix because initiative artifacts are all docs):
+## Stage order is derived, not tracked
 
-| Gate | Branch | Cut by (first stage) | Later stages on it |
+```
+python3 .claude/skills/product-team/skills/product-lead/scripts/pt.py status {slug}
+```
+
+That prints every stage as `done`, `partial`, `ready` or `blocked`, plus the next command. It reads the files on disk, so it cannot disagree with them. Use it in preflight instead of reading a stage table, and never write a stage row anywhere.
+
+A stage refuses to run when `pt.py status` reports it `blocked`: print the blocking artifact and the command that produces it, then stop. `partial` is not blocked and is not a reason to re-run a stage: it means an older initiative completed that stage before one of its artifacts existed, and the missing file is named so nobody has to guess.
+
+The same script owns two other jobs:
+
+| Command | Used by |
+|---|---|
+| `pt.py check {slug} [--strict]` | `/product-team:6-verify` (and the solo profile's Definition of Ready), always with `--strict` |
+| `pt.py spec-merge {slug}` | `/product-team:8-living-spec`, at ship time |
+
+`check` splits its findings: an error (a broken reference, a malformed block) fails it at any point, a warning (incomplete coverage, an unset field) is the normal state mid-pipeline and fails it only under `--strict`, which is what the Definition of Ready runs. Run it and quote it; never re-decide by hand what it has already decided, and never fix what it reports from inside a checking stage.
+
+## Two gates
+
+| Gate | Question | Opened by | Kill is an answer |
 |---|---|---|---|
-| 0 | `docs/{slug}-gate-0-brief` | 0-refine-idea | - |
-| 1 | `docs/{slug}-gate-1-prd` | 1-research (or 2-write-prd if research skipped) | 2-write-prd, 3-red-team |
-| 2 | `docs/{slug}-gate-2-design` | 4-tech-shape | - |
-| 3 | `docs/{slug}-gate-3-dor` | 5-decompose | 6-gate-check |
-| board export | `docs/{slug}-board` | 7-push-to-board | - |
+| Gate 0 | Is this worth building at all? | `0-refine-idea` | yes, and killing here is the pipeline working |
+| Gate 1 | Are these the right requirements? | `2-write-prd` | yes |
 
-Every stage enters its gate's branch after its precondition passes: derive the name from the table. If it already exists (this gate's PR is open, or you are revising) switch to it. Otherwise cut it fresh from the default branch (resolve the default branch from the remote HEAD, e.g. `git remote show origin` / `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`):
+There is no design gate and no Definition of Ready gate. The design gate went because the open decisions at stage 4 resolve with no human in the loop, and the ones that do not are reached at implementation whether or not a gate sat there; `docs/adr/` under CODEOWNERS is what keeps the hard-to-reverse half of stage 4 reviewed. The DoR gate went because across three initiatives it produced one repeated mechanical defect, which `pt.py check` now catches for nothing.
 
-    git fetch origin
-    git switch -c docs/{slug}-gate-{n}-{label} origin/{default-branch}
+Every gate records its decision **and its reason** in STATUS.md. A gate answered in session leaves no PR comments behind, so an "approved" with no reason is indistinguishable from nobody having read it.
 
-If the working tree is dirty with unrelated changes, stop and ask. The fresh cut is safe only because a gate's first stage runs only after the previous gate is `approved` (see reconciliation), so `origin/{default-branch}` already holds every prior gate's merged artifacts. Never rebase or reset an existing gate branch; superseded branches from merged gates are left in place (delete them by hand if you like). Strategy work uses `chore/product-strategy`.
+How the answer is collected per `gate_medium` (a session gate is one `AskUserQuestion`; a PR gate is a branch-and-review protocol) is in [gates.md](gates.md), which the gated stages load. Gated stages never run `git commit`, `git push` or `gh pr create` under either medium.
 
-## Gate protocol (stop before commit)
+## Deferrals
 
-Gated stages NEVER run `git commit`, `git push`, or `gh pr create`; the human owns those through `/commit` and `/pr`. A gated stage ends by:
+An artifact may hand a question forward to one that runs after it, instead of guessing or hedging. That is the whole mechanism, and it exists so an upstream artifact can stop pretending to answer something it cannot: a UX spec should not be inventing pagination semantics, and a PRD should not be choosing an encoder.
 
-1. Updating its STATUS.md row to `gate-open` with note `awaiting commit + PR`.
-2. Printing a handoff block:
-   - files written this stage (paths);
-   - suggested commit subject: `docs({slug}): gate {n} {stage name}`;
-   - PR title: the same string as the commit subject above; pass it explicitly (`/pr --title "..."`) so the PR carries the clean gate-labelled subject rather than one derived from the branch name;
-   - suggested PR body: what to review, the decision being gated (including "kill" as a first-class option), and a 3-5 item reviewer checklist;
-   - the instruction: run `/commit`, then `/pr --title "<the commit subject above>"`, then have the gate owner review. Merge = gate passed.
-3. Stopping. Do not continue to the next stage.
+- Declare it in a `## Deferrals` table: an id (`D1`), the question, and the resolving artifact.
+- **Forwards only.** The resolver must run after the artifact raising it, in the order `02-prd.md`, `04-ux-spec.md`, `04-design-doc.md`, `05-tasks.md`. Pointing sideways or back is a hole with a label on it, because nothing upstream will run again to close it.
+- The resolving stage **must** close every deferral aimed at it: name the id, and either decide it or restate it as an open question with an owner. `04-design-doc.md` has a table for exactly this; a deferral aimed at `05-tasks.md` is closed by a task line citing its id.
+- `pt.py check` fails the initiative on a deferral that is unclosed, points the wrong way, or names something that is not an artifact.
 
-## Gate reconciliation
+A deferral is closed by the next artifact. An open question is closed by a person. Do not use one for the other.
 
-STATUS.md lags GitHub by design (the human merges outside the session). When a stage's precondition row says `gate-open`:
+## Profiles
 
-1. Find the PR by that gate's branch (names in the Branching table): `gh pr list --head docs/{slug}-gate-{n}-{label} --state all --json url,title,state,mergedAt`, matching the one whose title contains `gate {n}`.
-2. Merged -> the gate passed. Enter THIS stage's own gate branch first (per Branching: cut it fresh from the updated default branch), then on that fresh branch update the merged gate's row to `approved`, fill gate PR URL, decided by (PR merger), date, and proceed. Recording on the fresh branch carries the approval into the next gate's PR.
-3. Open -> the gate is still under review; stop and say so. The human may instead say "record approval" explicitly (e.g. approved out-of-band); note `approved by <name> without merge` and proceed.
-4. Closed unmerged -> treat as a kill signal; ask the human whether to record `killed` and the reason.
+`profile: full` runs everything. `profile: solo` keeps every stage that produces findings and both gates, and drops the board-facing half:
 
-## Local mode (no origin remote)
+| Dropped in solo | Why it is safe |
+|---|---|
+| `05-backlog/` stories and epics | `05-tasks.md` already carries the work, ordered; stories exist to be put on a board |
+| `/product-team:6-verify` | its script half still runs on demand; there is no gate for it to feed |
+| `/product-team:7-push-to-board` | there is no board |
+| PR machinery | `gate_medium: session` |
 
-A repo with no `origin` remote (or a Product Team config whose `github_repo` is `UNSET`) runs the pipeline in local mode: same stages, same artifacts, no PR machinery.
-
-- Gated stages end with the same handoff block minus the `/pr` step: instead of a PR review, ask the human for the gate decision directly (AskUserQuestion: proceed / kill / not yet) and record it in STATUS.md as `approved by {name} without merge (local mode)`, or `killed` with the reason. Still suggest `/commit`; local history matters.
-- Skip every `gh` call (gate reconciliation, PR lookups); STATUS.md is the only record.
-- Branching stays single-branch: with no remote there are no squash merges to diverge from, so every stage works on one `docs/{slug}` branch that stage 0 creates. Do not cut per-gate branches or `git fetch` (there is nothing to fetch, and a fresh cut from an unadvanced local main would drop prior gates' artifacts).
-- Stage 7 needs a real `github_repo` and Project number; in local mode it refuses and says what is missing.
-
-## Expedited path (small features)
-
-For a small, low-risk feature the human may skip stage 1 (research) and stage 3 (red-team). Nothing else is skippable: every gate still happens, and stages 4-6 always run (the traceability chain needs the PRD's R#s).
-
-- The skip is the human's explicit call, never the skill's. Record the skipped stage's row as `approved`, decided by the human, note `skipped (expedited): {reason}`.
-- Stage 2 then writes the PRD from the brief alone: every unevidenced segment needs the explicit human sign-off stage 2 already requires, and unknown baselines still become owned Open Questions.
-- If the Gate 1 review or later stages surface surprises, run the skipped stage then; its skill overwrites the skip row when it runs.
-
-## Revision flow
-
-Re-running a stage whose gate PR is open means "address the review". Read the comments with `gh pr view <url> --comments` (and `gh api repos/{owner}/{repo}/pulls/{n}/comments` for inline ones), address every comment in the artifact, list what changed per comment, and end with the gate protocol again (switch to that gate's existing branch per the Branching table; `/commit` + `/pr` update the open PR). Never dismiss or resolve review threads yourself.
-
-## Interview style (setup-strategy, 0-refine-idea)
-
-Relentless, one question at a time; wait for each answer. Recommend an answer with every question. Challenge vagueness: a number with no source, a segment with no size, an "everyone" audience all get a follow-up, not a nod. Facts findable in the repo or on disk are looked up, never asked. Decisions are the human's; never fill one in.
+Nothing that produces a finding is dropped, and that is the point. Research and red-team together are 13% of the cost and produced the decision-changing findings on every initiative that ran, so a profile that skipped them would save nothing worth having. There is no shorter path than `solo`, and no stage is individually skippable: a skip is a human decision recorded in STATUS.md's Skipped stages section with its reason, never a skill's own call.
 
 ## Hard rules (every stage, every agent)
 
+- Re-read every artifact a stage depends on from disk at invocation; never act on a version remembered from earlier in the conversation, because the human may have edited it since.
 - Never invent metrics, baselines, market numbers, or citations. Unknown baseline -> `UNKNOWN -> Open Question #n` with an owner.
 - Never present inference as evidence; label each item `evidence` or `assumption`.
 - Never merge PRs, push to main, or edit an accepted ADR (supersede it with a new one; the only permitted edit to the old one is its Status line).
 - Never delete an initiative folder.
+- Never write a stage-status row; `pt.py status` derives it and a hand-written one can only be wrong.
 - Only stage 7 touches `gh issue` / `gh project`, and only after its dry-run is confirmed.

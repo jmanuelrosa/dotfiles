@@ -1,23 +1,7 @@
-<!-- Appended to the target repo's CLAUDE.md by /product-team:setup-strategy. Fill every {placeholder}; values marked UNSET are provided later (project number can wait until stage 7). -->
+<!-- Appended to the target repo's CLAUDE.md by /product-team:setup-strategy. Three lines on purpose: this file is loaded on every turn of every session in the repo, and the config it used to hold is read by eight skills that can open it when they run. Anything added here is paid for by every unrelated conversation. -->
 
 ## Product Team
 
-This repo runs the Product Team pipeline (run `/product-team:product-lead` for the guide and current status). `docs/initiatives/{slug}/STATUS.md` is the state machine: stage skills refuse to run unless the predecessor gate is `approved` there. Each gate is a PR on its own `docs/{slug}-gate-{n}-…` branch, cut fresh from the default branch, reviewed by the owners below.
-
-### Config
-
-| Key | Value |
-|---|---|
-| github_repo | {owner/repo, or UNSET (local mode)} |
-| project_number | {N or UNSET} |
-| epic_convention | parent issues with native sub-issues |
-| labels | `initiative:{slug}`, `epic:{n}`, `type:story` |
-| gate_owners | Gates 0/1/3 (PM): {@handle} - Gate 2 (tech lead): {@handle} - Strategy: {@handle} |
-| extra_codebase_paths | {paths /product-team:4-tech-shape may read beyond this repo, or none} |
-
-### Boundaries
-
-- Never merge gate PRs or push to main; humans decide gates.
-- Never edit an accepted ADR; supersede it with a new one.
-- Never invent metrics, baselines, market numbers, or citations; unknowns become owned Open Questions.
-- Never delete an initiative folder; killed initiatives keep their folder and kill reason in STATUS.md.
+This repo runs the Product Team pipeline: `/product-team:product-lead` for the guide and current status, `docs/strategy/product-team.yml` for the profile, gate medium, gate owners and roster.
+Stage order is derived from the artifacts on disk (`pt.py status {slug}`), not from a maintained table; `docs/initiatives/{slug}/STATUS.md` records only gate decisions and kills.
+Never merge a gate PR, edit an accepted ADR, invent a metric baseline, or delete an initiative folder.

@@ -1,6 +1,6 @@
 ---
 name: 5-decompose
-description: Product Team stage 5 - decomposes the approved design into epics and vertically-sliced stories (each demoable end-to-end), then has product-team:ac-writer add Given/When/Then criteria traced to PRD requirements. No gate; feeds Gate 3.
+description: "Product Team stage 5 - turns the design into 05-tasks.md (the whole build, dependency-ordered from empty repo to accepted) and, in the full profile, thin story headers claiming PRD scenario ids. No gate."
 argument-hint: "[initiative slug, if not inferable from the branch]"
 disable-model-invocation: true
 allowed-tools:
@@ -11,52 +11,64 @@ allowed-tools:
   - Edit
   - AskUserQuestion
   - Agent
+  - Bash(python3 *product-lead/scripts/pt.py *)
   - Bash(git status *)
   - Bash(git branch *)
   - Bash(git switch *)
-  - Bash(git fetch *)
   - Bash(gh pr list *)
   - Bash(gh pr view *)
 ---
 
-# Stage 5: decompose into epics and stories
+# Stage 5: decompose into tasks, and stories for the board
 
-Break the PRD + design doc into `05-backlog/epic-{n}.md` and `05-backlog/story-{n.m}.md`, one file per story. No gate; `/product-team:6-gate-check` verifies the result.
+Write `05-tasks.md` always, and `05-backlog/` only in the `full` profile. No gate; `/product-team:6-verify` checks the result.
 
 First read `../product-lead/references/conventions.md` (sibling of this skill's base directory).
 
 ## Preflight
 
-1. Resolve the initiative (ARGUMENTS, branch, or ask). Precondition: Gate 2 `approved` in STATUS.md (reconcile per conventions.md).
-2. Enter the Gate 3 branch per conventions.md Branching (this is Gate 3's first stage: `docs/{slug}-gate-3-dor`, cut fresh from the updated default branch); mark stage 5 `in-progress`.
-3. Read `02-prd.md`, `04-ux-spec.md` and `04-design-doc.md` fully.
+1. Resolve the initiative (ARGUMENTS, branch, or ask).
+2. Read `docs/strategy/product-team.yml` for `profile`.
+3. `pt.py status {slug}`: this stage must read `ready` or `partial`.
+4. Read `02-prd.md`, `04-ux-spec.md` and `04-design-doc.md` fully.
 
-## Slice
+## Tasks
 
-Stories are **tracer bullets**: each one cuts a narrow but COMPLETE path through every layer (schema, API, UI, tests) and is demoable or verifiable on its own. Never slice layer-by-layer ("backend for X" + "frontend for X" is one story, not two). Prefactoring that makes the slices easy is its own first story, labeled as such.
+Fill `../product-lead/references/templates/tasks.md` -> `05-tasks.md`. This layer exists because stories must trace to requirements and no requirement asks for a toolchain, so the build spine could never become stories.
 
-- Epics group stories by PRD goal; `epic-{n}.md` carries the goal, its R# coverage, and the ordered story list.
-- Every story references the R# ids it implements; a story with no R# reference does not get written.
-- Dependencies between stories are flagged explicitly in the Depends-on field; prefer slices that stand alone.
-- Size hints: S/M/L. A story trending past L is proposed as a split before writing it (ask).
+- **Dependency order**, so following the list top to bottom works.
+- **One line per task**, one session's work, verifiable: you can tell when it is done.
+- **Each task names what it serves**: a scenario id (`R3.S1`) for behaviour, a design decision (`D5`) for a technical choice, or `(infrastructure)` for the spine. A task that can name none of the three is scope nobody asked for.
+- **From nothing to accepted.** A group for getting it built, a group for getting it deployed, a group for accepting it where it actually runs. A project that already exists says so on one line rather than deleting the group.
+- **Close the deferrals aimed here.** Read the `## Deferrals` tables of `02-prd.md`, `04-ux-spec.md` and `04-design-doc.md`; every deferral naming `05-tasks.md` as its resolver is closed by a task line citing its id (`- [ ] 2.3 Choose the encoder (D1)`). `pt.py check` fails the initiative on one left unclosed.
+- `- [ ]` is load-bearing: `pt.py spec-merge` reads the checkboxes to decide which requirements have shipped.
 
-A story is a flow, and `04-ux-spec.md` is organised by flow, so the two line up: prefer one story per spec flow. Two stories sharing a flow both point at the same anchor; a story spanning two flows is usually two stories.
+Every scenario in the PRD is claimed by some task or some story. `pt.py check` reports any that is not, and a scenario nobody claims is a requirement nobody implements.
 
-Fill `../product-lead/references/templates/story.md` per story, leaving the Acceptance criteria section for product-team:ac-writer. Two fields come from the UX spec:
+## Stories (full profile only)
 
-- **Design / UX note**: the anchor of the flow this story implements, which is that flow's heading slugified, e.g. `04-ux-spec.md#export-a-report` for `### Export a report`. When the spec has no `## Flows` section, point every story at its `## No user-facing surface` argument. Verify the anchor resolves against the real heading; stage 6 follows it.
-- **Needs design seat**: `yes` when this story's flow draws on the spec's `## New system pieces needed` section, `no` otherwise. Copy that fact, never re-derive it: seat routing is the architect's job, and stage 7 turns this field into a board label so design load is visible before implementation starts.
+In the `solo` profile, skip this section entirely: `05-tasks.md` already carries the work and a story exists to be put on a board.
+
+Stories are **tracer bullets**: each cuts a narrow but COMPLETE path through every layer and is demoable or verifiable on its own. Never slice layer-by-layer ("backend for X" + "frontend for X" is one story, not two).
+
+Fill `../product-lead/references/templates/story.md` per story, one file each, and keep them thin: the story claims scenario ids rather than restating them, because the scenario already exists in `02-prd.md` and two copies drift. The whole file is a header, and the template's own comments are the authority on each field; do not re-derive them from memory. Epics group stories by PRD goal; `epic-{n}.md` carries the goal, its scenario coverage, and the ordered story list.
+
+Three field rules are stage behaviour rather than format: a story claiming no scenario does not get written; the Design / UX anchor must be verified to resolve (and points at the spec's `## No user-facing surface` argument when there are no flows); and **Needs design seat** is copied from whether the flow draws on the spec's `## New system pieces needed` section, never re-derived, because seat routing is the architect's job.
+
+A story is a flow and `04-ux-spec.md` is organised by flow, so prefer one story per flow.
 
 ## Acceptance criteria
 
-Spawn the **product-team:ac-writer** agent: inputs `02-prd.md` and every `05-backlog/story-*.md`; it adds Given/When/Then ACs (ids `AC-{n.m}.{k}`) to each story in place, every AC traceable to an existing R#. It reports any story whose ACs cannot trace; fix the story or the slicing, then re-dispatch for the fixed files.
+Spawn **product-team:ac-writer** with `02-prd.md` and every `05-backlog/story-*.md`. Its job is now to **claim and complete**, not to invent: it fills each story's Scenarios row from the PRD and reports any slice needing a criterion no scenario covers. That report is a PRD gap, and the fix is a scenario added by `/product-team:2-write-prd`, never one invented in a story.
+
+Skip the dispatch in the `solo` profile; there are no stories to fill.
 
 ## Handoff
 
-Update STATUS.md: stage 5 -> `approved`, decided by `n/a (no gate)`, note the epic/story counts. Suggest `/commit` (subject `docs({slug}): stage 5 backlog`) and then `/product-team:6-gate-check`. Then stop.
+Suggest `/commit` (subject `docs({slug}): stage 5 tasks and backlog`) and then `/product-team:6-verify` in the full profile, or `pt.py check {slug} --strict` in solo, where that run is the Definition of Ready. Then stop.
 
 ## Boundaries
 
-- ✅ Always: vertical slices only; R# references on every story; explicit dependency flags; one file per story; a resolvable UX-spec anchor and a set design-seat flag on every story.
+- ✅ Always: a dependency-ordered task list covering build, deploy and acceptance; every task naming a scenario, a decision or infrastructure; vertical story slices; a resolvable UX anchor and a set design-seat flag on every story; a split rationale on every `L`.
 - ⚠️ Ask first: any story that looks bigger than L (propose the split); reshaping requirements to fit a slice (that is a PRD change and belongs at Gate 1).
-- 🚫 Never: create a story without a PRD requirement reference; write the ACs yourself (product-team:ac-writer owns them); write a freehand "N/A" in a Design/UX note instead of pointing at the UX spec; assign an owning seat to a story (the architect routes seats); run `git commit` / `git push` / `gh pr create`.
+- 🚫 Never: write a story that claims no scenario; write acceptance criteria yourself where a PRD scenario would serve (ac-writer claims them, 2-write-prd authors them); write a freehand "N/A" in a Design/UX note; assign an owning seat to a story (the architect routes seats); write a stage-status row; run `git commit` / `git push` / `gh pr create`.

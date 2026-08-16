@@ -26,6 +26,7 @@ PYTEST_INI = REPO / "pytest.ini"
 SUITE_GLOBS = (
     "roles/*/files/scripts/*/tests",
     "roles/*/files/claude/hooks/tests",
+    "roles/*/files/claude/plugins/*/skills/*/scripts/tests",
     "lib/python/tests",
     "tests",
 )
@@ -177,7 +178,8 @@ def dotkit_links():
     """Every `dotkit` entry in the repo that is a symlink rather than the real thing."""
     return sorted(
         path
-        for path in REPO.glob("roles/*/files/scripts/**/dotkit")
+        for pattern in ("roles/*/files/scripts/**/dotkit", "roles/*/files/claude/plugins/**/dotkit")
+        for path in REPO.glob(pattern)
         if path.is_symlink()
     )
 

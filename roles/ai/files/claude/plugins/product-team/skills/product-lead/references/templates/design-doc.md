@@ -34,6 +34,22 @@ sources: ["02-prd.md"]
 
 <!-- Schema changes, endpoints, events - in this repo's contract idiom. Sketch level, not implementation. -->
 
+## Deferrals settled here
+
+<!-- Every deferral 02-prd.md and 04-ux-spec.md pointed at this document, each with the decision that closes it. Name the id, because pt.py check follows it: an id that appears in no artifact downstream of the one that raised it is a question everyone assumed someone else had answered.
+
+Closing it means deciding it, or restating it as an owned open question below. "Still open" with nobody's name on it is what a deferral is supposed to prevent. -->
+
+| id | Raised by | Decision |
+|---|---|---|
+
+## Enforcement and access
+
+<!-- Two decisions this stage reliably leaves implicit, and both were missed on a real initiative:
+
+- **Where validity is enforced, relative to deploy.** If anything here validates anything, name the command that runs it and say whether a failure blocks publishing or merely reports. Validation that only ever runs on a developer's machine does not stop a bad artifact reaching production, and "there is a check" read as if it did.
+- **Who can read the deployed thing.** State the access posture and name the alternative rejected. "No credential is required" is a decision with consequences, not the absence of one. -->
+
 ## Security & privacy considerations
 
 <!-- Data touched, access model, PII handling, threat notes. "None" must be argued, not assumed. -->

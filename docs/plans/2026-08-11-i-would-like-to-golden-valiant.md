@@ -11,8 +11,6 @@ Claude Code writes **one JSONL line per content block**, each repeating the iden
 `walk` (`tokencost:133-158`) filters on `type == "assistant"` and yields every line, so every figure the tool has ever printed is inflated by the block-count, 2.0x to 2.4x across the sessions sampled.
 The docstring guards against the `iterations` double-count but not this one.
 
-
-
 ## Approach
 
 One script, one pass over each transcript, three changes: dedupe, a context metric, a `--context` view.

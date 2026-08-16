@@ -9,7 +9,7 @@ sources: ["02-prd.md"]
 
 # UX spec: {initiative name}
 
-<!-- Written by ux-shaper before 04-design-doc.md, because states drive the data contract: a paginated empty state changes the API sketch, an optimistic interaction changes the mutation contract. The design gate owner in .github/CODEOWNERS is a required approver at Gate 2 and revises this file directly rather than only commenting. -->
+<!-- Written by ux-shaper before 04-design-doc.md, because states drive the data contract: a paginated empty state changes the API sketch, an optimistic interaction changes the mutation contract. Where .github/CODEOWNERS names a design owner for this path, they are a required approver on the commit that adds it, and they revise this file directly rather than only commenting: it is their document. -->
 
 ## Design system inventory
 
@@ -55,9 +55,19 @@ sources: ["02-prd.md"]
 |---|---|---|
 |  | token \| component \| variant |  |
 
+## Deferrals
+
+<!-- A question this spec deliberately leaves to the design, which is the common and healthy case: whether a list paginates, whether an interaction is optimistic, whether a state is reachable at all are often data-contract questions wearing UX clothes. Naming one here is what lets this spec stop hedging about it.
+
+Forwards only, so the resolver is 04-design-doc.md or 05-tasks.md. 04-design-doc.md must mention the id and settle it; pt.py check fails the initiative if it does not. Delete this section when there are none. -->
+
+| id | Question | Resolved by |
+|---|---|---|
+| D{n} |  | 04-design-doc.md |
+
 ## Open questions
 
-<!-- Numbered, each with an owner. An unknown never becomes an assumption; see conventions.md hard rules. -->
+<!-- Numbered, each with an owner. An unknown never becomes an assumption; see conventions.md hard rules. A deferral is closed by the next artifact, an open question by a person: that is the whole difference. -->
 
 ## Mockups
 

@@ -15,11 +15,11 @@ sources: ["00-brief.md", "01-research/summary.md"]
 
 ## Goals & success metrics
 
-<!-- Every metric needs all four columns. A baseline you do not have is written exactly as `UNKNOWN -> Open Question #n`; inventing one is the cardinal sin of this pipeline. -->
+<!-- Every metric needs all four columns. A baseline you do not have is written exactly as `UNKNOWN -> Open Question #n`; inventing one is the cardinal sin of this pipeline. Each row also names the requirement that makes it measurable, or says who measures it by hand: a target nothing in the build can report on is a target nobody will ever check. -->
 
-| Metric | Definition | Baseline | Target |
-|---|---|---|---|
-|  |  |  |  |
+| Metric | Definition | Baseline | Target | Measured by |
+|---|---|---|---|---|
+|  |  |  |  | R{#} \| manual ({who}) |
 
 ## Non-goals
 
@@ -33,20 +33,56 @@ sources: ["00-brief.md", "01-research/summary.md"]
 
 <!-- Only segments evidenced in 01-research/. A segment without research backing needs explicit human sign-off, recorded here. -->
 
+## Capabilities
+
+<!-- The durable names this initiative's requirements belong to, kebab-case, one per line. A capability outlives the initiative: it is the file its requirements are merged into at ship time (docs/specs/{capability}/spec.md), so name the lasting behaviour ("data-export") and never the project ("q3-export-work"). Every requirement below names one of these. -->
+
+- {capability-name}
+
 ## Requirements
 
-<!-- Numbered R1..Rn. Each one testable: a QA engineer could write a pass/fail check from the sentence alone. No implementation detail; that belongs to the design doc. -->
+<!-- One block per requirement, numbered R1..Rn, and each one is a contract plus the scenarios that would fail if it broke.
 
-- **R1**:
-- **R2**:
+The SHALL sentence is the obligation. The scenarios are how anyone tells whether it holds, and they are written HERE rather than in a story because a requirement and its test are one thought: split across two stages and three files, what happens is that the ceiling on a value, the survival of data through a restart, or the state a surface reaches when empty is agreed by nobody and implemented by nobody. Ids are stable (`R3.S2`) and are what stories, tasks and the DoR check all claim.
+
+A constraint is a requirement. If a value is unbounded, if a field has no ceiling, if data must survive something the platform can do to it (eviction under storage pressure, a cold start, a revoked permission), that is a SHALL with a scenario, not a note in prose.
+
+An initiative that changes behaviour an earlier one already shipped into docs/specs/ says so in the block rather than silently restating it. `Modifies: {spec requirement name}` marks the block as replacing that requirement at merge time; the block's own heading carries the (possibly new) name and restates the SHALL and every scenario that survives, which is also how a rename happens. A removal block carries `Removes:` with mandatory `Reason:` and `Migration:` lines, no SHALL and no scenarios, and it ships only through a task citing its bare R#, because decommissioning is work. The choice is not stylistic: spec-merge refuses a plain restatement that would drop a scenario the spec already holds, since that scenario may be another initiative's.
+
+No implementation detail: that is stage 4's job. -->
+
+### R{n}: {short name}
+
+{The system} SHALL {observable obligation}.
+Capability: {capability-name}
+
+#### R{n}.S1
+
+- **WHEN** {condition or input}
+- **THEN** {observable outcome}
+
+### R{m}: {removal block, only when retiring shipped behaviour}
+
+Removes: {spec requirement name}
+Capability: {capability-name}
+Reason: {why it goes}
+Migration: {what happens to whoever relied on it}
 
 ## User flows
 
 <!-- Step-by-step happy path plus the failure paths that matter. Reference requirements by R#. -->
 
+## Deferrals
+
+<!-- A question this PRD deliberately does not answer, handed to a later artifact that will. Only forwards: the resolver must be an artifact that runs after this one (04-ux-spec.md, 04-design-doc.md, 05-tasks.md), because nothing upstream will run again to pick it up. The resolving artifact must mention the id and settle it, and pt.py check fails the initiative if it does not. Delete this section when there are none: an empty table reads as an unanswered question. -->
+
+| id | Question | Resolved by |
+|---|---|---|
+| D1 |  | 04-design-doc.md |
+
 ## Open questions
 
-<!-- Numbered, each with an owner. Unknown baselines from the metrics table land here. -->
+<!-- Numbered, each with an owner. Unknown baselines from the metrics table land here. An open question differs from a deferral in who closes it: a deferral is closed by the next artifact, an open question by a person. -->
 
 | # | Question | Owner | Status |
 |---|---|---|---|

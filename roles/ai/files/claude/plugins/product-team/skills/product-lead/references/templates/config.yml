@@ -1,0 +1,60 @@
+# Product Team configuration for this repo.
+#
+# Scaffolded to docs/strategy/product-team.yml by /product-team:setup-strategy, and read
+# by every stage skill. It lives here rather than in CLAUDE.md because CLAUDE.md is loaded
+# on every turn of every session in this repo, and this is read by eight skills that could
+# ask for it when they run.
+#
+# pt.py reads only the top-level scalars. The nested blocks are for the stage skills.
+
+# full | solo
+#
+# `full` is the whole pipeline. `solo` keeps every stage that produces findings (research,
+# red-team, the UX spec) and both gates, and drops the board-facing half: no stories, no
+# Definition of Ready report, no board export. Roughly half the cost and nearly all of the
+# latency, without giving up a single finding.
+#
+# The choice is about whether anyone other than you will read the output, not about how
+# ambitious the project is.
+profile: full
+
+# session | pr
+#
+# `session` asks for the gate decision in the conversation, which takes seconds. `pr` cuts
+# a branch, opens a PR and waits for a review, which takes a day and is worth it when real
+# reviewers and CODEOWNERS enforcement exist. Either way the decision and its reason land
+# in the initiative's STATUS.md.
+gate_medium: session
+
+# UNSET in a repo with no origin remote, which also makes stage 7 refuse.
+github_repo: UNSET
+project_number: UNSET
+
+gate_owners:
+  gate_0: "{@handle}"
+  gate_1: "{@handle}"
+  strategy: "{@handle}"
+
+# Who takes part, per stage. This is the roster, and it is how a repo stops paying for a
+# pass that cannot tell it anything: an internal tool with no market does not need a market
+# sizer, and dropping one from the list is a config change rather than a skill edit.
+#
+# An empty list means the stage runs with no agent dispatch and says so in its output.
+roster:
+  research: [competitive-researcher, user-evidence-researcher, market-sizer]
+  # ux-shaper | inline. Deliberately no `none`: an initiative with no interface still
+  # produces the spec and argues the absence per requirement, because "no UI" asserted in
+  # passing is how a surface with three unhandled states reaches implementation.
+  ux_spec: ux-shaper
+  # pm-red-team | inline. `inline` is markedly weaker: reviewing your own design in the
+  # same context reliably produces agreement.
+  red_team: pm-red-team
+
+# Paths outside this repo that /product-team:4-tech-shape may read, or [].
+extra_codebase_paths: []
+
+labels:
+  initiative: "initiative:{slug}"
+  epic: "epic:{n}"
+  story: "type:story"
+  design: "needs:design"
