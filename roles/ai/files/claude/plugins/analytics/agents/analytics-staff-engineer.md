@@ -11,6 +11,7 @@ description: >-
   seat (no OLTP schemas), and it never redefines a metric of record without approval.
 model: opus
 effort: xhigh
+thinking: xhigh
 memory: project
 ---
 

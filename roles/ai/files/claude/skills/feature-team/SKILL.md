@@ -24,6 +24,7 @@ If empty, ask for it before anything else.
 5. **Plan the dispatch.** From the spec's Work breakdown, read each slice's `Parallel` and `Depends on` fields.
    The independent wave is every slice marked `Parallel: yes`; the rest are held for their prerequisites.
    Isolate the wave in git worktrees by default when it has 2+ independent slices and I did not pass `--no-isolate`; a single-slice wave or `--no-isolate` runs in the main checkout as before.
+   Under the pi harness, never isolate: run as if `--no-isolate` was passed, because pi worktrees auto-commit each seat's work to a `pi-agent-*` branch, which step 7's copy-back of uncommitted files does not handle.
    Isolation needs `worktree.baseRef: head` (so seats branch from the feature tip, not origin/main) and Claude Code >= 2.1.203; both hold in this setup. If baseRef is not `head`, do not isolate.
    Before an isolated wave, run `git status --porcelain`: if the working tree is dirty in the feature's blast radius beyond the spec/ADRs just written under `docs/`, tell me, since worktrees branch from committed HEAD and will not see that WIP; offer `/commit` first or `--no-isolate`.
 6. **Dispatch the wave.** Spawn every independent slice's owning seat in a single message so they run concurrently; when isolating, each Agent call sets `isolation: "worktree"`.
@@ -43,3 +44,7 @@ If empty, ask for it before anything else.
 
 Single-seat tasks don't need this pipeline - delegate directly instead.
 Use this skill when the work spans two or more seats or needs the architect's spec first.
+
+Under the pi harness, two more substitutions apply besides step 5's `--no-isolate` rule.
+In step 2, inventory seats with `claude-kit list --type plugin` plus what is linked in `.claude/skills/`, since `claude plugin list` reports Claude Code's plugin loading, not pi's.
+In step 8, suggest a pi-review run instead of `/code-review max`, which does not exist under pi.

@@ -12,6 +12,7 @@ description: >-
   NEVER mutates live infrastructure: it writes and plans, a human applies.
 model: opus
 effort: xhigh
+thinking: xhigh
 memory: project
 ---
 

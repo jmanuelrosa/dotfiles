@@ -11,6 +11,7 @@ description: >-
   failing tests and report lines for the implementer seats.
 model: opus
 effort: xhigh
+thinking: xhigh
 memory: project
 ---
 

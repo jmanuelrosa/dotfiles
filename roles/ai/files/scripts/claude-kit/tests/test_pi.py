@@ -183,3 +183,181 @@ def test_doctor_names_the_occupant_when_something_else_holds_the_path(skilled):
 def test_doctor_says_nothing_about_a_project_with_no_skills(project):
     assert checks.pi_skills_unreachable(project) == []
     assert checks.pi_skills_unreachable(None) == []
+
+
+# --- P11 to P15: the .agents/agents view for pi-subagents ---------------------
+#
+# Same shape as the skills link, one level down: derived from what is on disk,
+# idempotent, and never touching anything it did not make. Run against a fabricated
+# checkout rather than the real one, because the no-agents plugin this needs does not
+# exist there: every real seat ships an agent today.
+
+
+SEAT_AGENT = "backendish-staff-engineer.md"
+
+
+@pytest.fixture
+def seat_repo(tmp_path, monkeypatch):
+    """A fabricated checkout holding two plugins: one shipping an agent, one not.
+
+    DOTFILES_DIR is the seam, exactly as the kit fixture uses it, so converge_agents
+    reads this store rather than the real repo's.
+    """
+    claude = tmp_path / "repo" / "roles" / "ai" / "files" / "claude"
+    seat = claude / "plugins" / "backendish" / "agents"
+    seat.mkdir(parents=True)
+    (seat / SEAT_AGENT).write_text("---\nname: backendish-staff-engineer\n---\n")
+    (claude / "plugins" / "toolbelt" / "skills").mkdir(parents=True)
+    monkeypatch.setenv("DOTFILES_DIR", str(tmp_path / "repo"))
+    return claude
+
+
+@pytest.fixture
+def plugged(project, seat_repo):
+    """A project with the agent-shipping plugin installed."""
+    leaf = project / ".claude" / "skills"
+    leaf.mkdir(parents=True)
+    (leaf / "backendish").symlink_to(seat_repo / "plugins" / "backendish")
+    return project
+
+
+def test_an_installed_plugins_agents_are_linked(plugged, seat_repo):
+    result = pi.converge_agents(plugged)
+    assert result.linked == [SEAT_AGENT]
+    entry = pi.agents_path(plugged) / SEAT_AGENT
+    assert entry.is_symlink()
+    source = seat_repo / "plugins" / "backendish" / "agents" / SEAT_AGENT
+    assert entry.resolve() == source.resolve()
+
+
+def test_agent_convergence_is_idempotent(plugged):
+    assert pi.converge_agents(plugged) is not None
+    assert pi.converge_agents(plugged) is None
+    assert pi.converge_agents(plugged) is None
+
+
+def test_removing_the_plugin_drops_its_agent_links(plugged):
+    pi.converge_agents(plugged)
+    (plugged / ".claude" / "skills" / "backendish").unlink()
+
+    result = pi.converge_agents(plugged)
+    assert result.pruned == [SEAT_AGENT]
+    # The run emptied the directory, so it goes too rather than being left behind.
+    assert not pi.agents_path(plugged).exists()
+
+
+def test_a_plugin_with_no_agents_directory_earns_nothing(project, seat_repo):
+    leaf = project / ".claude" / "skills"
+    leaf.mkdir(parents=True)
+    (leaf / "toolbelt").symlink_to(seat_repo / "plugins" / "toolbelt")
+
+    assert pi.converge_agents(project) is None
+    assert not pi.agents_path(project).exists()
+
+
+def test_a_hand_copied_plugin_directory_earns_nothing(project, seat_repo):
+    """Only a symlink resolving into the plugins store counts as installed, the same
+    narrowing installed_names applies everywhere else this tool derives from disk."""
+    copy = project / ".claude" / "skills" / "backendish" / "agents"
+    copy.mkdir(parents=True)
+    (copy / SEAT_AGENT).write_text("a hand-managed copy")
+
+    assert pi.converge_agents(project) is None
+    assert not pi.agents_path(project).exists()
+
+
+def test_a_foreign_agent_link_is_never_pruned(plugged, tmp_path):
+    pi.converge_agents(plugged)
+    theirs = tmp_path / "their-agent.md"
+    theirs.write_text("theirs")
+    foreign = pi.agents_path(plugged) / "their-agent.md"
+    foreign.symlink_to(theirs)
+    (plugged / ".claude" / "skills" / "backendish").unlink()
+
+    result = pi.converge_agents(plugged)
+    assert result.pruned == [SEAT_AGENT]
+    assert foreign.is_symlink()
+    # The run did not empty the directory, so it stays.
+    assert pi.agents_path(plugged).is_dir()
+
+
+def test_a_real_agent_file_is_never_pruned(plugged):
+    pi.converge_agents(plugged)
+    directory = pi.agents_path(plugged)
+    (directory / "hand-authored.md").write_text("mine")
+    (plugged / ".claude" / "skills" / "backendish").unlink()
+
+    result = pi.converge_agents(plugged)
+    assert result.pruned == [SEAT_AGENT]
+    assert (directory / "hand-authored.md").read_text() == "mine"
+
+
+def test_a_foreign_occupant_of_a_desired_name_blocks_it(plugged):
+    directory = pi.agents_path(plugged)
+    directory.mkdir(parents=True)
+    (directory / SEAT_AGENT).write_text("hand-authored")
+
+    result = pi.converge_agents(plugged)
+    assert result.blocked == [SEAT_AGENT]
+    assert result.linked == []
+    assert (directory / SEAT_AGENT).read_text() == "hand-authored"
+
+
+def test_a_stale_link_of_ours_is_repointed(plugged, seat_repo):
+    """A right-named link at a wrong target loads the wrong agent under a name that
+    looks correct, so re-pointing it is the fix, exactly as sync relinks."""
+    directory = pi.agents_path(plugged)
+    directory.mkdir(parents=True)
+    stale = seat_repo / "plugins" / "backendish" / "agents" / "old.md"
+    (directory / SEAT_AGENT).symlink_to(stale)
+
+    result = pi.converge_agents(plugged)
+    assert result.linked == [SEAT_AGENT]
+    source = seat_repo / "plugins" / "backendish" / "agents" / SEAT_AGENT
+    assert (directory / SEAT_AGENT).resolve() == source.resolve()
+
+
+def test_the_agents_path_occupied_by_a_file_is_blocked(plugged):
+    (plugged / pi.PARENT).mkdir()
+    occupant = plugged / pi.PARENT / pi.AGENTS_LEAF
+    occupant.write_text("not a directory")
+
+    result = pi.converge_agents(plugged)
+    assert result.blocked_dir
+    assert occupant.read_text() == "not a directory"
+
+
+def test_home_is_never_a_project_for_agents_either():
+    assert pi.converge_agents(None) is None
+
+
+# --- P16: the commands converge the agent view --------------------------------
+
+
+def test_add_of_a_plugin_links_its_agents(catalog, effective, home, project):
+    add.install_one(catalog, effective, "plugin", "backend", False, home, project)
+    entry = pi.agents_path(project) / "backend-staff-engineer.md"
+    assert entry.is_symlink()
+    source = CLAUDE / "plugins" / "backend" / "agents" / "backend-staff-engineer.md"
+    assert entry.resolve() == source.resolve()
+
+
+def test_add_of_a_skill_makes_no_agent_links(catalog, effective, home, project):
+    add.install_one(catalog, effective, "skill", "coderabbit", False, home, project)
+    assert not pi.agents_path(project).exists()
+
+
+def test_remove_of_a_plugin_drops_its_agent_links(catalog, effective, home, project, monkeypatch):
+    add.install_one(catalog, effective, "plugin", "backend", False, home, project)
+    entry = pi.agents_path(project) / "backend-staff-engineer.md"
+    assert entry.is_symlink()
+
+    monkeypatch.chdir(project)
+    remove.run(
+        type("Args", (), {
+            "names": ["backend"], "type": "plugin", "want_global": False,
+            "group": None, "no_cascade": True,
+        })()
+    )
+    assert not entry.exists()
+    assert not pi.agents_path(project).exists()

@@ -209,6 +209,20 @@
     state: link
     force: true
 
+# Same argument one directory over. The pi-subagents extension reads global agents
+# from ~/.pi/agent/agents/*.md and never from ~/.claude/agents, which is the set the
+# sync task above converges from the `global` tag. One directory link means that set
+# is derived, linked and pruned in exactly one place; per-file links here would need
+# a prune pass of their own to restate what sync already does. After the sync task
+# for the same reason as the skills link, and ~/.claude/agents is created by the
+# directories task above, so the link is never dangling even on a first run.
+- name: Point pi at the global claude agents
+  ansible.builtin.file:
+    src: "{{ HOME }}/.claude/agents"
+    dest: "{{ HOME }}/.pi/agent/agents"
+    state: link
+    force: true
+
 # The link the task above used to write. Left behind it is not inert: pi reads
 # ~/.pi/agent/SYSTEM.md as a replacement system prompt, and a dangling one is a
 # machine whose prompt depends on which run last touched it. Only a symlink is

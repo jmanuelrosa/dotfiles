@@ -121,9 +121,10 @@ def test_the_scan_is_clean(loader, project):
 
 
 def test_a_plugins_agent_is_not_mistaken_for_a_skill(loader, project):
-    """A seat bundles `agents/<name>.md`, and pi has no agents. A loose .md only counts
-    at the root of a scanned path, so the file is ignored rather than loaded as a skill
-    named after the seat."""
+    """A seat bundles `agents/<name>.md`, and pi's skill loader must not read it as a
+    skill: agents are pi-subagents' business, reached through `.agents/agents/`, never
+    through a skills scan. A loose .md only counts at the root of a scanned path, so
+    the file is ignored rather than loaded as a skill named after the seat."""
     names = discover(loader, project / ".agents" / "skills")["names"]
     assert f"{PLUGIN}-staff-engineer" not in names
 

@@ -26,16 +26,27 @@ Nothing here is Claude Code's business, so nothing is recorded in `claude-kit.js
 link is derived from what is on disk, which means it can be recomputed at any time and
 `converge` is safe to call unconditionally.
 
-There is no counterpart for `.claude/agents/`, and that is not an omission: pi has no
-subagents, so an agent has nothing to load it.
+Agents need a second view, and it cannot be one link. The pi-subagents extension reads
+project agents from `.pi/agents/*.md` and `.agents/agents/*.md`, never from `.claude/`,
+and it does not scan a skills tree for them; yet a seat plugin keeps its agent at
+`.claude/skills/<seat>/agents/<seat>-staff-engineer.md`, inside the plugin. No single
+directory holds every agent the installed plugins ship, so `converge_agents` maintains
+one file link per agent instead, derived from the plugin links on disk exactly as the
+skills link is. Pruning mirrors `sync`'s narrowings: only symlinks, and only ones
+resolving into this repo's files/claude/, so a hand-authored agent kept beside ours is
+never a candidate. The global half of the same story is the ai role's
+`~/.pi/agent/agents -> ~/.claude/agents` link, which needs no code here because `sync`
+already converges its target.
 """
 
 import os
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from dotkit import ui
 
-from . import scope
+from . import catalog as cat
+from . import paths, scope
 
 # Pi reads `.agents/skills/` from the cwd up through its ancestors. The parent directory
 # is shared with other harnesses by design (the path is not pi's own), which is why only
@@ -140,3 +151,143 @@ def report(change, project):
     elif change == "blocked":
         ui.warn(f"{link} already exists and is not ours, so pi will not see these skills.")
         ui.note(f"Point it at {ui.path(source_path(project))}, or move it aside.")
+
+
+# --- the .agents/agents/ view, for pi-subagents -------------------------------------
+
+# Unlike the skills leaf this one is a real directory of per-file links, because its
+# contents come from *inside* each installed plugin and no single directory exists to
+# point one link at.
+AGENTS_LEAF = "agents"
+
+
+def agents_path(project):
+    """Where the per-file agent links live, given a project root."""
+    return Path(project) / PARENT / AGENTS_LEAF
+
+
+def desired_agents(project):
+    """{basename: source} for every agent the installed plugins ship.
+
+    Derived from disk, never from the catalog or the manifest: a plugin link under
+    .claude/skills/ that resolves into this repo's plugins store, and holds an
+    `agents/` directory, contributes each of its `agents/*.md`. `installed_names` is
+    what keeps a hand-copied plugin directory or a foreign link out, for the same
+    reason it keeps them out of everything else this tool removes.
+    """
+    claude = paths.claude_dir()
+    out = {}
+    for _, link in sorted(scope.installed_names(project, cat.PLUGIN, claude).items()):
+        agents = scope.link_target(link) / AGENTS_LEAF
+        if not agents.is_dir():
+            continue
+        for source in sorted(agents.glob("*.md")):
+            out[source.name] = source
+    return out
+
+
+@dataclass
+class AgentLinks:
+    """What one agents convergence did. Empty lists mean a steady-state run."""
+
+    linked: list = field(default_factory=list)
+    pruned: list = field(default_factory=list)
+    blocked: list = field(default_factory=list)
+    # The .agents/agents path itself is occupied by something that is not a plain
+    # directory, so nothing below it could be written at all.
+    blocked_dir: bool = False
+
+    @property
+    def quiet(self):
+        return not (self.linked or self.pruned or self.blocked or self.blocked_dir)
+
+
+def converge_agents(project):
+    """Match .agents/agents/ to the agents the installed plugins ship.
+
+    Returns an AgentLinks describing what changed, or None on a steady-state run, so
+    the caller reports exactly as it does for converge.
+
+    Idempotent and derived, like converge: the desired set is recomputed from the
+    plugin links every time, so removing a plugin drops its agent links on the next
+    call and there is no record to go stale. The pruning narrowings mirror sync's
+    first two: only symlinks, and only ones resolving into files/claude/. Sync's
+    third (refuse an empty set) deliberately does not apply, because here an empty
+    set is the ordinary state of a project with no plugins rather than a registry
+    that lost its tags.
+    """
+    if project is None:
+        return None
+    claude = paths.claude_dir()
+    desired = desired_agents(project)
+    directory = agents_path(project)
+    result = AgentLinks()
+
+    # A symlink or a file wearing the directory's name is somebody's decision, exactly
+    # as a foreign .agents/skills is: report it when it stands in the way, never
+    # replace it.
+    if directory.is_symlink() or (directory.exists() and not directory.is_dir()):
+        if desired:
+            result.blocked_dir = True
+            return result
+        return None
+
+    if directory.is_dir():
+        for entry in sorted(directory.iterdir()):
+            if entry.name in desired:
+                continue
+            if not entry.is_symlink():
+                continue
+            if not scope.points_into(entry, claude):
+                continue
+            entry.unlink()
+            result.pruned.append(entry.name)
+
+    for name, source in sorted(desired.items()):
+        entry = directory / name
+        if scope.links_to(entry, source):
+            continue
+        if entry.is_symlink() and scope.points_into(entry, claude):
+            # Ours, pointing at a stale source: re-pointing is the fix, exactly as
+            # sync relinks a right-named link at a wrong target.
+            entry.unlink()
+            entry.symlink_to(source)
+            result.linked.append(name)
+            continue
+        if entry.is_symlink() or entry.exists():
+            result.blocked.append(name)
+            continue
+        directory.mkdir(parents=True, exist_ok=True)
+        entry.symlink_to(source)
+        result.linked.append(name)
+
+    # The directory goes only when this run emptied it, so one somebody made (or one
+    # still holding their files) stays. Same parent rule as the skills link.
+    if result.pruned and not desired:
+        try:
+            directory.rmdir()
+            directory.parent.rmdir()
+        except OSError:
+            pass
+
+    return None if result.quiet else result
+
+
+def report_agents(result, project):
+    """Say what converge_agents did, in the same register as report.
+
+    Counts rather than a line per file, because a seat fleet install is fifteen
+    plugins and one line each is the noise that gets a report skipped.
+    """
+    if result is None or project is None:
+        return
+    where = ui.path(agents_path(project))
+    if result.linked:
+        ui.note(f"Linked {ui.names_or_count(result.linked, 'agent')} into {where} for pi's subagents.")
+    if result.pruned:
+        ui.note(f"Removed {ui.names_or_count(result.pruned, 'agent link')} from {where}; no installed plugin ships them now.")
+    if result.blocked_dir:
+        ui.warn(f"{where} already exists and is not a directory, so pi will not see the plugin agents.")
+        ui.note("Move it aside, then rerun any add or remove.")
+    for name in result.blocked:
+        ui.warn(f"{where}/{name} already exists and is not ours, so pi loads that one instead.")

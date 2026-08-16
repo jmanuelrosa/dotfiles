@@ -13,6 +13,7 @@ description: >-
   or business logic), and never trades accessibility for aesthetics.
 model: opus
 effort: xhigh
+thinking: xhigh
 memory: project
 ---
 

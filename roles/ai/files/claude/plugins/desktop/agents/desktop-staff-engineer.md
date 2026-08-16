@@ -11,6 +11,7 @@ description: >-
   targets), not the frontend seat (no web app UI), and it never signs, notarizes, or publishes.
 model: opus
 effort: xhigh
+thinking: xhigh
 memory: project
 ---
 

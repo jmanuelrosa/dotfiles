@@ -12,6 +12,7 @@ description: >-
   or deploys the tagging server), and it never publishes a container version.
 model: opus
 effort: xhigh
+thinking: xhigh
 memory: project
 ---
 

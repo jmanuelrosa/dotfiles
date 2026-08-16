@@ -10,6 +10,7 @@ description: >-
   seat (no lakehouse or pipelines), not the analytics seat (no dbt or metrics models), and it never runs anything against a non-disposable environment.
 model: opus
 effort: xhigh
+thinking: xhigh
 memory: project
 ---
 

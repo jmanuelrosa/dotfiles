@@ -11,6 +11,7 @@ description: >-
   report. Not the platform seat (no CI/CD, containers, or release), not qa (no test design), and never deploys.
 model: opus
 effort: xhigh
+thinking: xhigh
 memory: project
 ---
 

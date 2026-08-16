@@ -12,6 +12,7 @@ description: >-
   an OTA update.
 model: opus
 effort: xhigh
+thinking: xhigh
 memory: project
 ---
 

@@ -10,6 +10,7 @@ description: >-
   completion report. Not a reviewer or test designer: review belongs to the caller.
 model: opus
 effort: xhigh
+thinking: xhigh
 memory: project
 ---
 
