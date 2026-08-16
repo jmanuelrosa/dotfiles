@@ -82,7 +82,7 @@ A healthy funnel kills most ideas at Gate 0. Killing early is the pipeline worki
 5. `/product-team:3-red-team`: `product-team:pm-red-team` attacks the PRD with fresh eyes; agreed fixes are applied by the skill, and then it asks **Gate 1**. That order is deliberate: on a real initiative the gate was answered first and the report then had to amend an already-approved PRD.
 6. `/product-team:4-tech-shape`: dispatches `ux-shaper` to write `04-ux-spec.md` (every flow, every surface, every state, and the design-system pieces that do not exist yet), then explores this codebase read-only and writes `04-design-doc.md` against those states, closing every deferral aimed at it and stating where validity is enforced relative to deploy and who can read the deployed thing; `product-team:adr-scribe` extracts decisions into the repo-wide `docs/adr/`. `ux-shaper` is a registry agent rather than a bundled one, so this stage and the architect share one definition of a UX spec: `claude-kit add ux-shaper --type agent --global`.
 7. `/product-team:5-decompose`: writes `05-tasks.md`, the whole build in dependency order from an empty repo to accepted, including the toolchain, deploy and acceptance work that could never be a story because no requirement asks for it. In the full profile it also writes thin story headers, and `product-team:ac-writer` fills each one's claimed scenario ids and reports any slice needing a criterion the PRD lacks.
-8. `/product-team:6-verify`: runs `pt.py check`, then judges the four items a script cannot, and writes `06-dor-report.md`. Pinned to Sonnet: it used to inherit an Opus session and cost more than research, the PRD and the red team combined.
+8. `/product-team:6-verify`: runs `pt.py check --strict` (errors and warnings both fail at DoR time), then judges the four items a script cannot, and writes `06-dor-report.md`. Pinned to Sonnet: it used to inherit an Opus session and cost more than research, the PRD and the red team combined.
 9. `/product-team:7-push-to-board`: dry-runs, asks Go/Cancel, then creates the GitHub epic and story issues with each story's claimed scenarios expanded into the body, links them, and adds them to the Project.
 10. `/product-team:8-living-spec`, at ship time: merges every requirement whose tasks are all checked off into `docs/specs/{capability}/spec.md`, and appends the retrospective to `docs/LEARNINGS.md`. This is the only artifact that outlives the initiative alongside the ADRs.
 
@@ -98,25 +98,30 @@ docs/
   strategy/
     strategy.md
     okrs.md
-  LEARNINGS.md              # appended at stage 7
+    product-team.yml        # profile, gate medium, gate owners, roster
+  specs/{capability}/
+    spec.md                 # living capability specs, merged at ship time; they outlive the initiative
+  LEARNINGS.md              # appended at stage 8, ship time
   initiatives/{slug}/
-    STATUS.md               # state machine, updated every stage
+    STATUS.md               # gate decisions and kills only; stage order is derived by pt.py
     00-brief.md
     01-research/
       competitive.md
       user-evidence.md
       sizing.md
       summary.md
-    02-prd.md
+    02-prd.md               # SHALL requirements, each carrying its R{n}.S{k} scenarios
     03-red-team-report.md
+    04-ux-spec.md           # every flow, surface and state, written before the design doc
     04-design-doc.md        # its ADR index points at the ADRs in docs/adr/
-    05-backlog/
+    05-tasks.md             # the whole build, dependency-ordered, empty repo to accepted
+    05-backlog/             # full profile only
       epic-{n}.md
       story-{n.m}.md
-    06-dor-report.md
+    06-dor-report.md        # full profile only
 ```
 
-The design goal is an unbroken traceability chain: story to `AC-{n.m}.{k}` to `R#` (PRD requirement) to PRD to brief to strategy bet/OKR, cleared by five human PR gates plus the stage-7 dry-run confirm.
+The design goal is an unbroken traceability chain: story and task to `R{n}.S{k}` scenario to `R#` requirement to PRD to brief to strategy bet/OKR, verified by `pt.py check` as a set difference and cleared by two human gates (in-session by default, PRs when `gate_medium: pr`) plus the stage-7 dry-run confirm.
 
 ### Product agents
 
@@ -130,9 +135,9 @@ Each is single-artifact and least-privilege: it is dispatched only from its owni
 | `product-team:market-sizer` | `/product-team:1-research` | `01-research/sizing.md` | Rough TAM/SAM sizing with arithmetic shown and every assumption labeled |
 | `product-team:pm-red-team` | `/product-team:3-red-team` | `03-red-team-report.md` | Attacks the PRD with fresh eyes, at least 5 severity-labeled challenges |
 | `product-team:adr-scribe` | `/product-team:4-tech-shape` | `docs/adr/NNNN-*.md` | Extracts design decisions into numbered, immutable ADRs |
-| `product-team:ac-writer` | `/product-team:5-decompose` | edits `05-backlog/story-*.md` | Adds Given/When/Then acceptance criteria traced to a PRD `R#` |
+| `product-team:ac-writer` | `/product-team:5-decompose` | edits `05-backlog/story-*.md` | Claims and completes: fills each story's scenario ids from the PRD and reports any slice needing a scenario the PRD lacks |
 
-The pipeline skills are all `disable-model-invocation: true` (human-invoked only). The one exception is `idea-refine`, vendored pristine from `addyosmani/agent-skills` and left model-invocable: `/product-team:setup-strategy` and `/product-team:0-refine-idea` invoke it via the Skill tool as their ideation front-end, and it works standalone too. Install the whole pipeline into a project with `claude-kit add --group product --type skill` (the group includes `idea-refine`). Its agents span a few tags: `claude-kit add --group product --type agent` links the five research and review seats; add the last two by name with `claude-kit add product-team:adr-scribe product-team:ac-writer --type agent`.
+The pipeline skills are all `disable-model-invocation: true` (human-invoked only). The one exception is `idea-refine`, vendored pristine from `addyosmani/agent-skills` and left model-invocable: `/product-team:setup-strategy` and `/product-team:0-refine-idea` invoke it via the Skill tool as their ideation front-end, and it works standalone too. Install the whole pipeline into a project with `claude-kit add product-team --type plugin`: the seven product agents ship inside the bundle and its `skillDependencies` pulls `idea-refine` alongside. The one agent to add separately is `ux-shaper` (`claude-kit add ux-shaper --type agent --global`), shared with the architect so both read one definition of a UX spec.
 
 ## Staff-engineer bench
 
@@ -170,7 +175,7 @@ Once `/product-team:6-verify` reports ALL PASS, the durable handoff is `docs/ini
 The per-story loop:
 
 1. Take the lowest-id PASS story from `06-dor-report.md`.
-2. Run `/feature-team "<story title + goal>"`, giving the architect three anchors: the story file (its `AC-*` are the acceptance bar), `02-prd.md` (the `R#` source of truth), and `docs/adr/` (immutable constraints).
+2. Run `/feature-team "<story title + goal>"`, giving the architect three anchors: the story file (the scenarios it claims are the acceptance bar, and their WHEN/THEN text lives in the PRD), `02-prd.md` (the `R#` source of truth), and `docs/adr/` (immutable constraints).
 3. `architect` writes `docs/specs/<feature>.md` with the owner-split work breakdown; you approve at the gate; the seats implement in isolated waves and the skill returns an integration report.
 4. `/code-review max`, then `/commit`, then move the issue to Done and pick the next PASS story.
 

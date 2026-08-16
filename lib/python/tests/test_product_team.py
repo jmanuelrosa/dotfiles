@@ -40,7 +40,11 @@ STAGES = (
 
 # Words this change removed. A file still using one has not been migrated, and the two
 # halves then describe different pipelines to whoever reads the one they open first.
-RETIRED = ("Gate 2", "Gate 3", "6-gate-check", "expedited path", "local mode")
+# The last two are the pre-scenario traceability model, which survived in README.md for
+# a whole rework because the scan did not name them. `AC-{n.m}.{k}` itself is NOT retired:
+# ac-writer still mints one for a genuinely story-local criterion; what is retired is the
+# chain that made those ids the acceptance bar.
+RETIRED = ("Gate 2", "Gate 3", "6-gate-check", "expedited path", "local mode", "five human PR gates", "AC-*")
 
 
 def stage_bodies():
@@ -185,13 +189,16 @@ def test_the_story_template_carries_every_field_the_checker_reads(field):
 
 
 def test_the_prd_template_shows_the_shapes_the_checker_matches():
-    """A requirement block, a scenario id and a capability line, in the parsed dialect."""
+    """A requirement block, a scenario id, a capability line and the change vocabulary,
+    in the parsed dialect."""
     body = (TEMPLATES / "prd.md").read_text(encoding="utf-8")
     assert "### R{n}:" in body
     assert "SHALL" in body
     assert "#### R{n}.S1" in body
     assert "Capability:" in body
     assert "**WHEN**" in body and "**THEN**" in body
+    for literal in ("Modifies:", "Removes:", "Reason:", "Migration:"):
+        assert literal in body, f"the checker parses {literal} but the template never shows it"
 
 
 def test_the_task_template_uses_the_checkbox_the_merge_reads():
@@ -208,6 +215,33 @@ def test_every_deferrable_artifact_is_a_real_pipeline_artifact():
     names = re.findall(r"[\w.-]+\.md", declared) + ["02-prd.md", "04-ux-spec.md", "05-tasks.md"]
     for name in set(names):
         assert name in layout, f"{name} is deferrable but not in the documented layout"
+
+
+def test_only_the_gated_stages_load_the_gate_protocol():
+    """gates.md is split out of conventions.md so ungated stages stop paying for it.
+
+    The complement matters as much as the membership: a stage that quietly starts
+    loading it again is the token diet failing, not a style choice.
+    """
+    assert (SKILLS / "product-lead/references/gates.md").is_file()
+    loaders = {name for name, body in stage_bodies() if "gates.md" in body}
+    assert loaders == {"0-refine-idea", "3-red-team", "setup-strategy", "product-lead"}
+
+
+def test_the_pr_protocol_lives_only_in_the_gate_reference():
+    """conventions.md is loaded by all 11 skills; the branch protocol by 4."""
+    assert "git switch -c docs/" not in CONVENTIONS.read_text(encoding="utf-8")
+    gates = (SKILLS / "product-lead/references/gates.md").read_text(encoding="utf-8")
+    assert "git switch -c docs/" in gates
+    assert "Revision flow" in gates
+
+
+def test_the_definition_of_ready_runs_the_checker_strict():
+    """A warning is the normal state mid-pipeline and a defect at DoR time, in both
+    profiles: 6-verify in full, the decompose handoff in solo."""
+    for name in ("6-verify", "5-decompose"):
+        body = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8")
+        assert "--strict" in body, f"{name} runs the lenient check at the one point strictness is the point"
 
 
 def test_the_config_template_holds_only_keys_the_pipeline_reads():
