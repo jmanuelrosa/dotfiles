@@ -24,14 +24,14 @@ allowed-tools:
 
 Adversarial review with a maker/checker split: the reviewer must not inherit the writer's assumptions, so the product-team:pm-red-team agent gets a fresh context and reads ONLY the PRD. This stage then opens Gate 1, because the requirements worth approving are the ones that have survived an attack.
 
-First read `../product-lead/references/conventions.md` (sibling of this skill's base directory).
+First read `../product-lead/references/conventions.md` and `../product-lead/references/gates.md` (siblings of this skill's base directory); the second carries the gate protocol this stage ends with.
 
 ## Preflight
 
 1. Resolve the initiative (ARGUMENTS, branch, or ask).
 2. Read `docs/strategy/product-team.yml` for `gate_medium` and `roster.red_team`.
 3. `pt.py status {slug}`: this stage must read `ready`, which means `02-prd.md` exists.
-4. Under `gate_medium: pr`, enter the Gate 1 branch per conventions.md (`docs/{slug}-gate-1-prd`, cut fresh from the default branch since this is Gate 1's first stage).
+4. Under `gate_medium: pr`, enter the Gate 1 branch per gates.md (`docs/{slug}-gate-1-prd`, cut fresh from the default branch since this is Gate 1's first stage).
 
 ## Attack
 
@@ -56,7 +56,7 @@ Four classes have actually been missed on real initiatives, so the dispatch name
 
 ## Gate 1
 
-Follow the gate protocol in conventions.md with n=1, stage name `prd`. The decision is whether these are the right requirements, and kill remains a first-class answer. Point the reviewer at the metrics, the non-goals, the scenario coverage, and every blocker that was not resolved.
+Follow the gate protocol in gates.md with n=1, stage name `prd`. The decision is whether these are the right requirements, and kill remains a first-class answer. Point the reviewer at the metrics, the non-goals, the scenario coverage, and every blocker that was not resolved.
 
 Under `gate_medium: session`, ask with `AskUserQuestion` and record status, decider, date and the one-line reason in the STATUS.md Gate 1 row. Then suggest `/commit` (subject `docs({slug}): gate 1 prd and red-team report`) and stop.
 

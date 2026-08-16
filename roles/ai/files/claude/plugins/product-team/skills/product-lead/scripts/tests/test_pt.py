@@ -240,6 +240,19 @@ def test_a_legacy_backlog_counts_as_decomposed(tmp_path):
     assert "predates" in detail
 
 
+def test_a_legacy_backlog_unblocks_stage_six(tmp_path):
+    """The migration promise: an initiative that predates 05-tasks.md is verifiable."""
+    _, root = build(tmp_path, **{"02-prd.md": PRD})
+    write(root, "05-backlog/story-1.1.md", STORY)
+    state, detail = stage("6-verify").state(root)
+    assert state == "ready", detail
+
+    _, root_bare = build(tmp_path / "other", **{"02-prd.md": PRD})
+    state, detail = stage("6-verify").state(root_bare)
+    assert state == "blocked"
+    assert "05-tasks.md or 05-backlog" in detail
+
+
 def test_the_board_stage_is_done_only_once_every_story_has_an_issue(tmp_path):
     _, root = build(tmp_path, **{"06-dor-report.md": "ALL PASS"})
     write(root, "05-backlog/story-1.1.md", STORY)
@@ -254,70 +267,86 @@ def test_the_board_stage_is_done_only_once_every_story_has_an_issue(tmp_path):
 def test_a_complete_initiative_reports_nothing(tmp_path):
     _, root = build(tmp_path, **{"02-prd.md": PRD, "04-ux-spec.md": UX, "05-tasks.md": TASKS})
     write(root, "05-backlog/story-1.1.md", STORY)
-    findings, skipped = pt.check(root)
-    assert findings == []
+    errors, warnings, skipped = pt.check(root)
+    assert errors == []
+    assert warnings == []
     assert skipped == []
 
 
-def test_a_scenario_nobody_claims_is_a_finding(tmp_path):
+def test_a_scenario_nobody_claims_is_a_warning(tmp_path):
+    """Mid-pipeline that is the normal state, so it fails only under --strict."""
     _, root = build(tmp_path, **{"02-prd.md": PRD, "04-ux-spec.md": UX})
     write(root, "05-backlog/story-1.1.md", STORY)
-    findings, _ = pt.check(root)
-    assert any("R2.S1 is claimed by no story and no task" in f for f in findings)
+    errors, warnings, _ = pt.check(root)
+    assert not any("R2.S1" in f for f in errors)
+    assert any("R2.S1 is claimed by no story and no task" in f for f in warnings)
 
 
-def test_claiming_a_scenario_the_prd_does_not_define_is_a_finding(tmp_path):
+def test_claiming_a_scenario_the_prd_does_not_define_is_an_error(tmp_path):
     _, root = build(tmp_path, **{"02-prd.md": PRD, "04-ux-spec.md": UX, "05-tasks.md": TASKS})
     write(root, "05-backlog/story-1.1.md", STORY.replace("R1.S1, R1.S2", "R1.S1, R9.S4"))
-    findings, _ = pt.check(root)
-    assert any("claims R9.S4" in f for f in findings)
+    errors, _, _ = pt.check(root)
+    assert any("claims R9.S4" in f for f in errors)
 
 
-def test_a_requirement_with_no_scenario_is_a_finding(tmp_path):
+def test_a_requirement_with_no_scenario_is_an_error(tmp_path):
     _, root = build(tmp_path, **{"02-prd.md": PRD + "\n### R3: Bare\nThe system SHALL do something.\n"})
-    findings, _ = pt.check(root)
-    assert any("R3 has no scenario" in f for f in findings)
+    errors, _, _ = pt.check(root)
+    assert any("R3 has no scenario" in f for f in errors)
+
+
+def test_a_scenario_claimed_only_by_a_story_is_named_as_unshippable(tmp_path):
+    """A story completes as a closed board issue the repo cannot see, so a story-only
+    claim satisfies coverage while making the requirement invisible to `shipped`."""
+    thin = TASKS.replace("covering R1.S1 and R1.S2", "covering R1.S1")
+    _, root = build(tmp_path, **{"02-prd.md": PRD, "04-ux-spec.md": UX, "05-tasks.md": thin})
+    write(root, "05-backlog/story-1.1.md", STORY)
+    errors, warnings, _ = pt.check(root)
+    assert any("R1.S2 is claimed only by story-1.1.md" in f for f in warnings)
+    assert not any("R1.S2" in f for f in errors)
+    assert sorted(pt.shipped(root)) == ["R1"], "shipping stays task-driven"
 
 
 def test_size_l_needs_a_split_rationale(tmp_path):
     _, root = build(tmp_path, **{"02-prd.md": PRD, "04-ux-spec.md": UX, "05-tasks.md": TASKS})
     write(root, "05-backlog/story-1.1.md", STORY.replace("| Size hint | M |", "| Size hint | L |"))
-    findings, _ = pt.check(root)
-    assert any("size L with no split rationale" in f for f in findings)
+    _, warnings, _ = pt.check(root)
+    assert any("size L with no split rationale" in f for f in warnings)
 
     write(
         root,
         "05-backlog/story-1.1.md",
         STORY.replace("| Size hint | M |", "| Size hint | L |\n| Split rationale | the encoder cannot be halved |"),
     )
-    findings, _ = pt.check(root)
-    assert not any("split rationale" in f for f in findings)
+    _, warnings, _ = pt.check(root)
+    assert not any("split rationale" in f for f in warnings)
 
 
 def test_the_ux_derived_items_are_skipped_when_there_is_no_ux_spec(tmp_path):
     """The `game-finder` bug: ten findings naming a field that did not exist yet."""
     _, root = build(tmp_path, **{"02-prd.md": PRD, "05-tasks.md": TASKS})
     write(root, "05-backlog/story-1.1.md", STORY.replace("| Needs design seat | no |", "| Needs design seat |  |"))
-    findings, skipped = pt.check(root)
-    assert findings == []
+    errors, warnings, skipped = pt.check(root)
+    assert errors == []
+    assert warnings == []
     assert any("no 04-ux-spec.md" in note for note in skipped)
 
 
-def test_a_blank_design_seat_is_a_finding_once_a_ux_spec_exists(tmp_path):
+def test_a_blank_design_seat_is_a_warning_once_a_ux_spec_exists(tmp_path):
     _, root = build(tmp_path, **{"02-prd.md": PRD, "04-ux-spec.md": UX, "05-tasks.md": TASKS})
     write(root, "05-backlog/story-1.1.md", STORY.replace("| Needs design seat | no |", "| Needs design seat |  |"))
-    findings, _ = pt.check(root)
-    assert any("Needs design seat is blank" in f for f in findings)
+    _, warnings, _ = pt.check(root)
+    assert any("Needs design seat is blank" in f for f in warnings)
 
 
-def test_a_dangling_ux_anchor_is_a_finding(tmp_path):
+def test_a_dangling_ux_anchor_is_an_error(tmp_path):
     _, root = build(tmp_path, **{"02-prd.md": PRD, "04-ux-spec.md": UX, "05-tasks.md": TASKS})
     write(root, "05-backlog/story-1.1.md", STORY.replace("#export-a-report", "#export-a-spreadsheet"))
-    findings, _ = pt.check(root)
-    assert any("matches no heading" in f for f in findings)
+    errors, _, _ = pt.check(root)
+    assert any("matches no heading" in f for f in errors)
 
 
-def test_a_dependency_cycle_is_a_finding(tmp_path):
+def test_a_dependency_cycle_is_an_error(tmp_path):
     _, root = build(tmp_path, **{"02-prd.md": PRD, "04-ux-spec.md": UX, "05-tasks.md": TASKS})
     write(root, "05-backlog/story-1.1.md", STORY.replace("| Depends on | none |", "| Depends on | story-1.2.md |"))
     write(
@@ -327,8 +356,8 @@ def test_a_dependency_cycle_is_a_finding(tmp_path):
         .replace("| Depends on | none |", "| Depends on | story-1.1.md |")
         .replace("R1.S1, R1.S2", "R2.S1"),
     )
-    findings, _ = pt.check(root)
-    assert any("dependency cycle" in f for f in findings)
+    errors, _, _ = pt.check(root)
+    assert any("dependency cycle" in f for f in errors)
 
 
 DEFERRED = """## Deferrals
@@ -339,13 +368,13 @@ DEFERRED = """## Deferrals
 """
 
 
-def test_a_deferral_the_resolver_never_mentions_is_a_finding(tmp_path):
+def test_a_deferral_the_resolver_never_mentions_is_an_error(tmp_path):
     _, root = build(
         tmp_path,
         **{"02-prd.md": PRD + "\n" + DEFERRED, "04-ux-spec.md": UX, "04-design-doc.md": "# Design\n\nNothing.\n"},
     )
-    findings, _ = pt.check(root)
-    assert any("does not close deferral D1" in f for f in findings)
+    errors, _, _ = pt.check(root)
+    assert any("does not close deferral D1" in f for f in errors)
 
 
 def test_a_closed_deferral_is_silent(tmp_path):
@@ -358,21 +387,47 @@ def test_a_closed_deferral_is_silent(tmp_path):
             "05-tasks.md": TASKS,
         },
     )
-    findings, _ = pt.check(root)
-    assert not any("D1" in f for f in findings)
+    errors, warnings, _ = pt.check(root)
+    assert not any("D1" in f for f in errors + warnings)
 
 
-def test_a_deferral_pointing_upstream_is_a_hole(tmp_path):
+def test_deferral_closure_needs_a_word_boundary(tmp_path):
+    """`D1` inside `D10` is a different deferral, not a close."""
+    _, root = build(
+        tmp_path,
+        **{
+            "02-prd.md": PRD + "\n" + DEFERRED,
+            "04-ux-spec.md": UX,
+            "04-design-doc.md": "# Design\n\nD10: an unrelated decision.\n",
+            "05-tasks.md": TASKS,
+        },
+    )
+    errors, _, _ = pt.check(root)
+    assert any("does not close deferral D1" in f for f in errors)
+
+    write(root, "04-design-doc.md", "# Design\n\nD10: unrelated. (D1) the platform encoder.\n")
+    errors, _, _ = pt.check(root)
+    assert not any("deferral D1" in f for f in errors)
+
+
+def test_a_deferral_waiting_on_an_unwritten_resolver_is_a_warning(tmp_path):
+    _, root = build(tmp_path, **{"02-prd.md": PRD + "\n" + DEFERRED, "04-ux-spec.md": UX})
+    errors, warnings, _ = pt.check(root)
+    assert not any("D1" in f for f in errors)
+    assert any("waits on 04-design-doc.md" in f for f in warnings)
+
+
+def test_a_deferral_pointing_upstream_is_an_error(tmp_path):
     upstream = DEFERRED.replace("04-design-doc.md", "02-prd.md")
     _, root = build(tmp_path, **{"02-prd.md": PRD, "04-ux-spec.md": UX + "\n" + upstream})
-    findings, _ = pt.check(root)
-    assert any("does not run after it" in f for f in findings)
+    errors, _, _ = pt.check(root)
+    assert any("does not run after it" in f for f in errors)
 
 
-def test_a_deferral_naming_something_that_is_not_an_artifact_is_a_finding(tmp_path):
+def test_a_deferral_naming_something_that_is_not_an_artifact_is_an_error(tmp_path):
     _, root = build(tmp_path, **{"02-prd.md": PRD + "\n" + DEFERRED.replace("04-design-doc.md", "a meeting")})
-    findings, _ = pt.check(root)
-    assert any("not a pipeline artifact" in f for f in findings)
+    errors, _, _ = pt.check(root)
+    assert any("not a pipeline artifact" in f for f in errors)
 
 
 # --- the spec merge ----------------------------------------------------------
@@ -398,7 +453,9 @@ def test_merge_replaces_a_requirement_and_keeps_the_others(tmp_path):
         "### Requirement: Something else entirely\nOwned by another initiative.\n",
         encoding="utf-8",
     )
-    merged = "\n".join(pt.merge(spec, pt.requirements(root)["R1"]))
+    lines, problem = pt.merge(spec, pt.requirements(root)["R1"])
+    assert problem is None
+    merged = "\n".join(lines)
     assert "Something else entirely" in merged, "a merge must not delete another initiative's requirement"
     assert "An older wording" not in merged
     assert "#### Scenario: R1.S1" in merged
@@ -410,9 +467,164 @@ def test_merge_is_idempotent(tmp_path):
     spec = tmp_path / "docs/specs/data-export/spec.md"
     spec.parent.mkdir(parents=True)
     requirement = pt.requirements(root)["R1"]
-    once = pt.merge(spec, requirement)
+    once, problem = pt.merge(spec, requirement)
+    assert problem is None
     spec.write_text("\n".join(once), encoding="utf-8")
-    assert pt.merge(spec, requirement) == once
+    assert pt.merge(spec, requirement) == (once, None)
+
+
+# --- the change vocabulary -----------------------------------------------------
+
+SPEC = """# data-export
+
+## Purpose
+
+Handed to accountants.
+
+## Requirements
+
+### Requirement: Export a report
+The system SHALL export any report the user can see as a CSV file.
+
+#### Scenario: R1.S1
+- **WHEN** a report with no rows is exported
+- **THEN** the file contains the header row and nothing else
+
+#### Scenario: R1.S2
+- **WHEN** a cell begins with `=`
+- **THEN** it is prefixed so no spreadsheet evaluates it
+
+### Requirement: Something else entirely
+Owned by another initiative.
+"""
+
+MODIFY_PRD = """## Requirements
+
+### R4: Export a report as XLSX
+The system SHALL export any report the user can see as an XLSX file.
+Capability: data-export
+Modifies: Export a report
+
+#### R4.S1
+- **WHEN** an export is requested
+- **THEN** an XLSX file downloads
+"""
+
+REMOVE_PRD = """## Requirements
+
+### R5: Retire CSV export
+Removes: Export a report
+Capability: data-export
+Reason: XLSX replaced it and the CSV path has no remaining consumers.
+Migration: saved CSV exports stay downloadable; new exports produce XLSX only.
+"""
+
+
+def spec_repo(tmp_path, prd):
+    repo, root = build(tmp_path, **{"02-prd.md": prd})
+    write(tmp_path / "docs/specs/data-export", "spec.md", SPEC)
+    return repo, root, tmp_path / "docs/specs/data-export/spec.md"
+
+
+def test_an_upsert_dropping_a_scenario_is_refused_by_name(tmp_path):
+    """The scenario may be another initiative's, so losing it must be said, not done."""
+    thin = PRD.replace(
+        "#### R1.S2\n- **WHEN** a cell begins with `=`\n- **THEN** it is prefixed so no spreadsheet evaluates it\n",
+        "",
+    )
+    _, root, spec = spec_repo(tmp_path, thin)
+    lines, problem = pt.merge(spec, pt.requirements(root)["R1"])
+    assert lines is None
+    assert "R1.S2" in problem
+    assert "Modifies:" in problem
+
+
+def test_modifies_replaces_and_renames_the_spec_requirement(tmp_path):
+    _, root, spec = spec_repo(tmp_path, MODIFY_PRD)
+    requirement = pt.requirements(root)["R4"]
+    assert requirement["modifies"] == "Export a report"
+    once, problem = pt.merge(spec, requirement)
+    assert problem is None
+    merged = "\n".join(once)
+    assert "### Requirement: Export a report as XLSX" in merged
+    assert "### Requirement: Export a report\n" not in merged + "\n"
+    assert "Something else entirely" in merged
+    spec.write_text("\n".join(once), encoding="utf-8")
+    assert pt.merge(spec, requirement) == (once, None), "an applied modify converges"
+
+
+def test_removes_deletes_the_block_and_stays_idempotent(tmp_path):
+    _, root, spec = spec_repo(tmp_path, REMOVE_PRD)
+    requirement = pt.requirements(root)["R5"]
+    once, problem = pt.merge(spec, requirement)
+    assert problem is None
+    merged = "\n".join(once)
+    assert "Export a report" not in merged
+    assert "Something else entirely" in merged
+    spec.write_text("\n".join(once), encoding="utf-8")
+    again, problem = pt.merge(spec, requirement)
+    assert problem is None
+    assert again == once, "an applied removal converges rather than failing"
+
+
+def test_a_modify_naming_a_requirement_the_spec_never_held_is_a_problem(tmp_path):
+    _, root, spec = spec_repo(tmp_path, MODIFY_PRD.replace("Export a report\n", "No such requirement\n", 1))
+    requirement = pt.requirements(root)["R4"]
+    lines, problem = pt.merge(spec, requirement)
+    assert lines is None
+    assert "does not hold" in problem
+
+
+def test_a_removal_without_reason_or_migration_is_an_error(tmp_path):
+    _, root, _ = spec_repo(tmp_path, REMOVE_PRD.replace("Migration: saved CSV exports stay downloadable; new exports produce XLSX only.\n", ""))
+    errors, _, _ = pt.check(root)
+    assert any("without both a Reason: and a Migration: line" in f for f in errors)
+
+
+def test_a_removal_no_task_cites_is_an_error_and_never_ships(tmp_path):
+    _, root, _ = spec_repo(tmp_path, REMOVE_PRD)
+    write(root, "05-tasks.md", "## 1. Cleanup\n\n- [x] 1.1 Unrelated work\n")
+    errors, _, _ = pt.check(root)
+    assert any("no task cites R5" in f for f in errors)
+    assert pt.shipped(root) == {}
+
+
+def test_a_removal_ships_through_a_bare_requirement_citation(tmp_path):
+    _, root, _ = spec_repo(tmp_path, REMOVE_PRD)
+    write(root, "05-tasks.md", "## 1. Cleanup\n\n- [x] 1.1 Decommission the CSV export path (R5)\n")
+    assert sorted(pt.shipped(root)) == ["R5"]
+    errors, _, _ = pt.check(root)
+    assert not any("R5" in f for f in errors)
+
+
+def test_a_prd_restating_a_spec_requirement_that_drops_a_scenario_is_an_error(tmp_path):
+    thin = PRD.replace(
+        "#### R1.S2\n- **WHEN** a cell begins with `=`\n- **THEN** it is prefixed so no spreadsheet evaluates it\n",
+        "",
+    )
+    _, root, _ = spec_repo(tmp_path, thin)
+    errors, _, _ = pt.check(root)
+    assert any("drops R1.S2" in f for f in errors)
+
+
+def test_unmerged_sees_a_requirement_missing_from_an_existing_spec(tmp_path):
+    """A spec file that exists no longer proves the requirement inside it was merged."""
+    repo, root, spec = spec_repo(tmp_path, PRD)
+    write(root, "05-tasks.md", TASKS.replace("- [ ] 2.2", "- [x] 2.2"))
+    assert pt._unmerged(root) == ["R2"], "R2 shipped but Export history is not in the spec"
+    lines, problem = pt.merge(spec, pt.requirements(root)["R2"])
+    assert problem is None
+    spec.write_text("\n".join(lines), encoding="utf-8")
+    assert pt._unmerged(root) == []
+
+
+def test_unmerged_sees_an_unapplied_removal(tmp_path):
+    _, root, spec = spec_repo(tmp_path, REMOVE_PRD)
+    write(root, "05-tasks.md", "## 1. Cleanup\n\n- [x] 1.1 Decommission the CSV export path (R5)\n")
+    assert pt._unmerged(root) == ["R5"], "the target is still in the spec, so the removal has not merged"
+    lines, _ = pt.merge(spec, pt.requirements(root)["R5"])
+    spec.write_text("\n".join(lines), encoding="utf-8")
+    assert pt._unmerged(root) == []
 
 
 # --- the command line --------------------------------------------------------
@@ -435,12 +647,80 @@ def test_status_names_the_next_command(tmp_path):
     assert "/product-team:2-write-prd" in result.stdout
 
 
-def test_check_exits_with_findings_and_json_carries_them(tmp_path):
+def test_a_warning_passes_check_by_default_and_fails_it_under_strict(tmp_path):
     _, root = build(tmp_path, **{"02-prd.md": PRD, "04-ux-spec.md": UX})
     write(root, "05-backlog/story-1.1.md", STORY)
+    lenient = run("check", "demo", "--json", cwd=tmp_path)
+    assert lenient.returncode == pt.OK
+    report = json.loads(lenient.stdout)
+    assert "R2.S1" in " ".join(report["warnings"])
+    assert report["errors"] == []
+    assert run("check", "demo", "--strict", cwd=tmp_path).returncode == pt.FINDINGS
+
+
+def test_an_error_fails_check_without_strict(tmp_path):
+    _, root = build(tmp_path, **{"02-prd.md": PRD, "04-ux-spec.md": UX, "05-tasks.md": TASKS})
+    write(root, "05-backlog/story-1.1.md", STORY.replace("R1.S1, R1.S2", "R1.S1, R9.S4"))
     result = run("check", "demo", "--json", cwd=tmp_path)
     assert result.returncode == pt.FINDINGS
-    assert "R2.S1" in " ".join(json.loads(result.stdout)["findings"])
+    assert "R9.S4" in " ".join(json.loads(result.stdout)["errors"])
+
+
+STATUS = """# STATUS: Demo
+
+| Gate | Status | Decided by | Date | Reason / concern accepted |
+|---|---|---|---|---|
+| Gate 0 | approved | @jose | 2026-08-16 | small blast radius, kill review at Gate 1 |
+| Gate 1 | pending |  |  |  |
+"""
+
+
+def test_gate_rows_bind_decider_date_and_reason(tmp_path):
+    """The columns are Status, Decided by, Date, Reason; binding one to the right put
+    the date where the decider goes and dropped the reason, and this is the only reader."""
+    _, root = build(tmp_path, **{"00-brief.md": "brief"})
+    write(root, "STATUS.md", STATUS)
+    result = run("status", "demo", "--json", cwd=tmp_path)
+    gate = json.loads(result.stdout)["gates"][0]
+    assert gate == {
+        "gate": "Gate 0",
+        "status": "approved",
+        "decided_by": "@jose",
+        "date": "2026-08-16",
+        "reason": "small blast radius, kill review at Gate 1",
+    }
+
+
+LEGACY_STATUS = """# STATUS
+
+| Stage | Status | Gate PR | Decided by | Date | Notes |
+|---|---|---|---|---|---|
+| 0-brief (Gate 0) | approved | https://example.test/pull/40 | @jose | 2026-08-09 | Gate 0 PR merged |
+"""
+
+
+def test_gate_rows_follow_the_header_in_a_legacy_status_table(tmp_path):
+    """The pre-rework table had a Gate PR column before Decided by; positions come from
+    the header row, so both shapes bind the decider to the decider."""
+    _, root = build(tmp_path, **{"00-brief.md": "brief"})
+    write(root, "STATUS.md", LEGACY_STATUS)
+    result = run("status", "demo", "--json", cwd=tmp_path)
+    gate = json.loads(result.stdout)["gates"][0]
+    assert gate["decided_by"] == "@jose"
+    assert gate["date"] == "2026-08-09"
+    assert gate["reason"] == "Gate 0 PR merged"
+
+
+def test_spec_merge_refuses_a_silent_scenario_drop_end_to_end(tmp_path):
+    thin = PRD.replace(
+        "#### R1.S2\n- **WHEN** a cell begins with `=`\n- **THEN** it is prefixed so no spreadsheet evaluates it\n",
+        "",
+    )
+    repo, root, _ = spec_repo(tmp_path, thin)
+    write(root, "05-tasks.md", "## 1. Export\n\n- [x] 1.1 Encoder covering R1.S1\n")
+    result = run("spec-merge", "demo", cwd=tmp_path)
+    assert result.returncode == pt.FINDINGS
+    assert "R1.S2" in result.stdout
 
 
 def test_an_unknown_initiative_is_a_usage_error(tmp_path):

@@ -23,12 +23,12 @@ allowed-tools:
 
 Interview the human for the product strategy, write `docs/strategy/strategy.md` + `docs/strategy/okrs.md`, and scaffold the repo for the Product Team pipeline. The strategy is the yardstick every Gate 0 brief gets measured against; vagueness written here becomes bad kill decisions later.
 
-First read `../product-lead/references/conventions.md` (sibling of this skill's base directory) and follow its interview style and gate protocol.
+First read `../product-lead/references/conventions.md` and `../product-lead/references/gates.md` (siblings of this skill's base directory); the second carries the gate protocol the handoff follows.
 
 ## Preflight
 
 1. Must run inside a git repo. With an `origin` remote, resolve `github_repo` via `gh repo view --json nameWithOwner`; without one, write `github_repo: UNSET`, which is what makes stage 7 refuse later.
-2. `docs/strategy/strategy.md` already exists -> this is a **revision**: if a strategy PR is open, follow the revision flow in conventions.md; otherwise interview only about what the user wants changed (ARGUMENTS may say).
+2. `docs/strategy/strategy.md` already exists -> this is a **revision**: if a strategy PR is open, follow the revision flow in gates.md; otherwise interview only about what the user wants changed (ARGUMENTS may say).
 3. Switch to branch `chore/product-strategy` (`git switch -c` if new). Dirty tree with unrelated changes -> stop and ask.
 
 ## Ideation front-end (idea-driven setups only)
@@ -45,7 +45,7 @@ Never in the revision flow. If ARGUMENTS reads as a product idea, or the human c
 
 ## Interview
 
-One question at a time, each with a recommended answer, drilling into vagueness. A seeded answer from the ideation front-end is presented for confirmation instead of asked cold. Cover, in order, resolving each before the next:
+One question at a time, each with a recommended answer, drilling into vagueness: a number with no source, a segment with no size, an "everyone" audience all get a follow-up, not a nod. Facts findable in the repo or on disk are looked up, never asked; decisions are the human's, never filled in. A seeded answer from the ideation front-end is presented for confirmation instead of asked cold. Cover, in order, resolving each before the next:
 
 1. **Vision**: the one-paragraph world this product creates. Push back on feature lists.
 2. **Bets**: 3 to 5. For each: the wager, why the team believes it, which OKR it will serve.
@@ -75,12 +75,12 @@ Templates live in `../product-lead/references/templates/` (sibling of this skill
    ```
    Keep that order: CODEOWNERS applies the **last** matching pattern, so a specific line must follow the general one or the PM owns the UX spec too. The single `*` matches exactly the slug level, which is what the initiative layout needs. Omit the UX line entirely when there is no design gate owner.
 
-   The `docs/adr/` line is load-bearing rather than tidiness. There is no design gate any more, so this is the only review an ADR gets, and an ADR is the one artifact class this pipeline treats as immutable and hard to reverse. Ask for a tech lead handle even in a solo repo, where it is the repo owner: the line then costs nothing and starts working the day someone else joins.
+   The `docs/adr/` line is load-bearing rather than tidiness: with no design gate it is the only review an ADR gets, and ADRs are the one artifact class this pipeline treats as immutable and hard to reverse. Ask for a tech lead handle even in a solo repo, where it is the repo owner: the line then costs nothing and starts working the day someone else joins.
 5. Append `claude-md-section.md` to the repo's CLAUDE.md; create the file if absent. It is three lines and holds no configuration, because CLAUDE.md is loaded on every turn of every session in the repo and the config belongs in a file the stages open when they run. If an older, longer Product Team section is already there, replace it wholesale rather than updating values in it.
 
 ## Handoff
 
-Follow the gate protocol in conventions.md for the chosen `gate_medium`, with commit subject `docs(strategy): product strategy, okrs, and pipeline scaffold`. Under `pr`, the body asks the team to challenge the bets and non-bets specifically. Under `session`, ask the strategy owner directly and record their answer. Then stop: the human runs `/commit`.
+Follow the gate protocol in gates.md for the chosen `gate_medium`, with commit subject `docs(strategy): product strategy, okrs, and pipeline scaffold`. Under `pr`, the body asks the team to challenge the bets and non-bets specifically. Under `session`, ask the strategy owner directly and record their answer. Then stop: the human runs `/commit`.
 
 ## Boundaries
 

@@ -23,25 +23,25 @@ allowed-tools:
 
 A **verifier, not a generator**. Write `06-dor-report.md`; any FAIL blocks `/product-team:7-push-to-board`, and this skill never fixes what it finds (maker/checker).
 
-This stage is pinned to Sonnet at medium effort, and the pin is the point rather than a saving. It used to inherit an Opus session and cost more than research, the PRD and the red team combined, to produce, across three initiatives, one repeated lexical defect. That defect is now a script's job. What is left is four judgments, and they do not need the depth.
+This stage is pinned to Sonnet at medium effort, and the pin is the point rather than a saving: the lexical defects are a script's job now, and the four judgments left do not need the depth (unpinned, this stage inherited Opus and cost more than research, the PRD and the red team combined).
 
 First read `../product-lead/references/conventions.md` and the checklist itself, `../product-lead/references/templates/dor-checklist.md`.
 
 ## Preflight
 
 1. Resolve the initiative (ARGUMENTS, branch, or ask).
-2. Read `docs/strategy/product-team.yml`: in the `solo` profile this stage does not run, so say so and point at `pt.py check {slug}` instead.
-3. `pt.py status {slug}`: this stage must read `ready`, which means `05-tasks.md` exists.
+2. Read `docs/strategy/product-team.yml`: in the `solo` profile this stage does not run, so say so and point at `pt.py check {slug} --strict` instead.
+3. `pt.py status {slug}`: this stage must read `ready`, which means `05-tasks.md` (or a legacy `05-backlog/`) exists.
 
 ## Check
 
 **Run the script first, and do not re-decide what it decided.**
 
 ```
-python3 .claude/skills/product-team/skills/product-lead/scripts/pt.py check {slug}
+python3 .claude/skills/product-team/skills/product-lead/scripts/pt.py check {slug} --strict
 ```
 
-It owns the eight mechanical items in the checklist: scenario ids resolve, coverage is complete, no requirement has zero scenarios, UX anchors resolve, the design-seat flag is set, size hints and `L` rationales are present, dependencies are declared and acyclic, deferrals are closed. Quote its output verbatim into the report. An item it says it did not check is not an item you check by hand either: it skips a check when the artifact it needs is absent, which is a fact about the initiative rather than a gap in the report.
+It owns the mechanical items in the checklist, split into errors and warnings: scenario ids resolve, coverage is complete, no requirement has zero scenarios, spec-changing blocks are well-formed, UX anchors resolve, the design-seat flag is set, size hints and `L` rationales are present, dependencies are declared and acyclic, deferrals are closed. `--strict` is deliberate: a warning is the normal state mid-pipeline and a defect here, so at this stage both groups fail. Quote both groups verbatim into the report. An item it says it did not check is not an item you check by hand either: it skips a check when the artifact it needs is absent, which is a fact about the initiative rather than a gap in the report.
 
 Then judge the four items the checklist assigns to you, and only those:
 

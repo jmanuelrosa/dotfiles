@@ -37,7 +37,9 @@ First read `../product-lead/references/conventions.md` (sibling of this skill's 
 python3 .claude/skills/product-team/skills/product-lead/scripts/pt.py spec-merge {slug}
 ```
 
-A requirement ships when **every task claiming one of its scenarios is checked off** in `05-tasks.md`, which is why those checkboxes are load-bearing. The script upserts each shipped requirement into its capability's spec at requirement level, preserving every other requirement in that file: a capability accumulates behaviour across initiatives, so a merge that rewrote the file from one PRD would delete what the others added.
+A requirement ships when **every task claiming one of its scenarios is checked off** in `05-tasks.md`, which is why those checkboxes are load-bearing; a `Removes:` block has no scenarios, so it ships when every task citing its bare R# is checked instead. The script applies each shipped requirement to its capability's spec at requirement level, preserving every other requirement in that file: a capability accumulates behaviour across initiatives, so a merge that rewrote the file from one PRD would delete what the others added.
+
+It speaks the PRD's change vocabulary. A plain block upserts; a `Modifies:` block replaces the named requirement under its own heading, which is also how a rename lands; a `Removes:` block deletes it. A plain upsert that would drop a scenario the spec already holds is **refused by name** and the run exits non-zero, because that scenario may be another initiative's: the fix is a `Modifies:` line in `02-prd.md` when the drop is intended, never a hand edit here.
 
 Run it with `--dry-run` first if the initiative is large, and read what it would write.
 

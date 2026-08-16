@@ -47,6 +47,8 @@ The SHALL sentence is the obligation. The scenarios are how anyone tells whether
 
 A constraint is a requirement. If a value is unbounded, if a field has no ceiling, if data must survive something the platform can do to it (eviction under storage pressure, a cold start, a revoked permission), that is a SHALL with a scenario, not a note in prose.
 
+An initiative that changes behaviour an earlier one already shipped into docs/specs/ says so in the block rather than silently restating it. `Modifies: {spec requirement name}` marks the block as replacing that requirement at merge time; the block's own heading carries the (possibly new) name and restates the SHALL and every scenario that survives, which is also how a rename happens. A removal block carries `Removes:` with mandatory `Reason:` and `Migration:` lines, no SHALL and no scenarios, and it ships only through a task citing its bare R#, because decommissioning is work. The choice is not stylistic: spec-merge refuses a plain restatement that would drop a scenario the spec already holds, since that scenario may be another initiative's.
+
 No implementation detail: that is stage 4's job. -->
 
 ### R{n}: {short name}
@@ -58,6 +60,13 @@ Capability: {capability-name}
 
 - **WHEN** {condition or input}
 - **THEN** {observable outcome}
+
+### R{m}: {removal block, only when retiring shipped behaviour}
+
+Removes: {spec requirement name}
+Capability: {capability-name}
+Reason: {why it goes}
+Migration: {what happens to whoever relied on it}
 
 ## User flows
 

@@ -20,7 +20,7 @@ A spec-driven pipeline that takes a raw product idea to an engineering-ready bac
 
 Two things decide how a stage behaves, and both are read rather than assumed. `docs/strategy/product-team.yml` holds the profile, the gate medium and the roster. Stage order is derived from the artifacts on disk by `scripts/pt.py`, so nothing maintains a state table and nothing can disagree with reality about what has happened.
 
-Shared mechanics live in [references/conventions.md](references/conventions.md); authoritative artifact formats live in [references/templates/](references/templates/).
+Shared mechanics live in [references/conventions.md](references/conventions.md), the per-medium gate protocols and revision flow in [references/gates.md](references/gates.md), and authoritative artifact formats in [references/templates/](references/templates/).
 
 ## Pipeline map
 
@@ -39,7 +39,7 @@ Shared mechanics live in [references/conventions.md](references/conventions.md);
 
 A healthy funnel kills most ideas at Gate 0. Killing early is the pipeline working, not failing.
 
-Two gates, not four. The design gate went because the open design decisions at stage 4 resolve unaided, and the Definition of Ready gate because across three initiatives it produced one repeated lexical defect, which `pt.py check` now catches for nothing. `docs/adr/` under CODEOWNERS is what keeps the hard-to-reverse half of stage 4 reviewed.
+Two gates, not four: conventions.md carries why the design and Definition of Ready gates went, and `docs/adr/` under CODEOWNERS is what keeps the hard-to-reverse half of stage 4 reviewed.
 
 Gates are answered **in the session** by default (seconds); `gate_medium: pr` in the config turns them back into branch-and-PR reviews for a repo with real reviewers. Either way the decision, the decider and **the reason** land in the initiative's `STATUS.md`, because a gate that records only "approved" is indistinguishable from one nobody read.
 

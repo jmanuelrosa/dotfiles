@@ -1,6 +1,6 @@
 # Product Team conventions
 
-Shared mechanics for every stage skill. Load this file before doing anything else in a stage. Templates referenced here live in `templates/` next to this file; stage skills resolve both as siblings of their own base directory: `<skill base dir>/../product-lead/references/`.
+Shared mechanics for every stage skill. Load this file before doing anything else in a stage. Templates referenced here live in `templates/` next to this file; stage skills resolve both as siblings of their own base directory: `<skill base dir>/../product-lead/references/`. The per-medium gate protocol lives in [gates.md](gates.md) and is loaded only by the stages that open a gate.
 
 ## Artifact layout in the target repo
 
@@ -56,10 +56,10 @@ The same script owns two other jobs:
 
 | Command | Used by |
 |---|---|
-| `pt.py check {slug}` | `/product-team:6-verify`, before it judges anything |
+| `pt.py check {slug} [--strict]` | `/product-team:6-verify` (and the solo profile's Definition of Ready), always with `--strict` |
 | `pt.py spec-merge {slug}` | `/product-team:8-living-spec`, at ship time |
 
-`check` exits non-zero when it has findings. Run it and quote it; never re-decide by hand what it has already decided, and never fix what it reports from inside a checking stage.
+`check` splits its findings: an error (a broken reference, a malformed block) fails it at any point, a warning (incomplete coverage, an unset field) is the normal state mid-pipeline and fails it only under `--strict`, which is what the Definition of Ready runs. Run it and quote it; never re-decide by hand what it has already decided, and never fix what it reports from inside a checking stage.
 
 ## Two gates
 
@@ -72,35 +72,7 @@ There is no design gate and no Definition of Ready gate. The design gate went be
 
 Every gate records its decision **and its reason** in STATUS.md. A gate answered in session leaves no PR comments behind, so an "approved" with no reason is indistinguishable from nobody having read it.
 
-### gate_medium: session (the default)
-
-The stage ends by asking the human directly with `AskUserQuestion`: proceed, kill, or not yet. Then:
-
-1. Record the answer in the STATUS.md gate row: status, decided by, date, and one line on what convinced them or which concern they accepted.
-2. Suggest `/commit` (subject `docs({slug}): gate {n} {stage name}`). Local history is the artifact trail.
-3. Stop. Do not continue into the next stage in the same turn.
-
-No branch, no PR, no `gh` calls.
-
-### gate_medium: pr
-
-Each gate gets its own branch, cut fresh from the up-to-date default branch when the gate begins. A gate PR must never carry the previous gate's already-merged commits: repos that squash-merge collapse each merged gate into a new commit that is not an ancestor of a reused branch, so a shared branch diverges and every later gate PR conflicts.
-
-| Gate | Branch |
-|---|---|
-| 0 | `docs/{slug}-gate-0-brief` |
-| 1 | `docs/{slug}-gate-1-prd` |
-
-Switch to the branch if it exists (this gate's PR is open, or you are revising), otherwise cut it fresh from the default branch:
-
-    git fetch origin
-    git switch -c docs/{slug}-gate-{n}-{label} origin/{default-branch}
-
-Resolve the default branch from the remote (`gh repo view --json defaultBranchRef -q .defaultBranchRef.name`). Where `git fetch` cannot reach the remote, compare local `HEAD` against `gh api repos/{repo}/commits/{default} -q .sha` and cut from the local default branch once they match; a machine with working SSH should keep using the fetch.
-
-The stage then ends by updating the gate row to `pending` with the PR url, printing a handoff block (files written, the commit subject above, the same string as the PR title, a suggested body naming the decision being gated including kill, and a 3 to 5 item reviewer checklist), and stopping. The human runs `/commit`, then `/pr --title "<subject>"`. Merge is the gate passing, and the next stage records it: find the PR with `gh pr list --head docs/{slug}-gate-{n}-{label} --state all --json url,title,state,mergedAt`, then write status, decider, date and reason into the gate row. Closed unmerged is a kill signal: ask before recording it.
-
-Gated stages never run `git commit`, `git push` or `gh pr create` under either medium.
+How the answer is collected per `gate_medium` (a session gate is one `AskUserQuestion`; a PR gate is a branch-and-review protocol) is in [gates.md](gates.md), which the gated stages load. Gated stages never run `git commit`, `git push` or `gh pr create` under either medium.
 
 ## Deferrals
 
@@ -108,7 +80,7 @@ An artifact may hand a question forward to one that runs after it, instead of gu
 
 - Declare it in a `## Deferrals` table: an id (`D1`), the question, and the resolving artifact.
 - **Forwards only.** The resolver must run after the artifact raising it, in the order `02-prd.md`, `04-ux-spec.md`, `04-design-doc.md`, `05-tasks.md`. Pointing sideways or back is a hole with a label on it, because nothing upstream will run again to close it.
-- The resolving stage **must** close every deferral aimed at it: name the id, and either decide it or restate it as an open question with an owner. `04-design-doc.md` has a table for exactly this.
+- The resolving stage **must** close every deferral aimed at it: name the id, and either decide it or restate it as an open question with an owner. `04-design-doc.md` has a table for exactly this; a deferral aimed at `05-tasks.md` is closed by a task line citing its id.
 - `pt.py check` fails the initiative on a deferral that is unclosed, points the wrong way, or names something that is not an artifact.
 
 A deferral is closed by the next artifact. An open question is closed by a person. Do not use one for the other.
@@ -126,16 +98,9 @@ A deferral is closed by the next artifact. An open question is closed by a perso
 
 Nothing that produces a finding is dropped, and that is the point. Research and red-team together are 13% of the cost and produced the decision-changing findings on every initiative that ran, so a profile that skipped them would save nothing worth having. There is no shorter path than `solo`, and no stage is individually skippable: a skip is a human decision recorded in STATUS.md's Skipped stages section with its reason, never a skill's own call.
 
-## Revision flow
-
-Re-running a stage after Gate 1 is answered means "address the review". Under `session`, read the recorded reason and concerns from the gate row. Under `pr` with the PR still open, read the comments with `gh pr view <url> --comments` (and `gh api repos/{owner}/{repo}/pulls/{n}/comments` for inline ones), address every comment in the artifact, list what changed per comment, and end with the gate protocol again. Never dismiss or resolve review threads yourself.
-
-## Interview style (setup-strategy, 0-refine-idea)
-
-Relentless, one question at a time; wait for each answer. Recommend an answer with every question. Challenge vagueness: a number with no source, a segment with no size, an "everyone" audience all get a follow-up, not a nod. Facts findable in the repo or on disk are looked up, never asked. Decisions are the human's; never fill one in.
-
 ## Hard rules (every stage, every agent)
 
+- Re-read every artifact a stage depends on from disk at invocation; never act on a version remembered from earlier in the conversation, because the human may have edited it since.
 - Never invent metrics, baselines, market numbers, or citations. Unknown baseline -> `UNKNOWN -> Open Question #n` with an owner.
 - Never present inference as evidence; label each item `evidence` or `assumption`.
 - Never merge PRs, push to main, or edit an accepted ADR (supersede it with a new one; the only permitted edit to the old one is its Status line).

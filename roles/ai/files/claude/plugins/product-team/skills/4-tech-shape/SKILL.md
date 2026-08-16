@@ -24,7 +24,7 @@ allowed-tools:
 
 Turn the approved PRD into `04-ux-spec.md` and `04-design-doc.md`, plus immutable ADRs under `docs/adr/`. Design, don't implement.
 
-There is no gate here. The genuinely-open decisions at this stage resolve with no human in the loop, and the ones that do not are reached at implementation whether or not a gate sat here, so a PR gate over the design doc was buying a day of wall clock and little else. What it *was* buying is review of the ADRs, which are immutable and hard to reverse, and that is now a `docs/adr/` line in CODEOWNERS: the approval rides the commit the human makes anyway.
+There is no gate here (conventions.md carries why); what the old gate was actually buying, review of the immutable ADRs, now rides the `docs/adr/` CODEOWNERS line on the commit the human makes anyway.
 
 First read `../product-lead/references/conventions.md` (sibling of this skill's base directory).
 

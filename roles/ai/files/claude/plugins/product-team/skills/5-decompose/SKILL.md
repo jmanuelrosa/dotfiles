@@ -34,12 +34,13 @@ First read `../product-lead/references/conventions.md` (sibling of this skill's 
 
 ## Tasks
 
-Fill `../product-lead/references/templates/tasks.md` -> `05-tasks.md`. This is the layer the pipeline used to omit, and the omission had a cause worth understanding: a story must trace to a requirement, and no requirement asks for a toolchain, so setting the project up, deploying it and accepting it in the place it runs could never become stories. All fifteen stories on the first initiative carried none of the three.
+Fill `../product-lead/references/templates/tasks.md` -> `05-tasks.md`. This layer exists because stories must trace to requirements and no requirement asks for a toolchain, so the build spine could never become stories.
 
 - **Dependency order**, so following the list top to bottom works.
 - **One line per task**, one session's work, verifiable: you can tell when it is done.
 - **Each task names what it serves**: a scenario id (`R3.S1`) for behaviour, a design decision (`D5`) for a technical choice, or `(infrastructure)` for the spine. A task that can name none of the three is scope nobody asked for.
 - **From nothing to accepted.** A group for getting it built, a group for getting it deployed, a group for accepting it where it actually runs. A project that already exists says so on one line rather than deleting the group.
+- **Close the deferrals aimed here.** Read the `## Deferrals` tables of `02-prd.md`, `04-ux-spec.md` and `04-design-doc.md`; every deferral naming `05-tasks.md` as its resolver is closed by a task line citing its id (`- [ ] 2.3 Choose the encoder (D1)`). `pt.py check` fails the initiative on one left unclosed.
 - `- [ ]` is load-bearing: `pt.py spec-merge` reads the checkboxes to decide which requirements have shipped.
 
 Every scenario in the PRD is claimed by some task or some story. `pt.py check` reports any that is not, and a scenario nobody claims is a requirement nobody implements.
@@ -50,15 +51,9 @@ In the `solo` profile, skip this section entirely: `05-tasks.md` already carries
 
 Stories are **tracer bullets**: each cuts a narrow but COMPLETE path through every layer and is demoable or verifiable on its own. Never slice layer-by-layer ("backend for X" + "frontend for X" is one story, not two).
 
-Fill `../product-lead/references/templates/story.md` per story, one file each, and keep them thin: the story claims scenario ids rather than restating them, because the scenario already exists in `02-prd.md` and two copies drift. The whole file is a header.
+Fill `../product-lead/references/templates/story.md` per story, one file each, and keep them thin: the story claims scenario ids rather than restating them, because the scenario already exists in `02-prd.md` and two copies drift. The whole file is a header, and the template's own comments are the authority on each field; do not re-derive them from memory. Epics group stories by PRD goal; `epic-{n}.md` carries the goal, its scenario coverage, and the ordered story list.
 
-- Epics group stories by PRD goal; `epic-{n}.md` carries the goal, its scenario coverage, and the ordered story list.
-- **Scenarios**: the `R{n}.S{k}` ids this slice satisfies. A story claiming none does not get written.
-- **Task groups**: which groups of `05-tasks.md` implement it, so the board links to the work.
-- **Size hint** S/M/L, and an `L` carries its **split rationale** in its own row. Three initiatives in a row failed the old DoR gate on exactly this, in every case because the rationale lived in the epic and the story had nowhere to put it.
-- **Depends on**: filled, `none` when there are none. Prefer slices that stand alone.
-- **Design / UX note**: the anchor of the flow this story implements, that flow's heading slugified (`04-ux-spec.md#export-a-report`). Where the spec has no `## Flows`, point at its `## No user-facing surface` argument. Verify the anchor resolves.
-- **Needs design seat**: `yes` when the story's flow draws on the spec's `## New system pieces needed` section. Copy that fact, never re-derive it: seat routing is the architect's job.
+Three field rules are stage behaviour rather than format: a story claiming no scenario does not get written; the Design / UX anchor must be verified to resolve (and points at the spec's `## No user-facing surface` argument when there are no flows); and **Needs design seat** is copied from whether the flow draws on the spec's `## New system pieces needed` section, never re-derived, because seat routing is the architect's job.
 
 A story is a flow and `04-ux-spec.md` is organised by flow, so prefer one story per flow.
 
@@ -70,7 +65,7 @@ Skip the dispatch in the `solo` profile; there are no stories to fill.
 
 ## Handoff
 
-Suggest `/commit` (subject `docs({slug}): stage 5 tasks and backlog`) and then `/product-team:6-verify` in the full profile, or `pt.py check {slug}` in solo. Then stop.
+Suggest `/commit` (subject `docs({slug}): stage 5 tasks and backlog`) and then `/product-team:6-verify` in the full profile, or `pt.py check {slug} --strict` in solo, where that run is the Definition of Ready. Then stop.
 
 ## Boundaries
 
