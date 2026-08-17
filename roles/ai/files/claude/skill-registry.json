@@ -755,6 +755,16 @@
       "note": "Locally authored"
     },
     {
+      "name": "review-mechanics",
+      "groups": [
+        "review",
+        "quality",
+        "workflow",
+        "global"
+      ],
+      "note": "Locally authored, the deferred half of ~/.claude/rules/code-review.md"
+    },
+    {
       "name": "cc-review",
       "groups": [
         "ai",

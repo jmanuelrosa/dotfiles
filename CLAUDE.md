@@ -4,68 +4,50 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository purpose
 
-Ansible-based macOS dotfiles for Darwin/arm64 (Apple Silicon). The playbook in [dotfiles.yml](dotfiles.yml) provisions a development machine end-to-end: brew, system prefs, shell, SSH, apps, AI tooling, and per-profile work extras. Re-running it is the supported maintenance path — every task must be idempotent.
+Ansible-based macOS dotfiles for Darwin/arm64 (Apple Silicon).
+The playbook in [dotfiles.yml](dotfiles.yml) provisions a development machine end-to-end: brew, system prefs, shell, SSH, apps, AI tooling, and per-profile work extras.
+Re-running it is the supported maintenance path, so every task must be idempotent.
 
 ## Common commands
 
-All workflows go through the [Makefile](Makefile). Every play prompts for two passwords: the vault password (`--ask-vault-password`, decrypts `vars/secrets.yml` / `vars/work.yml`) and the become password (`--ask-become-pass`, your macOS password, streamed to each `become: true` task via `sudo -S`). Touch ID isn't used for the become flow because Ansible's local connection plugin spawns sudo in a new session, which can't see tty-bound timestamps on macOS — the password prompt is the reliable path.
+All workflows go through the [Makefile](Makefile).
+Most plays prompt for the vault password (decrypts `vars/secrets.yml` / `vars/work.yml`) and the become password (your macOS password; Touch ID can't work here because Ansible's local connection spawns sudo in a new session).
 
 | Command | Purpose |
 |---|---|
-| `make lint` | `ansible-lint` (config in [.ansible-lint](.ansible-lint)). Needs the vault password to load `vars_files`, so it can't run unattended |
-| `make test` | pytest over every python suite: `claude-kit`, the registries, the skill scripts, the git hook, and the suite layout itself. Roots live in [pytest.ini](pytest.ini), not the Makefile. No vault, no become password, no network — the only unattended target |
-| `make syntax` | Playbook syntax check. Prompts for the vault password (but not the become password) |
+| `make lint` | `ansible-lint` (config in [.ansible-lint](.ansible-lint)). Needs the vault password, so it can't run unattended |
+| `make test` | pytest over every python suite. Roots live in [pytest.ini](pytest.ini), not the Makefile. No vault, no become password, no network, so this is the only unattended target |
+| `make syntax` | Playbook syntax check. Vault password only |
 | `make check` | Full dry-run with `--check --diff` |
 | `make check-role ROLE=shell` | Dry-run a single role by tag |
 | `make run` | Apply the full playbook (personal profile) |
 | `make run PROFILE=work` | Apply with the work profile |
 | `make run-role ROLE=ai` | Apply a single role by tag |
-| `make verify` | Smoke test — checks core binaries + config symlinks exist |
+| `make verify` | Smoke test: core binaries + config symlinks exist |
 | `make deps` | Install pinned collections from [requirements.yml](requirements.yml) |
 
 VM-based fresh-install testing uses [Tart](https://github.com/cirruslabs/tart): `make vm-create`, `make vm-start`, `make vm-ssh`, `make vm-destroy`.
 
 ## Architecture
 
-### Profiles gate roles
+Roles live in `roles/<name>/` with the usual `tasks/main.yml`, `files/`, `defaults/main.yml`, `templates/` layout.
+What is not obvious from the tree:
 
-Two profiles ship: `personal` (default) and `work`. Each role in [dotfiles.yml](dotfiles.yml) is gated with `when: '<role>' in profile_roles[profile]`. The mapping lives in [group_vars/all.yml](group_vars/all.yml) under `profile_roles`. Per-profile overrides go in [host_vars/personal.yml](host_vars/personal.yml) and [host_vars/work.yml](host_vars/work.yml), loaded by `pre_tasks` from `host_vars/{{ profile }}.yml`.
+- **Profiles gate roles.** `personal` (default) and `work`. Each role in [dotfiles.yml](dotfiles.yml) is gated `when: '<role>' in profile_roles[profile]`, mapped in [group_vars/all.yml](group_vars/all.yml). Per-profile overrides go in `host_vars/<profile>.yml`, loaded by `pre_tasks`. The `reboot` role is intentionally ungated, because it prompts and that prompt is the opt-in.
+- **Homebrew is per-role.** Each installing role defines `BREW_PACKAGES` in its `defaults/main.yml` with optional `taps`, `formulas`, `casks`, `trusted` keys. There is no central package list, so adding a tool means editing the role it belongs to.
+- **Role execution order is load-bearing.** `brew` runs first so every later role can assume Homebrew is on PATH. Control sequencing through the order in [dotfiles.yml](dotfiles.yml) and **never add `meta/main.yml` deps**.
+- **Configs are symlinks, not copies.** Linked with `ansible.builtin.file state=link force=true`, so editing a file under `roles/<x>/files/` takes effect in `$HOME` immediately without re-running the playbook. Pre-existing targets are backed up to [backups/](backups/).
+- **Secrets** are vault-encrypted in `vars/secrets.yml` (personal) and `vars/work.yml` (work), both loaded unconditionally. Config files reference `${NAME}` and resolve at runtime. [vars/work.yml.example](vars/work.yml.example) lists the keys a fork must provide.
 
-The `reboot` role is intentionally not profile-gated — it prompts the user, which is the opt-in.
+Roles whose name does not tell you what is inside:
 
-### Role layout
-
-```
-roles/<name>/
-├── tasks/main.yml      # entry point
-├── files/              # static assets symlinked or copied to $HOME
-├── defaults/main.yml   # overridable vars, including BREW_PACKAGES dict
-└── templates/          # jinja2 (when needed)
-```
-
-`roles/apps/` further splits installs across `tasks/{development,editors,infrastructure,system}.yml`, all included from `tasks/main.yml`.
-
-### Homebrew is per-role
-
-Each role that installs packages defines a `BREW_PACKAGES` dict in `defaults/main.yml` with optional `taps`, `formulas`, `casks` keys. The role's tasks loop those over `community.general.homebrew_tap` / `homebrew` / `homebrew_cask`. There is no central package list — adding a tool means editing the role it belongs to.
-
-An optional `trusted` key records Homebrew tap-trust entries — a list of whole-tap (`user/repo`) or fully-qualified (`user/repo/name`) targets the role passes to `brew trust` (the Ansible module has no trust parameter, so it's a `command` task after the tap loop). This pre-trusts non-official taps so installs keep working once Homebrew enforces tap trust by default (5.2/6.0). Trust is recorded into a shared `~/.homebrew/trust.json` but only *enforced* when `HOMEBREW_REQUIRE_TAP_TRUST` is set, which the playbook does not set.
-
-### Role execution order matters
-
-Playbook order is load-bearing — `brew` runs first so every later role can assume Homebrew is on PATH. **Don't add `meta/main.yml` deps**; control sequencing via the order in [dotfiles.yml](dotfiles.yml).
-
-### Config files are symlinks, not copies
-
-Configs are linked from the repo with `ansible.builtin.file state=link force=true`. Editing a file under `roles/<x>/files/` takes effect immediately in `$HOME` without re-running the playbook. Backups of any pre-existing target go to [backups/](backups/).
-
-### Roles of note
-
-- [roles/coreutils/](roles/coreutils/) — modern Unix replacements (bat, eza, fd, ripgrep, television, btop, …). **Not** the GNU `coreutils` package. Domain-specific CLIs (awscli, gh, docker, lazygit, …) live in `apps`, next to their configs.
-- [roles/ai/](roles/ai/) — Claude Code / Gemini / Pi tooling. Skills under `files/claude/skills/` are shared with Pi via symlink. [rtk](https://www.rtk-ai.app/) (token-optimizing CLI proxy) ships here too: it is opt-in per shell, so the Claude `PreToolUse` hook only rewrites commands when `RTK_ENABLE` is exported in the terminal (`RTK_HOOK_AUDIT` in [settings.json](roles/ai/files/claude/settings.json) records rewrite metrics). Its config is symlinked from `files/rtk/config.toml` to `~/Library/Application Support/rtk/config.toml`, which is the only path rtk reads (it ignores `XDG_CONFIG_HOME`).
-- [roles/shell/](roles/shell/) — fish, Ghostty, Starship, Television. Custom fish functions live here (e.g. `clean_claude`, `lns`, `tv_change_dir`, and the `_tv_claude_*` picker helpers). Manages the television config + vendored cables under `files/television/`, plus the `TV_CABLE_ALLOWLIST` that prunes upstream cables after `tv update-channels`.
-- [roles/ssh/](roles/ssh/) — drives off `SSH_KEYS + SSH_KEYS_EXTRA`. Per-profile keys go in `host_vars/<profile>.yml` as `SSH_KEYS_EXTRA`.
-- [roles/macos/](roles/macos/) — `osx_defaults` plus nvram/pmset firmware tweaks.
+| Role | Holds |
+|---|---|
+| [coreutils](roles/coreutils/) | Modern Unix replacements (bat, eza, fd, ripgrep, television, btop). **Not** the GNU `coreutils` package. Domain CLIs (awscli, gh, docker, lazygit) live in `apps` beside their configs |
+| [ai](roles/ai/) | Claude Code / Gemini / Pi tooling. Skills under `files/claude/skills/` are shared with Pi by symlink. `rtk` ships here and is opt-in per shell via `RTK_ENABLE` |
+| [shell](roles/shell/) | fish, Ghostty, Starship, Television, plus the custom fish functions and the vendored television cables |
+| [ssh](roles/ssh/) | Drives off `SSH_KEYS + SSH_KEYS_EXTRA`; per-profile keys go in `host_vars/<profile>.yml` |
+| [macos](roles/macos/) | `osx_defaults` plus nvram/pmset firmware tweaks |
 
 ### Deep reference
 
@@ -88,13 +70,9 @@ Open the one you are working in, and only that one.
 
 Two rules that apply without opening anything: a **name must mean one artifact** across `skill-registry.json`, `agent-registry.json` and `plugins/`, and `~/.claude/skills/` and `~/.claude/agents/` are **role-owned and pruned** by `claude-kit sync`, so a link there that is not derived from the `global` tag is deleted on the next run.
 
-### Secrets
-
-Vault-encrypted vars live in `vars/secrets.yml` (personal) and `vars/work.yml` (work). Both are loaded unconditionally by the playbook. Config files reference env vars as `${NAME}` and resolve at runtime. [vars/work.yml.example](vars/work.yml.example) lists the keys a fork needs to provide.
-
 ## Conventions
 
 - **Idempotency is mandatory.** Every task must be safe to re-run. If a task isn't naturally idempotent, gate it with a `stat` / `register` check.
-- **Commits and branch names follow the global conventions** (conventional commits via `/commit`, Conventional Branch naming); they are defined in the global CLAUDE.md and the commit skill, not per-repo.
-- **Lint exclusions** ([.ansible-lint](.ansible-lint)) skip `yaml[truthy]` and `var-naming` (uppercase Ansible vars are intentional). Don't fight the linter on those — they're conscious choices.
-- **A new script prints through the shared vocabulary.** See [Script output style](#script-output-style): `_ui` in fish, `dotkit.ui` in python. No hand-rolled colours, no invented glyphs, emoji only on a heading or the closing summary.
+- **Commits and branch names follow the global conventions**, defined in the global CLAUDE.md and the commit skill, not per-repo.
+- **Lint exclusions** ([.ansible-lint](.ansible-lint)) skip `yaml[truthy]` and `var-naming` (uppercase Ansible vars are intentional). Don't fight the linter on those, they're conscious choices.
+- **A new script prints through the shared vocabulary**: `_ui` in fish, `dotkit.ui` in python. No hand-rolled colours, no invented glyphs, emoji only on a heading or the closing summary. See [Script output style](docs/internals/script-output-style.md).
