@@ -28,9 +28,12 @@ says which window was in force, and a 1M-window session sits in the same tree as
 200k one.
 
 Three things it deliberately does not do. It never groups subagent transcripts under a
-guessed agent name: the bucket is the transcript stem verbatim, because parsing a slug
-out of it is how a first attempt at this counted four unrelated agents as pipeline
-cost. It counts a response once rather than once per content block, and reads only the
+guessed agent name: the bucket comes from the `agentType` the `.meta.json` sidecar
+states, and falls back to the transcript stem verbatim when there is no sidecar, because
+parsing a slug out of the filename is how a first attempt at this counted four unrelated
+agents as pipeline cost. A teammate is bucketed `team:` and a plain dispatch `agent:`,
+since the two are worth different money and are turned off by different decisions. It
+counts a response once rather than once per content block, and reads only the
 top-level `usage` rather than the `iterations` list nested inside it: both repeat the
 same counts, and the first of them inflated every figure this tool printed by the block
 count until it was deduped by request. And it prices nothing it cannot see a TTL for
@@ -132,9 +135,27 @@ def price(usage, model, assumed_ttl):
     return micros / 1e6, assumed
 
 
+def agent_meta(path):
+    """The sidecar Claude Code writes beside a subagent transcript, or {}.
+
+    Undocumented, so it is read defensively and its absence is a fallback rather
+    than an error: an older session, or a layout change, degrades to the stem.
+    """
+    try:
+        data = json.loads(path.with_name(path.stem + ".meta.json").read_text())
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
 def bucket_of(record, path, is_sidechain):
     if is_sidechain:
-        return f"agent:{path.stem}"
+        meta = agent_meta(path)
+        name = meta.get("agentType") or path.stem
+        # A teammate and a plain dispatch of the same seat cost differently and are
+        # decided differently, so they are never summed into one row.
+        prefix = "team" if meta.get("taskKind") == "in_process_teammate" else "agent"
+        return f"{prefix}:{name}"
     return record.get("attributionSkill") or UNATTRIBUTED
 
 
