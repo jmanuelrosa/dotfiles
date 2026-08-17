@@ -325,6 +325,7 @@ No pipeline, no architect, often no seat.
 | Thing | File |
 |---|---|
 | The reference for all of this | [README.md](README.md) |
+| Keeping a session cheap, and what is not worth optimising | [CONTEXT-TIPS.md](CONTEXT-TIPS.md) |
 | Product pipeline mechanics (layout, the two gates, profiles, deferrals) | [plugins/product-team/skills/product-lead/references/conventions.md](plugins/product-team/skills/product-lead/references/conventions.md) |
 | Product gate protocol per medium, and the revision flow | [plugins/product-team/skills/product-lead/references/gates.md](plugins/product-team/skills/product-lead/references/gates.md) |
 | The engineering pipeline, step by step | [skills/feature-team/SKILL.md](skills/feature-team/SKILL.md) |

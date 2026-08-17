@@ -4,7 +4,7 @@ Management system for Claude Code skills, agents, and MCP servers. Skills and ag
 
 This document covers how to **use them in a project** and how to **add new skills and agents to the dotfiles repo** itself.
 
-For the worked example (a project from zero, product side then engineering side, with the exact commands and dispatch briefs) read [GETTING-STARTED.md](GETTING-STARTED.md). This file is the reference; that one is the walkthrough.
+For the worked example (a project from zero, product side then engineering side, with the exact commands and dispatch briefs) read [GETTING-STARTED.md](GETTING-STARTED.md). This file is the reference; that one is the walkthrough. For keeping a session cheap, and for the measured list of things that are not worth optimising, read [CONTEXT-TIPS.md](CONTEXT-TIPS.md).
 
 ## Commands
 
@@ -196,7 +196,7 @@ Every skill and agent in this repo is either:
 
 `model` and `effort` are separate dials and they answer different questions. **Model is capability**: which weights read the problem. **Effort is depth**: how many tokens, tool calls and verification passes the model spends before it comes back. A cheap model at high effort and an expensive one at low effort are both real configurations, and neither substitutes for the other.
 
-Both are set per artifact, in the frontmatter of a `SKILL.md` or an agent `.md`. The session values in [settings.json](settings.json) (`model: opus`, `effortLevel: high`) are the baseline for **your own turn**; a delegated skill or agent should not inherit them by accident, because you chose them for what you were doing, not for what it does.
+Both are set per artifact, in the frontmatter of a `SKILL.md` or an agent `.md`. The session values in [settings.json](settings.json) (`model: sonnet`, `effortLevel: high`) are the baseline for **your own turn**; a delegated skill or agent should not inherit them by accident, because you chose them for what you were doing, not for what it does.
 
 ### Effort
 
