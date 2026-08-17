@@ -24,26 +24,29 @@
           "groups": [
             "product",
             "pm",
-            "planning"
+            "planning",
+            "addy:product-01"
           ],
           "updated_at": "2026-07-25T09:44:06Z"
         },
         {
-          "upstream_path": "skills/documentation-and-adrs",
+          "upstream_path": "skills/planning-and-task-breakdown",
           "groups": [
             "product",
             "pm",
-            "documentation"
+            "planning",
+            "addy:product-02"
           ],
-          "updated_at": "2026-07-25T09:44:06Z"
+          "updated_at": "2026-08-15T05:58:34Z"
         },
         {
-          "upstream_path": "skills/test-driven-development",
+          "upstream_path": "skills/incremental-implementation",
           "groups": [
             "engineering",
-            "frontend",
             "backend",
-            "testing"
+            "frontend",
+            "workflow",
+            "addy:product-03"
           ],
           "updated_at": "2026-08-12T04:49:15Z"
         },
@@ -63,13 +66,23 @@
           "updated_at": "2026-08-15T05:58:34Z"
         },
         {
-          "upstream_path": "skills/planning-and-task-breakdown",
+          "upstream_path": "skills/test-driven-development",
+          "groups": [
+            "engineering",
+            "frontend",
+            "backend",
+            "testing"
+          ],
+          "updated_at": "2026-08-12T04:49:15Z"
+        },
+        {
+          "upstream_path": "skills/documentation-and-adrs",
           "groups": [
             "product",
             "pm",
-            "planning"
+            "documentation"
           ],
-          "updated_at": "2026-08-15T05:58:34Z"
+          "updated_at": "2026-07-25T09:44:06Z"
         },
         {
           "upstream_path": "skills/code-simplification",
@@ -97,16 +110,6 @@
             "backend",
             "frontend",
             "review"
-          ],
-          "updated_at": "2026-08-12T04:49:15Z"
-        },
-        {
-          "upstream_path": "skills/incremental-implementation",
-          "groups": [
-            "engineering",
-            "backend",
-            "frontend",
-            "workflow"
           ],
           "updated_at": "2026-08-12T04:49:15Z"
         },

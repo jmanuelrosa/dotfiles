@@ -389,6 +389,7 @@
       "bq *"
     ]
   },
+  "autoMemoryEnabled": true,
   "feedbackSurveyRate": 0,
   "alwaysThinkingEnabled": true,
   "effortLevel": "high",
