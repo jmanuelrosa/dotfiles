@@ -294,6 +294,17 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/context-nudge.sh",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   },
   "worktree": {

@@ -23,6 +23,9 @@ GREEN, RED, YELLOW, MAGENTA, CYAN = (f"\033[3{n}m" for n in (2, 1, 3, 5, 6))
 SEP = f" {DIM}│{RESET} "
 BAR_WIDTH = 8
 DEFAULT_CONTEXT_WINDOW = 200_000
+# The wrap-up threshold from docs/internals/context-hygiene.md; the marker turns
+# an ambient gauge into a prompt, so keep the two numbers in step.
+CONTEXT_HANDOFF_PCT = 35
 
 def rgb(r, g, b):
     return f"\033[38;2;{r};{g};{b}m"
@@ -80,7 +83,8 @@ def context_segment(ctx):
     size = int(size) if isinstance(size, (int, float)) and size else DEFAULT_CONTEXT_WINDOW
     used = _context_used_tokens(ctx, size, pct)
     tokens = f" {DIM}{fmt_tokens(used)}{RESET}" if used is not None else ""
-    return f"{DIM}context{RESET} [{gradient_bar(pct)}]{tokens} {gradient(pct / 100)}({pct}%){RESET}"
+    mark = f" {BOLD}{gradient(pct / 100)}handoff{RESET}" if pct >= CONTEXT_HANDOFF_PCT else ""
+    return f"{DIM}context{RESET} [{gradient_bar(pct)}]{tokens} {gradient(pct / 100)}({pct}%){RESET}{mark}"
 
 
 def _context_used_tokens(ctx, size, pct):
@@ -147,6 +151,28 @@ def velocity_segment(cost):
 
 
 TOOL_CACHE_FILE = os.path.join(tempfile.gettempdir(), "claude-statusline-tools.json")
+
+
+def context_state_file(session_id):
+    return os.path.join(tempfile.gettempdir(), f"claude-context-{session_id}.json")
+
+
+def publish_context_pct(session_id, ctx):
+    """Hand the context percentage to context-nudge.sh.
+
+    Only the status line is given `context_window`; hooks are not, so without
+    this the hook would have to infer a window size from the model name. A null
+    percentage is published as null rather than skipped, so the value a compact
+    invalidates is cleared instead of left stale.
+    """
+    if not session_id or not str(session_id).replace("-", "").replace("_", "").isalnum():
+        return
+    pct = clamp_pct(ctx.get("used_percentage")) if isinstance(ctx, dict) else None
+    try:
+        with open(context_state_file(session_id), "w", encoding="utf-8") as fh:
+            json.dump({"pct": pct}, fh)
+    except OSError:
+        pass
 
 
 def tool_version(tool):
@@ -281,6 +307,7 @@ def main():
     if not isinstance(data, dict):
         data = {}
     workspace = data.get("workspace")
+    publish_context_pct(data.get("session_id"), data.get("context_window"))
 
     rows = (
         (  # live picture: identity, context, usage windows, model
