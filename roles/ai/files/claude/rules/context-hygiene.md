@@ -19,7 +19,7 @@ Skipping work to save tokens is the wrong trade every time; the point is to stop
 
 ## Say something before the session gets expensive
 
-Past roughly 60% of the context window, say so and offer a handoff rather than quietly continuing.
+Past roughly 35% of the context window, say so and offer a handoff rather than quietly continuing.
 Running a session to the ceiling is what makes every remaining turn cost the most it ever will, and the work does not need the history to survive a topic change.
 
 Offer, in this order: finish the current thread, write the state down (the `handoff` skill exists for this), then `/clear`.

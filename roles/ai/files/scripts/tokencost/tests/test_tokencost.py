@@ -70,7 +70,7 @@ def compact(pre, stamp="2026-08-07T12:00:00.000Z"):
     }
 
 
-def write_transcript(home, project, session, records, agent=None):
+def write_transcript(home, project, session, records, agent=None, meta=None):
     """Lay down one transcript, as a session's own or as one of its subagents'."""
     base = home / ".claude" / "projects" / project
     if agent:
@@ -78,6 +78,8 @@ def write_transcript(home, project, session, records, agent=None):
     else:
         target = base / f"{session}.jsonl"
     target.parent.mkdir(parents=True, exist_ok=True)
+    if meta is not None:
+        target.with_name(f"{agent}.meta.json").write_text(json.dumps(meta))
     with target.open("a") as handle:
         for entry in records:
             handle.write(json.dumps(entry) + "\n")
@@ -186,7 +188,7 @@ def test_unattributed_main_thread_work_gets_its_own_bucket(home):
     assert "<unattributed>" in result.stdout
 
 
-def test_subagents_bucket_under_the_transcript_stem_verbatim(home):
+def test_subagents_bucket_under_the_transcript_stem_when_there_is_no_sidecar(home):
     write_transcript(home, "-tmp-demo", "s1", [record(ROUND_USAGE, skill="pr")])
     write_transcript(home, "-tmp-demo", "s1", [record(ROUND_USAGE)],
                      agent="agent-aux-shaper-route-catalog-a0279db9")
@@ -194,6 +196,37 @@ def test_subagents_bucket_under_the_transcript_stem_verbatim(home):
     # The stem is never parsed into an agent name: guessing one is how a first attempt
     # at this counted unrelated agents as pipeline cost.
     assert "agent:agent-aux-shaper-route-catalog-a0279db9" in result.stdout
+
+
+def test_a_sidecar_names_the_agent_so_invocations_of_one_seat_sum(home):
+    for suffix in ("a1", "b2"):
+        write_transcript(home, "-tmp-demo", "s1", [record(ROUND_USAGE)],
+                         agent=f"agent-{suffix}",
+                         meta={"agentType": "Explore", "spawnDepth": 1})
+    result = run(home, "demo")
+    assert "agent:Explore" in result.stdout
+    assert "agent-a1" not in result.stdout
+    assert "81.00" in result.stdout, "both invocations summed into the one bucket"
+
+
+def test_a_teammate_is_bucketed_apart_from_a_plain_dispatch(home):
+    write_transcript(home, "-tmp-demo", "s1", [record(ROUND_USAGE)],
+                     agent="agent-a1",
+                     meta={"agentType": "qa", "taskKind": "in_process_teammate"})
+    write_transcript(home, "-tmp-demo", "s1", [record(ROUND_USAGE)],
+                     agent="agent-b2",
+                     meta={"agentType": "qa", "spawnDepth": 1})
+    result = run(home, "demo")
+    assert "team:qa" in result.stdout
+    assert "agent:qa" in result.stdout
+
+
+def test_a_malformed_sidecar_falls_back_rather_than_failing(home):
+    target = write_transcript(home, "-tmp-demo", "s1", [record(ROUND_USAGE)], agent="agent-a1")
+    target.with_name("agent-a1.meta.json").write_text("{not json")
+    result = run(home, "demo")
+    assert result.returncode == 0
+    assert "agent:agent-a1" in result.stdout
 
 
 def test_session_filter_keeps_that_session_and_its_subagents(home):
