@@ -46,6 +46,11 @@
       "Edit(**/.env.example)"
     ],
     "deny": [
+      "Workflow",
+      "Artifact",
+      "ScheduleWakeup",
+      "ReportFindings",
+      "ShareOnboardingGuide",
       "Read(~/.ssh/**)",
       "Edit(~/.ssh/**)",
       "Read(~/.gnupg/**)",
