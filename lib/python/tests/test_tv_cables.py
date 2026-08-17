@@ -80,7 +80,7 @@ def test_the_toggle_reads_its_direction_from_claude_kit():
 
 def sources():
     """Every file in the repo that could name a fish function, path-ordered."""
-    for tree in (REPO / "roles", REPO / "lib", REPO / "CLAUDE.md"):
+    for tree in (REPO / "roles", REPO / "lib", REPO / "docs" / "internals", REPO / "CLAUDE.md"):
         paths = [tree] if tree.is_file() else sorted(tree.rglob("*"))
         for path in paths:
             if not path.is_file() or path.suffix not in (".fish", ".py", ".md", ".yml", ".toml"):

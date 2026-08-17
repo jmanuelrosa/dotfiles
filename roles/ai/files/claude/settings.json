@@ -196,7 +196,7 @@
       "mcp__Supabase"
     ]
   },
-  "model": "fable",
+  "model": "sonnet",
   "fallbackModel": [
     "opus",
     "sonnet"
