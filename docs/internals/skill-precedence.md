@@ -8,3 +8,15 @@ Two tiers, and the split is the point. **Tier 1 is absolute: no skill grants per
 Outside both tiers, **a skill never sets an output contract**. Some carry harness control flow rather than advice: emil's `:10-14` tells a first invocation to emit a canned greeting and stop, and its `:40` mandates a Before/After table with a "never do this" counter-example. Inside a delegated agent the first returns a greeting where the caller expected work, and the second collides with a completion report contract on the common path. Both are void, named in the rule by file so the ban is checkable.
 
 It lives in `rules/` rather than in each agent for the reason `code-review.md` does: it is cross-seat, it is equally the bar for *writing* against a skill as for reviewing one, and four copies would drift. The Ansible task globs `files/claude/rules/*.md`, so it needed no play change.
+
+## What a tier 2 override looks like
+
+The rule says an override must name the check it trades against and satisfy it another way. These are the three that actually come up, and they are the reason the rule is defeasible rather than a ban:
+
+| The skill wants | The check it must name | What satisfying it looks like |
+|---|---|---|
+| `:hover { transform: scale(1.05) }` | Hover motion that moves the target's hit area | Hover the element's edge, confirm no flicker loop, and say so |
+| `:nth-child` stagger delays | Selectors coupled to DOM structure | The markup is generated and its order is semantic, stated in the report |
+| A `filter: blur()` transition | Animating outside transform and opacity | Verified with CPU throttling, and the result recorded |
+
+The rules file carries the principle because it has to hold on every brief. The table lives here because a worked example is only needed once the conflict is in front of you.

@@ -247,6 +247,7 @@ def test_global_set_holds_exactly_the_documented_membership(catalog, effective):
         "pr",
         "product-lead",
         "research",
+        "review-mechanics",
         "skill-writer",
     }
 

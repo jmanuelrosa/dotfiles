@@ -21,6 +21,14 @@ skill rather than to reference filenames, so retitling a reference upstream cann
 it; renaming or dropping a *seat* still can, and a route to a plugin that does not exist
 is a checklist silently never opened.
 
+The policy is split across two files by audience, and the split is what these tests pin.
+`rules/code-review.md` stays resident in every session and holds only what has to hold
+whether or not a skill was loaded: the severity vocabulary, the axes, and the boundaries.
+The machinery for turning a read diff into a report (verification bar, effort table, seat
+routing, skip rules, the banned mutators, the report format) lives in the
+`review-mechanics` skill and loads on demand. Each assertion below points at whichever
+file owns its claim, so a claim cannot quietly move between them and still pass.
+
 The third is a bare `/code-review`. Effort is the command's first argument and it decides
 the whole shape of the run: one diff pass and no verify step at `low`, eight finder angles
 at `medium`, a recall-oriented net from `high` up. `disableModelInvocation: true` means no
@@ -40,6 +48,7 @@ AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 
 RULES = CLAUDE / "rules"
 POLICY = RULES / "code-review.md"
+MECHANICS = SKILLS / "review-mechanics" / "SKILL.md"
 SKILL_REGISTRY = CLAUDE / "skill-registry.json"
 
 DIRS_TASK = "Ensure AI config directories exist"
@@ -140,10 +149,40 @@ def test_the_policy_holds_the_whole_severity_vocabulary(severity):
     assert severity in POLICY.read_text(), f"the policy dropped `{severity}`"
 
 
+def test_the_resident_policy_routes_to_the_mechanics_skill():
+    """The split only works while the always-on half names the half that is not.
+
+    Nothing in the harness wires the policy to `/code-review`: it applies because it is
+    resident. So the deferred half has no route at all except this sentence, and losing it
+    leaves a reviewer with the severities and no verification bar.
+    """
+    assert MECHANICS.is_file(), "the deferred half of the policy is missing"
+    assert "review-mechanics" in POLICY.read_text(), (
+        "the policy stopped naming `review-mechanics`, so nothing loads the report machinery"
+    )
+
+
+def test_the_mechanics_skill_is_tagged_global():
+    """Untagged it never links into ~/.claude/skills, so the stub points at nothing.
+
+    `claude-kit sync` derives the user-scope set from the `global` tag, and prunes anything
+    in that tree it cannot derive.
+    """
+    entries = [
+        skill
+        for skill in json.loads(SKILL_REGISTRY.read_text())["local_skills"]
+        if skill["name"] == "review-mechanics"
+    ]
+    assert len(entries) == 1, f"expected one local entry, found {len(entries)}"
+    assert "global" in entries[0]["groups"], (
+        "`review-mechanics` is not tagged `global`, so it never reaches ~/.claude/skills"
+    )
+
+
 def test_every_seat_the_policy_routes_to_exists():
     """A route to a renamed or dropped seat is a checklist silently never opened."""
-    routed = {m.group(1) for m in SEAT_ROUTE.finditer(POLICY.read_text())}
-    assert routed, "the policy should route at least one axis to a seat"
+    routed = {m.group(1) for m in SEAT_ROUTE.finditer(MECHANICS.read_text())}
+    assert routed, "the mechanics skill should route at least one axis to a seat"
     missing = [
         seat
         for seat in sorted(routed)
@@ -155,7 +194,7 @@ def test_every_seat_the_policy_routes_to_exists():
 @pytest.mark.parametrize("skill", MUTATORS)
 def test_every_banned_mutator_still_exists_under_that_name(skill):
     """The ban is by name, so a rename would quietly unban the thing that writes."""
-    assert skill in POLICY.read_text(), f"the policy stopped naming `{skill}`"
+    assert skill in MECHANICS.read_text(), f"the mechanics skill stopped naming `{skill}`"
     assert (SKILLS / skill / "SKILL.md").is_file(), f"`{skill}` is not a skill any more"
 
 
@@ -165,7 +204,7 @@ def test_the_policy_bans_the_flag_the_harness_itself_ships():
     A list of other people's writers reads as a complete ban while leaving the one flag a
     reviewer is most likely to reach for unmentioned.
     """
-    assert "/code-review --fix" in POLICY.read_text()
+    assert "/code-review --fix" in MECHANICS.read_text()
 
 
 @pytest.mark.parametrize("path", list(call_sites()), ids=lambda p: p.name)
@@ -191,7 +230,7 @@ def test_at_least_one_call_site_exists_to_check():
 @pytest.mark.parametrize("effort", EFFORTS)
 def test_the_policy_documents_every_effort_a_call_site_could_name(effort):
     """The table is the authority, so a level pinned anywhere must be described here."""
-    assert f"`{effort}`" in POLICY.read_text(), f"the effort table omits `{effort}`"
+    assert f"`{effort}`" in MECHANICS.read_text(), f"the effort table omits `{effort}`"
 
 
 def test_the_superseded_reviewer_is_named_and_untagged():
@@ -202,7 +241,9 @@ def test_the_superseded_reviewer_is_named_and_untagged():
     which is what makes a hand-maintained `groups` survive `claude-kit update`; if that ever
     changes, `review` comes back and this fails.
     """
-    assert SUPERSEDED in POLICY.read_text(), "the policy stopped naming the rival reviewer"
+    assert SUPERSEDED in MECHANICS.read_text(), (
+        "the mechanics skill stopped naming the rival reviewer"
+    )
     assert (SKILLS / SUPERSEDED / "SKILL.md").is_file()
 
     entries = [
