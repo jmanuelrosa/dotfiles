@@ -1,5 +1,5 @@
 /**
- * guardrails.ts - Claude Code's three enforcement hooks, running in Pi.
+ * guardrails.ts - Claude Code's four PreToolUse enforcement hooks, running in Pi.
  *
  * An adapter and nothing else. Every decision is made by the python scripts under
  * roles/ai/files/claude/hooks/, which Claude Code runs as PreToolUse hooks and which carry their
@@ -8,7 +8,7 @@
  * knows which lint a project runs: a second copy of any of that is a copy that drifts, and the
  * python half is the tested one.
  *
- * Three differences between the harnesses are handled here, and each is why this file exists:
+ * Four differences between the harnesses are handled here, and each is why this file exists:
  *
  * - Pi's `edit` carries an array of edits where Claude's carries one pair. The oldText and newText
  *   halves are joined before the hook sees them, which preserves its delta rule: a call is blocked
@@ -19,6 +19,13 @@
  *   thing deciding what a gated command is.
  * - The hook's refusal names /commit and ~/.claude/settings.json, neither of which exists here, so
  *   the one message a caller can act on gets a line of Pi translation appended.
+ * - Claude has three answers to a PreToolUse hook and Pi has two. cloud-readonly-gate's `ask`
+ *   tier becomes a refusal, for the reasons at `askedForPermission`.
+ *
+ * All four of Claude's PreToolUse hooks are bridged here. The three that are not are on events
+ * this file does not listen to: plan-date-stamp.sh is PostToolUse on ExitPlanMode and Pi has no
+ * plan mode at all, while skill-recap.sh (Stop) and context-nudge.sh (UserPromptSubmit) would map
+ * onto Pi's `turn_end` and `turn_start` and are deliberately left for their own pass.
  *
  * Everything fails open: a missing hook, a moved checkout, a spawn error or a timeout allows the
  * call, exactly as the hooks themselves do on malformed input. These are intent friction, not a
@@ -68,6 +75,9 @@ interface HookPayload {
 interface HookVerdict {
   blocked: boolean;
   message: string;
+  // Only cloud-readonly-gate writes anything here: its middle tier is an `ask`
+  // decision on stdout with exit 0, which `blocked` alone cannot represent.
+  stdout?: string;
 }
 
 const ALLOW: HookVerdict = { blocked: false, message: "" };
@@ -79,8 +89,9 @@ function runHook(name: string, payload: HookPayload): Promise<HookVerdict> {
   }
 
   return new Promise((resolve) => {
-    const child = spawn(script, [], { stdio: ["pipe", "ignore", "pipe"] });
+    const child = spawn(script, [], { stdio: ["pipe", "pipe", "pipe"] });
     let stderr = "";
+    let stdout = "";
     let settled = false;
     let timer: ReturnType<typeof setTimeout>;
 
@@ -99,14 +110,47 @@ function runHook(name: string, payload: HookPayload): Promise<HookVerdict> {
     child.stderr.on("data", (chunk) => {
       stderr += String(chunk);
     });
+    child.stdout.on("data", (chunk) => {
+      stdout += String(chunk);
+    });
     // A hook that cannot be spawned at all, and a broken pipe from one that exits before reading
     // its input, both mean the gate did not run. Neither is the caller's fault.
     child.on("error", () => finish(ALLOW));
     child.stdin.on("error", () => {});
-    child.on("close", (code) => finish({ blocked: code === 2, message: stderr.trim() }));
+    child.on("close", (code) => finish({ blocked: code === 2, message: stderr.trim(), stdout }));
 
     child.stdin.end(JSON.stringify(payload));
   });
+}
+
+/**
+ * A hook's `ask` decision, which in Pi can only become a refusal.
+ *
+ * Claude Code has three answers to a PreToolUse hook and Pi has two: a `tool_call`
+ * handler returns `{ block }` or nothing, and Pi ships no permission prompt at all. So
+ * cloud-readonly-gate's middle tier, the one covering every non-read-only cloud command,
+ * has no counterpart and has to fall to one side.
+ *
+ * It falls to blocked, and the direction is deliberate. Those four CLIs are the ones
+ * Claude excludes from its sandbox so they can reach their own credential stores, which
+ * makes this gate their only guardrail there; in Pi there is no prompt to fall back on,
+ * so allowing would mean running them unasked. The reason still comes from the hook, so
+ * the caller is told which command to run in a real terminal instead.
+ *
+ * The decision is read rather than inferred: the hook prints it as JSON and exits 0, so
+ * exit status alone reports the same thing for `ask` and for `allow`.
+ */
+function askedForPermission(verdict: HookVerdict): string | undefined {
+  const raw = verdict.stdout?.trim();
+  if (!raw) return undefined;
+  try {
+    const output = JSON.parse(raw)?.hookSpecificOutput;
+    if (output?.permissionDecision !== "ask") return undefined;
+    return String(output.permissionDecisionReason || "").trim() || "asked for confirmation";
+  } catch {
+    // Not every hook prints JSON, and one that prints anything else has not asked.
+    return undefined;
+  }
 }
 
 function textOf(content: unknown): string {
@@ -222,6 +266,20 @@ async function guard(event: ToolCallEvent, ctx: ExtensionContext): Promise<ToolC
       if (transcript) await unlink(transcript).catch(() => {});
     }
     if (gate.blocked) return blockResult(gate);
+
+    // Before pre-commit-verify for the same reason git-skill-gate is: this one is a
+    // parse and a table lookup, and a cloud command it refuses should not first spend
+    // a project's full lint budget. Claude lists it after, but nothing there depends
+    // on the order and the hooks do not observe each other.
+    const cloud = await runHook("cloud-readonly-gate.sh", { tool_name: "Bash", tool_input, cwd: ctx.cwd });
+    if (cloud.blocked) return blockResult(cloud);
+    const asked = askedForPermission(cloud);
+    if (asked) {
+      return {
+        block: true,
+        reason: `${asked}\n\nPi has no confirmation prompt, so this is refused rather than asked. Run it in a real terminal if you meant it.`,
+      };
+    }
 
     return blockResult(await runHook("pre-commit-verify.sh", { tool_name: "Bash", tool_input, cwd: ctx.cwd }));
   }

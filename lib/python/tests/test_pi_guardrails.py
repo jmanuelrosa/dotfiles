@@ -26,15 +26,20 @@ TASKS = REPO / "roles/ai/tasks/main.yml"
 # direction is what matters: a key a hook reads and the extension never sends is a field the
 # hook finds empty, which reads to it as a call with nothing to object to.
 #
-# Only the em dash gate reads `tool_name`, because in claude the other two are routed by a
-# `matcher` in settings.json and never see a tool they were not meant for. The extension sends
-# it to all three anyway, since the payload is a claude PreToolUse event and a faithful one
-# costs nothing, but a field nobody reads is not a contract and is not listed here.
+# Two of the four read `tool_name`: the em dash gate, which routes Write from Edit, and the
+# cloud gate, which checks it rather than trusting a matcher. git-skill-gate and
+# pre-commit-verify are routed by a `matcher` in settings.json and never see a tool they were
+# not meant for. The extension sends every field to all four anyway, since the payload is a
+# claude PreToolUse event and a faithful one costs nothing, but a field nobody reads is not a
+# contract and is not listed here.
 CONTRACTS = {
     "em-dash-gate.sh": ("tool_name", "tool_input", "cwd", "Write", "Edit", "file_path", "content",
                         "old_string", "new_string"),
     "git-skill-gate.sh": ("tool_input", "cwd", "command", "transcript_path", "attributionSkill"),
     "pre-commit-verify.sh": ("tool_input", "cwd", "command"),
+    # Reads `tool_name` like the em dash gate, because in claude it is matched on Bash but
+    # routed unconditionally, so it checks the tool itself. It never reads `cwd`.
+    "cloud-readonly-gate.sh": ("tool_name", "tool_input", "command"),
 }
 
 # The fingerprints of each hook's own logic. Written as escapes for the two dash characters so
@@ -123,6 +128,33 @@ def test_no_hook_logic_is_reimplemented(fingerprint, source):
         f"guardrails.ts contains {fingerprint!r}, which belongs to a hook's own logic. The "
         f"extension maps events onto hook payloads and nothing else."
     )
+
+
+def test_the_ask_tier_is_read_from_the_hook_and_refused(source):
+    """Claude has three answers to a PreToolUse hook and pi has two.
+
+    cloud-readonly-gate's middle tier is the broad one, every non-read-only cloud
+    command, and it arrives as JSON on stdout with exit 0. Exit status alone therefore
+    reports the same thing for `ask` and for `allow`, so an extension that only checked
+    the code would let the whole tier through while looking like it had bridged the gate.
+    """
+    assert "permissionDecision" in source, "the ask tier is not read at all"
+    assert '"ask"' in source, "nothing distinguishes ask from allow"
+    # The hook is the one that decides; the extension only maps the decision.
+    hook = hook_source("cloud-readonly-gate.sh")
+    assert '"permissionDecision": "ask"' in hook
+    assert "permissionDecisionReason" in hook and "permissionDecisionReason" in source
+
+
+def test_stdout_is_captured_or_the_ask_tier_cannot_be_seen(source):
+    """The gate reports `ask` on stdout, so ignoring stdout silently drops the tier."""
+    assert 'stdio: ["pipe", "pipe", "pipe"]' in source, "stdout is not captured"
+
+
+def test_the_refusal_says_why_pi_cannot_ask(source):
+    """A caller told only "blocked" for a command Claude would have asked about has no
+    way to know the difference is the harness rather than the command."""
+    assert "no confirmation prompt" in source
 
 
 def test_the_role_installs_the_extension():
