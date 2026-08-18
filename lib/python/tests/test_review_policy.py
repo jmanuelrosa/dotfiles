@@ -1,6 +1,6 @@
 """The review policy reaches every session, and no REVIEW.md reaches anything.
 
-One artifact states the design, and it has three ways of silently ceasing to work.
+One artifact states the design, and it has four ways of silently ceasing to work.
 
 `files/claude/rules/code-review.md` is a user-scope rule: linked into ~/.claude/rules/ it
 loads at launch in every project, which is the whole reason it was written there instead
@@ -35,6 +35,12 @@ at `medium`, a recall-oriented net from `high` up. `disableModelInvocation: true
 agent can pass it, so every call site here is prose telling a human what to type, and one
 that names no level silently asks for the default however large the diff is. The policy's
 table is the authority; these tests are what keep the twenty call sites agreeing with it.
+
+The fourth belongs to the directory rather than to this policy, and it is why the pruning
+tasks are asserted here: the link task globs, so it links what the repo ships and removes
+nothing, and a rule folded into another file leaves its link behind on every machine
+already provisioned. The policy then sits in a directory holding a dangling neighbour,
+which is the same shape of nothing-reports-it as the three above.
 """
 
 import json
@@ -53,6 +59,9 @@ SKILL_REGISTRY = CLAUDE / "skill-registry.json"
 
 DIRS_TASK = "Ensure AI config directories exist"
 RULES_TASK = "Symlink claude rules"
+RULES_FIND_TASK = "Find the links in the claude rules directory"
+RULES_FIND_TASK_REGISTER = "claude_rules_links"
+RULES_PRUNE_TASK = "Remove claude rules links the repo no longer ships"
 CONFIG_TASK = "Symlink claude config files"
 
 # The policy exists partly to collapse the four vocabularies our own artifacts used
@@ -123,6 +132,43 @@ def test_the_rules_directory_is_created_before_anything_links_into_it():
     """`state: link` does not create parents, so a missing entry here fails the play."""
     task = ai_task(DIRS_TASK)
     assert "{{ HOME }}/.claude/rules" in task["loop"]
+
+
+def test_a_rule_the_repo_stops_shipping_is_pruned_from_the_rules_directory():
+    """The glob links what exists and prunes nothing, so a deleted rule leaves a link.
+
+    Every already-provisioned machine keeps it, dangling, in the one directory Claude Code
+    reads at launch, and a dangling rule is indistinguishable from a rule that was never
+    written. The set has to come off disk rather than from a list of filenames, because
+    the rule that moves next will not be one of the ones that moved last.
+    """
+    task = ai_task(RULES_FIND_TASK)
+    assert task["register"] == RULES_FIND_TASK_REGISTER
+    found = task["ansible.builtin.find"]
+    assert found["paths"] == "{{ HOME }}/.claude/rules"
+    assert found["file_type"] == "link", (
+        "a rule someone wrote by hand in ~/.claude/rules/ is not ours to delete"
+    )
+
+    prune = ai_task(RULES_PRUNE_TASK)
+    assert prune["ansible.builtin.file"]["state"] == "absent"
+    loop = prune["loop"]
+    assert RULES_FIND_TASK_REGISTER in loop, "the candidates must be what find saw"
+    assert "reject('in', CLAUDE_RULES_SHIPPED)" in loop, (
+        "the survivors must be exactly what the link task's glob ships"
+    )
+    assert prune["vars"]["CLAUDE_RULES_SHIPPED"] == (
+        "{{ query('fileglob', role_path ~ '/files/claude/rules/*.md')"
+        " | map('basename') | list }}"
+    ), "one glob for both tasks, or a rule can be linked and pruned in the same run"
+
+
+def test_the_prune_runs_over_the_same_glob_the_link_task_uses():
+    """Two globs that drift would delete a link the run above it just made."""
+    linked = ai_task(RULES_TASK)["with_fileglob"][0]
+    shipped = ai_task(RULES_PRUNE_TASK)["vars"]["CLAUDE_RULES_SHIPPED"]
+    assert "files/claude/rules/*.md" in linked
+    assert "files/claude/rules/*.md" in shipped
 
 
 def test_the_policy_exists_and_is_the_only_kind_of_file_in_the_rules_tree():

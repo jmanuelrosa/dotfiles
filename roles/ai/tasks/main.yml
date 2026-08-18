@@ -94,6 +94,28 @@
   with_fileglob:
     - "{{ role_path }}/files/claude/rules/*.md"
 
+# The glob above links what the repo ships and prunes nothing, so a rule deleted here (or
+# folded into AGENTS.md) leaves its link behind on every machine already provisioned, in a
+# directory Claude Code reads at launch. A dangling rule looks exactly like a rule that
+# was never written, which is the same failure the superseded pi SYSTEM.md link has, so it
+# gets the same treatment: derive the stale set from disk rather than naming filenames,
+# because the next rule to move will not be one of these two. Only symlinks are
+# candidates, so a rule someone wrote by hand in ~/.claude/rules/ is theirs to keep, and
+# the removal loop is empty on a steady-state run.
+- name: Find the links in the claude rules directory
+  ansible.builtin.find:
+    paths: "{{ HOME }}/.claude/rules"
+    file_type: link
+  register: claude_rules_links
+
+- name: Remove claude rules links the repo no longer ships
+  ansible.builtin.file:
+    path: "{{ HOME }}/.claude/rules/{{ item }}"
+    state: absent
+  loop: "{{ claude_rules_links.files | map(attribute='path') | map('basename') | reject('in', CLAUDE_RULES_SHIPPED) | list }}"
+  vars:
+    CLAUDE_RULES_SHIPPED: "{{ query('fileglob', role_path ~ '/files/claude/rules/*.md') | map('basename') | list }}"
+
 # Globbed because every hook in the directory is meant to be active, so adding
 # one should not also mean editing this file.
 - name: Symlink claude hooks
