@@ -361,3 +361,146 @@ def test_remove_of_a_plugin_drops_its_agent_links(catalog, effective, home, proj
     )
     assert not entry.exists()
     assert not pi.agents_path(project).exists()
+
+
+# --- P17: doctor, the agents half ---------------------------------------------
+#
+# G19 one directory over. It needs its own group because the two halves of pi's view
+# are converged separately and so fail separately: the skills link is one directory
+# link covering every skill, and the agent links are per-file because no single
+# directory holds every agent the installed plugins ship.
+
+
+def test_doctor_reports_plugin_agents_pi_cannot_read(plugged):
+    """The state `add` leaves behind if its per-file links are pruned by hand.
+
+    `claude-kit list` still shows the plugin installed and Claude Code loads it, so
+    nothing else in the tool reports this.
+    """
+    found = checks.pi_agents_unreachable(plugged)
+    assert len(found) == 1
+    assert found[0].check == "pi-agents-unreachable"
+    assert SEAT_AGENT in found[0].detail
+    # A note, for G19's reason: Claude Code is fine and a machine without pi has
+    # nothing to act on.
+    assert not found[0].is_problem
+
+
+def test_doctor_is_quiet_once_the_agent_links_are_there(plugged):
+    pi.converge_agents(plugged)
+    assert checks.pi_agents_unreachable(plugged) == []
+
+
+def test_doctor_names_the_occupant_when_something_else_holds_the_agents_path(plugged):
+    """A file at .agents/agents is not a directory anything can be written under, and
+    the reader needs telling that rather than a list of missing links."""
+    path = pi.agents_path(plugged)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("not a directory")
+    detail = checks.pi_agents_unreachable(plugged)[0].detail
+    assert "not a directory" in detail
+
+
+def test_doctor_says_nothing_when_no_plugin_ships_an_agent(project, seat_repo):
+    """No agent installed means no agent for pi to be missing, so the check is silent
+    rather than reporting an empty directory as a fault."""
+    leaf = project / ".claude" / "skills"
+    leaf.mkdir(parents=True)
+    (leaf / "toolbelt").symlink_to(seat_repo / "plugins" / "toolbelt")
+    assert checks.pi_agents_unreachable(project) == []
+    assert checks.pi_agents_unreachable(None) == []
+
+
+def test_doctor_only_counts_agents_the_installed_plugins_ship(plugged):
+    """A stray .md nobody declares is not a missing link, so it must not silence or
+    inflate the finding."""
+    path = pi.agents_path(plugged)
+    path.mkdir(parents=True)
+    (path / "stray.md").write_text("not ours")
+    found = checks.pi_agents_unreachable(plugged)
+    assert len(found) == 1
+    assert "stray.md" not in found[0].detail
+
+
+# --- P18: restore and adopt converge it too -----------------------------------
+#
+# These live here rather than in test_restore.py and test_adopt.py because the
+# fixtures and every other "a command converged pi's view" assertion are here, and
+# because what is being tested is pi's view rather than either command's own logic.
+#
+# Both were blind before. `add.install_one` is the seam that converges, so a command
+# reaching it inherits the convergence, and each of these had a path that does not.
+
+
+def test_restore_converges_pi_when_there_was_nothing_to_install(
+    catalog, effective, home, project, monkeypatch
+):
+    """The exact state doctor's pi-unreachable note fires on, and names restore to fix.
+
+    Every recorded artifact already linked, and `.agents/` gone. restore returned on its
+    "nothing to restore" branch before reaching install_one, so the command doctor told
+    the reader to run could not fix what doctor had reported.
+    """
+    from claude_kit.commands import restore
+
+    add.install_one(catalog, effective, "skill", "coderabbit", False, home, project)
+    assert pi.is_ours(project)
+
+    # Someone deletes the link by hand; the manifest and the .claude links are intact.
+    pi.link_path(project).unlink()
+    assert checks.pi_skills_unreachable(project)
+
+    monkeypatch.chdir(project)
+    restore.run(type("Args", (), {"type": None, "dry_run": False})())
+
+    assert pi.is_ours(project)
+    assert checks.pi_skills_unreachable(project) == []
+
+
+def test_restore_dry_run_still_writes_nothing(catalog, effective, home, project, monkeypatch):
+    """The convergence above must not leak into the preview path, or --dry-run stops
+    being a preview."""
+    from claude_kit.commands import restore
+
+    add.install_one(catalog, effective, "skill", "coderabbit", False, home, project)
+    pi.link_path(project).unlink()
+
+    monkeypatch.chdir(project)
+    restore.run(type("Args", (), {"type": None, "dry_run": True})())
+
+    assert not pi.link_path(project).exists()
+
+
+def test_adopt_converges_pi_for_a_project_that_predates_it(
+    catalog, effective, home, project, monkeypatch
+):
+    """adopt's whole population is projects set up before claude-kit, which is exactly
+    the population with no .agents/ link, and it wrote only the manifest."""
+    from claude_kit.commands import adopt
+
+    add.install_one(catalog, effective, "skill", "coderabbit", False, home, project)
+    # Roll the project back to the pre-claude-kit shape: links on disk, no manifest,
+    # and nothing pi can read.
+    pi.link_path(project).unlink()
+    state_file = project / ".claude" / "claude-kit.json"
+    if state_file.exists():
+        state_file.unlink()
+
+    monkeypatch.chdir(project)
+    adopt.run(type("Args", (), {"type": None, "dry_run": False})())
+
+    assert pi.is_ours(project)
+
+
+def test_adopt_dry_run_writes_neither_manifest_nor_links(
+    catalog, effective, home, project, monkeypatch
+):
+    from claude_kit.commands import adopt
+
+    add.install_one(catalog, effective, "skill", "coderabbit", False, home, project)
+    pi.link_path(project).unlink()
+
+    monkeypatch.chdir(project)
+    adopt.run(type("Args", (), {"type": None, "dry_run": True})())
+
+    assert not pi.link_path(project).exists()

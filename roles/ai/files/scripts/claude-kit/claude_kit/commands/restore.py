@@ -24,7 +24,7 @@ manifest cost the user something rather than merely fail to help.
 from pathlib import Path
 
 from .. import catalog as cat
-from .. import errors, paths, scope, state
+from .. import errors, paths, pi, scope, state
 from dotkit import ui
 from ..cli import fail
 from . import add
@@ -181,6 +181,14 @@ def run(args):
         # Finding nothing to install is the healthy state, so it is an `ok` line
         # rather than a refusal, as adopt's is. A stale dep-of row still exits DRIFT.
         ui.ok(f"Nothing to restore: every recorded {args.type or 'artifact'} is already linked.")
+        # Pi's view is converged here and not only through install_one, because this is
+        # the exact state doctor's pi-unreachable note fires on: every recorded link
+        # present, and .agents/ deleted by hand or predating it. That note tells the
+        # reader to run this command, so returning without converging made the advice
+        # name a command that could not fix what was reported.
+        if not args.dry_run:
+            pi.report(pi.converge(project), project)
+            pi.report_agents(pi.converge_agents(project), project)
         remaining = unlinked(provenance, installed, args.type)
         if not remaining:
             return errors.OK

@@ -326,6 +326,58 @@ def pi_skills_unreachable(project):
     return [Finding("pi-unreachable", NOTE, "this project's skills", detail, cat.SKILL)]
 
 
+def pi_agents_unreachable(project):
+    """G20: this project's plugin agents are installed, but pi cannot see them.
+
+    G19 one directory over, and it needs its own check because the two halves of pi's
+    view are converged separately and fail separately. Skills reach pi through a single
+    directory link, so one answer covers all of them; agents cannot, because a seat keeps
+    its agent inside its own plugin and no single directory holds them all. `add` and
+    `remove` therefore write per-file links, and report what they did at the moment they
+    do it and never again.
+
+    That is the gap. A link pruned by hand, a `.agents/agents` path occupied by something
+    else, or a project set up before those links existed all leave the pi-subagents
+    extension discovering nothing, while `claude-kit list` still shows every plugin
+    installed and Claude Code loads them normally.
+
+    A note rather than a problem, for G19's reason: nothing about Claude Code is broken,
+    and a machine that does not use pi has nothing to act on. Silent when the project has
+    no plugins, since there is then no agent for pi to be missing.
+    """
+    if project is None:
+        return []
+    wanted = pi.desired_agents(project)
+    if not wanted:
+        return []
+    path = pi.agents_path(project)
+    if path.exists() and not path.is_dir():
+        return [
+            Finding(
+                "pi-agents-unreachable",
+                NOTE,
+                "this project's plugin agents",
+                f"{path} exists and is not a directory, so pi reads no agents here. "
+                f"Move it aside, then run: claude-kit add or claude-kit restore",
+                cat.PLUGIN,
+            )
+        ]
+    missing = sorted(name for name in wanted if not scope.links_to(path / name, wanted[name]))
+    if not missing:
+        return []
+    return [
+        Finding(
+            "pi-agents-unreachable",
+            NOTE,
+            "this project's plugin agents",
+            f"pi reads {path}, where {len(missing)} of {len(wanted)} agent link(s) "
+            f"are missing ({', '.join(missing)}), so those never load in pi. "
+            f"Run: claude-kit add or claude-kit restore",
+            cat.PLUGIN,
+        )
+    ]
+
+
 def provenance_drift(catalog, provenance, project, claude):
     """G12, G13 and G14: the state file against what is actually linked."""
     if project is None:
