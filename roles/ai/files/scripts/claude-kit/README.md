@@ -66,9 +66,9 @@ prunes `~/.claude/skills`. Use `add --global` to write there deliberately.
 
 Membership is the tag **plus one level of declared dependencies**, which is why `grilling`,
 `jira`, `domain-modeling`, `documentation-and-adrs` and `planning-and-task-breakdown` are global
-without carrying the tag themselves. To check rather than guess, use
-`claude-kit list --type skill --group`, which prints `(global)` on every such entry. The flat
-listing does not, for the reason given under `list` below.
+without carrying the tag themselves. To check rather than guess, `list` prints `(global for
+<parent>)` on every such entry, naming the tagged artifact that reaches it; `doctor` reports scope
+directly.
 
 `sync` is where that tag stops being advice and becomes the state of the machine: it links
 everything the tag reaches and unlinks everything it does not, so `~/.claude` holds exactly the
@@ -162,7 +162,13 @@ context-engineering
 
 Markers: `✓ (linked)` in green is installed, `·` dim is available, and a dim
 `↓ name (not downloaded)` is registered but not yet fetched. Suffixes follow in a fixed order:
-`[groups]` in cyan, then `(needs: ...)`, then `(installed for <parent>)`.
+`[groups]` in cyan, then `(global for <parent>)`, then `(needs: ...)`, then
+`(installed for <parent>)`.
+
+The two `for <parent>` suffixes answer the same question from the two places that can answer it,
+and only one can apply to a row: `(global for X)` is a registry edge that pulls a skill into
+`~/.claude`, `(installed for X)` a recorded dependency of a project install. A tagged global gets
+neither, because `[groups]` already carries `global`.
 
 ```
 $ claude-kit list --type skill
@@ -171,13 +177,15 @@ $ claude-kit list --type skill
   ✓ coderabbit (linked) [productivity, review, workflow]
   ✓ context-engineering (linked) [ai, claude, prompt engineering] (installed for spec-driven-development)
   · grill-me [global, idea-refinement, planning, pm, product] (needs: grilling)
+  ✓ jira (linked) [productivity, tasks, workflow] (global for ac, research)
   ✓ spec-driven-development (linked) [planning, pm, product] (needs: context-engineering, incremental-implementation, planning-and-task-breakdown, test-driven-development)
 
 ✨ 65 skills, 4 installed
 ```
 
-Two things sit outside that inherited template: `(installed for <parent>)`, which comes from
-provenance, and the trailing count.
+Three things sit outside that inherited template: `(installed for <parent>)`, which comes from
+provenance, `(global for <parent>)`, which comes from the registry edges, and the trailing
+count.
 
 Grouped by tag:
 
@@ -188,6 +196,8 @@ $ claude-kit list --type skill --group
     · agent-audit (global)
     · cc-review (global) (needs: skill-writer)
     · claude-code-analyzer
+  productivity:
+    ✓ jira (global for ac, research)
   engineering:
     ...
 ```
@@ -198,11 +208,11 @@ Colour is emitted only when stdout is a terminal, so piping to a file or into `g
 text. `NO_COLOR` disables it and `FORCE_COLOR` forces it on, with `NO_COLOR` winning. `_ui` in fish
 follows the same rule, so a fish function and this agree on screen.
 
-**Note the flat view shows no scope marker.** A skill that is global
-only because something global depends on it (`jira`, `documentation-and-adrs`,
-`planning-and-task-breakdown`) carries no `global` tag, so nothing in the flat list says so, and
-`add` refusing it can look surprising. `--group` does show `(global)`, and `doctor` reports scope
-directly.
+**A skill can be global without carrying the tag**, when something global depends on it (`jira`,
+`documentation-and-adrs`, `planning-and-task-breakdown`). `[groups]` cannot show that, so both
+views print `(global for <parent>)` instead, naming the tagged artifact that reaches it. This is
+the scope answer with no file behind it: provenance records nothing about `~/.claude`, because a
+global dependency never cascades, so the reason is derived from the registry edges each time.
 
 ### `scout`
 
@@ -1070,11 +1080,12 @@ Colour is on only for a terminal, so redirecting to a file or through `grep` giv
 Set `FORCE_COLOR=1` to keep it, or `NO_COLOR=1` to switch it off everywhere. `_ui` in fish decides
 the same way, so a fish function piped into a file goes plain too.
 
-**`add` refuses a skill as global, but `list` shows no `(global)` next to it. Why?**
-The flat list shows `[groups]`, and a skill reached as a dependency of something global carries
-no `global` tag of its own. The gap came with the layout and is kept deliberately. Use
-`claude-kit list --type skill --group`, which prints `(global)`, or `doctor`, which reports scope
-directly.
+**`add` refuses a skill as global. Where does `list` say so?**
+In the `(global for <parent>)` suffix, which names the tagged artifact whose dependency edge
+reaches it: `planning-and-task-breakdown` is `(global for architect)`. A skill reached that way
+carries no `global` tag of its own, so `[groups]` cannot show it and for a long time nothing did.
+A bare `(global)` means the same scope with no edge behind it, which is an untagged skill written
+there by `add --global`.
 
 **Does `--group` take a value or not?**
 On `list`, both. Bare `--group` gives the grouped view and `--group <tag>` narrows to one tag. On
