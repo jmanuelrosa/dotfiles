@@ -132,6 +132,48 @@ def test_the_policy_exists_and_is_the_only_kind_of_file_in_the_rules_tree():
     assert stray == [], f"non-rule files in rules/ would confuse the tree: {stray}"
 
 
+def test_the_policy_reaches_pi_review_through_review_guidelines():
+    """The one consumer that turned out to be reachable, and it is not REVIEW.md.
+
+    The recorded decision above is about `REVIEW.md`, the filename hosted Code Review
+    reads, and it stands: that consumer is still out of reach. `pi-review` is a different
+    consumer reading a different filename, and it is installed, so the policy can reach a
+    pi session without a second copy of itself existing anywhere.
+
+    A symlink rather than a generated file, for the reason the rest of this repo links
+    its configs: one source cannot drift from itself.
+    """
+    link = REPO / "REVIEW_GUIDELINES.md"
+    assert link.is_symlink(), "a real file here would be a second copy of the policy"
+    target = link.readlink()
+    assert not target.is_absolute(), f"{target} bakes this checkout's path into every clone"
+    assert link.resolve() == POLICY.resolve()
+
+
+def test_the_pi_directory_exists_for_pi_review_to_find_the_guidelines():
+    """pi-review reads the guidelines only from a directory that also holds a `.pi`
+    directory, and stops walking there. Without `.pi/` the file is never opened, which
+    is indistinguishable from a policy pi ignores."""
+    pi_dir = REPO / ".pi"
+    assert pi_dir.is_dir(), "pi-review will never open REVIEW_GUIDELINES.md without this"
+
+
+def test_the_pi_directory_holds_nothing_pi_treats_as_project_config():
+    """`.pi/` exists to be found, not to configure anything.
+
+    pi asks to trust a project whose `.pi/` holds any of these, so a file dropped here
+    would turn every session in this checkout into a trust prompt.
+    """
+    trust_requiring = {
+        "settings.json", "extensions", "skills", "prompts", "themes",
+        "SYSTEM.md", "APPEND_SYSTEM.md",
+    }
+    present = {entry.name for entry in (REPO / ".pi").iterdir()}
+    assert not (present & trust_requiring), (
+        f"{sorted(present & trust_requiring)} in .pi/ makes pi prompt for trust every session"
+    )
+
+
 def test_no_review_md_reaches_the_home_directory():
     """The local review reads no REVIEW.md, so one in ~/.claude is a file nothing opens.
 

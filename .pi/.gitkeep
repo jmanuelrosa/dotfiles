@@ -1,0 +1,5 @@
+pi-review only reads a sibling REVIEW_GUIDELINES.md from a directory that also holds
+a .pi directory, so this directory has to exist on disk and git cannot track an empty
+one. Nothing else belongs here: an entry pi treats as project config (settings.json,
+extensions, skills, prompts, themes, SYSTEM.md, APPEND_SYSTEM.md) would also make pi
+ask to trust this checkout on every session.
