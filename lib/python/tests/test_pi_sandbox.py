@@ -18,8 +18,8 @@ To regenerate after changing Claude's settings:
 from test_pi_sandbox import derive, CLAUDE_SETTINGS, PI_SANDBOX; \
 PI_SANDBOX.write_text(json.dumps(derive(json.loads(CLAUDE_SETTINGS.read_text())), indent=2)+chr(10))"
 
-Three things the translation cannot carry, verified against pi-sandbox 0.6.x and
-recorded here because each is silent if forgotten:
+Four things the translation cannot carry, verified against pi-sandbox 0.6.5 and the
+@carderne/sandbox-runtime it forks, recorded here because each is silent if forgotten:
 
 - `excludedCommands`. Claude runs twelve CLIs outside its sandbox so they can read
   their own credential stores. pi-sandbox has no per-command exclusion, so those
@@ -32,6 +32,19 @@ recorded here because each is silent if forgotten:
   which pi-sandbox does not match on: it confines what a command may touch instead.
   Those 64 rules have no counterpart here, and `pi-permissions` is the package that
   would carry them if that ever earns its keep.
+- The split between Claude's two read layers. Claude keeps them apart by subject:
+  `sandbox.filesystem` governs bash subprocesses, so git and ssh are handed the few
+  files they need, while `permissions.deny` governs the Read tool. pi has one
+  `filesystem` block and reads it twice, with different rules each time, so the split
+  cannot survive: `allowRead` explicitly *takes precedence over* `denyRead` for bash
+  (the runtime's own schema calls it re-allowing within a denied region), and the read
+  tool at `extension.ts` never consults `denyRead` at all, prompting for anything
+  outside `allowRead`. Two consequences, both pinned by tests below rather than left to
+  be discovered. Claude's bash carve-outs are also read-tool grants, which is why
+  `~/.gitconfig` and `~/.ssh/known_hosts` are readable in pi and denied in Claude; the
+  ssh *keys* beside them are not, since nothing re-allows them. And every other `Read`
+  deny degrades from a refusal to a prompt, which is the same trade `excludedCommands`
+  already makes and the reason none of this is a substitute for the deny list.
 """
 
 import json
@@ -55,6 +68,29 @@ def to_sandbox_pattern(pattern):
     if pattern.startswith("**/"):
         return "/" + pattern
     return pattern
+
+
+def unique(patterns):
+    """In order, without repeats.
+
+    Claude's two layers overlap by design (`~/.npmrc` is both a sandbox denyRead and a
+    `Read` deny), and concatenating them is what makes a duplicate. pi matches with
+    `.some()`, so a repeat changes no verdict; it is dropped because a derived file
+    nobody hand-edits should not carry noise that reads like an oversight.
+    """
+    return list(dict.fromkeys(patterns))
+
+
+def covers(pattern, path):
+    """Whether pi-sandbox's `matchesPattern` reads `pattern` as covering `path`.
+
+    A `*` anywhere makes the whole pattern a regex; otherwise it is an exact match or a
+    path prefix. Mirrored here rather than imported because the point is to assert what
+    the other side does with what this file writes.
+    """
+    if "*" in pattern:
+        return re.fullmatch(re.escape(pattern).replace(r"\*", ".*"), path) is not None
+    return path == pattern or path.startswith(pattern.rstrip("/") + "/")
 
 
 def paths_denied(deny, tool):
@@ -82,8 +118,8 @@ def derive(settings):
         "filesystem": {
             "allowWrite": allow_write + ["/var/folders"],
             "allowRead": list(filesystem["allowRead"]),
-            "denyRead": list(filesystem["denyRead"]) + paths_denied(deny, "Read"),
-            "denyWrite": paths_denied(deny, "Edit"),
+            "denyRead": unique(list(filesystem["denyRead"]) + paths_denied(deny, "Read")),
+            "denyWrite": unique(paths_denied(deny, "Edit")),
         },
     }
 
@@ -170,3 +206,33 @@ def test_the_config_is_parseable():
     """
     assert isinstance(pi_sandbox(), dict)
     assert "//" not in PI_SANDBOX.read_text()
+
+
+def test_no_pattern_is_listed_twice():
+    """A derived file carrying an obvious repeat reads as an oversight nobody dares touch."""
+    fs = pi_sandbox()["filesystem"]
+    for key in ("allowWrite", "allowRead", "denyRead", "denyWrite"):
+        assert len(fs[key]) == len(set(fs[key])), f"{key} repeats a pattern"
+
+
+def test_the_read_carve_outs_are_exactly_the_two_bash_cannot_work_without():
+    """The one place Claude's policy is knowingly loosened, held to two files.
+
+    `allowRead` beats `denyRead` for bash and is the only list the read tool consults, so
+    anything named there is readable by the agent as well as by git. That is the whole
+    reason to keep the list to what a subprocess genuinely cannot work without: git needs
+    an identity to commit and ssh needs known_hosts to verify a host, and neither is a
+    credential. A third entry appearing here is a permission grant, so it fails until
+    somebody writes down why.
+    """
+    fs = pi_sandbox()["filesystem"]
+    granted = [p for p in fs["allowRead"] if any(covers(d, p) for d in fs["denyRead"])]
+    assert sorted(granted) == ["~/.gitconfig", "~/.ssh/known_hosts"]
+
+
+def test_the_ssh_keys_are_not_re_allowed_by_the_known_hosts_carve_out():
+    """The carve-out has to be the file, never the directory, or it hands over every key."""
+    fs = pi_sandbox()["filesystem"]
+    for key in ("~/.ssh/id_ed25519", "~/.ssh/id_rsa"):
+        assert not any(covers(allowed, key) for allowed in fs["allowRead"]), f"{key} is re-allowed"
+        assert any(covers(denied, key) for denied in fs["denyRead"]), f"{key} is not denied"
