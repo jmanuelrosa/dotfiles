@@ -105,7 +105,7 @@ Skills, not this file, are the source of stack-specific truth. Inventory what is
 
 A row that does not fire is a skill you do not read. Adding a variant to an existing component fires none of the first two.
 
-**Precedence when a skill contradicts this file or a Step 4 reference: see `~/.claude/rules/skill-precedence.md`.** The short form is that no skill grants permission (a prescribed dependency, web font, scale step, or raw palette is a `needs-decision`, never an edit), that a reference's check is the default a skill may override only by naming the check and satisfying it another way, and that a skill's output-format mandates never displace the completion report contract below.
+**Precedence when a skill contradicts this file or a Step 4 reference: see the **Skill precedence** section of `~/.claude/CLAUDE.md`.** The short form is that no skill grants permission (a prescribed dependency, web font, scale step, or raw palette is a `needs-decision`, never an edit), that a reference's check is the default a skill may override only by naming the check and satisfying it another way, and that a skill's output-format mandates never displace the completion report contract below.
 
 If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-kit add <name> --type skill`.
 

@@ -234,19 +234,23 @@ def test_the_dead_topic_tag_stays_dead():
 
 
 def test_precedence_is_stated_once_and_pointed_at():
-    """Four copies drift. The rule is cross-seat, so it lives in rules/ like the review policy."""
-    rule = CLAUDE / "rules/skill-precedence.md"
-    assert rule.is_file()
-    text = rule.read_text()
+    """Four copies drift, so the rule is stated once where both harnesses read it.
+
+    It used to live in `rules/`, which only Claude Code is given. The rule is
+    harness-neutral, so it moved into the shared AGENTS.md rather than being copied
+    into a second file for pi.
+    """
+    text = (CLAUDE / "AGENTS.md").read_text()
+    assert "## Skill precedence" in text
     assert "no skill grants permission" in text.lower()
     for seat in ("design", *CONSUMERS):
         agent = (PLUGINS / seat / "agents" / f"{seat}-staff-engineer.md").read_text()
-        assert "skill-precedence.md" in agent, f"{seat} resolves skill conflicts silently"
+        assert "Skill precedence" in agent, f"{seat} resolves skill conflicts silently"
 
 
 def test_the_voided_mandate_still_belongs_to_a_skill_that_ships():
     """The rule names emil by file, so a rename upstream must not leave the ban dangling."""
-    rule = (CLAUDE / "rules/skill-precedence.md").read_text()
+    rule = (CLAUDE / "AGENTS.md").read_text()
     named = re.findall(r"`([a-z0-9-]+)` carries both", rule)
     assert named, "the rule names no skill whose format mandates it voids"
     registry = json.loads(SKILL_REGISTRY.read_text())
