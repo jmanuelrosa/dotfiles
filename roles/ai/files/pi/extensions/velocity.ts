@@ -59,15 +59,23 @@ function lines(text: unknown): number {
 /**
  * The added and removed line counts of a unified patch.
  *
- * `+++` and `---` are the file headers rather than changed lines, and a `\` line is the
- * no-trailing-newline marker. Everything else beginning with `+` or `-` is a real line.
+ * Counting starts at the first `@@` rather than skipping lines that begin like the `---` and
+ * `+++` file headers, because a removed line is prefixed with one more character and nothing
+ * about how the result begins says which it was: a deleted `---` arrives as `----`, and a skill
+ * or agent file is delimited by exactly that, so editing frontmatter is where the prefix test
+ * loses its counts. Inside the hunks the first character is unambiguous, and a `\` line is the
+ * no-trailing-newline marker rather than a change.
  */
 function countPatch(patch: unknown): { added: number; removed: number } {
   let added = 0;
   let removed = 0;
   if (typeof patch !== "string") return { added, removed };
+  let inHunk = false;
   for (const line of patch.split("\n")) {
-    if (line.startsWith("+++") || line.startsWith("---")) continue;
+    if (!inHunk) {
+      inHunk = line.startsWith("@@");
+      continue;
+    }
     if (line.startsWith("+")) added += 1;
     else if (line.startsWith("-")) removed += 1;
   }

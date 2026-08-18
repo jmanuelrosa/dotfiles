@@ -13,13 +13,20 @@ bargain [test_pi_discovery.py](test_pi_discovery.py) makes with `loadSkillsFromD
 rather than fails when pi is absent for the same reason, since pi is installed by the role these
 tests cover and `make test` promises to run with nothing configured.
 
-The one rule not expressed as a name is the last test: the counts come from pi's patch, so a diff
+Name checks cannot say whether the counting is right, though, and a footer that is merely wrong
+looks the same as one whose field was renamed. So the counting half runs for real: the extension
+is copied beside a link to pi's `node_modules`, handed patches pi's own generator built, and asked
+what it makes of them.
+
+The one rule not expressed as either is the last test: the counts come from pi's patch, so a diff
 computed here would be a second implementation of something pi already did, and it would disagree
 with `git diff` the first time one call carried two edits.
 """
 
+import json
 import re
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -35,9 +42,27 @@ PACKAGE = "@earendil-works/pi-coding-agent"
 # and quietly count nothing.
 PATCH_FIELD = "patch"
 
-# A unified patch's file headers. The extension must skip both, or every edit scores two phantom
-# lines: one addition for `+++` and one removal for `---`.
-HEADERS = ("+++", "---")
+# The private function the behavioural half drives, re-exported into a copy of the extension so
+# pi's own surface stays a single default export.
+COUNTER = "countPatch"
+
+# Pi's patch generator, so the patches counted here are the ones pi's edit tool hands the
+# extension rather than literals written to match what this file believes that format to be.
+PATCHER = "core/tools/edit-diff.js"
+
+# Reads a `{ before, after }` pair on stdin and prints pi's patch for it beside the counts the
+# extension reported. Both halves in one process, so nothing here reimplements either.
+RUNNER = """
+import { %(counter)s } from "./velocity.ts";
+import { generateUnifiedPatch } from %(patcher)s;
+
+let raw = "";
+process.stdin.setEncoding("utf8");
+for await (const chunk of process.stdin) raw += chunk;
+const { before, after } = JSON.parse(raw);
+const patch = generateUnifiedPatch("SKILL.md", before, after);
+process.stdout.write(JSON.stringify({ patch, ...%(counter)s(patch) }));
+"""
 
 
 @pytest.fixture(scope="module")
@@ -125,11 +150,84 @@ def test_the_status_is_cleared_rather_than_zeroed(source, declarations):
     assert "text: string | undefined" in declarations
 
 
-def test_patch_headers_are_skipped(source):
-    """Without this the counts are wrong on every single edit, which is the one bug here that
-    would look plausible rather than broken."""
-    for header in HEADERS:
-        assert f'"{header}"' in source, f"the patch header {header} is not skipped"
+@pytest.fixture(scope="module")
+def counter(dist, tmp_path_factory):
+    """The extension's own line counting, callable from python.
+
+    A grep for `startsWith("---")` cannot tell a test for the file header from a test for
+    anything beginning with it, and that difference is the whole of the bug this drives out. So
+    the extension is copied beside a link to pi's `node_modules` and run, the way
+    [test_pi_discovery.py](test_pi_discovery.py) runs pi's own skill loader.
+    """
+    if shutil.which("node") is None:
+        pytest.skip("node is needed to run the extension's own counting")
+    home = tmp_path_factory.mktemp("velocity")
+    # A `node_modules` beside the copy rather than NODE_PATH, which node's ESM resolver ignores.
+    (home / "node_modules").symlink_to(dist.parents[2])
+    (home / "velocity.ts").write_text(f"{EXTENSION.read_text()}\nexport {{ {COUNTER} }};\n")
+    runner = home / "run.mjs"
+    runner.write_text(RUNNER % {"counter": COUNTER, "patcher": json.dumps(str(dist / PATCHER))})
+    return runner
+
+
+def counted(counter, before, after):
+    """What the extension counts for the patch pi builds between two versions of a file."""
+    done = subprocess.run(
+        ["node", str(counter)],
+        input=json.dumps({"before": before, "after": after}),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert done.returncode == 0, done.stderr
+    return json.loads(done.stdout)
+
+
+def doc(*body):
+    """A file, newline-terminated, since that is what pi diffs."""
+    return "".join(f"{line}\n" for line in body)
+
+
+def test_a_removed_frontmatter_delimiter_is_counted(counter):
+    """Removing a line whose content is `---` produces the patch line `----`, and a skipping rule
+    keyed on how a line begins reads that as a file header and drops it. Every skill and agent
+    file in this repo is delimited by `---`, so editing frontmatter is the common case and this is
+    the reading the footer gets most often, not a corner."""
+    result = counted(
+        counter,
+        doc("---", "name: x", "---", "body", "tail"),
+        doc("name: x", "body", "tail"),
+    )
+    assert "----" in result["patch"], "pi no longer prefixes a removed line with a bare `-`"
+    assert (result["added"], result["removed"]) == (0, 2)
+
+
+def test_the_file_headers_are_not_counted(counter):
+    """Both of them, or every edit scores one phantom addition and one phantom removal."""
+    result = counted(counter, doc("alpha", "beta"), doc("alpha", "gamma"))
+    assert result["patch"].startswith("--- SKILL.md\n+++ SKILL.md\n")
+    assert (result["added"], result["removed"]) == (1, 1)
+
+
+def test_a_changed_line_that_looks_like_a_header_is_counted(counter):
+    """`---` and `+++` are content in the files this repo edits, so what a line is has to be
+    decided by where it sits in the patch rather than by the characters it opens with."""
+    body = doc("alpha", "+++", "---", "omega")
+    trimmed = doc("alpha", "omega")
+    assert counted(counter, body, trimmed)["removed"] == 2
+    assert counted(counter, trimmed, body)["added"] == 2
+
+
+def test_both_sides_tally_across_hunks(counter):
+    """Pi asks for four lines of context, so a second change far enough away arrives in a hunk of
+    its own. A count that stopped at the first hunk would still look plausible in the footer."""
+    before = [f"line-{n}" for n in range(1, 31)]
+    after = list(before)
+    after[1:2] = ["line-2a", "line-2b"]
+    after.remove("line-25")
+    result = counted(counter, doc(*before), doc(*after))
+    assert sum(line.startswith("@@") for line in result["patch"].split("\n")) == 2
+    assert (result["added"], result["removed"]) == (2, 2)
 
 
 def test_a_failed_call_is_not_counted(source):
