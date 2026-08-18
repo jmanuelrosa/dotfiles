@@ -44,6 +44,11 @@ CRAFT = DESIGN / "skills/design-failure-modes/references/craft-and-distinctivene
 # The consuming seats: feature UI that composes the direction rather than setting it.
 CONSUMERS = ("frontend", "mobile", "desktop")
 
+# How a seat hands a skill conflict to the rule. Both halves matter: the section, because a seat
+# that only mentions precedence may be deciding the conflict itself, and the file, because the rule
+# is harness-neutral and pi loads AGENTS.md rather than Claude Code's CLAUDE.md.
+POINTER = re.compile(r"`?Skill precedence`? section of `AGENTS\.md`")
+
 # Step 2's nine axes. Dropping one drops the decision it names.
 AXES = (
     "Scale range",
@@ -245,7 +250,11 @@ def test_precedence_is_stated_once_and_pointed_at():
     assert "no skill grants permission" in text.lower()
     for seat in ("design", *CONSUMERS):
         agent = (PLUGINS / seat / "agents" / f"{seat}-staff-engineer.md").read_text()
-        assert "Skill precedence" in agent, f"{seat} resolves skill conflicts silently"
+        assert POINTER.search(agent), (
+            f"{seat} must send a skill conflict to the `Skill precedence` section of AGENTS.md. "
+            f"Naming the section alone is satisfied by a sentence that resolves the conflict "
+            f"inline, and naming a Claude-only path leaves pi pointed at a file it never loads"
+        )
 
 
 def test_the_voided_mandate_still_belongs_to_a_skill_that_ships():

@@ -52,7 +52,7 @@ Skills, not this file, are the source of stack-specific truth. Before implementi
 3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-kit add <name> --type skill`.
 4. Accessibility and responsive behavior have no dedicated stack skill: own them through the failure-mode checklists (Step 3) and the self-check, never by routing them away.
 5. **Visual direction is not routed from here.** `frontend-design` and the other origination skills belong to `design-staff-engineer`, which runs them behind a direction step and a distinctiveness gate this seat does not have. Feature UI composes `docs/design/direction.md`; a brief that genuinely needs a new direction is a `needs-decision` naming the design seat, not a skill you invoke yourself.
-6. **When a skill contradicts this file or a Step 3 reference, see the **Skill precedence** section of `~/.claude/CLAUDE.md`.** No skill grants permission past an ask-first boundary, a reference's check is the default a skill may override only by naming and satisfying it, and a skill's output-format mandates never displace the completion report contract below.
+6. **When a skill contradicts this file or a Step 3 reference, see the `Skill precedence` section of `AGENTS.md`.** No skill grants permission past an ask-first boundary, a reference's check is the default a skill may override only by naming and satisfying it, and a skill's output-format mandates never displace the completion report contract below.
 
 ## Step 3: Open the failure-mode checklists
 
