@@ -164,11 +164,29 @@ def test_b9_an_untagged_skill_linked_in_home_is_shown_as_global(catalog, effecti
 
     by_name = {row["name"]: row for row in rows(catalog, cat.SKILL, effective, home, project)}
     assert by_name["coderabbit"]["global"] is True
-    # The row *data* knows, but the flat view deliberately prints no scope marker. The
-    # grouped view shows it. See
-    # test_list_format.test_the_flat_view_has_a_blind_spot_and_keeps_it.
-    grouped_row = listing.format_row(by_name["coderabbit"], indent="    ", show_groups=False)
-    assert "(global)" in grouped_row
+    # No registry edge reaches it, so --global is the only story there is to tell and the
+    # marker says just that.
+    assert by_name["coderabbit"]["global_for"] == ()
+    assert "(global)" in listing.format_row(by_name["coderabbit"])
+
+
+def test_b9_a_skill_global_only_via_a_dependency_names_its_parent(catalog, effective):
+    """The one scope question with no file behind it: `state` records nothing about
+    ~/.claude, so the registry edge is what says why a skill nobody typed is there.
+    """
+    by_name = {row["name"]: row for row in rows(catalog, cat.SKILL, effective)}
+    row = by_name["planning-and-task-breakdown"]
+    assert not cat.get(catalog, cat.SKILL, row["name"]).tagged_global
+    assert row["global"] is True
+    assert row["global_for"] == ("architect",)
+    assert "(global for architect)" in listing.format_row(row)
+
+
+def test_b9_only_skills_carry_a_global_parent(catalog, effective):
+    """Every dependency edge names a skill, so an agent or plugin is global by tag alone
+    and has nothing to attribute."""
+    for kind in (cat.AGENT, cat.PLUGIN):
+        assert all(row["global_for"] == () for row in rows(catalog, kind, effective))
 
 
 # --- B10: provenance annotation ---------------------------------------------

@@ -18,6 +18,40 @@ GLOBAL = "global"
 PROJECT = "project"
 
 
+def _derive_global(catalog):
+    """(effective global skill names, {name: parents}) in one walk.
+
+    The two answers come from the same edges, so deriving them separately is how they
+    drift: a skill could be counted global by one and attributed by neither. `parents`
+    covers only the skills that are global *because* something global names them, which
+    is why a tagged skill reached as a dependency is added to the set without gaining a
+    parent. Its tag already says why it is there.
+    """
+    skills = cat.skills(catalog)
+    effective = {art.name for art in catalog.values() if art.tagged_global and art.type == cat.SKILL}
+    parents = {}
+
+    def reach(name, parent):
+        effective.add(name)
+        if not skills[name].tagged_global:
+            parents.setdefault(name, set()).add(parent)
+
+    for art in catalog.values():
+        if not art.tagged_global:
+            continue
+        for dep in art.dependencies:
+            if dep not in skills:
+                continue
+            reach(dep, art.name)
+            if art.type == cat.AGENT:
+                # Attributed to the agent rather than to `dep`: the agent is the thing
+                # the user installed, so it is the answer to "why is this in ~/.claude".
+                for indirect in skills[dep].dependencies:
+                    if indirect in skills:
+                        reach(indirect, art.name)
+    return effective, {name: tuple(sorted(who)) for name, who in parents.items()}
+
+
 def global_set(catalog):
     """**Skill** names that belong in ~/.claude.
 
@@ -36,18 +70,21 @@ def global_set(catalog):
     documentation-and-adrs and planning-and-task-breakdown are global without
     carrying the tag.
     """
-    skills = cat.skills(catalog)
-    effective = {art.name for art in catalog.values() if art.tagged_global and art.type == cat.SKILL}
-    for art in catalog.values():
-        if not art.tagged_global:
-            continue
-        for dep in art.dependencies:
-            if dep not in skills:
-                continue
-            effective.add(dep)
-            if art.type == cat.AGENT:
-                effective.update(d for d in skills[dep].dependencies if d in skills)
-    return effective
+    return _derive_global(catalog)[0]
+
+
+def global_parents(catalog):
+    """{skill name: (global artifacts that pull it in,)}, for the untagged ones only.
+
+    The provenance a global install has no file for: `state` deliberately records
+    nothing about ~/.claude, because a global dependency never cascades, so there is
+    nothing a stored reason would decide. This is derived from the registry instead,
+    which is possible precisely because the edges are declared rather than chosen.
+
+    A skill can have several parents (grilling has two skills naming it, domain-modeling
+    has both agents plus a skill), so the value is a set, sorted for a stable row.
+    """
+    return _derive_global(catalog)[1]
 
 
 def belongs_global(art, effective):

@@ -37,6 +37,7 @@ def row(name="thing", **overrides):
         "dependencies": (),
         "reason": None,
         "parent": None,
+        "global_for": (),
     }
     base.update(overrides)
     return base
@@ -114,25 +115,37 @@ def test_suffix_order_is_groups_then_needs(coloured):
     assert got.index("[g]") < got.index("(needs: d)")
 
 
-def test_the_flat_view_carries_no_scope_marker(coloured):
-    """The groups suffix already shows `global`, so no extra scope marker here."""
+def test_a_tagged_global_carries_no_scope_marker_in_the_flat_view(coloured):
+    """The groups suffix already shows `global`, so the marker would be the same fact
+    twice on one row. It is the untagged ones that need it."""
     got = listing.format_row(row("commit", groups=("ai", "global"), **{"global": True}))
     assert "[ai, global]" in got
-    assert "(global)" not in got.replace("[ai, global]", "")
+    assert "(global" not in got.replace("[ai, global]", "")
 
 
-def test_the_flat_view_has_a_blind_spot_and_keeps_it(coloured):
-    """A skill global only via a dependency has no `global` tag, so the flat view says
-    nothing about its scope. Pinned deliberately: the gap came with the template, and the
-    grouped view is where scope does show.
+def test_the_flat_view_names_what_made_an_untagged_skill_global(coloured):
+    """A skill global only via a dependency carries no `global` tag, so the groups suffix
+    cannot say it. The marker does, and names the parent: nothing the user typed mentions
+    the skill, so the parent is the only thing that explains why it is in ~/.claude.
     """
-    got = listing.format_row(row("jira", groups=("workflow",), **{"global": True}))
-    assert "(global)" not in got
-    # The grouped view is the place it surfaces.
-    grouped_row = listing.format_row(
-        row("jira", groups=("workflow",), **{"global": True}), indent="    ", show_groups=False
+    got = listing.format_row(
+        row("jira", groups=("workflow",), global_for=("ac",), **{"global": True})
     )
-    assert f"{DIM}(global){RESET}" in grouped_row
+    assert got.endswith(f"{DIM}(global for ac){RESET}")
+
+
+def test_several_parents_are_comma_joined(coloured):
+    got = listing.format_row(
+        row("jira", global_for=("ac", "research"), **{"global": True})
+    )
+    assert f"{DIM}(global for ac, research){RESET}" in got
+
+
+def test_a_global_with_no_parent_edge_says_only_global(coloured):
+    """An untagged skill in ~/.claude with no edge naming it got there via --global, and
+    the symlink is the whole record, so there is nothing further to name."""
+    got = listing.format_row(row("solo", **{"global": True}))
+    assert got.endswith(f"{DIM}(global){RESET}")
 
 
 def test_provenance_is_appended_last(coloured):
@@ -154,6 +167,16 @@ def test_grouped_rows_indent_four_and_drop_the_group_list(coloured):
         show_groups=False,
     )
     assert got == f"    {DIM}·{RESET} agent-audit {DIM}(global){RESET}"
+
+
+def test_grouped_rows_name_the_parent_too(coloured):
+    """Same marker as the flat view, so scope reads identically in both."""
+    got = listing.format_row(
+        row("jira", groups=("workflow",), global_for=("ac",), **{"global": True}),
+        indent="    ",
+        show_groups=False,
+    )
+    assert got == f"    {DIM}·{RESET} jira {DIM}(global for ac){RESET}"
 
 
 def test_grouped_buckets_are_sorted_and_span_tags(catalog, effective):

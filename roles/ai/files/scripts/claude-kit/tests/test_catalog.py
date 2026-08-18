@@ -276,6 +276,47 @@ def test_agent_dependencies_expand_a_second_level():
     assert "leaf" not in reached, "an agent expands two levels, not the whole closure"
 
 
+def test_the_global_parents_of_a_reached_skill_are_the_tagged_artifacts():
+    """Who to name in `list`, and it is the tagged artifact rather than the nearest edge:
+    the agent is the thing a user installed, so it is the answer to "why is this here".
+    """
+    catalog = {
+        (cat.SKILL, "top"): cat.Artifact(name="top", type=cat.SKILL, dependencies=("mid",)),
+        (cat.SKILL, "mid"): cat.Artifact(name="mid", type=cat.SKILL),
+        (cat.AGENT, "a"): cat.Artifact(
+            name="a", type=cat.AGENT, groups=("global",), dependencies=("top",)
+        ),
+        (cat.SKILL, "s"): cat.Artifact(
+            name="s", type=cat.SKILL, groups=("global",), dependencies=("top",)
+        ),
+    }
+    parents = scope.global_parents(catalog)
+    assert parents["top"] == ("a", "s"), "sorted, so the row is stable"
+    assert parents["mid"] == ("a",), "the second level belongs to the agent, not to `top`"
+
+
+def test_a_tagged_skill_reached_as_a_dependency_gains_no_parent():
+    """Its tag already says why it is in ~/.claude, and `(global for x)` would imply the
+    edge is load-bearing when removing it would change nothing."""
+    catalog = {
+        (cat.SKILL, "dep"): cat.Artifact(name="dep", type=cat.SKILL, groups=("global",)),
+        (cat.SKILL, "g"): cat.Artifact(
+            name="g", type=cat.SKILL, groups=("global",), dependencies=("dep",)
+        ),
+    }
+    assert "dep" in scope.global_set(catalog)
+    assert scope.global_parents(catalog) == {}
+
+
+def test_global_parents_covers_exactly_the_untagged_members_of_the_set(catalog):
+    """The two derivations share a walk so they cannot disagree; this pins the invariant
+    that makes sharing it correct."""
+    effective = scope.global_set(catalog)
+    skills = cat.skills(catalog)
+    untagged = {n for n in effective if not skills[n].tagged_global}
+    assert set(scope.global_parents(catalog)) == untagged
+
+
 def test_unknown_dependency_names_are_ignored_when_expanding():
     """A dangling edge must not crash resolution; doctor reports it instead."""
     catalog = {
