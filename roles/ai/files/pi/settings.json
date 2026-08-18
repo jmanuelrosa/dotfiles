@@ -29,12 +29,12 @@
   "extensions": [],
   "followUpMode": "one-at-a-time",
   "hideThinkingBlock": true,
-  "lastChangelogVersion": "0.84.1",
   "packages": [
     "git:github.com/earendil-works/pi-review",
     "npm:@tintinweb/pi-subagents",
+    "npm:pi-cc-patch",
     "npm:pi-cursor-sdk",
-    "npm:pi-cc-patch"
+    "npm:pi-sandbox"
   ],
   "quietStartup": true,
   "showHardwareCursor": true,

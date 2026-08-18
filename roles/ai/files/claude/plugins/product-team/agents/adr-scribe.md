@@ -4,6 +4,7 @@ description: Product Team decision scribe - extracts each significant decision f
 model: sonnet
 tools: Read, Write, Edit, Glob
 effort: high
+thinking: high
 ---
 
 # ADR scribe

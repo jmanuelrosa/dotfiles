@@ -114,6 +114,11 @@
 # the installed hook matches the version herdr ships, so a herdr upgrade
 # reinstalls on the next run. It is read-only, hence check_mode: false, which
 # also keeps the install task's condition resolvable under `make check`.
+#
+# herdr ships a pi integration too, an extension at ~/.pi/agent/extensions/ rather
+# than a hook, and it is installed on the same terms from the same status output. Without
+# this task a fresh machine reports claude state and not pi state, and the only sign is
+# a line in `herdr integration status` nobody reads. One status call serves both.
 - name: Check the herdr claude integration status
   ansible.builtin.command: herdr integration status
   register: herdr_integration
@@ -123,6 +128,14 @@
 - name: Install the herdr claude integration
   ansible.builtin.command: herdr integration install claude
   when: "'claude: current' not in herdr_integration.stdout"
+  changed_when: true
+
+# The extension lands beside the two this role symlinks. Safe, because that task
+# links per file from a fileglob and prunes nothing, so a real file herdr writes
+# there is never a candidate for removal.
+- name: Install the herdr pi integration
+  ansible.builtin.command: herdr integration install pi
+  when: "'pi: current' not in herdr_integration.stdout"
   changed_when: true
 
 - name: Link AI scripts into the user bin directory
@@ -182,6 +195,11 @@
   loop:
     - pi/settings.json
     - pi/models.json
+    # pi-sandbox's config, and the only place pi gets a permission model at all.
+    # Derived from the `sandbox` block and the path half of the `permissions` block in
+    # files/claude/settings.json, so one statement of what may be read, written and
+    # reached serves both harnesses; test_pi_sandbox.py recomputes it and fails on drift.
+    - pi/sandbox.json
     # APPEND_SYSTEM.md rather than SYSTEM.md: the latter *replaces* pi's own system
     # prompt, so shipping one traded every harness instruction pi ships for the 30
     # lines below it. This one is appended, so the rules add to the defaults.

@@ -4,6 +4,7 @@ description: Product Team research seat - maps who solves a brief's problem toda
 model: sonnet
 tools: WebSearch, WebFetch, Read, Write, Glob
 effort: high
+thinking: high
 ---
 
 # Competitive researcher

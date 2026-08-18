@@ -4,6 +4,7 @@ description: Product Team research seat - builds a rough, arithmetic-shown TAM/S
 model: sonnet
 tools: WebSearch, WebFetch, Read, Write, Glob
 effort: high
+thinking: high
 ---
 
 # Market sizer
