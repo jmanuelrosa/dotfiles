@@ -36,6 +36,7 @@
  */
 
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { existsSync, realpathSync } from "node:fs";
 import { unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -58,8 +59,14 @@ const HOOKS_DIR = join(dirname(realpathSync(fileURLToPath(import.meta.url))), ".
 // instead of being replaced by this timeout.
 const HOOK_TIMEOUT_MS = 180_000;
 
-// Entries rather than the events Claude counts, which is as close as the two harnesses get.
-const SKILL_WINDOW = 30;
+// User messages, where Claude counts stamped assistant events. The unit has to differ because
+// the signals do: Claude re-stamps `attributionSkill` on every assistant turn for as long as the
+// flow is running, while pi writes its `<skill name="...">` tag exactly once, into the user
+// message that invoked it. Counting entries would therefore expire the invocation partway through
+// the very flow it opened, since reading a diff and staging spends far more than 30 entries. A
+// count of user messages cannot expire mid-flow (a commit flow is one message) and still bounds
+// staleness, so an invocation the user has plainly moved on from stops holding the gate open.
+const SKILL_WINDOW_USER_MESSAGES = 30;
 
 // The skills git-skill-gate gates on, by name only: which command needs which one stays the hook's
 // business, and this list exists solely to be looked for in the session.
@@ -173,6 +180,10 @@ function textOf(content: unknown): string {
  * count, which mirrors Claude: `attributionSkill` marks a slash-command flow too. It also keeps
  * the fuzzier signal out, since a session that merely read a skill file, or a tool result quoting
  * one, would otherwise open the gate in the repo where those files live.
+ *
+ * Only user messages are counted, for the reason at SKILL_WINDOW_USER_MESSAGES: the tag is a
+ * one-time invocation marker here, not a per-turn stamp, so windowing over every entry would drop
+ * it while the flow it belongs to is still running.
  */
 function activeSkills(ctx: ExtensionContext): Set<string> {
   const found = new Set<string>();
@@ -183,10 +194,14 @@ function activeSkills(ctx: ExtensionContext): Set<string> {
     return found;
   }
 
-  for (const entry of entries.slice(-SKILL_WINDOW)) {
+  const asked: string[] = [];
+  for (const entry of entries) {
     const message = (entry as { message?: { role?: string; content?: unknown } }).message;
     if (message?.role !== "user") continue;
-    const text = textOf(message.content);
+    asked.push(textOf(message.content));
+  }
+
+  for (const text of asked.slice(-SKILL_WINDOW_USER_MESSAGES)) {
     for (const skill of GATED_SKILLS) {
       if (text.includes(`<skill name="${skill}"`)) found.add(skill);
     }
@@ -202,9 +217,14 @@ function activeSkills(ctx: ExtensionContext): Set<string> {
  * turn the gate off rather than closing it. Which is also why a write that fails is answered with
  * no path at all rather than a throw: the skill window then goes unchecked, as it does in Claude
  * when a transcript will not parse, while the hard blocks the hook applies first still stand.
+ *
+ * The name is generated here rather than taken from the tool call. `toolCallId` is whatever the
+ * model provider returned, so it crosses a trust boundary before reaching a path: real ids already
+ * carry a `|`, one carrying a `/` would make the write fail and silently leave the window
+ * unchecked, and one beginning with `../` would write and then unlink a file outside tmpdir.
  */
-async function writeTranscript(skills: Set<string>, id: string): Promise<string | undefined> {
-  const path = join(tmpdir(), `pi-guardrails-${id}.jsonl`);
+async function writeTranscript(skills: Set<string>): Promise<string | undefined> {
+  const path = join(tmpdir(), `pi-guardrails-${randomUUID()}.jsonl`);
   const lines = [...skills].map((skill) => `${JSON.stringify({ attributionSkill: skill })}\n`);
   try {
     await writeFile(path, lines.join(""), "utf8");
@@ -253,7 +273,7 @@ async function guard(event: ToolCallEvent, ctx: ExtensionContext): Promise<ToolC
 
     // Order follows settings.json: the cheap gate refuses first, so a command that was never
     // allowed cannot also spend a project's full lint budget proving itself clean.
-    const transcript = await writeTranscript(activeSkills(ctx), event.toolCallId);
+    const transcript = await writeTranscript(activeSkills(ctx));
     let gate: HookVerdict;
     try {
       gate = await runHook("git-skill-gate.sh", {

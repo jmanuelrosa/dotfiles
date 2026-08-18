@@ -14,7 +14,12 @@ python. The moment this file has to know how a dash is counted, the extension ha
 an adapter.
 """
 
+import json
 import re
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
 
 import pytest
 from dotkit.testing import HOOKS, PI_EXTENSIONS, REPO
@@ -164,3 +169,146 @@ def test_the_role_installs_the_extension():
     tasks = TASKS.read_text()
     assert ".pi/agent/extensions" in tasks
     assert "files/pi/extensions/*.ts" in tasks
+
+
+# --- the extension, executed ---------------------------------------------------
+
+# Everything above reads the source as a string, which is the right shape for a contract with
+# another file and the wrong shape for logic. Two functions here decide whether a gate opens,
+# and a grep cannot tell a working one from a broken one: the skill window silently expiring is
+# exactly the kind of bug that leaves every assertion above green. So these run the real thing,
+# by the same technique test_pi_discovery.py uses on pi's own loader.
+
+PI_PACKAGE = "@earendil-works/pi-coding-agent"
+
+# The private functions the executed half drives, re-exported into a copy of the extension.
+DRIVEN = ("activeSkills", "writeTranscript")
+
+
+def pi_package():
+    """The installed pi package, found through the `pi` on PATH rather than a pinned cellar path."""
+    binary = shutil.which("pi")
+    if binary is None:
+        return None
+    root = Path(binary).resolve().parent.parent
+    for candidate in (
+        root / "lib/node_modules" / PI_PACKAGE,
+        root / "libexec/lib/node_modules" / PI_PACKAGE,
+    ):
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
+@pytest.fixture(scope="module")
+def runner(tmp_path_factory):
+    """A directory the extension can be imported from, with pi resolvable.
+
+    The file is written rather than linked because node resolves a bare import from the realpath
+    of the importing module, so a link would send it looking for node_modules in this checkout.
+    """
+    package = pi_package()
+    if package is None or shutil.which("node") is None:
+        pytest.skip("pi and node are needed to execute the extension")
+    root = tmp_path_factory.mktemp("guardrails")
+    scope = root / "node_modules" / "@earendil-works"
+    scope.mkdir(parents=True)
+    (scope / "pi-coding-agent").symlink_to(package)
+    # Re-exported into the copy rather than exported from the extension, so pi's own surface
+    # stays the single default export it loads.
+    (root / "guardrails.ts").write_text(f"{EXTENSION.read_text()}\nexport {{ {', '.join(DRIVEN)} }};\n")
+    return root
+
+
+def run_in_node(runner, body):
+    """`body` as an ES module beside the extension, with its stdout parsed as JSON."""
+    script = f'import {{ {", ".join(DRIVEN)} }} from "./guardrails.ts";\n{body}'
+    done = subprocess.run(
+        ["node", "--input-type=module", "-e", script],
+        capture_output=True,
+        text=True,
+        cwd=runner,
+        check=False,
+    )
+    assert done.returncode == 0, done.stderr
+    return json.loads(done.stdout)
+
+
+def branch(user_texts, assistant_after=0):
+    """A session branch: the user messages in order, then `assistant_after` entries of work."""
+    entries = [{"message": {"role": "user", "content": text}} for text in user_texts]
+    entries += [{"message": {"role": "assistant", "content": "work"}}] * assistant_after
+    return entries
+
+
+def skills_for(runner, entries):
+    body = f"""
+    const found = activeSkills({{ sessionManager: {{ getBranch: () => ({json.dumps(entries)}) }} }});
+    process.stdout.write(JSON.stringify([...found].sort()));
+    """
+    return run_in_node(runner, body)
+
+
+def test_a_loaded_skill_survives_the_work_it_asks_for(runner):
+    """The bug this guards: pi tags the invocation once, so counting every entry expired it
+    partway through the flow and git-skill-gate then refused the commit the skill exists to make.
+    Real sessions on this machine run 278 and 38 entries past their tag."""
+    entries = branch(['<skill name="commit" location="x">go</skill>'], assistant_after=300)
+    assert skills_for(runner, entries) == ["commit"]
+
+
+def test_the_window_still_expires_a_stale_invocation(runner):
+    """Bounded, or one /skill:commit would hold the gate open for the rest of the session."""
+    entries = branch(['<skill name="commit">go</skill>'] + ["unrelated"] * 40)
+    assert skills_for(runner, entries) == []
+
+
+def test_a_skill_the_session_never_loaded_is_not_found(runner):
+    assert skills_for(runner, branch(["please commit this for me"])) == []
+
+
+def test_the_model_reading_a_skill_file_does_not_open_the_gate(runner):
+    """Only the invocation tag on a user message counts, never an assistant message quoting it."""
+    entries = [{"message": {"role": "assistant", "content": '<skill name="commit">'}}]
+    assert skills_for(runner, entries) == []
+
+
+def test_both_gated_skills_are_found_together(runner):
+    entries = branch(['<skill name="commit">a</skill>', '<skill name="pr">b</skill>'])
+    assert skills_for(runner, entries) == ["commit", "pr"]
+
+
+def test_the_transcript_name_does_not_come_from_the_tool_call(runner):
+    """`toolCallId` is provider-supplied, so it is a trust boundary in front of a path: real ids
+    already carry a `|`, one with a `/` would fail the write and leave the window unchecked, and
+    one starting with `../` would write then unlink outside tmpdir."""
+    body = """
+    const paths = [await writeTranscript(new Set(["commit"])), await writeTranscript(new Set())];
+    process.stdout.write(JSON.stringify(paths));
+    """
+    first, second = run_in_node(runner, body)
+    for path in (first, second):
+        assert Path(path).resolve().parent == Path(tempfile.gettempdir()).resolve()
+    assert first != second, "a fixed name would collide between concurrent calls"
+
+
+def test_the_transcript_is_written_even_when_no_skill_is_active(runner):
+    """Load-bearing: the hook reads a file it cannot open as a parse failure and allows the
+    command, so a missing file would turn the gate off rather than closing it."""
+    body = """
+    const path = await writeTranscript(new Set());
+    const { readFileSync } = await import("node:fs");
+    process.stdout.write(JSON.stringify({ exists: true, body: readFileSync(path, "utf8") }));
+    """
+    assert run_in_node(runner, body) == {"exists": True, "body": ""}
+
+
+def test_the_transcript_is_the_jsonl_the_hook_parses(runner):
+    """One `attributionSkill` per line, which is the only shape skills_in_window reads."""
+    body = """
+    const path = await writeTranscript(new Set(["commit", "pr"]));
+    const { readFileSync } = await import("node:fs");
+    process.stdout.write(JSON.stringify(readFileSync(path, "utf8").trim().split("\\n")));
+    """
+    lines = [json.loads(line) for line in run_in_node(runner, body)]
+    assert sorted(entry["attributionSkill"] for entry in lines) == ["commit", "pr"]
