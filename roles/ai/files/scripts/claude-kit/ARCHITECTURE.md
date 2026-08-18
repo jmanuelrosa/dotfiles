@@ -77,3 +77,19 @@ That second fact is why `granted_by` returns the granting *path* rather than a b
 A write touches one field of one key, keeps the entry's other 33 possible fields, creates a missing entry with the same nine the trust dialog writes, and reproduces Claude Code's exact bytes (`indent=2`, no trailing newline, `ensure_ascii=False`) so a toggle is a one-line diff rather than a reformat of 76 KB. It is replaced atomically and keeps its mode, because the file holds an oauth account. Nothing here **creates** that file: a machine where Claude Code has never run has no trust to change, so `Missing` and `Unreadable` are separate exceptions and only the first can still answer a read.
 
 `checks.untrusted_workspace` (G18) is the same question from doctor's side, and it fires **only when a plugin is actually linked**. Trust is Claude Code's business until something claude-kit installed depends on it, and a finding nobody needs to act on is how a report earns being skipped.
+
+## The pi links, and the two checks over them
+
+`claude-kit` maintains Pi's view of a project as well as Claude's, in [pi.py](claude_kit/pi.py), and it is derived from disk rather than recorded: nothing about it reaches `claude-kit.json`, so `converge` is safe to call unconditionally. Two halves, because Pi discovers each from a different place and never from `.claude/`:
+
+- `<project>/.agents/skills` is one **directory** link at `.claude/skills`, so the two cannot disagree and there is no per-artifact work.
+- `<project>/.agents/agents/` holds **per-file** links to each installed plugin's `agents/*.md`, because a seat keeps its agent inside its own plugin and no single directory holds them all.
+
+`add`, `remove`, `scout --add`, `restore` and `adopt` all converge both. The last two are recent and were each blind in a way worth remembering: convergence happens inside `add.install_one`, so `restore` skipped it on its "nothing to restore" branch, which is the exact state `pi-unreachable` fires on and names `restore` as the fix, and `adopt` reached it not at all despite its whole population being projects that predate the links.
+
+Two doctor checks cover them, both `NOTE` for the same reason `G18` is not one: nothing about Claude Code is broken, and a machine that does not run Pi has nothing to act on.
+
+- **G19 `pi-unreachable`**: the project's skills are linked and `.agents/skills` is missing or occupied by something else.
+- **G20 `pi-agents-unreachable`**: the project's plugin agents are installed and their per-file links are missing, or `.agents/agents` is not a directory. Silent when no plugin ships an agent, since there is then nothing for Pi to be missing.
+
+[pi_trust.py](claude_kit/pi_trust.py) is the other half of `trust`, and reads only. Pi keeps its own `~/.pi/agent/trust.json` whose key is the realpathed cwd rather than the git root, where the nearest entry wins even when it is a refusal. `trust` reports both stores and writes only Claude's, because Pi guards its file with a lock and accepting Pi's own prompt once records the same decision.
