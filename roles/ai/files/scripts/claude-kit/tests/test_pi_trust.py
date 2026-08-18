@@ -112,11 +112,50 @@ def test_an_agents_skills_link_is_reported_as_the_trigger(tmp_path):
     assert reason and ".agents/skills" in reason
 
 
-def test_a_pi_directory_is_reported_as_its_own_trigger(tmp_path):
-    """Not ours, so it must not be described as something claude-kit did."""
+@pytest.mark.parametrize(
+    "entry",
+    ["settings.json", "extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPEND_SYSTEM.md"],
+)
+def test_each_named_pi_entry_is_reported_as_its_own_trigger(tmp_path, entry):
+    """Not ours, so it must not be described as something claude-kit did.
+
+    pi checks these seven names by `existsSync`, so a file answers as a directory would.
+    """
     (tmp_path / ".pi").mkdir()
-    reason = pi_trust.prompt_reason({}, tmp_path, tmp_path)
-    assert reason and ".pi" in reason and "claude-kit" not in reason
+    (tmp_path / ".pi" / entry).touch()
+    reason = pi_trust.prompt_reason({}, tmp_path, tmp_path, home=tmp_path)
+    assert reason and entry in reason and "claude-kit" not in reason
+
+
+def test_a_pi_directory_holding_nothing_pi_gates_is_not_a_trigger(tmp_path):
+    """The existence of `.pi/` is not the trigger, its contents are.
+
+    This repo's own `.pi/` holds a `.gitkeep` so pi-review can find the guidelines, and
+    reporting that as a prompt tells the reader to expect one pi never raises.
+    """
+    (tmp_path / ".pi").mkdir()
+    (tmp_path / ".pi" / ".gitkeep").touch()
+    assert pi_trust.prompt_reason({}, tmp_path, tmp_path, home=tmp_path) is None
+
+
+def test_an_agents_skills_directory_above_the_project_is_still_the_trigger(tmp_path):
+    """pi walks from the cwd to the filesystem root, so the project root is not the
+    boundary. Checking only the project root reports silence where pi will prompt."""
+    project = tmp_path / "outer" / "project"
+    project.mkdir(parents=True)
+    (tmp_path / "outer" / ".agents" / "skills").mkdir(parents=True)
+    reason = pi_trust.prompt_reason({}, project, project, home=tmp_path)
+    assert reason and str(tmp_path / "outer" / ".agents" / "skills") in reason
+
+
+def test_the_users_own_agents_skills_is_not_a_trigger(tmp_path):
+    """pi skips `$HOME/.agents/skills` by name: it is the user's global store, not any
+    project's. Without the exclusion, every directory under $HOME reports a prompt."""
+    project = tmp_path / "home" / "project"
+    project.mkdir(parents=True)
+    (tmp_path / "home" / ".agents" / "skills").mkdir(parents=True)
+    assert pi_trust.prompt_reason({}, project, project, home=tmp_path / "home") is None
+    assert pi_trust.prompt_reason({}, project, project, home=tmp_path / "elsewhere")
 
 
 def test_a_decided_project_is_not_reported_as_prompting(tmp_path):
