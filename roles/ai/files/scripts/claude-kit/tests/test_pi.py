@@ -327,8 +327,82 @@ def test_the_agents_path_occupied_by_a_file_is_blocked(plugged):
     assert occupant.read_text() == "not a directory"
 
 
+def test_a_symlinked_agents_path_is_blocked_even_when_it_leads_to_a_directory(plugged, tmp_path):
+    """A link here is a decision someone made about where pi reads agents.
+
+    Writing through it would put our links in a directory we were never pointed at, so
+    it is refused for the same reason a foreign .agents/skills is left alone.
+    """
+    theirs = tmp_path / "their-agents"
+    theirs.mkdir()
+    (plugged / pi.PARENT).mkdir()
+    pi.agents_path(plugged).symlink_to(theirs)
+
+    result = pi.converge_agents(plugged)
+    assert result.blocked_dir
+    assert list(theirs.iterdir()) == []
+
+
+def test_a_broken_symlink_at_the_agents_path_is_blocked_too(plugged, tmp_path):
+    (plugged / pi.PARENT).mkdir()
+    pi.agents_path(plugged).symlink_to(tmp_path / "gone")
+
+    assert pi.converge_agents(plugged).blocked_dir
+
+
 def test_home_is_never_a_project_for_agents_either():
     assert pi.converge_agents(None) is None
+
+
+# --- P15b: two plugins claiming one agent filename -----------------------------
+#
+# The basename is the only name pi has for an agent, so the collision cannot be
+# resolved here in a way that keeps both. What it must not do is pick one silently:
+# `claude-kit list` shows both plugins installed and Claude Code loads both from
+# inside their own plugins, so this is the only place the repo's one-name-one-artifact
+# rule can break without anything saying so.
+
+RIVAL = "aardvark"
+
+
+@pytest.fixture
+def rivals(plugged, seat_repo):
+    """A second installed plugin shipping an agent under the first one's filename."""
+    agents = seat_repo / "plugins" / RIVAL / "agents"
+    agents.mkdir(parents=True)
+    (agents / SEAT_AGENT).write_text("---\nname: backendish-staff-engineer\n---\n")
+    (plugged / ".claude" / "skills" / RIVAL).symlink_to(seat_repo / "plugins" / RIVAL)
+    return plugged
+
+
+def test_a_filename_two_plugins_claim_is_reported_rather_than_settled(rivals, seat_repo):
+    result = pi.converge_agents(rivals)
+    assert result.collided == {SEAT_AGENT: [RIVAL, "backendish"]}
+    # One of them still reaches pi, because a name pi cannot load at all is worse than
+    # an arbitrary winner that was named out loud.
+    assert result.linked == [SEAT_AGENT]
+    entry = pi.agents_path(rivals) / SEAT_AGENT
+    source = seat_repo / "plugins" / RIVAL / "agents" / SEAT_AGENT
+    assert entry.resolve() == source.resolve(), "plugin order decides, and it decides stably"
+
+
+def test_a_collision_outlives_the_run_that_made_the_link(rivals):
+    """Idempotence would make this a one-time warning, and the collision is not
+    one-time: it is a repo state that stays wrong until a plugin renames its agent."""
+    pi.converge_agents(rivals)
+    result = pi.converge_agents(rivals)
+    assert result is not None
+    assert result.linked == []
+    assert result.collided == {SEAT_AGENT: [RIVAL, "backendish"]}
+
+
+def test_the_report_names_both_plugins(rivals, capsys):
+    pi.report_agents(pi.converge_agents(rivals), rivals)
+    printed = capsys.readouterr()
+    text = printed.out + printed.err
+    assert RIVAL in text
+    assert "backendish" in text
+    assert SEAT_AGENT in text
 
 
 # --- P16: the commands converge the agent view --------------------------------
@@ -399,6 +473,30 @@ def test_doctor_names_the_occupant_when_something_else_holds_the_agents_path(plu
     path.write_text("not a directory")
     detail = checks.pi_agents_unreachable(plugged)[0].detail
     assert "not a directory" in detail
+
+
+@pytest.mark.parametrize("occupant", ["directory", "broken"])
+def test_doctor_reports_the_occupied_path_for_every_shape_converge_refuses(
+    plugged, tmp_path, occupant
+):
+    """Doctor's remedy is the command converge_agents refuses on, so the two have to
+    refuse the same paths.
+
+    A link to a real directory reads as a directory and a broken one reads as absent, so
+    both used to fall through to the missing-links branch: the note named `claude-kit
+    add`, the command then reported the path as blocked, and nothing the user could do
+    from the note cleared it.
+    """
+    target = tmp_path / "their-agents"
+    if occupant == "directory":
+        target.mkdir()
+    (plugged / pi.PARENT).mkdir()
+    pi.agents_path(plugged).symlink_to(target)
+
+    found = checks.pi_agents_unreachable(plugged)
+    assert len(found) == 1
+    assert "Move it aside" in found[0].detail
+    assert SEAT_AGENT not in found[0].detail, "a blocked path is not a list of missing links"
 
 
 def test_doctor_says_nothing_when_no_plugin_ships_an_agent(project, seat_repo):

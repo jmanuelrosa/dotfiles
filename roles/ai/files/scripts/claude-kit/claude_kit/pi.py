@@ -166,24 +166,49 @@ def agents_path(project):
     return Path(project) / PARENT / AGENTS_LEAF
 
 
+def agents_dir_blocked(project):
+    """Whether something that is not a plain directory occupies .agents/agents/.
+
+    A symlink or a file wearing the directory's name is somebody's decision, exactly as
+    a foreign .agents/skills is, so nothing below it is written. One predicate rather
+    than the same condition in two files, because doctor's remedy for the missing links
+    is to run the very command this refuses: the two disagreeing is a note the user
+    cannot clear by doing what it says.
+    """
+    directory = agents_path(project)
+    return directory.is_symlink() or (directory.exists() and not directory.is_dir())
+
+
 def desired_agents(project):
-    """{basename: source} for every agent the installed plugins ship.
+    """({basename: source}, {basename: [plugin, ...]}) for the installed plugins' agents.
 
     Derived from disk, never from the catalog or the manifest: a plugin link under
     .claude/skills/ that resolves into this repo's plugins store, and holds an
     `agents/` directory, contributes each of its `agents/*.md`. `installed_names` is
     what keeps a hand-copied plugin directory or a foreign link out, for the same
     reason it keeps them out of everything else this tool removes.
+
+    The basename is the only name pi has for an agent, so two plugins shipping
+    `agents/<same-name>.md` cannot both be linked here. The first in plugin order takes
+    the name and the rest are returned as a collision for the caller to report: the
+    repo's rule is that a name means one artifact, and this is the one place breaking it
+    changes what loads, so resolving it quietly is what hides it.
     """
     claude = paths.claude_dir()
     out = {}
-    for _, link in sorted(scope.installed_names(project, cat.PLUGIN, claude).items()):
+    owners = {}
+    collisions = {}
+    for plugin, link in sorted(scope.installed_names(project, cat.PLUGIN, claude).items()):
         agents = scope.link_target(link) / AGENTS_LEAF
         if not agents.is_dir():
             continue
         for source in sorted(agents.glob("*.md")):
+            if source.name in out:
+                collisions.setdefault(source.name, [owners[source.name]]).append(plugin)
+                continue
             out[source.name] = source
-    return out
+            owners[source.name] = plugin
+    return out, collisions
 
 
 @dataclass
@@ -193,13 +218,15 @@ class AgentLinks:
     linked: list = field(default_factory=list)
     pruned: list = field(default_factory=list)
     blocked: list = field(default_factory=list)
+    # {basename: [plugin, ...]}: two installed plugins claiming one agent filename.
+    collided: dict = field(default_factory=dict)
     # The .agents/agents path itself is occupied by something that is not a plain
     # directory, so nothing below it could be written at all.
     blocked_dir: bool = False
 
     @property
     def quiet(self):
-        return not (self.linked or self.pruned or self.blocked or self.blocked_dir)
+        return not (self.linked or self.pruned or self.blocked or self.collided or self.blocked_dir)
 
 
 def converge_agents(project):
@@ -215,18 +242,19 @@ def converge_agents(project):
     third (refuse an empty set) deliberately does not apply, because here an empty
     set is the ordinary state of a project with no plugins rather than a registry
     that lost its tags.
+
+    A filename two plugins both claim is carried through as `collided` rather than
+    settled here, so a run reporting nothing else still reports that one, every time,
+    until the repo stops shipping the name twice.
     """
     if project is None:
         return None
     claude = paths.claude_dir()
-    desired = desired_agents(project)
+    desired, collisions = desired_agents(project)
     directory = agents_path(project)
-    result = AgentLinks()
+    result = AgentLinks(collided=collisions)
 
-    # A symlink or a file wearing the directory's name is somebody's decision, exactly
-    # as a foreign .agents/skills is: report it when it stands in the way, never
-    # replace it.
-    if directory.is_symlink() or (directory.exists() and not directory.is_dir()):
+    if agents_dir_blocked(project):
         if desired:
             result.blocked_dir = True
             return result
@@ -287,7 +315,14 @@ def report_agents(result, project):
     if result.pruned:
         ui.note(f"Removed {ui.names_or_count(result.pruned, 'agent link')} from {where}; no installed plugin ships them now.")
     if result.blocked_dir:
-        ui.warn(f"{where} already exists and is not a directory, so pi will not see the plugin agents.")
+        ui.warn(
+            f"{where} already exists and is not a directory claude-kit will write into, "
+            "so pi will not see the plugin agents."
+        )
         ui.note("Move it aside, then rerun any add or remove.")
     for name in result.blocked:
         ui.warn(f"{where}/{name} already exists and is not ours, so pi loads that one instead.")
+    for name, plugins in sorted(result.collided.items()):
+        ui.warn(f"{', '.join(plugins)} each ship agents/{name}, so pi loads only {plugins[0]}'s.")
+    if result.collided:
+        ui.note("Rename one of them, since a name has to mean one artifact.")

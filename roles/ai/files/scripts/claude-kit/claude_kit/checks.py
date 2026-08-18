@@ -347,18 +347,22 @@ def pi_agents_unreachable(project):
     """
     if project is None:
         return []
-    wanted = pi.desired_agents(project)
+    wanted, _ = pi.desired_agents(project)
     if not wanted:
         return []
     path = pi.agents_path(project)
-    if path.exists() and not path.is_dir():
+    # The same predicate converge_agents refuses on, rather than a second reading of it:
+    # falling through to the missing-links branch here names a command that then refuses,
+    # so the note survives the user doing exactly what it asked.
+    if pi.agents_dir_blocked(project):
         return [
             Finding(
                 "pi-agents-unreachable",
                 NOTE,
                 "this project's plugin agents",
-                f"{path} exists and is not a directory, so pi reads no agents here. "
-                f"Move it aside, then run: claude-kit add or claude-kit restore",
+                f"{path} exists and is not a directory claude-kit will write into, so pi "
+                f"reads no agents here. Move it aside, then run: claude-kit add or "
+                "claude-kit restore",
                 cat.PLUGIN,
             )
         ]
