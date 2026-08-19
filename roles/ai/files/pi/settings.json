@@ -5,8 +5,8 @@
     "keepRecentTokens": 10000,
     "reserveTokens": 8192
   },
-  "defaultModel": "gpt-5.6-terra",
-  "defaultProvider": "openai-codex",
+  "defaultModel": "auto",
+  "defaultProvider": "cursor",
   "defaultThinkingLevel": "high",
   "doubleEscapeAction": "tree",
   "editorPaddingX": 2,
