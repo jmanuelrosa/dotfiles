@@ -1,0 +1,6 @@
+http://topo.localhost {
+	reverse_proxy 127.0.0.1:27778 [::1]:27778 {
+		lb_policy first
+		fail_duration 5s
+	}
+}

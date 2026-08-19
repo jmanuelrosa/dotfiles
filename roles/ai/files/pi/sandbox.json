@@ -37,7 +37,8 @@
       "~/.lima",
       "~/.gitconfig",
       "~/.ssh/known_hosts",
-      "~/.config/acli"
+      "~/.config/acli",
+      "~/Developer/dotfiles/roles/ai/files/claude/skills"
     ],
     "denyRead": [
       "~/.ssh",
