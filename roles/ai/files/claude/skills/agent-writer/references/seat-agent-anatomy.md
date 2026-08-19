@@ -6,7 +6,7 @@ The living exemplars are `plugins/backend/agents/backend-staff-engineer.md` and 
 ## Budget
 
 Hard cap ~215 lines; the shipped implementer seats land at 206-213.
-Three of those lines are frontmatter that every seat owes the contract (`effort`, `memory`, and the `model` pin), so they are not body budget and never pay for themselves by cutting domain content.
+Four of those lines are frontmatter that every seat owes the contract (`effort`, its `thinking` twin, `memory`, and the `model` pin), so they are not body budget and never pay for themselves by cutting domain content.
 Pay for *body* additions by consolidating: merge ask-first rows, merge red flags, drop the weakest rationalization row.
 Advisor seats land well under the cap (security is 153); never pad to fill it.
 
@@ -22,6 +22,7 @@ description: >-
   Not the <sibling> seat (<what>), and <the identity never, e.g. "never deploys">.
 model: opus
 effort: xhigh
+thinking: xhigh
 memory: project
 ---
 ```
@@ -32,6 +33,10 @@ Implementer seats use `model: opus`; advisor seats may differ (`tools:` allowlis
 `effort` and `memory` are part of the seat identity too.
 An implementer seat does multi-file work against an unfamiliar stack, which is what `xhigh` is for; a read-only advisor seat takes `high`, since review accuracy holds at lower effort and the seat reads far more than it writes.
 Never leave a seat on the session default: the caller sets that for their own turn, not for a delegated implementation.
+
+`thinking` is the same value again, because it is pi's name for that dial and each harness ignores the other's key.
+A seat carrying only `effort` runs at the pinned depth under Claude Code and at the session default under pi, with no error in either, so the pair is checked for equality in `test_pi_dialect.py` rather than trusted.
+This applies to every agent that pins a depth, advisor seats included: a `tools:` allowlist is Claude-only for tools and says nothing about how deep the seat thinks.
 `memory: project` gives the seat `<project>/.claude/agent-memory/<name>/` so it stops rediscovering the same stack facts every dispatch.
 It is committable by design, so the seat writes the shape of the codebase there and never a secret, a credential, or a security finding's exploit detail.
 

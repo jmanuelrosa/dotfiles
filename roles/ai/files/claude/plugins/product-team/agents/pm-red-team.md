@@ -4,6 +4,7 @@ description: Product Team adversarial reviewer - attacks a PRD with fresh eyes (
 model: opus
 tools: Read, Write
 effort: xhigh
+thinking: xhigh
 ---
 
 # PM red team

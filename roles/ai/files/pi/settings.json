@@ -1,16 +1,40 @@
 {
   "collapseChangelog": false,
-  "defaultThinkingLevel": "xhigh",
+  "compaction": {
+    "enabled": true,
+    "keepRecentTokens": 10000,
+    "reserveTokens": 8192
+  },
+  "defaultModel": "gpt-5.6-terra",
+  "defaultProvider": "openai-codex",
+  "defaultThinkingLevel": "high",
   "doubleEscapeAction": "tree",
   "editorPaddingX": 2,
   "enableInstallTelemetry": false,
+  "enabledModels": [
+    "openai-codex/gpt-5.6-sol",
+    "openai-codex/gpt-5.6-terra",
+    "openai-codex/gpt-5.6-luna",
+    "xai/grok-4.6",
+    "xai/grok-4.5",
+    "xai/grok-build-0.1",
+    "cursor/auto",
+    "cursor/grok-4.6",
+    "cursor/composer-2-5",
+    "cursor/claude-opus-5",
+    "cursor/gpt-5.6-sol",
+    "cursor/claude-fable-5",
+    "cursor/grok-4.5"
+  ],
   "extensions": [],
   "followUpMode": "one-at-a-time",
   "hideThinkingBlock": true,
-  "lastChangelogVersion": "0.75.5",
   "packages": [
-    "npm:@plannotator/pi-extension",
-    "git:github.com/earendil-works/pi-review"
+    "git:github.com/earendil-works/pi-review",
+    "npm:@tintinweb/pi-subagents",
+    "npm:pi-cc-patch",
+    "npm:pi-cursor-sdk",
+    "npm:pi-sandbox"
   ],
   "quietStartup": true,
   "showHardwareCursor": true,
@@ -18,7 +42,7 @@
   "terminal": {
     "showTerminalProgress": true
   },
-  "theme": "tokyo-night",
+  "theme": "solarized-dark",
   "transport": "auto",
-  "treeFilterMode": "default",
+  "treeFilterMode": "default"
 }

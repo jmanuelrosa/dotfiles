@@ -12,8 +12,10 @@ description: >-
   designer owns and revises what it drafts.
 model: opus
 effort: xhigh
+thinking: xhigh
 memory: project
 disallowedTools: Agent
+disallowed_tools: Agent
 ---
 
 # UX Shaper

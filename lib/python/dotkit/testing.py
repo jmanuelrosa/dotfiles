@@ -39,6 +39,12 @@ HOOKS = CLAUDE / "hooks"
 SKILL_REGISTRY = CLAUDE / "skill-registry.json"
 AGENT_REGISTRY = CLAUDE / "agent-registry.json"
 
+# Pi's payload. Smaller than Claude's because most of what Pi loads is Claude's: the skills
+# and AGENTS.md are shared by symlink, and only settings, models, themes and the extensions
+# are Pi's own.
+PI = REPO / "roles/ai/files/pi"
+PI_EXTENSIONS = PI / "extensions"
+
 # Authored tooling, one directory per role that owns some.
 AI_SCRIPTS_DIR = REPO / "roles/ai/files/scripts"
 APPS_SCRIPTS_DIR = REPO / "roles/apps/files/scripts"

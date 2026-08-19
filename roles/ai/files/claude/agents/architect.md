@@ -10,8 +10,10 @@ description: >-
   writes design artifacts only, and implementation belongs to the staff-engineer seats.
 model: opus
 effort: xhigh
+thinking: xhigh
 memory: project
 disallowedTools: Agent
+disallowed_tools: Agent
 ---
 
 # Architect

@@ -4,6 +4,7 @@ description: Product Team alignment judge - reads an opportunity brief against d
 model: opus
 tools: Read, Glob, Grep
 effort: high
+thinking: high
 ---
 
 # Strategy checker

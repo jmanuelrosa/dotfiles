@@ -45,6 +45,7 @@
     - "{{ HOME }}/.local/bin"
     - "{{ HOME }}/.pi/agent"
     - "{{ HOME }}/.pi/agent/themes"
+    - "{{ HOME }}/.pi/agent/extensions"
     - "{{ HOME }}/Library/Application Support/rtk"
 
 - name: Symlink gemini config
@@ -64,8 +65,20 @@
     force: true
   loop:
     - settings.json
-    - CLAUDE.md
     - statusline.sh
+
+# AGENTS.md is the one agent-neutral instructions file, and each agent reads it under the
+# name it expects: Claude Code only ever loads ~/.claude/CLAUDE.md, Pi only ever loads
+# ~/.pi/agent/AGENTS.md. Its own task rather than an entry in the loop above, because that
+# loop derives the destination from the source name and here the two differ. The
+# Claude-only mechanics moved to rules/claude.md, which the rules glob below links and
+# which loads at launch with the same priority.
+- name: Symlink the shared global instructions as claude's CLAUDE.md
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/claude/AGENTS.md"
+    dest: "{{ HOME }}/.claude/CLAUDE.md"
+    state: link
+    force: true
 
 # Globbed for the same reason as the hooks, and linked file by file rather than as a
 # directory: the documented symlink support in .claude/rules/ covers links placed
@@ -80,6 +93,28 @@
     force: true
   with_fileglob:
     - "{{ role_path }}/files/claude/rules/*.md"
+
+# The glob above links what the repo ships and prunes nothing, so a rule deleted here (or
+# folded into AGENTS.md) leaves its link behind on every machine already provisioned, in a
+# directory Claude Code reads at launch. A dangling rule looks exactly like a rule that
+# was never written, which is the same failure the superseded pi SYSTEM.md link has, so it
+# gets the same treatment: derive the stale set from disk rather than naming filenames,
+# because the next rule to move will not be one of these two. Only symlinks are
+# candidates, so a rule someone wrote by hand in ~/.claude/rules/ is theirs to keep, and
+# the removal loop is empty on a steady-state run.
+- name: Find the links in the claude rules directory
+  ansible.builtin.find:
+    paths: "{{ HOME }}/.claude/rules"
+    file_type: link
+  register: claude_rules_links
+
+- name: Remove claude rules links the repo no longer ships
+  ansible.builtin.file:
+    path: "{{ HOME }}/.claude/rules/{{ item }}"
+    state: absent
+  loop: "{{ claude_rules_links.files | map(attribute='path') | map('basename') | reject('in', CLAUDE_RULES_SHIPPED) | list }}"
+  vars:
+    CLAUDE_RULES_SHIPPED: "{{ query('fileglob', role_path ~ '/files/claude/rules/*.md') | map('basename') | list }}"
 
 # Globbed because every hook in the directory is meant to be active, so adding
 # one should not also mean editing this file.
@@ -101,6 +136,11 @@
 # the installed hook matches the version herdr ships, so a herdr upgrade
 # reinstalls on the next run. It is read-only, hence check_mode: false, which
 # also keeps the install task's condition resolvable under `make check`.
+#
+# herdr ships a pi integration too, an extension at ~/.pi/agent/extensions/ rather
+# than a hook, and it is installed on the same terms from the same status output. Without
+# this task a fresh machine reports claude state and not pi state, and the only sign is
+# a line in `herdr integration status` nobody reads. One status call serves both.
 - name: Check the herdr claude integration status
   ansible.builtin.command: herdr integration status
   register: herdr_integration
@@ -110,6 +150,14 @@
 - name: Install the herdr claude integration
   ansible.builtin.command: herdr integration install claude
   when: "'claude: current' not in herdr_integration.stdout"
+  changed_when: true
+
+# The extension lands beside the two this role symlinks. Safe, because that task
+# links per file from a fileglob and prunes nothing, so a real file herdr writes
+# there is never a candidate for removal.
+- name: Install the herdr pi integration
+  ansible.builtin.command: herdr integration install pi
+  when: "'pi: current' not in herdr_integration.stdout"
   changed_when: true
 
 - name: Link AI scripts into the user bin directory
@@ -169,9 +217,68 @@
   loop:
     - pi/settings.json
     - pi/models.json
-    - pi/SYSTEM.md
-    # Pi reads Claude's skills directly rather than keeping a second copy.
-    - claude/skills
+    # pi-sandbox's config, and the only place pi gets a permission model at all.
+    # Derived from the `sandbox` block and the path half of the `permissions` block in
+    # files/claude/settings.json, so one statement of what may be read, written and
+    # reached serves both harnesses; test_pi_sandbox.py recomputes it and fails on drift.
+    - pi/sandbox.json
+    # APPEND_SYSTEM.md rather than SYSTEM.md: the latter *replaces* pi's own system
+    # prompt, so shipping one traded every harness instruction pi ships for the 30
+    # lines below it. This one is appended, so the rules add to the defaults.
+    - pi/APPEND_SYSTEM.md
+    # Pi reads the shared instructions directly rather than keeping a second copy.
+    # AGENTS.md is Pi's one global context file, and the basename rule above lands it at
+    # the name Pi expects, so this needs no task of its own.
+    - claude/AGENTS.md
+
+# Pi's global skills are Claude's global skills, the same set and by the same
+# derivation, because ~/.claude/skills is what `claude-kit sync` above converges from
+# the `global` tag. Pointing at the repo instead gave pi every skill in the tree: 69
+# descriptions in every session's system prompt against Claude's 19, most of them
+# project-scoped, several `dependency_only` and one (`claude-api`) about a harness pi
+# is not. Tag an entry `global` to reach both, and note that a non-global skill still
+# reaches pi in any project that adds it, since `add` links `.agents/skills` there.
+#
+# Its own task because the source is outside the repo, and after the sync task so the
+# set is converged before pi is pointed at it; the directory itself is created by the
+# directories task above, so the link is never dangling even on a first run.
+- name: Point pi at the global claude skills
+  ansible.builtin.file:
+    src: "{{ HOME }}/.claude/skills"
+    dest: "{{ HOME }}/.pi/agent/skills"
+    state: link
+    force: true
+
+# Same argument one directory over. The pi-subagents extension reads global agents
+# from ~/.pi/agent/agents/*.md and never from ~/.claude/agents, which is the set the
+# sync task above converges from the `global` tag. One directory link means that set
+# is derived, linked and pruned in exactly one place; per-file links here would need
+# a prune pass of their own to restate what sync already does. After the sync task
+# for the same reason as the skills link, and ~/.claude/agents is created by the
+# directories task above, so the link is never dangling even on a first run.
+- name: Point pi at the global claude agents
+  ansible.builtin.file:
+    src: "{{ HOME }}/.claude/agents"
+    dest: "{{ HOME }}/.pi/agent/agents"
+    state: link
+    force: true
+
+# The link the task above used to write. Left behind it is not inert: pi reads
+# ~/.pi/agent/SYSTEM.md as a replacement system prompt, and a dangling one is a
+# machine whose prompt depends on which run last touched it. Only a symlink is
+# removed, so a SYSTEM.md someone wrote by hand is theirs to keep.
+- name: Check for the superseded pi SYSTEM.md link
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.pi/agent/SYSTEM.md"
+    follow: false
+  register: pi_system_prompt
+
+- name: Remove the superseded pi SYSTEM.md link
+  ansible.builtin.file:
+    path: "{{ HOME }}/.pi/agent/SYSTEM.md"
+    state: absent
+  when: pi_system_prompt.stat.islnk | default(false)
+
 - name: Symlink pi themes
   ansible.builtin.file:
     src: "{{ role_path }}/files/pi/themes/{{ item | basename }}"
@@ -180,6 +287,19 @@
     force: true
   with_fileglob:
     - "{{ role_path }}/files/pi/themes/*.json"
+
+# Globbed for the same reason as the claude hooks: every extension here is meant to be
+# active, and pi auto-discovers whatever lands in this directory, so there is no
+# settings.json entry to keep in step. guardrails.ts resolves its own symlink to find the
+# claude hooks it drives, which is what lets it live under files/pi/ and still reach them.
+- name: Symlink pi extensions
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/pi/extensions/{{ item | basename }}"
+    dest: "{{ HOME }}/.pi/agent/extensions/{{ item | basename }}"
+    state: link
+    force: true
+  with_fileglob:
+    - "{{ role_path }}/files/pi/extensions/*.ts"
 
 
 # rtk ignores XDG_CONFIG_HOME and only reads the macOS Application Support path.

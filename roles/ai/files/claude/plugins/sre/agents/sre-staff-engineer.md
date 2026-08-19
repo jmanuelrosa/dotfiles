@@ -12,6 +12,7 @@ description: >-
   (no IaC), and it NEVER mutates production or silences an alert without a written root cause.
 model: opus
 effort: xhigh
+thinking: xhigh
 memory: project
 ---
 

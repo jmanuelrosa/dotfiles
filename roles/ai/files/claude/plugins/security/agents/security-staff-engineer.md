@@ -13,6 +13,7 @@ description: >-
 tools: Read, Glob, Grep, Bash, WebFetch
 model: opus
 effort: high
+thinking: high
 memory: project
 ---
 

@@ -51,4 +51,4 @@ The thing that was worth doing, for scale: this repo's `CLAUDE.md` went from 24.
 `/usage` shows the allowance. For where it actually went, the per-request records are in `~/.claude/projects/*/*.jsonl`, one JSON object per line with `input_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens` and `output_tokens` alongside a model and a timestamp. Group by day, model and project and the answer falls out.
 
 The full reasoning and the numbers behind all of the above are in `docs/internals/context-hygiene.md` in this repo.
-The always-on version Claude itself follows is [rules/context-hygiene.md](rules/context-hygiene.md).
+The always-on version both harnesses follow is the **Context hygiene** section of [AGENTS.md](AGENTS.md), which Claude Code loads as `~/.claude/CLAUDE.md` and pi as `~/.pi/agent/AGENTS.md`.

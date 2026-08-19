@@ -13,7 +13,7 @@ failure would train the reader to ignore doctor.
 from dataclasses import dataclass
 
 from . import catalog as cat
-from . import frontmatter, scope, state, workspace
+from . import frontmatter, pi, scope, state, workspace
 
 PROBLEM = "problem"
 NOTE = "note"
@@ -293,6 +293,90 @@ def untrusted_workspace(config, project, claude):
             f"workspace {key}",
             "has plugins linked but is not trusted, so none of them load. "
             "Run: claude-kit trust --on",
+            cat.PLUGIN,
+        )
+    ]
+
+
+def pi_skills_unreachable(project):
+    """G19: this project's skills are linked, but pi cannot see them.
+
+    The same shape of failure as G18 and it earns its place for the same reason: nothing
+    reports it. Pi reads `.agents/skills/`, never `.claude/`, so without the link every
+    `/skill:` in the project is simply absent, with no warning at either end. `add`
+    converges the link itself, so this fires for a project set up before that existed,
+    one whose link was deleted by hand, or one where something else already occupies
+    the path.
+
+    A note rather than a problem: nothing about Claude Code is broken, and a machine
+    that does not use pi has nothing to act on.
+    """
+    if project is None or not pi.wanted(project):
+        return []
+    if pi.is_ours(project):
+        return []
+    link = pi.link_path(project)
+    detail = (
+        f"{link} exists but is not the link to {pi.source_path(project)}, so pi reads "
+        f"something else here"
+        if link.is_symlink() or link.exists()
+        else f"pi reads {link}, which is missing, so none of them load in pi. "
+        f"Run: claude-kit add or claude-kit restore"
+    )
+    return [Finding("pi-unreachable", NOTE, "this project's skills", detail, cat.SKILL)]
+
+
+def pi_agents_unreachable(project):
+    """G20: this project's plugin agents are installed, but pi cannot see them.
+
+    G19 one directory over, and it needs its own check because the two halves of pi's
+    view are converged separately and fail separately. Skills reach pi through a single
+    directory link, so one answer covers all of them; agents cannot, because a seat keeps
+    its agent inside its own plugin and no single directory holds them all. `add` and
+    `remove` therefore write per-file links, and report what they did at the moment they
+    do it and never again.
+
+    That is the gap. A link pruned by hand, a `.agents/agents` path occupied by something
+    else, or a project set up before those links existed all leave the pi-subagents
+    extension discovering nothing, while `claude-kit list` still shows every plugin
+    installed and Claude Code loads them normally.
+
+    A note rather than a problem, for G19's reason: nothing about Claude Code is broken,
+    and a machine that does not use pi has nothing to act on. Silent when the project has
+    no plugins, since there is then no agent for pi to be missing.
+    """
+    if project is None:
+        return []
+    wanted, _ = pi.desired_agents(project)
+    if not wanted:
+        return []
+    path = pi.agents_path(project)
+    # The same predicate converge_agents refuses on, rather than a second reading of it:
+    # falling through to the missing-links branch here names a command that then refuses,
+    # so the note survives the user doing exactly what it asked.
+    if pi.agents_dir_blocked(project):
+        return [
+            Finding(
+                "pi-agents-unreachable",
+                NOTE,
+                "this project's plugin agents",
+                f"{path} exists and is not a directory claude-kit will write into, so pi "
+                f"reads no agents here. Move it aside, then run: claude-kit add or "
+                "claude-kit restore",
+                cat.PLUGIN,
+            )
+        ]
+    missing = sorted(name for name in wanted if not scope.links_to(path / name, wanted[name]))
+    if not missing:
+        return []
+    return [
+        Finding(
+            "pi-agents-unreachable",
+            NOTE,
+            "this project's plugin agents",
+            f"pi reads {path}, where {len(missing)} of {len(wanted)} agent link(s) "
+            f"are missing ({', '.join(missing)}), so those never load in pi. "
+            f"Run: claude-kit add or claude-kit restore",
             cat.PLUGIN,
         )
     ]

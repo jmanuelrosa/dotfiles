@@ -185,7 +185,11 @@ def dotkit_links():
 
 
 def test_every_dotkit_link_resolves_to_the_one_real_copy():
-    """These are the first committed symlinks in this repo, so they get a check.
+    """The committed symlinks whose breakage is silent, so they get a check.
+
+    Not the only committed symlinks here (the root `AGENTS.md` points at `CLAUDE.md`,
+    and `.claude/skills/` holds a dozen), but the ones where a bad materialisation
+    surfaces nowhere near its cause.
 
     A clone with core.symlinks=false materialises a symlink as a regular file holding
     its target path, and the failure that follows is an ImportError deep in a tool with

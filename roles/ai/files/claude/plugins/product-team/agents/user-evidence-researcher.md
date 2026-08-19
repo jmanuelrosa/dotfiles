@@ -4,6 +4,7 @@ description: Product Team research seat - collects public user signals (forums, 
 model: sonnet
 tools: WebSearch, WebFetch, Read, Write, Glob
 effort: high
+thinking: high
 ---
 
 # User-evidence researcher

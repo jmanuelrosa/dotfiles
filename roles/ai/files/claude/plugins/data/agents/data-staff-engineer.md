@@ -12,6 +12,7 @@ description: >-
   schemas), and it never runs pipelines or backfills against production.
 model: opus
 effort: xhigh
+thinking: xhigh
 memory: project
 ---
 

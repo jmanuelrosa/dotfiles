@@ -11,6 +11,7 @@ description: >-
   not the SRE seat (no SLOs or alert rules), and never deploys.
 model: opus
 effort: xhigh
+thinking: xhigh
 memory: project
 ---
 

@@ -18,7 +18,7 @@ file is Claude Code's, and a machine that has none has no trust to change.
 from dataclasses import dataclass
 from pathlib import Path
 
-from .. import errors, paths, workspace as ws
+from .. import errors, paths, pi_trust, scope, workspace as ws
 from dotkit import ui
 from ..cli import fail
 
@@ -113,6 +113,48 @@ def verdict(state, emit):
         emit(ui.render("note", "claude-kit trust --on"))
 
 
+def pi_view(target, emit=print):
+    """What pi's own store says about this directory, reported and never written.
+
+    Two harnesses, two stores, two key derivations, and this tool creates the directory
+    that makes pi ask: `add` writes `<project>/.agents/skills`, which pi treats as a
+    reason to prompt. So the answer to "will pi ask me here" belongs beside Claude's.
+
+    Read-only on purpose. pi guards the file with a lock and owns it, and accepting pi's
+    own prompt once records the same decision without writing into someone else's file.
+    """
+    home = paths.home()
+    store_path = pi_trust.store_path(home)
+    store = pi_trust.read(store_path)
+    path, decision = pi_trust.decided_by(store, target)
+
+    emit(ui.render("title", "\n🤖 pi:"))
+    if not store_path.exists():
+        emit(ui.render("note", f"No {ui.path(store_path)} yet, so pi has decided nothing."))
+    elif path is None:
+        emit(ui.render("note", "pi has no entry for this directory or any above it."))
+    elif decision:
+        where = "here" if path == pi_trust.key_for(target) else f"via {ui.path(path)}"
+        emit(ui.render("ok", f"Trusted by pi {where}."))
+    else:
+        # The nearest entry wins in pi, so a false above shadows a true further up.
+        where = "here" if path == pi_trust.key_for(target) else f"at {ui.path(path)}"
+        emit(ui.render("warn", f"Refused by pi {where}, which shadows anything above it."))
+
+    project = scope.project_root(Path(target), home)
+    reason = pi_trust.prompt_reason(store, target, project)
+    if reason:
+        emit(
+            ui.render(
+                "note",
+                f"pi will ask about this project on its next session, because {reason}. "
+                "Accepting once records it.",
+            )
+        )
+    if pi_trust.locked(store_path):
+        emit(ui.render("note", "pi is holding its lock on that file, so this may be stale."))
+
+
 def show(state, missing, emit=print):
     """Read-only. Exits DRIFT when untrusted, as doctor does for a problem it found."""
     header(state, emit)
@@ -194,7 +236,11 @@ def run(args):
     state = resolve(config, target)
 
     if value is None:
-        return show(state, missing)
+        code = show(state, missing)
+        # After Claude's verdict, never instead of it: the exit code is Claude's answer,
+        # since that is what decides whether this project's plugins load at all.
+        pi_view(target)
+        return code
 
     # `--off` is already satisfied by a false flag *and* by no entry at all: both leave
     # the key granting nothing, and writing a default entry to say so would be a change

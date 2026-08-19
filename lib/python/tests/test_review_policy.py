@@ -1,6 +1,6 @@
 """The review policy reaches every session, and no REVIEW.md reaches anything.
 
-One artifact states the design, and it has three ways of silently ceasing to work.
+One artifact states the design, and it has four ways of silently ceasing to work.
 
 `files/claude/rules/code-review.md` is a user-scope rule: linked into ~/.claude/rules/ it
 loads at launch in every project, which is the whole reason it was written there instead
@@ -35,6 +35,12 @@ at `medium`, a recall-oriented net from `high` up. `disableModelInvocation: true
 agent can pass it, so every call site here is prose telling a human what to type, and one
 that names no level silently asks for the default however large the diff is. The policy's
 table is the authority; these tests are what keep the twenty call sites agreeing with it.
+
+The fourth belongs to the directory rather than to this policy, and it is why the pruning
+tasks are asserted here: the link task globs, so it links what the repo ships and removes
+nothing, and a rule folded into another file leaves its link behind on every machine
+already provisioned. The policy then sits in a directory holding a dangling neighbour,
+which is the same shape of nothing-reports-it as the three above.
 """
 
 import json
@@ -53,6 +59,9 @@ SKILL_REGISTRY = CLAUDE / "skill-registry.json"
 
 DIRS_TASK = "Ensure AI config directories exist"
 RULES_TASK = "Symlink claude rules"
+RULES_FIND_TASK = "Find the links in the claude rules directory"
+RULES_FIND_TASK_REGISTER = "claude_rules_links"
+RULES_PRUNE_TASK = "Remove claude rules links the repo no longer ships"
 CONFIG_TASK = "Symlink claude config files"
 
 # The policy exists partly to collapse the four vocabularies our own artifacts used
@@ -125,11 +134,90 @@ def test_the_rules_directory_is_created_before_anything_links_into_it():
     assert "{{ HOME }}/.claude/rules" in task["loop"]
 
 
+def test_a_rule_the_repo_stops_shipping_is_pruned_from_the_rules_directory():
+    """The glob links what exists and prunes nothing, so a deleted rule leaves a link.
+
+    Every already-provisioned machine keeps it, dangling, in the one directory Claude Code
+    reads at launch, and a dangling rule is indistinguishable from a rule that was never
+    written. The set has to come off disk rather than from a list of filenames, because
+    the rule that moves next will not be one of the ones that moved last.
+    """
+    task = ai_task(RULES_FIND_TASK)
+    assert task["register"] == RULES_FIND_TASK_REGISTER
+    found = task["ansible.builtin.find"]
+    assert found["paths"] == "{{ HOME }}/.claude/rules"
+    assert found["file_type"] == "link", (
+        "a rule someone wrote by hand in ~/.claude/rules/ is not ours to delete"
+    )
+
+    prune = ai_task(RULES_PRUNE_TASK)
+    assert prune["ansible.builtin.file"]["state"] == "absent"
+    loop = prune["loop"]
+    assert RULES_FIND_TASK_REGISTER in loop, "the candidates must be what find saw"
+    assert "reject('in', CLAUDE_RULES_SHIPPED)" in loop, (
+        "the survivors must be exactly what the link task's glob ships"
+    )
+    assert prune["vars"]["CLAUDE_RULES_SHIPPED"] == (
+        "{{ query('fileglob', role_path ~ '/files/claude/rules/*.md')"
+        " | map('basename') | list }}"
+    ), "one glob for both tasks, or a rule can be linked and pruned in the same run"
+
+
+def test_the_prune_runs_over_the_same_glob_the_link_task_uses():
+    """Two globs that drift would delete a link the run above it just made."""
+    linked = ai_task(RULES_TASK)["with_fileglob"][0]
+    shipped = ai_task(RULES_PRUNE_TASK)["vars"]["CLAUDE_RULES_SHIPPED"]
+    assert "files/claude/rules/*.md" in linked
+    assert "files/claude/rules/*.md" in shipped
+
+
 def test_the_policy_exists_and_is_the_only_kind_of_file_in_the_rules_tree():
     """Every .md here is linked, so anything that is not a rule becomes one."""
     assert POLICY.is_file()
     stray = [p.name for p in RULES.iterdir() if p.suffix != ".md"]
     assert stray == [], f"non-rule files in rules/ would confuse the tree: {stray}"
+
+
+def test_the_policy_reaches_pi_review_through_review_guidelines():
+    """The one consumer that turned out to be reachable, and it is not REVIEW.md.
+
+    The recorded decision above is about `REVIEW.md`, the filename hosted Code Review
+    reads, and it stands: that consumer is still out of reach. `pi-review` is a different
+    consumer reading a different filename, and it is installed, so the policy can reach a
+    pi session without a second copy of itself existing anywhere.
+
+    A symlink rather than a generated file, for the reason the rest of this repo links
+    its configs: one source cannot drift from itself.
+    """
+    link = REPO / "REVIEW_GUIDELINES.md"
+    assert link.is_symlink(), "a real file here would be a second copy of the policy"
+    target = link.readlink()
+    assert not target.is_absolute(), f"{target} bakes this checkout's path into every clone"
+    assert link.resolve() == POLICY.resolve()
+
+
+def test_the_pi_directory_exists_for_pi_review_to_find_the_guidelines():
+    """pi-review reads the guidelines only from a directory that also holds a `.pi`
+    directory, and stops walking there. Without `.pi/` the file is never opened, which
+    is indistinguishable from a policy pi ignores."""
+    pi_dir = REPO / ".pi"
+    assert pi_dir.is_dir(), "pi-review will never open REVIEW_GUIDELINES.md without this"
+
+
+def test_the_pi_directory_holds_nothing_pi_treats_as_project_config():
+    """`.pi/` exists to be found, not to configure anything.
+
+    pi asks to trust a project whose `.pi/` holds any of these, so a file dropped here
+    would turn every session in this checkout into a trust prompt.
+    """
+    trust_requiring = {
+        "settings.json", "extensions", "skills", "prompts", "themes",
+        "SYSTEM.md", "APPEND_SYSTEM.md",
+    }
+    present = {entry.name for entry in (REPO / ".pi").iterdir()}
+    assert not (present & trust_requiring), (
+        f"{sorted(present & trust_requiring)} in .pi/ makes pi prompt for trust every session"
+    )
 
 
 def test_no_review_md_reaches_the_home_directory():

@@ -51,6 +51,8 @@ def collect(catalog, effective, claude, home, project, provenance, config, kind=
         *checks.wrong_scope(catalog, effective, home, project, claude),
         *checks.provenance_drift(catalog, provenance, project, claude),
         *checks.untrusted_workspace(config, project, claude),
+        *checks.pi_skills_unreachable(project),
+        *checks.pi_agents_unreachable(project),
     ]
     if kind is None:
         return findings

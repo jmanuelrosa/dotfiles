@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .. import catalog as cat
-from .. import errors, paths, scope, state
+from .. import errors, paths, pi, scope, state
 from .. import workspace as ws
 from dotkit import ui
 from ..cli import fail
@@ -225,6 +225,12 @@ def install_one(catalog, effective, kind, name, want_global, home, project):
     if entries:
         state.record(project, entries)
     _report(plan_, linked, home, project)
+    # Here rather than in run(), so the callers that reach a name by another route
+    # (scout --add, restore) inherit pi's view of the project the same way they
+    # inherit dependency resolution and the provenance record. Both halves of that
+    # view: the skills link, and the per-agent links a plugin install brings.
+    pi.report(pi.converge(project), project)
+    pi.report_agents(pi.converge_agents(project), project)
     return plan_
 
 

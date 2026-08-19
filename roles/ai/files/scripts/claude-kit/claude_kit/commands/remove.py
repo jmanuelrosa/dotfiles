@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .. import catalog as cat
-from .. import errors, paths, scope, state
+from .. import errors, paths, pi, scope, state
 from dotkit import ui
 from ..cli import fail
 
@@ -289,6 +289,13 @@ def run(args):
         apply(removal, None if args.want_global else project)
         _report(removal, args.want_global)
         tally["removed"] += 1
+
+    # Once for the batch rather than per name: the link answers a question about the
+    # whole directory, and emptying it is the last removal's doing rather than any
+    # one artifact's. Before the group summary, which closes the run. The agent view
+    # converges second, so a removed plugin's agent links go in the same breath.
+    pi.report(pi.converge(project), project)
+    pi.report_agents(pi.converge_agents(project), project)
 
     if grouped:
         _report_group(args.type, args.group, args.want_global, absent, tally)

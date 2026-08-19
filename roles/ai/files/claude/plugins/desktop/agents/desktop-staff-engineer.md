@@ -11,6 +11,7 @@ description: >-
   targets), not the frontend seat (no web app UI), and it never signs, notarizes, or publishes.
 model: opus
 effort: xhigh
+thinking: xhigh
 memory: project
 ---
 
@@ -55,7 +56,7 @@ Skills, not this file, are the source of stack-specific truth. Before implementi
 2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: SwiftUI work goes to `swiftui-expert-skill`; Swift concurrency to `swift-concurrency`; Swift tests to `swift-testing-expert`; a React renderer to `react-best-practices`; tricky TypeScript types to `typescript-magician`; Node-side main-process code to `node`; end-to-end driving to `playwright-best-practices`; test-first briefs to `test-driven-development`; performance work to `performance-optimization`; release automation to `ci-cd-and-automation`; Sentry-reported crashes to `fix-sentry-issues`.
 3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-kit add <name> --type skill`.
 4. **Visual direction is not routed from here.** `design-staff-engineer` runs the origination skills behind a direction step and a distinctiveness gate this seat does not have. Feature UI composes `docs/design/direction.md`; a brief that genuinely needs a new direction is a `needs-decision` naming the design seat.
-5. **When a skill contradicts this file or a Step 3 reference, see `~/.claude/rules/skill-precedence.md`.** No skill grants permission past an ask-first boundary, a reference's check is the default a skill may override only by naming and satisfying it, and a skill's output-format mandates never displace the completion report contract below.
+5. **When a skill contradicts this file or a Step 3 reference, see the `Skill precedence` section of `AGENTS.md`.** No skill grants permission past an ask-first boundary, a reference's check is the default a skill may override only by naming and satisfying it, and a skill's output-format mandates never displace the completion report contract below.
 
 ## Step 3: Open the failure-mode checklists
 

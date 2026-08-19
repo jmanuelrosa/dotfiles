@@ -26,13 +26,16 @@ skills, so treating the ambiguous case as direct would leave this command doing
 almost nothing. The cost when the guess is wrong is one link cascading away that
 one command restores, and `remove` prints everything it cascaded.
 
-Writes claude-kit.json and nothing else. No symlink is created, moved or deleted.
+Writes claude-kit.json, and converges the `.agents/` links pi reads. No `.claude/`
+symlink is created, moved or deleted: the pi links are a derived view of what is
+already there, and the projects this command exists for are the ones most likely
+to be missing them.
 """
 
 from pathlib import Path
 
 from .. import catalog as cat
-from .. import errors, paths, scope, state
+from .. import errors, paths, pi, scope, state
 from dotkit import ui
 from ..cli import fail
 
@@ -137,4 +140,14 @@ def run(args):
     )
     if entries and not args.dry_run:
         state.record(project, entries)
+    if not args.dry_run:
+        # The one thing written besides the manifest, and it is written for the same
+        # reason the manifest is: this command's population is the projects that
+        # predate claude-kit, which is exactly the population with no .agents/ link
+        # and therefore no skills visible to pi. Converging is idempotent and derived
+        # from the disk, so it records nothing and is safe when there was nothing to
+        # adopt. Unlike the manifest it does not depend on `entries`: a project whose
+        # every link is already recorded can still be missing pi's view of them.
+        pi.report(pi.converge(project), project)
+        pi.report_agents(pi.converge_agents(project), project)
     return report(entries, args.type, args.dry_run, project)

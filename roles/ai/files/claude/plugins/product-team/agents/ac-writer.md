@@ -4,6 +4,7 @@ description: Product Team acceptance-criteria seat - fills each story's Scenario
 model: sonnet
 tools: Read, Edit, Glob, Grep
 effort: high
+thinking: high
 ---
 
 # AC writer
