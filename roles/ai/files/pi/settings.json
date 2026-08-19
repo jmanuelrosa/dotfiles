@@ -21,9 +21,9 @@
     "cursor/auto",
     "cursor/grok-4.6",
     "cursor/composer-2-5",
-    "cursor/claude-opus-5",
-    "cursor/gpt-5.6-sol",
-    "cursor/claude-fable-5",
+    "cursor/claude-opus-5@1m",
+    "cursor/gpt-5.6-sol@1m",
+    "cursor/claude-fable-5@1m",
     "cursor/grok-4.5"
   ],
   "extensions": [],
@@ -44,5 +44,6 @@
   },
   "theme": "solarized-dark",
   "transport": "auto",
-  "treeFilterMode": "default"
+  "treeFilterMode": "default",
+  "lastChangelogVersion": "0.84.2"
 }
