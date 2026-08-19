@@ -5,7 +5,7 @@ Cookies isolate by hostname and ignore the port entirely, so a distinct hostname
 
 ```fish
 lokl add my-custom-project
-astro dev --host my-custom-project.localhost --port (lokl port my-custom-project)
+astro dev --port (lokl port my-custom-project)
 ```
 
 ```
@@ -15,14 +15,32 @@ http://my-custom-project.localhost:3001   # straight at the dev server
 
 Both spellings work, both live at once beside every other project, separate sessions, and no repo change in any worktree.
 
+**Use the portless one.**
+A port reaches the dev server whatever hostname is in front of it, so `http://anything.localhost:3001` serves whichever project holds 3001, and `localhost:3001` and `127.0.0.1:3001` do too.
+Cookies key on hostname and ignore the port, so signing in through the wrong name stores a session under a domain whose real server is later handed it, which is the problem this exists to solve wearing a different hat.
+On `:80` every domain shares one port, so the `Host` header is the only thing that can tell them apart and the hostname is finally authoritative.
+
+Keep the ported URL for a healthcheck, a script, or telling a broken site file apart from a dev server that never started.
+
+**No `--host` needed.**
+Caddy dials `127.0.0.1` with an `[::1]` fallback, so a dev server on its default loopback bind is already reachable.
+`--host` binds every interface, which puts the dev server on the LAN and is the reason a stopped proxy can look like a running one.
+
 ## The two halves
 
 A dev domain is two things that have to agree, and [`lokl`](../scripts/lokl/lokl) exists because keeping them in agreement by hand is what went wrong before.
 
-**A `/etc/hosts` entry**, so the name resolves.
-macOS does not resolve `*.localhost` at all.
-Browsers implement RFC 6761 and resolve it internally, which is why these domains always worked in Chrome while `getaddrinfo`, `curl` and every dev server's `--host` flag did not.
-That is the whole reason `--host my-custom-project.localhost` used to fail: the server never got as far as binding.
+**A `/etc/hosts` entry**, so the name resolves even where the system declines to.
+This half is belt and braces rather than the load-bearing thing it was written as.
+macOS 26 resolves every `*.localhost` name to loopback on its own, per RFC 6761, so `getaddrinfo` and `curl` answer for a name in no file at all:
+
+```
+zzz-random-9k3.localhost  ->  127.0.0.1, ::1     # never added anywhere
+foo.test                  ->  does not resolve
+```
+
+The block stays because it costs one idempotent line and it survives a DNS profile, an MDM payload or a VPN's split-DNS shadowing that handling, and because a fresh machine on an older macOS has nothing else.
+Do not read it as the reason the domains work here.
 
 **A site file in [sites/](sites/)**, so the portless URL answers.
 One file per domain, imported by the [Caddyfile](Caddyfile), reverse-proxying `:80` to the port the dev server binds.
@@ -91,8 +109,9 @@ astro dev --host my-custom-project.localhost --port (lokl port my-custom-project
 ```
 
 `lokl port <name>` reads the site file, which is the number the proxy is actually pointing at and is the same on every clone.
-`lokl port` with no name answers for the working directory instead, which is what `add` would assign there.
-Prefer the named form in anything committed: run bare from a subdirectory and you get that subdirectory's number, not the project's.
+`lokl port` with no name answers for the working directory instead, and agrees with the recorded port when run from the directory `add` was run in.
+It did not always: the bare form counted a domain's own recorded port among the ports to step over, so it printed one past the number the proxy was pointing at.
+Prefer the named form in anything committed anyway, because the seed is the working directory: run bare from a subdirectory and you get that subdirectory's number, not the project's.
 
 Its output is a bare number with no glyph and no colour, which is the one place here that steps outside the shared line vocabulary, for the same reason `claude-kit list --json` does: the whole content is a fact rather than an account of what a command did.
 
@@ -128,8 +147,15 @@ Caddy's default selection policy is random, so two upstreams with no policy woul
 It is a bind address meaning every interface, and dialling it does not fail fast, it times out, so each request stalls for the full dial timeout instead of erroring.
 A server bound to `0.0.0.0` is already reachable through the `127.0.0.1` entry.
 
-The hosts entry is deliberately the opposite: one address, `127.0.0.1`, where the file would happily carry `::1` as well.
-Listing both would let the dev server's own resolver pick a family, and "which family did it bind" is exactly the question the upstream pair exists to stop anyone having to ask.
+The hosts entry lists one address, `127.0.0.1`, where the file would happily carry `::1` as well, but that no longer decides anything.
+macOS answers every `*.localhost` name with both families whatever the entry says, which `lokl add` will show you:
+
+```
+✓ my-custom-project.localhost resolves to 127.0.0.1, ::1
+```
+
+So the upstream pair is what settles "which family did it bind", on its own.
+The single line stays because a second one would add nothing the resolver is not already doing.
 
 ## Two symlinks, not one
 
