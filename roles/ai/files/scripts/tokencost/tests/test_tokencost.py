@@ -414,8 +414,8 @@ def test_json_carries_context_without_being_asked_for_it(home):
 
 
 def test_a_substring_resolves_to_the_one_project_it_names(home):
-    write_transcript(home, "-Users-someone-dev-outdoor-maps", "s1", [record(ROUND_USAGE, skill="pr")])
-    result = run(home, "outdoor-maps")
+    write_transcript(home, "-Users-someone-dev-my-custom-project", "s1", [record(ROUND_USAGE, skill="pr")])
+    result = run(home, "my-custom-project")
     assert result.returncode == EXIT_OK
     assert f"{ROUND_COST:.2f}" in result.stdout
 

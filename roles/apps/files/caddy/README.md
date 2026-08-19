@@ -4,13 +4,13 @@ Every project on `localhost` shares one cookie jar and one `localStorage`, so si
 Cookies isolate by hostname and ignore the port entirely, so a distinct hostname is the whole fix.
 
 ```fish
-lokl add outdoor-maps
-astro dev --host outdoor-maps.localhost --port (lokl port outdoor-maps)
+lokl add my-custom-project
+astro dev --host my-custom-project.localhost --port (lokl port my-custom-project)
 ```
 
 ```
-http://outdoor-maps.localhost        # through the proxy on :80
-http://outdoor-maps.localhost:3001   # straight at the dev server
+http://my-custom-project.localhost        # through the proxy on :80
+http://my-custom-project.localhost:3001   # straight at the dev server
 ```
 
 Both spellings work, both live at once beside every other project, separate sessions, and no repo change in any worktree.
@@ -22,7 +22,7 @@ A dev domain is two things that have to agree, and [`lokl`](../scripts/lokl/lokl
 **A `/etc/hosts` entry**, so the name resolves.
 macOS does not resolve `*.localhost` at all.
 Browsers implement RFC 6761 and resolve it internally, which is why these domains always worked in Chrome while `getaddrinfo`, `curl` and every dev server's `--host` flag did not.
-That is the whole reason `--host outdoor-maps.localhost` used to fail: the server never got as far as binding.
+That is the whole reason `--host my-custom-project.localhost` used to fail: the server never got as far as binding.
 
 **A site file in [sites/](sites/)**, so the portless URL answers.
 One file per domain, imported by the [Caddyfile](Caddyfile), reverse-proxying `:80` to the port the dev server binds.
@@ -43,10 +43,10 @@ Vite's `allowedHosts` permits `localhost` and `*.localhost` and rejects everythi
 ## Commands
 
 ```fish
-lokl add outdoor-maps        # site file, hosts entry, reload, and a resolution check
-lokl add outdoor-maps 3001   # the same, on a port you name rather than one derived
-lokl remove outdoor-maps     # both halves
-lokl port outdoor-maps       # the bare number, for a dev script to read
+lokl add my-custom-project        # site file, hosts entry, reload, and a resolution check
+lokl add my-custom-project 3001   # the same, on a port you name rather than one derived
+lokl remove my-custom-project     # both halves
+lokl port my-custom-project       # the bare number, for a dev script to read
 lokl list                    # every domain, its port, and whether anything answers
 lokl sync                    # rebuild the hosts block from the site files
 lokl start                   # bind :80 (sudo), without registering anything at boot
@@ -68,8 +68,8 @@ Writing the file proves nothing on its own, and this is the one assumption the w
 Leave the port off and it is derived from the working directory:
 
 ```fish
-cd ~/Developer/outdoor-maps
-lokl add outdoor-maps          # :26445, and the same number every time
+cd ~/Developer/my-custom-project
+lokl add my-custom-project          # :26445, and the same number every time
 ```
 
 The seed is the directory, so two worktrees of one repo sitting side by side get different ports without anybody keeping a list.
@@ -87,7 +87,7 @@ A domain that already has a port keeps it, because re-deriving would let an unre
 To use it in a dev script, ask for the recorded port by name:
 
 ```fish
-astro dev --host outdoor-maps.localhost --port (lokl port outdoor-maps)
+astro dev --host my-custom-project.localhost --port (lokl port my-custom-project)
 ```
 
 `lokl port <name>` reads the site file, which is the number the proxy is actually pointing at and is the same on every clone.

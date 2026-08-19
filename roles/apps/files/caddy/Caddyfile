@@ -3,10 +3,10 @@
 # Nothing is edited here by hand. One file per domain lives in sites/, and `lokl` writes
 # them alongside the /etc/hosts entry each domain needs in order to resolve at all:
 #
-#   lokl add outdoor-maps
-#   lokl port outdoor-maps
+#   lokl add my-custom-project
+#   lokl port my-custom-project
 #   lokl list
-#   lokl remove outdoor-maps
+#   lokl remove my-custom-project
 #
 # Two things about this file are load-bearing:
 #
