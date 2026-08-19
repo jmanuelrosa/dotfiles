@@ -82,7 +82,7 @@ touch no install, so neither scope applies and neither accepts `--global`.
 
 ## Commands
 
-The scopes above are what `claude-kit -h` groups its listing by, five families of them:
+The scopes above are what `claude-kit -h` groups its listing by, six families of them:
 
 | Family | Commands | Acts on | `--global` |
 |---|---|---|---|
@@ -91,6 +91,7 @@ The scopes above are what `claude-kit -h` groups its listing by, five families o
 | Global | `sync` | `~/.claude` alone, whatever the cwd | not accepted |
 | Registry-wide | `update`, `outdated` | this repo's skill sources against upstream | not accepted |
 | Workspace trust | `trust` | `~/.claude.json`, keyed on the cwd's repo root | not accepted |
+| Pi's view | `converge` | a project's `.agents/`, or every project with `--all` | not accepted |
 
 **`--global` exists on `add` and `remove`, and on nothing else.** Those two write, so one of the
 two scopes has to be chosen and the flag is how you choose it. Everything else has exactly one
@@ -110,6 +111,12 @@ command that does not exist. The split says it where the commands are, so no foo
 `sync` stays out of both for a different reason: `~/.claude` is not one of two places it might act
 but the only one. `--global` is therefore not an option there, and listing it alongside `add` would
 imply a project-scoped run that does not exist.
+
+`converge` gets one for two reasons at once. It writes into a project's `.agents/` and never its
+`.claude/`, so filing it under scope-fixed would put it beside the commands that install artifacts,
+where a reader wondering why pi loads none of their skills has no reason to look. And with `--all`
+it is the only project command that acts on every project at once, which no title claiming "the cwd
+decides" can be true about.
 
 `trust` gets a family of its own on the same principle. The other four titles all describe which
 `.claude/` a command touches, and it touches none of them: it reads and writes Claude Code's own
@@ -676,6 +683,67 @@ trust is Claude Code's business until something claude-kit put there depends on 
 
 ---
 
+### `converge`
+
+```
+claude-kit converge [--all] [--root PATH] [--dry-run] [--quiet]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--all` | Sweep every discovered project instead of only the cwd |
+| `--root PATH` | With `--all`, a tree to search for projects. Repeatable; defaults to `~/Developer` |
+| `--dry-run` | Show what would be linked without touching anything |
+| `--quiet` | Print nothing on stdout, for running from a hook. Warnings go to stderr |
+
+Pi reads a project's skills from `.agents/skills` and its plugin agents from `.agents/agents/`,
+never from `.claude/`, so `add` maintains a view for it: one relative directory link, and one file
+link per agent the installed plugins ship. This command is that convergence on its own, with
+nothing else attached. It resolves no dependencies, fetches nothing, records nothing in
+`claude-kit.json`, and installs nothing, which is what makes it safe to run from a hook and on
+every `make run-role ROLE=ai`.
+
+**It exists because convergence used to happen only as a side effect.** `add`, `remove`, `adopt`,
+`restore` and `scout --add` each call it for the project they were run in, so a project set up
+before that code existed, or one whose link was deleted by hand, stayed invisible to pi until
+somebody happened to install something there. `doctor` reported exactly that (`pi-unreachable` and
+`pi-agents-unreachable`) and could only point at commands that install.
+
+`--all` is the reason the command is worth having. It sweeps the union of two sources, because
+each covers the other's blind spot: the `projects` keys of Claude Code's own `~/.claude.json`,
+which reach a checkout living nowhere near `~/Developer`, and a walk of the `--root` trees, which
+finds a project the registry never recorded. Vendor trees and dot directories are pruned rather
+than filtered, and a directory is dropped unless pi actually has something to miss there, so a
+project holding nothing but `.claude/commands/` is never reported: commands are Claude-only by
+construction and no amount of converging changes that.
+
+Every leaf it creates gets a `.gitignore` **inside** `.agents/`, listing `skills`, `agents` and itself.
+The skills link is relative and would survive a commit, but the agent links are absolute paths
+into this dotfiles checkout, so committing one hands a teammate a dangling link. The file goes
+inside the directory this tool owns rather than into the project's root `.gitignore`, because a
+repo shared with other people gets no diff it did not ask for, and one keeping its own `.agents/`
+content keeps that content tracked. An ignore file already there is never overwritten, and ours is
+removed again when a run empties the directory.
+
+In `$HOME` it reports that there is no project view to converge and exits `0`, following `doctor`
+rather than `add`: the hook fires wherever a session starts, and a refusal painted at every session
+start is noise about nothing.
+
+```
+$ claude-kit converge --all --dry-run
+🔗 Checking pi's view of every project
+  Would link ~/work/api/.agents/skills so pi loads this project's skills too.
+  Would link 9 agents into ~/work/api/.agents/agents for pi's subagents.
+✨ 28 projects, 273 changes, dry run
+```
+
+Exits `9` when a path it needs is occupied by something it did not make, since reporting a conflict
+and exiting `0` is how it goes unnoticed. A name two installed plugins both claim is warned about
+and does not fail the sweep: that is a fact about this repo's registries rather than about the
+project being swept.
+
+---
+
 ## Exit codes
 
 Distinct so scripts can branch without matching message text.
@@ -691,7 +759,7 @@ Distinct so scripts can branch without matching message text.
 | 6 | `NO_PROJECT` | project-scoped, but cwd is `$HOME`, the one directory that is not a project |
 | 7 | `NOT_INSTALLED` | `remove` target absent |
 | 8 | `FETCH_FAILED` | `update` / `outdated` could not reach or read an upstream |
-| 9 | `DRIFT` | `doctor` found at least one problem, `sync` refused to prune every link in `~/.claude`, `restore` could not parse the manifest or left a recorded entry unlinked, or `trust` found the workspace untrusted |
+| 9 | `DRIFT` | `doctor` found at least one problem, `sync` refused to prune every link in `~/.claude`, `restore` could not parse the manifest or left a recorded entry unlinked, `converge` found a path it did not make, or `trust` found the workspace untrusted |
 
 ## Environment
 

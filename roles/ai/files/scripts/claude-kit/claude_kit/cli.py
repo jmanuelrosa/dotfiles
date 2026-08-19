@@ -44,6 +44,7 @@ COMMANDS = {
     "adopt": "Rebuild claude-kit.json from what is installed",
     "restore": "Install what claude-kit.json records",
     "trust": "Show or change whether this workspace is trusted",
+    "converge": "Relink pi's view of a project's skills and plugin agents",
 }
 
 # Which module runs each command. `update` and `outdated` share one: they are the same
@@ -65,6 +66,7 @@ MODULE = {
     "adopt": "adopt",
     "restore": "restore",
     "trust": "trust",
+    "converge": "converge",
 }
 
 # The families differ in what they touch, which is what decides whether --global is
@@ -107,6 +109,15 @@ FAMILIES = (
     (
         "Workspace trust (~/.claude.json, keyed on the repo root; --global does not apply)",
         ("trust",),
+    ),
+    # A sixth family for one command, because none of the five titles is true about it.
+    # It writes into a project's `.agents/`, never its `.claude/`, so "the cwd decides"
+    # would file it beside commands that install artifacts, where a reader wondering why
+    # pi loads none of their skills has no reason to look. It is also the one project
+    # command that can act on every project at once, which no scope-fixed title can claim.
+    (
+        "Pi's view (a project's .agents/, or every project with --all; --global does not apply)",
+        ("converge",),
     ),
 )
 
@@ -154,6 +165,11 @@ SCOPE = {
         "Project scope only, and the mirror of adopt: it reads "
         "<cwd>/.claude/claude-kit.json and links what that file records, so nothing "
         "reaches ~/.claude and --global has nothing to say here."
+    ),
+    "converge": (
+        "Acts on <cwd>/.agents, the two links pi reads a project's skills and plugin "
+        "agents from, or on every discovered project with --all. It installs nothing "
+        "and records nothing, so there is no scope to pick and no --global here."
     ),
     "trust": (
         "Acts on ~/.claude.json, under the key Claude Code derives from <cwd>: the git "
@@ -491,6 +507,38 @@ def build_parser():
         dest="dry_run",
         action="store_true",
         help="Show what would be linked without touching anything",
+    )
+
+    # No _add_type, for trust's reason from the other side: what reaches pi is decided
+    # by what is on disk, and a --type could only ever converge half of a view whose
+    # whole purpose is to mirror the other directory exactly.
+    converge = _command(sub, "converge")
+    converge.add_argument(
+        "--all",
+        dest="all",
+        action="store_true",
+        help="Sweep every discovered project instead of only the cwd",
+    )
+    converge.add_argument(
+        "--root",
+        dest="roots",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help="With --all, a tree to search for projects (repeatable; default: ~/Developer). "
+        "Claude Code's own project registry is swept either way.",
+    )
+    converge.add_argument(
+        "--dry-run",
+        dest="dry_run",
+        action="store_true",
+        help="Show what would be linked without touching anything",
+    )
+    converge.add_argument(
+        "--quiet",
+        dest="quiet",
+        action="store_true",
+        help="Print nothing on stdout, for running from a hook. Warnings go to stderr.",
     )
 
     # No _add_type: this is the one command that acts on a directory rather than on an

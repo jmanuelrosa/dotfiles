@@ -208,6 +208,37 @@
     var: claude_kit_sync.stdout_lines
   when: claude_kit_sync is changed or claude_kit_sync.stderr | length > 0
 
+# The project half of the same idea, and the reason it is a task rather than a chore:
+# pi reads a project's skills from `.agents/skills` and its plugin agents from
+# `.agents/agents/`, never from `.claude/`, and claude-kit maintained those links only as
+# a side effect of `add` and `remove`. So every project provisioned before that code
+# existed was invisible to pi until somebody happened to install a skill there, which on
+# this machine was 28 of them. `--all` sweeps Claude Code's own project registry together
+# with a walk of ~/Developer.
+#
+# Safe to run on every apply: it installs nothing, records nothing, fetches nothing, and
+# the only paths it can write are the two `.agents` leaves. A project holding something
+# else at either path is reported and left alone.
+- name: Converge pi's view of every project's skills and plugin agents
+  ansible.builtin.command:
+    cmd: "{{ role_path }}/files/scripts/claude-kit/claude-kit converge --all{{ ' --dry-run' if ansible_check_mode else '' }}"
+  environment:
+    # Pinned for the sync task's reasons, and one more: discovery reads $HOME/.claude.json
+    # and walks $HOME/Developer, so an inherited HOME would sweep the wrong machine's
+    # projects.
+    HOME: "{{ HOME }}"
+    DOTFILES_DIR: "{{ role_path | dirname | dirname }}"
+    NO_COLOR: "1"
+  register: claude_kit_converge
+  # A dry run is the whole task under --check, so it must not be skipped there.
+  check_mode: false
+  changed_when: claude_kit_converge.stdout is not search(', 0 changes')
+
+- name: Show what the pi convergence did
+  ansible.builtin.debug:
+    var: claude_kit_converge.stdout_lines
+  when: claude_kit_converge is changed or claude_kit_converge.stderr | length > 0
+
 - name: Symlink pi agent config
   ansible.builtin.file:
     src: "{{ role_path }}/files/{{ item }}"
