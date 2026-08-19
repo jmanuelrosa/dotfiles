@@ -8,12 +8,12 @@ which skill or agent spent it, which is the only way to compare two workflows wi
 guessing.
 
     tokencost                                    the projects available
-    tokencost outdoor-maps --sessions            one row per session, oldest first
-    tokencost outdoor-maps                       cost per attribution bucket
-    tokencost outdoor-maps --session <id>        one session only
-    tokencost outdoor-maps --match product-team  a subtotal over the buckets that match
-    tokencost outdoor-maps --context             peak and final context, by session and bucket
-    tokencost outdoor-maps --pi                  the same, over pi's transcripts
+    tokencost my-custom-project --sessions            one row per session, oldest first
+    tokencost my-custom-project                       cost per attribution bucket
+    tokencost my-custom-project --session <id>        one session only
+    tokencost my-custom-project --match product-team  a subtotal over the buckets that match
+    tokencost my-custom-project --context             peak and final context, by session and bucket
+    tokencost my-custom-project --pi                  the same, over pi's transcripts
 
 The project is named by any substring that identifies one directory under
 ~/.claude/projects. That is not sugar: a slug is the project's absolute path with the

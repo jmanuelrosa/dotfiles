@@ -1,6 +1,0 @@
-http://outdoor-maps.localhost {
-	reverse_proxy 127.0.0.1:24022 [::1]:24022 {
-		lb_policy first
-		fail_duration 5s
-	}
-}

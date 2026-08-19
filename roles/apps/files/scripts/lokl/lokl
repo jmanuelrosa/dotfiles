@@ -5,7 +5,7 @@ Every project on `localhost` shares one cookie jar, because cookies isolate by h
 and ignore the port entirely, so signing into one admin panel clobbers another's session
 even when the two run on different ports. A distinct hostname per project is the whole fix.
 
-Two separate things have to be true for `astro dev --host outdoor-maps.localhost` to work,
+Two separate things have to be true for `astro dev --host my-custom-project.localhost` to work,
 and this tool owns both:
 
   /etc/hosts  macOS does not resolve *.localhost at all. Browsers implement RFC 6761 and
@@ -17,7 +17,7 @@ and this tool owns both:
               so `dig @127.0.0.1` succeeds while the system resolver still returns nothing.
               A hosts entry is what is left.
   sites/      One Caddy site file per domain, imported by the Caddyfile, so the portless
-              http://outdoor-maps.localhost keeps answering next to the port the dev server
+              http://my-custom-project.localhost keeps answering next to the port the dev server
               actually binds.
 
 The two are kept consistent by deriving one from the other. The site files are the record,
@@ -124,7 +124,7 @@ def normalise(raw):
     if name.endswith(f".{SUFFIX}"):
         name = name[: -len(SUFFIX) - 1]
     if not name:
-        return None, "Give a project name, as in `lokl add outdoor-maps 4321`."
+        return None, "Give a project name, as in `lokl add my-custom-project 4321`."
     if not LABEL.match(name):
         return None, (
             f"{raw!r} is not a usable name. Use lowercase letters, digits and hyphens, "
@@ -540,7 +540,7 @@ def cmd_port(args, paths):
     """Print one port and nothing else, so a shell can read it.
 
     The only command here whose stdout is a value rather than a report, which is why it
-    carries no glyph and no colour: `astro dev --port (lokl port outdoor-maps)` cannot be
+    carries no glyph and no colour: `astro dev --port (lokl port my-custom-project)` cannot be
     handed a decorated line. `claude-kit list --json` holds the same exemption for the same
     reason, that its whole content is a fact rather than an account of what a command did.
 
@@ -573,7 +573,7 @@ def cmd_list(args, paths):
     configured = sites(paths.sites)
     if not configured:
         ui.title("🔌 Development domains")
-        ui.note("none configured yet. `lokl add outdoor-maps 4321` is the first one.")
+        ui.note("none configured yet. `lokl add my-custom-project 4321` is the first one.")
         ui.done("0 domains")
         return EXIT_OK
 

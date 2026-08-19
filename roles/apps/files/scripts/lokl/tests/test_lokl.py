@@ -78,11 +78,11 @@ def run(machine, *args, cwd=None):
 @pytest.mark.parametrize(
     "raw,expected",
     [
-        ("outdoor-maps", "outdoor-maps.localhost"),
-        ("outdoor-maps.localhost", "outdoor-maps.localhost"),
+        ("my-custom-project", "my-custom-project.localhost"),
+        ("my-custom-project.localhost", "my-custom-project.localhost"),
         ("Pickleball", "pickleball.localhost"),
         ("PICKLEBALL.LOCALHOST", "pickleball.localhost"),
-        ("outdoor-maps.localhost.", "outdoor-maps.localhost"),
+        ("my-custom-project.localhost.", "my-custom-project.localhost"),
         ("  drivein  ", "drivein.localhost"),
         ("a", "a.localhost"),
         ("app2", "app2.localhost"),
@@ -109,14 +109,14 @@ def test_normalise_refuses_anything_that_is_not_a_dns_label(tool, raw):
 def test_derive_port_is_stable_for_one_seed(tool):
     """The whole point. `hash()` would satisfy every other test here and fail this one,
     because str hashing is salted per process unless PYTHONHASHSEED is pinned."""
-    assert tool.derive_port("/Users/me/projects/outdoor-maps") == tool.derive_port(
-        "/Users/me/projects/outdoor-maps"
+    assert tool.derive_port("/Users/me/projects/my-custom-project") == tool.derive_port(
+        "/Users/me/projects/my-custom-project"
     )
 
 
 @pytest.mark.parametrize(
     "seed,expected",
-    [("/Users/me/projects/outdoor-maps", 34562), ("/tmp/a", 30694), ("x", 39876)],
+    [("/Users/me/projects/my-custom-project", 33350), ("/tmp/a", 30694), ("x", 39876)],
 )
 def test_derive_port_pins_the_algorithm(tool, seed, expected):
     """Golden values, so changing the digest or the window is a deliberate act. Every
@@ -188,8 +188,8 @@ def test_assigned_ports_ignores_an_unparsed_site(tool):
 
 
 def test_render_site_round_trips_through_the_parser(tool):
-    text = tool.render_site("outdoor-maps.localhost", 4321)
-    assert tool.parse_site(text) == ("outdoor-maps.localhost", 4321)
+    text = tool.render_site("my-custom-project.localhost", 4321)
+    assert tool.parse_site(text) == ("my-custom-project.localhost", 4321)
 
 
 def test_render_site_lists_both_loopback_families_behind_a_failover(tool):
@@ -307,20 +307,20 @@ def test_foreign_entries_ignores_the_managed_block_and_comments(tool):
 
 
 def test_add_writes_the_site_file_and_the_hosts_entry(machine):
-    assert run(machine, "add", "outdoor-maps", "4321").returncode == EXIT_OK
-    site = machine["sites"] / "outdoor-maps.caddyfile"
+    assert run(machine, "add", "my-custom-project", "4321").returncode == EXIT_OK
+    site = machine["sites"] / "my-custom-project.caddyfile"
     assert site.exists()
     assert "127.0.0.1:4321" in site.read_text()
-    assert "127.0.0.1\toutdoor-maps.localhost" in machine["hosts"].read_text()
+    assert "127.0.0.1\tmy-custom-project.localhost" in machine["hosts"].read_text()
 
 
 def test_add_without_a_port_derives_one_from_the_directory(tool, tmp_path, machine):
     project = tmp_path / "projA"
     project.mkdir()
-    result = run(machine, "add", "outdoor-maps", cwd=project)
+    result = run(machine, "add", "my-custom-project", cwd=project)
     assert result.returncode == EXIT_OK
     expected = tool.derive_port(project)
-    assert f":{expected}" in (machine["sites"] / "outdoor-maps.caddyfile").read_text()
+    assert f":{expected}" in (machine["sites"] / "my-custom-project.caddyfile").read_text()
     assert "port derived from" in result.stdout
 
 
@@ -343,11 +343,11 @@ def test_add_without_a_port_keeps_the_port_a_domain_already_has(machine, tmp_pat
     move a domain that was working."""
     project = tmp_path / "projA"
     project.mkdir()
-    run(machine, "add", "outdoor-maps", "3001", cwd=project)
-    result = run(machine, "add", "outdoor-maps", cwd=project)
+    run(machine, "add", "my-custom-project", "3001", cwd=project)
+    result = run(machine, "add", "my-custom-project", cwd=project)
     assert result.returncode == EXIT_OK
     assert "already proxying to :3001" in result.stdout
-    assert "127.0.0.1:3001" in (machine["sites"] / "outdoor-maps.caddyfile").read_text()
+    assert "127.0.0.1:3001" in (machine["sites"] / "my-custom-project.caddyfile").read_text()
 
 
 def test_add_without_a_port_avoids_a_port_another_domain_holds(tool, machine, tmp_path):
@@ -357,8 +357,8 @@ def test_add_without_a_port_avoids_a_port_another_domain_holds(tool, machine, tm
     (machine["sites"] / "squatter.caddyfile").write_text(
         tool.render_site("squatter.localhost", hashed)
     )
-    assert run(machine, "add", "outdoor-maps", cwd=project).returncode == EXIT_OK
-    assert f":{hashed + 1}" in (machine["sites"] / "outdoor-maps.caddyfile").read_text()
+    assert run(machine, "add", "my-custom-project", cwd=project).returncode == EXIT_OK
+    assert f":{hashed + 1}" in (machine["sites"] / "my-custom-project.caddyfile").read_text()
 
 
 # --- the port command --------------------------------------------------------
@@ -390,8 +390,8 @@ def test_port_by_name_reads_the_site_file_from_anywhere(machine, tmp_path):
     """The form a dev script uses: the recorded port, not the hash for wherever the
     script happened to be run from."""
     (tmp_path / "elsewhere").mkdir()
-    run(machine, "add", "outdoor-maps", "3001", cwd=tmp_path)
-    result = run(machine, "port", "outdoor-maps.localhost", cwd=tmp_path / "elsewhere")
+    run(machine, "add", "my-custom-project", "3001", cwd=tmp_path)
+    result = run(machine, "port", "my-custom-project.localhost", cwd=tmp_path / "elsewhere")
     assert result.stdout.strip() == "3001"
 
 
@@ -406,21 +406,21 @@ def test_port_refuses_a_name_that_is_not_a_label(machine, tmp_path):
 
 
 def test_add_is_idempotent(machine):
-    run(machine, "add", "outdoor-maps", "4321")
+    run(machine, "add", "my-custom-project", "4321")
     before = machine["hosts"].read_text()
-    result = run(machine, "add", "outdoor-maps", "4321")
+    result = run(machine, "add", "my-custom-project", "4321")
     assert result.returncode == EXIT_OK
     assert machine["hosts"].read_text() == before
     assert "already proxying" in result.stdout
 
 
 def test_add_repoints_an_existing_domain(machine):
-    run(machine, "add", "outdoor-maps", "4321")
-    result = run(machine, "add", "outdoor-maps", "4322")
+    run(machine, "add", "my-custom-project", "4321")
+    result = run(machine, "add", "my-custom-project", "4322")
     assert result.returncode == EXIT_OK
     assert "repointed from :4321" in result.stdout
-    assert "127.0.0.1:4322" in (machine["sites"] / "outdoor-maps.caddyfile").read_text()
-    assert machine["hosts"].read_text().count("outdoor-maps.localhost") == 1
+    assert "127.0.0.1:4322" in (machine["sites"] / "my-custom-project.caddyfile").read_text()
+    assert machine["hosts"].read_text().count("my-custom-project.localhost") == 1
 
 
 def test_add_warns_when_two_domains_share_a_port(machine):
@@ -468,10 +468,10 @@ def test_add_will_not_create_the_site_directory_on_the_real_prefix(tmp_path):
 
 
 def test_remove_drops_both_halves(machine):
-    run(machine, "add", "outdoor-maps", "4321")
-    assert run(machine, "remove", "outdoor-maps.localhost").returncode == EXIT_OK
-    assert not (machine["sites"] / "outdoor-maps.caddyfile").exists()
-    assert "outdoor-maps" not in machine["hosts"].read_text()
+    run(machine, "add", "my-custom-project", "4321")
+    assert run(machine, "remove", "my-custom-project.localhost").returncode == EXIT_OK
+    assert not (machine["sites"] / "my-custom-project.caddyfile").exists()
+    assert "my-custom-project" not in machine["hosts"].read_text()
     assert machine["hosts"].read_text().endswith("::1\tlocalhost\n")
 
 

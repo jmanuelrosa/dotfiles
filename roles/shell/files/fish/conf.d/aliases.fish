@@ -55,13 +55,13 @@ alias docker:stop='colima stop'
 # command now (roles/apps/files/scripts/lokl), and it owns the domains as well as the
 # proxy, because a domain is a hosts entry and a Caddy site file that have to agree.
 #
-#   lokl add outdoor-maps       lokl list      lokl start
-#   lokl remove outdoor-maps    lokl sync      lokl status
+#   lokl add my-custom-project       lokl list      lokl start
+#   lokl remove my-custom-project    lokl sync      lokl status
 #
 # The port is derived from the working directory when `add` is given none, and
 # `lokl port <name>` prints it for a dev script to read:
 #
-#   astro dev --host outdoor-maps.localhost --port (lokl port outdoor-maps)
+#   astro dev --host my-custom-project.localhost --port (lokl port my-custom-project)
 
 # claude-kit. Functions rather than aliases: fish's alias builtin appends $argv to the
 # body unconditionally, so an alias holding $argv passes every argument twice.
