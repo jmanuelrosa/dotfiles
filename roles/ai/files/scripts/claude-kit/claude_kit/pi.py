@@ -60,6 +60,24 @@ LEAF = "skills"
 # else, and reads as what it is in a diff.
 TARGET = os.path.join("..", ".claude", LEAF)
 
+# The two leaves this module maintains, and the file that keeps them out of a project's
+# git history. `.gitignore` sits *inside* `.agents/` rather than at the project root
+# because the root is not ours to edit: a repo shared with other people gets no diff it
+# did not ask for, and a repo keeping its own `.agents/` content keeps that content
+# tracked. The skills link is relative and would survive a commit; the agent links are
+# absolute paths into this dotfiles checkout, so committing one hands a teammate a
+# dangling link into a directory they do not have.
+IGNORE = ".gitignore"
+# The file names itself, because a `.gitignore` is not covered by its own patterns and
+# `git status` reports the whole directory as untracked for that one file. Naming it is
+# what makes `.agents/` disappear from a project's status entirely, which is the point.
+#
+# These are the two names this module maintains, so the breadth is exact for every
+# project on this machine: the six that keep their own `.agents/` content keep it at the
+# root, which stays tracked. A project that wants its own `agents/` tracked replaces this
+# file, and `write_ignore` never overwrites one it finds.
+IGNORED = (LEAF, "agents", IGNORE)
+
 
 def link_path(project):
     """Where the link lives, given a project root."""
@@ -82,6 +100,50 @@ def is_ours(project):
     return scope.links_to(link_path(project), source_path(project))
 
 
+def ignore_path(project):
+    """Where the ignore file lives, given a project root."""
+    return Path(project) / PARENT / IGNORE
+
+
+def ignore_body():
+    """What we write, and the only content we will ever delete."""
+    return "".join(f"{name}\n" for name in IGNORED)
+
+
+def write_ignore(project):
+    """Keep our links out of the project's history. Returns whether it wrote.
+
+    Never overwrites: a file already at this path is somebody's, and ours says so little
+    that replacing theirs could only lose information. Called only when a leaf is
+    actually created, so a project this module has nothing to do in gets no new file.
+    """
+    path = ignore_path(project)
+    if path.is_symlink() or path.exists():
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(ignore_body())
+    return True
+
+
+def prune_parent(parent):
+    """Remove `.agents/` when a run emptied it, taking our own ignore file with it.
+
+    The ignore file is ours, so it must not be the thing that keeps an otherwise empty
+    directory alive. Anything else in there is somebody's, including a `.gitignore` whose
+    contents are not the one we write, and then `rmdir` fails and the directory stays,
+    which is the outcome we want in that case anyway.
+    """
+    ignore = parent / IGNORE
+    try:
+        if any(entry != ignore for entry in parent.iterdir()):
+            return
+        if ignore.is_file() and not ignore.is_symlink() and ignore.read_text() == ignore_body():
+            ignore.unlink()
+        parent.rmdir()
+    except OSError:
+        pass
+
+
 def wanted(project):
     """Whether the project has claude skills for pi to see.
 
@@ -95,15 +157,20 @@ def wanted(project):
     return any(source.iterdir())
 
 
-def converge(project):
+def converge(project, dry_run=False):
     """Match the link to what the project holds. Returns what changed, or None.
 
     Returns one of "linked", "unlinked", "blocked" or None, so the caller can report a
     change without restating the rules that produced it.
 
-    Called after any command that adds or removes a project link. Idempotent, and
-    deliberately derived rather than tracked: the answer is always recomputed from the
-    two paths, so there is no state to go stale and no ordering to get wrong.
+    Called after any command that adds or removes a project link, and directly by
+    `claude-kit converge`. Idempotent, and deliberately derived rather than tracked: the
+    answer is always recomputed from the two paths, so there is no state to go stale and
+    no ordering to get wrong.
+
+    `dry_run` reports the same answer and writes nothing. It guards the writes rather
+    than returning early, so the decision a dry run reports is the one a real run makes
+    and the two cannot drift.
     """
     if project is None:
         return None
@@ -119,38 +186,47 @@ def converge(project):
         # this tool overwriting an answer it was not asked.
         if link.is_symlink() or link.exists():
             return "blocked"
-        link.parent.mkdir(parents=True, exist_ok=True)
-        link.symlink_to(TARGET)
+        if not dry_run:
+            link.parent.mkdir(parents=True, exist_ok=True)
+            link.symlink_to(TARGET)
+            write_ignore(project)
         return "linked"
 
     if not ours:
         return None
-    link.unlink()
-    # The parent goes only when this emptied it, so a project keeping other `.agents/`
-    # resources (pi prompts, another harness's data) keeps them.
-    try:
-        link.parent.rmdir()
-    except OSError:
-        pass
+    if not dry_run:
+        link.unlink()
+        # The parent goes only when this emptied it, so a project keeping other
+        # `.agents/` resources (pi prompts, another harness's data) keeps them.
+        prune_parent(link.parent)
     return "unlinked"
 
 
-def report(change, project):
-    """Say what converge did, once, in the one wording both commands use.
+def report(change, project, dry_run=False, stream=None):
+    """Say what converge did, once, in the one wording every caller uses.
 
     Silent when nothing changed, which is every run after the first: a line repeating a
     link that was already right is the kind of noise that gets a whole report skipped.
+
+    `stream` exists because `claude-kit converge --quiet` runs from a SessionStart hook,
+    where Claude Code feeds a hook's stdout back into the session as context. A warning
+    still has to reach a human, so quiet means "nothing on stdout" rather than silence.
     """
     if change is None or project is None:
         return
     link = ui.path(link_path(project))
     if change == "linked":
-        ui.note(f"Linked {link} so pi loads this project's skills too.")
+        verb = "Would link" if dry_run else "Linked"
+        ui.note(f"{verb} {link} so pi loads this project's skills too.", stream=stream)
     elif change == "unlinked":
-        ui.note(f"Removed {link}; no skills are linked here now.")
+        verb = "Would remove" if dry_run else "Removed"
+        ui.note(f"{verb} {link}; no skills are linked here now.", stream=stream)
     elif change == "blocked":
-        ui.warn(f"{link} already exists and is not ours, so pi will not see these skills.")
-        ui.note(f"Point it at {ui.path(source_path(project))}, or move it aside.")
+        ui.warn(
+            f"{link} already exists and is not ours, so pi will not see these skills.",
+            stream=stream,
+        )
+        ui.note(f"Point it at {ui.path(source_path(project))}, or move it aside.", stream=stream)
 
 
 # --- the .agents/agents/ view, for pi-subagents -------------------------------------
@@ -229,7 +305,7 @@ class AgentLinks:
         return not (self.linked or self.pruned or self.blocked or self.collided or self.blocked_dir)
 
 
-def converge_agents(project):
+def converge_agents(project, dry_run=False):
     """Match .agents/agents/ to the agents the installed plugins ship.
 
     Returns an AgentLinks describing what changed, or None on a steady-state run, so
@@ -246,6 +322,9 @@ def converge_agents(project):
     A filename two plugins both claim is carried through as `collided` rather than
     settled here, so a run reporting nothing else still reports that one, every time,
     until the repo stops shipping the name twice.
+
+    `dry_run` guards the writes and nothing else, exactly as in converge: what a dry run
+    reports is what a real run would do, decided by the same code.
     """
     if project is None:
         return None
@@ -268,7 +347,8 @@ def converge_agents(project):
                 continue
             if not scope.points_into(entry, claude):
                 continue
-            entry.unlink()
+            if not dry_run:
+                entry.unlink()
             result.pruned.append(entry.name)
 
     for name, source in sorted(desired.items()):
@@ -278,30 +358,36 @@ def converge_agents(project):
         if entry.is_symlink() and scope.points_into(entry, claude):
             # Ours, pointing at a stale source: re-pointing is the fix, exactly as
             # sync relinks a right-named link at a wrong target.
-            entry.unlink()
-            entry.symlink_to(source)
+            if not dry_run:
+                entry.unlink()
+                entry.symlink_to(source)
             result.linked.append(name)
             continue
         if entry.is_symlink() or entry.exists():
             result.blocked.append(name)
             continue
-        directory.mkdir(parents=True, exist_ok=True)
-        entry.symlink_to(source)
+        if not dry_run:
+            directory.mkdir(parents=True, exist_ok=True)
+            entry.symlink_to(source)
         result.linked.append(name)
+
+    if result.linked and not dry_run:
+        write_ignore(project)
 
     # The directory goes only when this run emptied it, so one somebody made (or one
     # still holding their files) stays. Same parent rule as the skills link.
-    if result.pruned and not desired:
+    if result.pruned and not desired and not dry_run:
         try:
             directory.rmdir()
-            directory.parent.rmdir()
         except OSError:
             pass
+        else:
+            prune_parent(directory.parent)
 
     return None if result.quiet else result
 
 
-def report_agents(result, project):
+def report_agents(result, project, dry_run=False, stream=None):
     """Say what converge_agents did, in the same register as report.
 
     Counts rather than a line per file, because a seat fleet install is fifteen
@@ -311,18 +397,35 @@ def report_agents(result, project):
         return
     where = ui.path(agents_path(project))
     if result.linked:
-        ui.note(f"Linked {ui.names_or_count(result.linked, 'agent')} into {where} for pi's subagents.")
+        verb = "Would link" if dry_run else "Linked"
+        ui.note(
+            f"{verb} {ui.names_or_count(result.linked, 'agent')} into {where} "
+            "for pi's subagents.",
+            stream=stream,
+        )
     if result.pruned:
-        ui.note(f"Removed {ui.names_or_count(result.pruned, 'agent link')} from {where}; no installed plugin ships them now.")
+        verb = "Would remove" if dry_run else "Removed"
+        ui.note(
+            f"{verb} {ui.names_or_count(result.pruned, 'agent link')} from {where}; "
+            "no installed plugin ships them now.",
+            stream=stream,
+        )
     if result.blocked_dir:
         ui.warn(
             f"{where} already exists and is not a directory claude-kit will write into, "
-            "so pi will not see the plugin agents."
+            "so pi will not see the plugin agents.",
+            stream=stream,
         )
-        ui.note("Move it aside, then rerun any add or remove.")
+        ui.note("Move it aside, then run: claude-kit converge", stream=stream)
     for name in result.blocked:
-        ui.warn(f"{where}/{name} already exists and is not ours, so pi loads that one instead.")
+        ui.warn(
+            f"{where}/{name} already exists and is not ours, so pi loads that one instead.",
+            stream=stream,
+        )
     for name, plugins in sorted(result.collided.items()):
-        ui.warn(f"{', '.join(plugins)} each ship agents/{name}, so pi loads only {plugins[0]}'s.")
+        ui.warn(
+            f"{', '.join(plugins)} each ship agents/{name}, so pi loads only {plugins[0]}'s.",
+            stream=stream,
+        )
     if result.collided:
-        ui.note("Rename one of them, since a name has to mean one artifact.")
+        ui.note("Rename one of them, since a name has to mean one artifact.", stream=stream)

@@ -276,15 +276,10 @@
             "type": "command",
             "command": "~/.claude/hooks/herdr-agent-state.sh session",
             "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
+          },
           {
             "type": "command",
-            "command": "bash '/Users/jmanuelrosa/.claude/hooks/herdr-agent-state.sh' session",
+            "command": "~/.local/bin/claude-kit converge --quiet",
             "timeout": 10
           }
         ]

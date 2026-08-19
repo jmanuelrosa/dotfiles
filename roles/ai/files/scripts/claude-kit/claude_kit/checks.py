@@ -306,7 +306,9 @@ def pi_skills_unreachable(project):
     `/skill:` in the project is simply absent, with no warning at either end. `add`
     converges the link itself, so this fires for a project set up before that existed,
     one whose link was deleted by hand, or one where something else already occupies
-    the path.
+    the path. The remedy names `converge` rather than `add` or `restore`, because those
+    two fix it as a side effect of installing something and a note whose only advice is
+    "install an artifact you did not ask for" is one a reader has to work around.
 
     A note rather than a problem: nothing about Claude Code is broken, and a machine
     that does not use pi has nothing to act on.
@@ -321,7 +323,7 @@ def pi_skills_unreachable(project):
         f"something else here"
         if link.is_symlink() or link.exists()
         else f"pi reads {link}, which is missing, so none of them load in pi. "
-        f"Run: claude-kit add or claude-kit restore"
+        f"Run: claude-kit converge"
     )
     return [Finding("pi-unreachable", NOTE, "this project's skills", detail, cat.SKILL)]
 
@@ -361,8 +363,7 @@ def pi_agents_unreachable(project):
                 NOTE,
                 "this project's plugin agents",
                 f"{path} exists and is not a directory claude-kit will write into, so pi "
-                f"reads no agents here. Move it aside, then run: claude-kit add or "
-                "claude-kit restore",
+                f"reads no agents here. Move it aside, then run: claude-kit converge",
                 cat.PLUGIN,
             )
         ]
@@ -376,10 +377,60 @@ def pi_agents_unreachable(project):
             "this project's plugin agents",
             f"pi reads {path}, where {len(missing)} of {len(wanted)} agent link(s) "
             f"are missing ({', '.join(missing)}), so those never load in pi. "
-            f"Run: claude-kit add or claude-kit restore",
+            f"Run: claude-kit converge",
             cat.PLUGIN,
         )
     ]
+
+
+#: The instruction files pi looks for, in its own precedence order. Read out of pi's
+#: `core/resource-loader.js`, where the first match in a directory wins and the rest are
+#: never opened. Claude Code reads `CLAUDE.md`, so the two agree only when the project
+#: has one file or the earlier one is a link to it.
+CONTEXT_FILES = ("AGENTS.override.md", "AGENTS.md", "AGENTS.MD", "CLAUDE.md", "CLAUDE.MD")
+
+
+def split_context(project):
+    """G21: pi and Claude Code read different instruction files in this project.
+
+    The trap is that nothing is broken and nothing warns. Pi takes the first name in
+    CONTEXT_FILES that exists, Claude Code takes `CLAUDE.md`, and the two drift apart
+    from there: in this repo's own history they reached 47 lines against 79 before anyone
+    noticed, which is what the root `AGENTS.md -> CLAUDE.md` symlink now prevents.
+
+    Silent when a project has only one of them, which is the common and correct case: pi
+    reads `CLAUDE.md` natively, so a repo carrying just that file needs nothing at all.
+    Silent too when the earlier file resolves to the later one, since a link is how the
+    fix is spelled and reporting it would make doctor complain about its own remedy.
+
+    A NOTE for G19's reason: nothing about Claude Code is broken, and a machine that does
+    not use pi has nothing to act on. Its kind is None because an instruction file is not
+    a skill, an agent or a plugin, so `--type` cannot narrow to it.
+    """
+    if project is None:
+        return []
+    claude_md = project / "CLAUDE.md"
+    if not claude_md.exists():
+        return []
+    for name in CONTEXT_FILES:
+        if name == "CLAUDE.md":
+            return []
+        candidate = project / name
+        if not candidate.exists():
+            continue
+        if candidate.resolve() == claude_md.resolve():
+            return []
+        return [
+            Finding(
+                "split-context",
+                NOTE,
+                "this project's instructions",
+                f"pi reads {candidate.name} and Claude Code reads {claude_md.name}, so the "
+                f"two drift apart silently. Fold them together, then make "
+                f"{candidate.name} a relative symlink to {claude_md.name}",
+            )
+        ]
+    return []
 
 
 def provenance_drift(catalog, provenance, project, claude):
