@@ -98,20 +98,94 @@ def mismatched(domain, first, second):
         ("  drivein  ", "drivein.localhost"),
         ("a", "a.localhost"),
         ("app2", "app2.localhost"),
+        ("app.pot", "app.pot.localhost"),
+        ("app.pot.localhost", "app.pot.localhost"),
+        ("APP.POT.LOCALHOST", "app.pot.localhost"),
+        ("  api.pot.localhost.  ", "api.pot.localhost"),
     ],
 )
 def test_normalise_accepts_both_spellings(tool, raw, expected):
-    label, domain = tool.normalise(raw)
+    name, domain = tool.normalise(raw)
     assert domain == expected
-    assert label == expected.split(".")[0]
+    assert name == expected.removesuffix(f".{tool.SUFFIX}")
 
 
 @pytest.mark.parametrize(
-    "raw", ["", "  ", "-leading", "trailing-", "not a name", "under_score", "a.b", "üml"]
+    "raw",
+    [
+        "",
+        "  ",
+        "-leading",
+        "trailing-",
+        "not a name",
+        "under_score",
+        "üml",
+        "a..b",
+        ".pot",
+        "-a.pot",
+        "a_b.pot",
+    ],
 )
 def test_normalise_refuses_anything_that_is_not_a_dns_label(tool, raw):
-    label, complaint = tool.normalise(raw)
-    assert label is None
+    name, complaint = tool.normalise(raw)
+    assert name is None
+    assert complaint
+
+
+@pytest.mark.parametrize("raw", ["v2.app.pot", "v2.app.pot.localhost", "a.b.c.d"])
+def test_normalise_refuses_a_third_level(tool, raw):
+    """A parent and one level of children is what a shared cookie jar needs. Deeper costs
+    another hosts line and another site file per name and buys nothing."""
+    name, complaint = tool.normalise(raw)
+    assert name is None
+    assert "nests too deep" in complaint
+
+
+def test_normalise_names_the_offending_label_rather_than_the_whole_chain(tool):
+    """One bad label in a chain is a different mistake from a chain that is too long, and
+    reporting both as "not a usable name" sends the reader looking at the wrong half."""
+    name, complaint = tool.normalise("a_b.pot")
+    assert name is None
+    assert "'a_b'" in complaint
+
+
+@pytest.mark.parametrize(
+    "domain,parent",
+    [
+        ("pot.localhost", None),
+        ("app.pot.localhost", "pot.localhost"),
+        ("localhost", None),
+    ],
+)
+def test_parent_of_names_the_registrable_domain(tool, domain, parent):
+    assert tool.parent_of(domain) == parent
+
+
+def test_domain_sort_key_files_a_project_together_with_its_parent_first(tool):
+    """Sorting the names as written files `app.pot.localhost` under A and scatters one
+    project across the list, which is the whole reason this key exists."""
+    names = ["topo.localhost", "app.pot.localhost", "pot.localhost", "api.pot.localhost"]
+    assert sorted(names, key=tool.domain_sort_key) == [
+        "pot.localhost",
+        "api.pot.localhost",
+        "app.pot.localhost",
+        "topo.localhost",
+    ]
+
+
+@pytest.mark.parametrize(
+    "raw,expected", [("app", ("app", None)), ("app=3001", ("app", 3001)), ("  APP  ", ("app", None))]
+)
+def test_parse_sub_reads_a_label_and_an_optional_port(tool, raw, expected):
+    parsed, complaint = tool.parse_sub(raw)
+    assert complaint is None
+    assert parsed == expected
+
+
+@pytest.mark.parametrize("raw", ["a_b", "app.pot", "app=", "app=x", ""])
+def test_parse_sub_refuses_anything_else(tool, raw):
+    parsed, complaint = tool.parse_sub(raw)
+    assert parsed is None
     assert complaint
 
 
@@ -190,6 +264,47 @@ def test_derive_port_never_returns_a_port_caddy_holds(tool):
 def test_derive_port_gives_up_when_the_window_is_full(tool):
     full = set(range(tool.PORT_FLOOR, tool.PORT_CEILING + 1))
     assert tool.derive_port("/x", taken=full) is None
+
+
+def test_derive_window_of_one_matches_derive_port(tool):
+    """The tie that keeps a plain `lokl add` unchanged: a project with no subdomains asks for
+    a window of one and has to get the number it always got."""
+    for seed in ("/x", "/Users/me/projects/my-custom-project", ""):
+        assert tool.derive_window(seed, 1) == [tool.derive_port(seed)]
+
+
+def test_derive_window_is_consecutive_and_stable(tool):
+    window = tool.derive_window("/x", 4)
+    assert window == list(range(window[0], window[0] + 4))
+    assert tool.derive_window("/x", 4) == window
+
+
+def test_derive_window_steps_over_what_is_taken(tool):
+    """A run is rejected whole rather than around the hole, because the point of the window
+    is that the numbers are consecutive."""
+    first = tool.derive_window("/x", 4)
+    assert tool.derive_window("/x", 4, taken={first[2]}) != first
+
+
+def test_derive_window_never_returns_a_port_caddy_holds(tool):
+    for port in tool.RESERVED:
+        assert port not in tool.derive_window("/x", 4)
+
+
+def test_derive_window_stays_inside_the_window_without_wrapping(tool):
+    """A run that wrapped PORT_CEILING would be two ranges rather than one, which defeats the
+    only reason to derive them together."""
+    for seed in ("a", "/x/y", "", "wrap-me"):
+        window = tool.derive_window(seed, 8)
+        assert tool.PORT_FLOOR <= window[0]
+        assert window[-1] <= tool.PORT_CEILING
+
+
+def test_derive_window_gives_up_when_no_run_fits(tool):
+    """Every other port taken leaves plenty free and no two adjacent, which is the state a
+    per-port check would call fine."""
+    every_other = set(range(tool.PORT_FLOOR, tool.PORT_CEILING + 1, 2))
+    assert tool.derive_window("/x", 2, taken=every_other) is None
 
 
 def test_assigned_ports_ignores_an_unparsed_site(tool):
@@ -546,6 +661,179 @@ def test_add_will_not_create_the_site_directory_on_the_real_prefix(tmp_path):
     assert not (tmp_path / "etc" / "sites").exists()
 
 
+# --- one project, several services ---------------------------------------------
+
+
+def test_add_writes_a_nested_domain_into_a_file_named_for_the_whole_chain(machine):
+    """`app.pot.caddyfile`, not `app.caddyfile`: the stem is the record of which domain the
+    file holds, and two projects both having an `app` would otherwise collide."""
+    assert run(machine, "add", "app.pot", "4321").returncode == EXIT_OK
+    site = machine["sites"] / "app.pot.caddyfile"
+    assert site.exists()
+    assert "http://app.pot.localhost {" in site.read_text()
+    assert "127.0.0.1\tapp.pot.localhost" in machine["hosts"].read_text()
+
+
+def test_a_nested_site_file_is_still_matched_by_the_import_glob(tool, machine):
+    """The Caddyfile imports `sites/*.caddyfile`, so a dotted stem has to keep matching or a
+    whole project would be written and never served."""
+    run(machine, "add", "app.pot", "4321")
+    assert list(tool.sites(machine["sites"])) == ["app.pot.localhost"]
+
+
+def test_add_with_subs_writes_a_family_on_consecutive_ports(tool, machine, tmp_path):
+    project = tmp_path / "pot"
+    project.mkdir()
+    result = run(machine, "add", "pot", "--sub", "app", "--sub", "api", cwd=project)
+    assert result.returncode == EXIT_OK
+
+    ports = [tool.sites(machine["sites"])[name].port for name in
+             ("pot.localhost", "app.pot.localhost", "api.pot.localhost")]
+    assert ports == list(range(ports[0], ports[0] + 3))
+    assert ports[0] == tool.derive_window(project, 3)[0]
+    assert "consecutive from" in result.stdout
+
+
+def test_add_with_subs_gives_the_parent_the_lowest_port(tool, machine, tmp_path):
+    """The parent's number is the one a person quotes when naming the project, so the range
+    reads upward from it rather than around it."""
+    project = tmp_path / "pot"
+    project.mkdir()
+    run(machine, "add", "pot", "--sub", "app", "--sub", "api", cwd=project)
+    configured = tool.sites(machine["sites"])
+    assert configured["pot.localhost"].port == min(
+        site.port for site in configured.values()
+    )
+
+
+def test_add_with_subs_is_idempotent(tool, machine, tmp_path):
+    project = tmp_path / "pot"
+    project.mkdir()
+    run(machine, "add", "pot", "--sub", "app", cwd=project)
+    before = {name: site.port for name, site in tool.sites(machine["sites"]).items()}
+    result = run(machine, "add", "pot", "--sub", "app", cwd=project)
+    assert result.returncode == EXIT_OK
+    assert {name: site.port for name, site in tool.sites(machine["sites"]).items()} == before
+    assert "already proxying" in result.stdout
+
+
+def test_add_with_subs_honours_a_port_named_on_a_sub(tool, machine):
+    assert run(machine, "add", "pot", "3000", "--sub", "app=3001").returncode == EXIT_OK
+    configured = tool.sites(machine["sites"])
+    assert configured["pot.localhost"].port == 3000
+    assert configured["app.pot.localhost"].port == 3001
+
+
+def test_add_with_subs_keeps_a_recorded_port_instead_of_tidying_the_range(tool, machine, tmp_path):
+    """Re-deriving would let an unrelated project taking the hashed slot silently move a
+    domain that was working, so a working port outranks a consecutive range."""
+    project = tmp_path / "pot"
+    project.mkdir()
+    run(machine, "add", "app.pot", "4321", cwd=project)
+    result = run(machine, "add", "pot", "--sub", "app", "--sub", "api", cwd=project)
+    assert result.returncode == EXIT_OK
+    assert tool.sites(machine["sites"])["app.pot.localhost"].port == 4321
+    assert "not consecutive" in result.stdout
+
+
+def test_add_with_subs_rolls_back_every_file_when_caddy_rejects_the_config(machine):
+    """One validate covers the whole family, so a rejection cannot leave half a project on
+    disk. The unparsable file is planted outside the family so the family is what rolls back."""
+    if shutil.which("caddy") is None:
+        pytest.skip("caddy is not installed")
+    (machine["sites"] / "broken.caddyfile").write_text("http://broken.localhost {\n\tnot_a_directive\n}\n")
+    result = run(machine, "add", "pot", "3000", "--sub", "app", "--sub", "api")
+    assert result.returncode == EXIT_INVALID
+    assert not (machine["sites"] / "pot.caddyfile").exists()
+    assert not (machine["sites"] / "app.pot.caddyfile").exists()
+    assert not (machine["sites"] / "api.pot.caddyfile").exists()
+
+
+def test_add_refuses_subs_under_a_name_that_is_already_a_subdomain(machine):
+    result = run(machine, "add", "app.pot", "--sub", "v2")
+    assert result.returncode == EXIT_USAGE
+    assert "already a subdomain" in result.stderr
+
+
+def test_add_refuses_a_sub_that_is_not_a_label(machine):
+    assert run(machine, "add", "pot", "--sub", "a_b").returncode == EXIT_USAGE
+
+
+def test_add_refuses_the_same_sub_twice(machine):
+    assert run(machine, "add", "pot", "--sub", "app", "--sub", "app").returncode == EXIT_USAGE
+
+
+def test_add_refuses_a_third_level(machine):
+    result = run(machine, "add", "v2.app.pot", "4321")
+    assert result.returncode == EXIT_USAGE
+    assert "nests too deep" in result.stderr
+
+
+def test_port_answers_for_a_nested_domain(machine, tmp_path):
+    run(machine, "add", "app.pot", "4321")
+    result = run(machine, "port", "app.pot.localhost", cwd=tmp_path)
+    assert result.returncode == EXIT_OK
+    assert result.stdout.strip() == "4321"
+
+
+def test_the_hosts_block_files_a_project_together_with_its_parent_first(machine):
+    """The hosts file is read by people too, and one project's names scattered through it by
+    initial is how a stale entry goes unnoticed."""
+    run(machine, "add", "topo", "3000")
+    run(machine, "add", "pot", "3001", "--sub", "app=3002", "--sub", "api=3003")
+    managed = machine["hosts"].read_text().split("# lokl: development domains")[1]
+    entries = [line.split()[1] for line in managed.splitlines() if line.startswith("127.0.0.1")]
+    assert entries == [
+        "pot.localhost",
+        "api.pot.localhost",
+        "app.pot.localhost",
+        "topo.localhost",
+    ]
+
+
+def test_list_insets_a_subdomain_under_its_parent(machine):
+    run(machine, "add", "pot", "3000", "--sub", "app=3001")
+    result = run(machine, "list")
+    rows = [line for line in result.stdout.splitlines() if ".localhost" in line]
+    assert rows[0].lstrip().startswith("\u00b7 pot.localhost")
+    assert rows[1].index("\u00b7") > rows[0].index("\u00b7")
+
+
+def test_validate_notes_a_subdomain_whose_parent_is_missing(tool, machine):
+    """Not an error: it serves fine. But nesting is only worth doing for the shared cookie
+    jar, so a missing parent is usually a typo in the one name meant to hold it."""
+    if shutil.which("caddy") is None:
+        pytest.skip("caddy is not installed")
+    run(machine, "add", "app.pot", "4321")
+    result = run(machine, "validate")
+    assert result.returncode == EXIT_OK
+    assert "pot.localhost is not configured" in result.stdout
+
+
+def test_remove_tree_takes_the_parent_and_every_subdomain(machine):
+    run(machine, "add", "pot", "3000", "--sub", "app=3001", "--sub", "api=3002")
+    assert run(machine, "remove", "pot", "--tree").returncode == EXIT_OK
+    assert list(machine["sites"].glob("*.caddyfile")) == []
+    assert "pot" not in machine["hosts"].read_text()
+
+
+def test_remove_without_tree_leaves_the_subdomains_and_says_so(machine):
+    """The flag is the confirmation, so the default has to be the narrow reading of the name
+    that was actually typed."""
+    run(machine, "add", "pot", "3000", "--sub", "app=3001")
+    result = run(machine, "remove", "pot")
+    assert result.returncode == EXIT_OK
+    assert (machine["sites"] / "app.pot.caddyfile").exists()
+    assert "--tree" in result.stdout
+
+
+def test_remove_of_a_nested_domain_takes_only_itself(machine):
+    run(machine, "add", "pot", "3000", "--sub", "app=3001")
+    assert run(machine, "remove", "app.pot").returncode == EXIT_OK
+    assert (machine["sites"] / "pot.caddyfile").exists()
+    assert not (machine["sites"] / "app.pot.caddyfile").exists()
+
+
 def test_remove_drops_both_halves(machine):
     run(machine, "add", "my-custom-project", "4321")
     assert run(machine, "remove", "my-custom-project.localhost").returncode == EXIT_OK
@@ -695,7 +983,9 @@ def test_every_committed_site_file_is_what_the_tool_would_write(tool):
         assert ports, f"{path.name} holds no reverse_proxy port"
         split = tool.disagreeing(tool.Site(ports[0], path, ports))
         assert not split, f"{path.name} names {split}, so `lb_policy first` picks one silently"
-        assert path.stem == domain.split(".")[0], f"{path.name} does not match {domain}"
+        assert path.stem == domain.removesuffix(f".{tool.SUFFIX}"), (
+            f"{path.name} does not match {domain}"
+        )
         assert path.read_text() == tool.render_site(domain, ports[0])
 
 
