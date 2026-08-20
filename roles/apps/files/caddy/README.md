@@ -56,15 +56,19 @@ The symptom is that `dig @127.0.0.1 foo.localhost` succeeds, `ping` and `curl` a
 A hosts entry is what is left, and one line per project is a cheaper price than a daemon that silently does nothing.
 
 This is also why the suffix stays `.localhost` rather than something prettier.
-Vite's `allowedHosts` permits `localhost` and `*.localhost` and rejects everything else over plain HTTP, so any other suffix would need `allowedHosts` written into a committed `vite.config.ts` where the team would see it.
+Vite's `allowedHosts` permits `localhost`, the dot-prefixed `.localhost` and every IP address by default, and rejects other names over plain HTTP, so any other suffix would need `allowedHosts` written into a committed `vite.config.ts` where the team would see it.
+The dot-prefixed form covers subdomains at any depth, which is what lets `app.my-project.localhost` work with no project config at all.
 
 ## Commands
 
 ```fish
 lokl add my-custom-project        # site file, hosts entry, reload, and a resolution check
 lokl add my-custom-project 3001   # the same, on a port you name rather than one derived
+lokl add my-project --sub app --sub api   # a parent and its services, on consecutive ports
 lokl remove my-custom-project     # both halves
+lokl remove my-project --tree     # and every subdomain under it
 lokl port my-custom-project       # the bare number, for a dev script to read
+lokl port app.my-project          # a nested one reads the same way
 lokl list                    # every domain, its port, and whether anything answers
 lokl sync                    # rebuild the hosts block from the site files
 lokl start                   # bind :80 (sudo), without registering anything at boot
@@ -80,6 +84,52 @@ It warns rather than refuses when two domains name the same port, because that i
 
 The last thing `add` does is ask the system resolver whether the name now resolves.
 Writing the file proves nothing on its own, and this is the one assumption the whole design rests on.
+
+## One project, several services
+
+A project with a landing site, an app, an api and an admin panel needs four domains that share one session.
+Hyphens do not give you that:
+
+```
+pot.localhost  pot-app.localhost  pot-api.localhost  pot-admin.localhost
+```
+
+`.localhost` is absent from the Public Suffix List, so its eTLD is `localhost` and **every `<name>.localhost` is a registrable domain of its own**.
+Those four are therefore mutually cross-site, which is exactly the condition that drops a `SameSite=Lax` cookie between them, and no `Domain=` value can cover the set.
+Nest them instead:
+
+```fish
+cd ~/Developer/pot
+lokl add pot --sub app --sub api --sub admin
+```
+
+```
+pot.localhost         :29769   landing
+app.pot.localhost     :29770   app
+api.pot.localhost     :29771   api
+admin.pot.localhost   :29772   admin
+```
+
+All four now sit under the registrable domain `pot.localhost`, so they are same-site and a cookie set with `Domain=pot.localhost` reaches all of them.
+`--sub` takes a port too, as `--sub app=3001`, for a project whose ports cannot move.
+`lokl remove pot --tree` takes the parent and every subdomain under it; without `--tree` it takes only the name you typed and tells you what it left.
+
+**This fixes cookies, not CORS.**
+A different hostname is still a different origin, so a call from `app.pot.localhost` to `api.pot.localhost` still triggers a preflight and still needs `Access-Control-Allow-Origin` and `Access-Control-Allow-Credentials` from the api.
+What changes is that the credentials now travel at all.
+Only one hostname with path prefixes would remove CORS, and that costs every frontend its own origin, so it is not what this does.
+
+Two labels below `.localhost` is the cap.
+A third level buys nothing the second does not already give and costs another hosts line and another site file per name.
+
+**The ports come out consecutive.**
+One project's ports are read together, and `29769-29772` is a range a person holds in their head and an `lsof` sweep can name, where four unrelated numbers are four things to look up.
+The window starts at the same digest of the working directory a single `lokl add` uses, so it does not move when an unrelated project is added elsewhere.
+
+A name that already has a port keeps it, which is the one thing that outranks the range: re-deriving would let an unrelated project taking the hashed slot silently move a domain that was working.
+So a project only gets a consecutive window when every one of its names is new, and `lokl add` says so when it hands out numbers that are not consecutive.
+
+The site file for a nested domain carries the whole chain in its name, `app.pot.caddyfile`, so two projects both having an `app` do not collide and `lokl list` can file each service under its parent.
 
 ## Ports, which you no longer pick
 
@@ -105,7 +155,7 @@ A domain that already has a port keeps it, because re-deriving would let an unre
 To use it in a dev script, ask for the recorded port by name:
 
 ```fish
-astro dev --host my-custom-project.localhost --port (lokl port my-custom-project)
+astro dev --port (lokl port my-custom-project)
 ```
 
 `lokl port <name>` reads the site file, which is the number the proxy is actually pointing at and is the same on every clone.

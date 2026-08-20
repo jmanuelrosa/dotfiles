@@ -58,10 +58,30 @@ EXIT_INVALID = 3
 EXIT_PRIVILEGE = 4
 EXIT_UNRESOLVED = 5
 
-# The suffix cannot be prettier than this. Vite's `allowedHosts` permits `localhost` and
-# `*.localhost` and rejects every other name over plain HTTP, so any other choice would
-# need `allowedHosts` written into a committed vite.config.ts in each project.
+# The suffix cannot be prettier than this. Vite's `allowedHosts` permits `localhost`, the
+# dot-prefixed `.localhost` and every IP address by default, and rejects other names over
+# plain HTTP, so any other choice would need `allowedHosts` written into a committed
+# vite.config.ts in each project. The dot-prefixed form covers subdomains at any depth, which
+# is what lets a nested name work with no project config at all.
 SUFFIX = "localhost"
+
+# Parent plus one level of children, which is what a shared cookie jar needs. `.localhost` is
+# absent from the Public Suffix List, so its eTLD is `localhost` and every `<name>.localhost`
+# is a registrable domain of its own: `pot-app.localhost` and `pot-api.localhost` are mutually
+# cross-site, which is what drops a SameSite=Lax cookie between them. Nesting them as
+# `app.pot.localhost` and `api.pot.localhost` puts both under the registrable domain
+# `pot.localhost`, so they are same-site and a `Domain=pot.localhost` cookie reaches both.
+#
+# A third level buys nothing the second does not already give and costs another hosts line and
+# another site file per name. And this fixes cookies, not CORS: a different host is still a
+# different origin, so the call still needs `Access-Control-Allow-Origin` on the API.
+MAX_LABELS = 2
+
+# How far `lokl list` insets a subdomain beyond its parent's row. `ui.item` already insets
+# every row, and that base is read from the kind table rather than repeated here, so a change
+# there cannot silently push the port column out of line.
+NEST_INDENT = 2
+ITEM_INDENT = ui.KINDS["item"][-1]
 
 # One address in the hosts entry, where the file would happily carry two, but this no longer
 # decides anything: macOS answers every *.localhost name with both families whatever the entry
@@ -134,23 +154,74 @@ def resolve_paths():
 
 
 def normalise(raw):
-    """A bare name or a full domain, as (label, domain), or (None, complaint).
+    """A bare name or a full domain, as (name, domain), or (None, complaint).
 
     Accepts both spellings because both read naturally at the prompt, and lowercases
     before validating: DNS is case-insensitive, but the file name and the hosts entry
     should have one canonical form.
+
+    `name` is the whole chain below the suffix, so `app.pot` for `app.pot.localhost`, and it
+    is also the site file's stem. Every label is validated on its own, because one bad label
+    in a chain is a different mistake from a chain that is too long and reads as one.
     """
     name = (raw or "").strip().lower().rstrip(".")
     if name.endswith(f".{SUFFIX}"):
         name = name[: -len(SUFFIX) - 1]
     if not name:
         return None, "Give a project name, as in `lokl add my-custom-project 4321`."
-    if not LABEL.match(name):
+    labels = name.split(".")
+    for label in labels:
+        if not LABEL.match(label):
+            return None, (
+                f"{raw!r} is not a usable name: {label!r} is not a DNS label. Use lowercase "
+                "letters, digits and hyphens, starting and ending with a letter or digit."
+            )
+    if len(labels) > MAX_LABELS:
         return None, (
-            f"{raw!r} is not a usable name. Use lowercase letters, digits and hyphens, "
-            "starting and ending with a letter or digit."
+            f"{raw!r} nests too deep. Use at most {MAX_LABELS - 1} subdomain label, as in "
+            f"`{labels[-2]}.{labels[-1]}.{SUFFIX}`."
         )
     return name, f"{name}.{SUFFIX}"
+
+
+def parent_of(domain):
+    """The registrable domain a nested name sits under, or None when it is already one."""
+    labels = domain.split(".")
+    return ".".join(labels[1:]) if len(labels) > MAX_LABELS else None
+
+
+def domain_sort_key(domain):
+    """Sort one project's names together, parent first.
+
+    Reversing the labels puts `pot.localhost` at ("localhost", "pot") ahead of
+    `app.pot.localhost` at ("localhost", "pot", "app") and keeps every `*.pot.localhost`
+    contiguous, where sorting the names as written files the children under their own initials
+    and scatters a project across the list.
+    """
+    return tuple(reversed(domain.split(".")))
+
+
+def ordered_domains(configured):
+    return sorted(configured, key=domain_sort_key)
+
+
+def parse_sub(raw):
+    """`label` or `label=port`, as ((label, port or None), None), or (None, complaint)."""
+    text = (raw or "").strip()
+    label, separator, port = text.partition("=")
+    label = label.strip().lower()
+    if not LABEL.match(label):
+        return None, (
+            f"{raw!r} is not a usable subdomain. Use one lowercase DNS label, optionally "
+            "as `label=port`."
+        )
+    # A bare `app` asks for a derived port; `app=` asked for a specific one and lost it, which
+    # is a typo rather than the same request, so it is refused rather than quietly derived.
+    if not separator:
+        return (label, None), None
+    if not port.strip().isdigit():
+        return None, f"{raw!r} names no port. Write it as `{label}=3001`."
+    return (label, int(port.strip())), None
 
 
 def derive_port(seed, taken=()):
@@ -173,6 +244,32 @@ def derive_port(seed, taken=()):
         candidate = PORT_FLOOR + (start + step) % PORT_SPAN
         if candidate not in blocked:
             return candidate
+    return None
+
+
+def derive_window(seed, count, taken=()):
+    """`count` consecutive free ports from `seed`, or None, on `derive_port`'s digest.
+
+    Consecutive rather than each name hashed on its own, because one project's ports are read
+    together: 29769-29772 is a range a person holds in their head and an `lsof` sweep can
+    name, where four unrelated numbers are four things to look up separately.
+
+    A run never crosses PORT_CEILING and wraps, since a wrapped window is two ranges rather
+    than one, which defeats the only reason to derive them together. At `count` 1 this answers
+    exactly what `derive_port` answers, which is what keeps a plain `lokl add` unchanged.
+    """
+    if count < 1:
+        return []
+    digest = hashlib.sha256(str(seed).encode()).digest()
+    start = int.from_bytes(digest[:8], "big") % PORT_SPAN
+    blocked = set(taken) | set(RESERVED)
+    for step in range(PORT_SPAN):
+        first = PORT_FLOOR + (start + step) % PORT_SPAN
+        if first + count - 1 > PORT_CEILING:
+            continue
+        run = range(first, first + count)
+        if blocked.isdisjoint(run):
+            return list(run)
     return None
 
 
@@ -466,33 +563,104 @@ def report_resolution(paths, domain):
     return EXIT_UNRESOLVED
 
 
+def plan_members(args):
+    """[(domain, name, port or None)] for everything this `add` touches, or (None, complaint).
+
+    The parent comes first, so a derived window hands it the lowest port. That is the number a
+    person quotes when naming the project, and it makes the range read upward from it.
+    """
+    name, domain = normalise(args.name)
+    if name is None:
+        return None, domain
+    subs = args.sub or []
+    if subs and "." in name:
+        child, _, parent = name.partition(".")
+        return None, (
+            f"{domain} is already a subdomain, so it cannot carry more. Hang the subdomains "
+            f"off the parent instead: `lokl add {parent} --sub {child}`."
+        )
+
+    members = [(domain, name, args.port)]
+    seen = {domain}
+    for raw in subs:
+        parsed, complaint = parse_sub(raw)
+        if parsed is None:
+            return None, complaint
+        label, port = parsed
+        child = f"{label}.{name}"
+        child_domain = f"{child}.{SUFFIX}"
+        if child_domain in seen:
+            return None, f"`--sub {label}` is named twice."
+        seen.add(child_domain)
+        members.append((child_domain, child, port))
+    return members, None
+
+
+def assign_ports(members, existing, seed):
+    """({domain: port}, derived domains, whether the run is consecutive), or (None, ., complaint).
+
+    A member keeps a port it already has, because re-deriving would let an unrelated project
+    taking the hashed slot silently move a domain that was working. That is also why a project
+    only gets a consecutive window when every one of its names is new: honouring one recorded
+    port and moving the rest would trade a working setup for a tidy range.
+    """
+    ports = {}
+    for domain, _, named in members:
+        port = named if named is not None else (existing[domain].port if domain in existing else None)
+        if port is not None:
+            ports[domain] = port
+
+    pending = [domain for domain, _, _ in members if domain not in ports]
+    if not pending:
+        return ports, (), False, None
+
+    taken = assigned_ports(existing) | set(ports.values())
+    if len(pending) == len(members):
+        window = derive_window(seed, len(pending), taken)
+        if window is None:
+            return None, (), False, (
+                f"no run of {len(pending)} consecutive free ports is left in "
+                f"{PORT_FLOOR}-{PORT_CEILING}."
+            )
+        ports.update(zip(pending, window))
+        return ports, tuple(pending), len(pending) > 1, None
+
+    for domain in pending:
+        port = derive_port(seed, taken)
+        if port is None:
+            return None, (), False, "every port in the derived range is already assigned."
+        ports[domain] = port
+        taken = taken | {port}
+    return ports, tuple(pending), False, None
+
+
+def rollback(written):
+    """Undo every file an `add` wrote, so a rejected project leaves nothing behind."""
+    for path, restore in written:
+        if restore is None:
+            path.unlink(missing_ok=True)
+        else:
+            path.write_text(restore)
+
+
 def cmd_add(args, paths):
-    label, domain = normalise(args.name)
-    if label is None:
-        return fail(EXIT_USAGE, domain)
+    members, complaint = plan_members(args)
+    if members is None:
+        return fail(EXIT_USAGE, complaint)
 
     existing = sites(paths.sites)
-    previous = existing[domain].port if domain in existing else None
+    previous = {domain: existing[domain].port for domain, _, _ in members if domain in existing}
 
-    # An omitted port is derived from the working directory, and an already-configured
-    # domain keeps the port it has. Re-deriving there would let an unrelated project
-    # taking the hashed slot silently move a domain that was working.
-    derived = False
-    port = args.port
-    if port is None:
-        port = previous
-    if port is None:
-        port = derive_port(Path.cwd(), assigned_ports(existing))
-        derived = True
-        if port is None:
-            return fail(EXIT_NOT_FOUND, "every port in the derived range is already assigned.")
+    ports, derived, consecutive, complaint = assign_ports(members, existing, Path.cwd())
+    if ports is None:
+        return fail(EXIT_NOT_FOUND, complaint)
 
-    if port in RESERVED:
-        return fail(EXIT_USAGE, f"Port {port} is unavailable: {RESERVED[port]}.")
-    if not 1 <= port <= 65535:
-        return fail(EXIT_USAGE, f"Port {port} is outside the usable range.")
-
-    clashes = [other for other, site in existing.items() if site.port == port and other != domain]
+    for domain, _, _ in members:
+        port = ports[domain]
+        if port in RESERVED:
+            return fail(EXIT_USAGE, f"Port {port} is unavailable: {RESERVED[port]}.")
+        if not 1 <= port <= 65535:
+            return fail(EXIT_USAGE, f"Port {port} is outside the usable range.")
 
     # Never conjured on the machine's own prefix. That path is a symlink the playbook owns,
     # and a real directory sitting there is what `ansible.builtin.file state=link` cannot
@@ -503,77 +671,130 @@ def cmd_add(args, paths):
             f"{ui.path(paths.sites)} is missing. Run `make run-role ROLE=apps` to link it.",
         )
 
-    target = paths.sites / f"{label}.caddyfile"
+    written = []
     try:
         paths.sites.mkdir(parents=True, exist_ok=True)
-        restore = target.read_text() if target.exists() else None
-        target.write_text(render_site(domain, port))
+        for domain, name, _ in members:
+            site = paths.sites / f"{name}.caddyfile"
+            written.append((site, site.read_text() if site.exists() else None))
+            site.write_text(render_site(domain, ports[domain]))
     except OSError as exc:
-        return fail(EXIT_PRIVILEGE, f"cannot write {ui.path(target)}: {exc.strerror or exc}")
+        rollback(written)
+        return fail(EXIT_PRIVILEGE, f"cannot write into {ui.path(paths.sites)}: {exc.strerror or exc}")
 
+    # One validate for the whole set rather than one per name. A rejected file then cannot
+    # leave half a project on disk, and a four-service project costs one caddy invocation.
     complaint = validate(paths)
     if complaint:
-        if restore is None:
-            target.unlink(missing_ok=True)
-        else:
-            target.write_text(restore)
+        rollback(written)
         ui.err("Caddy rejected the config, so nothing was changed.")
         ui.note(complaint)
         return EXIT_INVALID
 
-    ui.title(f"🔌 {domain}")
-    if previous == port:
-        ui.note(f"already proxying to :{port}")
-    elif previous is not None:
-        ui.step(f"repointed from :{previous} to :{port}")
-    else:
-        ui.step(f"proxying :80 to :{port}")
-    if derived:
-        ui.note(f"port derived from {ui.path(Path.cwd())}")
-        if listening(port):
-            ui.warn(f"something already answers on :{port}, so name a port if it is not yours")
-    for other in clashes:
-        ui.warn(f"{other} also points at :{port}, so both serve the same process")
+    family = len(members) > 1
+    ui.title(f"🔌 {members[0][0]}")
+    for domain, _, _ in members:
+        port = ports[domain]
+        was = previous.get(domain)
+        prefix = f"{domain} " if family else ""
+        if was == port:
+            ui.note(f"{prefix}already proxying to :{port}")
+        elif was is not None:
+            ui.step(f"{prefix}repointed from :{was} to :{port}")
+        else:
+            ui.step(f"{prefix}proxying :80 to :{port}")
 
-    changed, error, code = apply_hosts(paths, sorted(sites(paths.sites)))
+    if derived:
+        ui.note(f"port{'s' if len(derived) > 1 else ''} derived from {ui.path(Path.cwd())}")
+        if consecutive:
+            ui.note(f"consecutive from :{ports[members[0][0]]}, so the range is one to remember")
+        elif family and len(derived) < len(members):
+            ui.note("a name already had a port and kept it, so these are not consecutive")
+        for domain in derived:
+            if listening(ports[domain]):
+                ui.warn(f"something already answers on :{ports[domain]}, so name a port if it is not yours")
+
+    # Warned about rather than refused, here and in `validate`, because two names on one port
+    # is occasionally deliberate and always worth knowing.
+    ours = {domain for domain, _, _ in members}
+    for domain, _, _ in members:
+        port = ports[domain]
+        for other in ordered_domains(existing):
+            if existing[other].port == port and other not in ours:
+                ui.warn(f"{other} also points at :{port}, so both serve the same process")
+    within = collections.defaultdict(list)
+    for domain, _, _ in members:
+        within[ports[domain]].append(domain)
+    for port, names in sorted(within.items()):
+        if len(names) > 1:
+            ui.warn(f"{ui.names_or_count(names, 'domain')} all point at :{port}")
+
+    changed, error, code = apply_hosts(paths, ordered_domains(sites(paths.sites)))
     if error:
         return fail(code, error)
     if changed:
-        ui.step(f"added {LOOPBACK}\t{domain} to {ui.path(paths.hosts)}")
+        for domain, _, _ in members:
+            ui.step(f"added {LOOPBACK}\t{domain} to {ui.path(paths.hosts)}")
 
     warn_foreign(paths)
     reload_proxy(paths)
 
-    status = report_resolution(paths, domain)
-    ui.done(f"http://{domain} and http://{domain}:{port}")
+    status = EXIT_OK
+    for domain, _, _ in members:
+        status = status or report_resolution(paths, domain)
+    if family:
+        ui.done(", ".join(f"http://{domain}" for domain, _, _ in members))
+    else:
+        domain = members[0][0]
+        ui.done(f"http://{domain} and http://{domain}:{ports[domain]}")
     return status
 
 
 def cmd_remove(args, paths):
-    label, domain = normalise(args.name)
-    if label is None:
+    """One domain, or with `--tree` a parent and every subdomain under it.
+
+    The flag is the confirmation. It deletes files the caller did not name, and there is no
+    prompt anywhere else in this tool to be consistent with, but the site files are committed,
+    so `git checkout` is the undo for a `--tree` aimed at the wrong parent.
+    """
+    name, domain = normalise(args.name)
+    if name is None:
         return fail(EXIT_USAGE, domain)
     existing = sites(paths.sites)
     if domain not in existing:
         return fail(EXIT_NOT_FOUND, f"{domain} is not configured. `lokl list` shows what is.")
 
-    target = existing[domain].path
-    try:
-        target.unlink()
-    except OSError as exc:
-        return fail(EXIT_PRIVILEGE, f"cannot remove {ui.path(target)}: {exc.strerror or exc}")
+    children = [other for other in ordered_domains(existing) if parent_of(other) == domain]
+    doomed = [domain] + children if args.tree else [domain]
 
     ui.title(f"🔌 {domain}")
-    ui.step(f"removed {ui.path(target)}")
+    for one in doomed:
+        target = existing[one].path
+        try:
+            target.unlink()
+        except OSError as exc:
+            return fail(EXIT_PRIVILEGE, f"cannot remove {ui.path(target)}: {exc.strerror or exc}")
+        ui.step(f"removed {ui.path(target)}")
+    if children and not args.tree:
+        ui.note(
+            f"{ui.names_or_count(children, 'domain')} still sit under it. "
+            f"`lokl remove {name} --tree` takes those too."
+        )
 
-    changed, error, code = apply_hosts(paths, sorted(sites(paths.sites)))
+    changed, error, code = apply_hosts(paths, ordered_domains(sites(paths.sites)))
     if error:
         return fail(code, error)
     if changed:
-        ui.step(f"dropped its entry from {ui.path(paths.hosts)}")
+        if len(doomed) > 1:
+            ui.step(f"dropped their entries from {ui.path(paths.hosts)}")
+        else:
+            ui.step(f"dropped its entry from {ui.path(paths.hosts)}")
 
     reload_proxy(paths)
-    ui.done(f"{domain} removed")
+    if len(doomed) > 1:
+        ui.done(f"{ui.names_or_count(doomed, 'domain')} removed")
+    else:
+        ui.done(f"{domain} removed")
     return EXIT_OK
 
 
@@ -602,8 +823,8 @@ def cmd_port(args, paths):
     """
     configured = sites(paths.sites)
     if args.name:
-        label, domain = normalise(args.name)
-        if label is None:
+        name, domain = normalise(args.name)
+        if name is None:
             return fail(EXIT_USAGE, domain)
         if domain in configured:
             port = configured[domain].port
@@ -659,9 +880,14 @@ def cmd_list(args, paths):
             resolved.update(fields[1:])
 
     ui.title("🔌 Development domains")
-    width = max(len(domain) for domain in configured)
+    # A subdomain is indented under its parent, so the width has to be measured on what the
+    # row actually occupies rather than on the name alone, or the port column steps in and out.
+    inset = {domain: NEST_INDENT if parent_of(domain) in configured else 0 for domain in configured}
+    width = max(len(domain) + inset[domain] for domain in configured)
     serving = 0
-    for domain, site in configured.items():
+    for domain in ordered_domains(configured):
+        site = configured[domain]
+        indent = inset[domain]
         port = site.port
         split = disagreeing(site)
         target = f":{port}" if port else "unparsed"
@@ -674,8 +900,9 @@ def cmd_list(args, paths):
             state, colour = "nothing listening", "dim"
         else:
             state, colour = "no reverse_proxy line", "yellow"
-        row = f"{ui.paint(domain.ljust(width), 'cyan')}  {target.ljust(7)} {ui.paint(state, colour)}"
-        ui.item(row)
+        shown = domain.ljust(width - indent)
+        row = f"{ui.paint(shown, 'cyan')}  {target.ljust(7)} {ui.paint(state, colour)}"
+        ui.item(row, indent=ITEM_INDENT + indent)
         if split:
             named = " and ".join(f":{one}" for one in split)
             ui.note(
@@ -684,7 +911,7 @@ def cmd_list(args, paths):
                 indent=4,
             )
         if domain not in resolved:
-            ui.note(f"no hosts entry, so --host {domain} will not bind. Run `lokl sync`.", indent=4)
+            ui.note(f"no hosts entry, so nothing here lists {domain}. Run `lokl sync`.", indent=4)
 
     for port, names in sorted(duplicates(configured).items()):
         ui.warn(f":{port} is claimed by {ui.names_or_count(names, 'domain')}, so both serve one process")
@@ -695,7 +922,7 @@ def cmd_list(args, paths):
 
 
 def cmd_sync(args, paths):
-    configured = sorted(sites(paths.sites))
+    configured = ordered_domains(sites(paths.sites))
     ui.title("🔄 Reconciling the hosts file with the site files")
     changed, error, code = apply_hosts(paths, configured)
     if error:
@@ -802,6 +1029,14 @@ def cmd_validate(args, paths):
             ui.note(f"{domain}: {' and '.join(f':{one}' for one in ports)}", indent=2)
         return EXIT_INVALID
 
+    # Not an error: a subdomain proxies perfectly well with no parent configured. But nesting
+    # is only worth doing for the shared cookie jar, and a missing parent is usually a typo in
+    # the one name that was supposed to hold it.
+    for domain in ordered_domains(configured):
+        parent = parent_of(domain)
+        if parent and parent not in configured:
+            ui.note(f"{domain} serves, but {parent} is not configured, which is usually a typo.")
+
     ui.done(f"{ui.path(paths.caddyfile)} is valid")
     return EXIT_OK
 
@@ -840,9 +1075,19 @@ def build_parser():
         nargs="?",
         help="the port the dev server binds; derived from this directory when omitted",
     )
+    add.add_argument(
+        "--sub",
+        action="append",
+        metavar="LABEL[=PORT]",
+        help="a service under this project, as `app` or `app=3001`; repeatable, and the "
+        "derived ports come out consecutive",
+    )
 
     remove = subparsers.add_parser("remove", help="drop a domain and its hosts entry")
     remove.add_argument("name", help="the project name")
+    remove.add_argument(
+        "--tree", action="store_true", help="drop every subdomain under it as well"
+    )
 
     port = subparsers.add_parser("port", help="print a domain's port, for a dev script to read")
     port.add_argument(
