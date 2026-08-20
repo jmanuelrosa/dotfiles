@@ -58,10 +58,17 @@ alias docker:stop='colima stop'
 #   lokl add my-custom-project       lokl list      lokl start
 #   lokl remove my-custom-project    lokl sync      lokl status
 #
-# The port is derived from the working directory when `add` is given none, and
-# `lokl port <name>` prints it for a dev script to read:
+# A project with several services nests them under one parent, so all of them share the
+# registrable domain and therefore the cookie jar:
 #
-#   astro dev --host my-custom-project.localhost --port (lokl port my-custom-project)
+#   lokl add my-project --sub app --sub api    # my-project.localhost, app.my-project.localhost, ...
+#   lokl remove my-project --tree              # the parent and every subdomain under it
+#
+# The port is derived from the working directory when `add` is given none, and
+# `lokl port <name>` prints it for a dev script to read. No `--host`: that binds every
+# interface, and Caddy already dials loopback.
+#
+#   astro dev --port (lokl port my-custom-project)
 
 # claude-kit. Functions rather than aliases: fish's alias builtin appends $argv to the
 # body unconditionally, so an alias holding $argv passes every argument twice.
