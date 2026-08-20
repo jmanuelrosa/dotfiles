@@ -406,6 +406,7 @@
   "autoCompactEnabled": false,
   "fileCheckpointingEnabled": true,
   "agentPushNotifEnabled": true,
+  "outputStyle": "Concise",
   "skipAutoPermissionPrompt": false,
   "autoMode": {
     "environment": [
