@@ -72,6 +72,18 @@ def run(machine, *args, cwd=None):
     )
 
 
+def mismatched(domain, first, second):
+    """A site file naming two different upstream ports, which `render_site` never writes."""
+    return (
+        f"http://{domain} {{\n"
+        f"\treverse_proxy 127.0.0.1:{first} [::1]:{second} {{\n"
+        f"\t\tlb_policy first\n"
+        f"\t\tfail_duration 5s\n"
+        f"\t}}\n"
+        f"}}\n"
+    )
+
+
 # --- names -------------------------------------------------------------------
 
 
@@ -181,7 +193,11 @@ def test_derive_port_gives_up_when_the_window_is_full(tool):
 
 
 def test_assigned_ports_ignores_an_unparsed_site(tool):
-    assert tool.assigned_ports({"a.localhost": (3000, None), "b.localhost": (None, None)}) == {3000}
+    configured = {
+        "a.localhost": tool.Site(3000, None, (3000, 3000)),
+        "b.localhost": tool.Site(None, None, ()),
+    }
+    assert tool.assigned_ports(configured) == {3000}
 
 
 # --- site files --------------------------------------------------------------
@@ -189,7 +205,7 @@ def test_assigned_ports_ignores_an_unparsed_site(tool):
 
 def test_render_site_round_trips_through_the_parser(tool):
     text = tool.render_site("my-custom-project.localhost", 4321)
-    assert tool.parse_site(text) == ("my-custom-project.localhost", 4321)
+    assert tool.parse_site(text) == ("my-custom-project.localhost", (4321, 4321))
 
 
 def test_render_site_lists_both_loopback_families_behind_a_failover(tool):
@@ -214,12 +230,46 @@ def test_render_site_is_caddy_fmt_clean(tool, tmp_path):
 
 
 def test_parse_site_reports_a_hand_written_file_without_a_port(tool):
-    domain, port = tool.parse_site("http://hand.localhost {\n\trespond \"hi\"\n}\n")
-    assert (domain, port) == ("hand.localhost", None)
+    domain, ports = tool.parse_site('http://hand.localhost {\n\trespond "hi"\n}\n')
+    assert (domain, ports) == ("hand.localhost", ())
 
 
 def test_parse_site_ignores_a_file_with_no_site_block(tool):
-    assert tool.parse_site("# just a comment\n") == (None, None)
+    assert tool.parse_site("# just a comment\n") == (None, ())
+
+
+def test_parse_site_reads_the_port_after_the_ipv6_brackets(tool):
+    """`[::1]:29768` carries a digit inside the brackets, so a port pattern that matches
+    anywhere in the token reads `::1` as port 1 and reports every generated file as broken."""
+    domain, ports = tool.parse_site(tool.render_site("x.localhost", 29768))
+    assert (domain, ports) == ("x.localhost", (29768, 29768))
+
+
+def test_parse_site_reads_both_upstreams_when_a_hand_edit_split_them(tool):
+    """Reading the first alone is what let this file report as clean."""
+    assert tool.parse_site(mismatched("pot.localhost", 29770, 29768)) == (
+        "pot.localhost",
+        (29770, 29768),
+    )
+
+
+def test_disagreeing_ignores_a_generated_file(tool):
+    _, ports = tool.parse_site(tool.render_site("x.localhost", 3000))
+    assert tool.disagreeing(tool.Site(ports[0], None, ports)) == ()
+
+
+def test_disagreeing_names_both_ports_of_a_hand_edit(tool):
+    _, ports = tool.parse_site(mismatched("x.localhost", 3001, 3000))
+    assert tool.disagreeing(tool.Site(ports[0], None, ports)) == (3000, 3001)
+
+
+def test_duplicates_names_every_domain_claiming_a_port(tool):
+    configured = {
+        "a.localhost": tool.Site(3000, None, (3000, 3000)),
+        "b.localhost": tool.Site(3000, None, (3000, 3000)),
+        "c.localhost": tool.Site(3001, None, (3001, 3001)),
+    }
+    assert tool.duplicates(configured) == {3000: ["a.localhost", "b.localhost"]}
 
 
 def test_sites_reads_a_directory_in_domain_order(tool, machine):
@@ -401,6 +451,35 @@ def test_port_of_an_unconfigured_name_answers_for_the_directory(tool, machine, t
     assert int(result.stdout.strip()) == tool.derive_port(tmp_path)
 
 
+def test_port_agrees_with_the_port_add_recorded_for_the_same_directory(machine, tmp_path):
+    """The invariant that was missing, and the bug it hid. `add` keeps a domain's recorded
+    port, while `port` counted that same port as somebody else's and stepped one past it, so
+    `--port (lokl port)` bound a port the proxy pointed nowhere near."""
+    project = tmp_path / "project"
+    project.mkdir()
+    run(machine, "add", "project", cwd=project)
+    recorded = run(machine, "port", "project", cwd=project).stdout.strip()
+    assert recorded.isdigit()
+    assert run(machine, "port", cwd=project).stdout.strip() == recorded
+
+
+def test_port_keeps_the_holder_note_off_stdout(machine, tmp_path):
+    """No record says which directory a domain was added from, so a held slot cannot be told
+    from a genuine collision and the note is the mitigation. It goes to stderr, because
+    `--port (lokl port)` cannot be handed a sentence."""
+    project = tmp_path / "project"
+    project.mkdir()
+    run(machine, "add", "project", cwd=project)
+    result = run(machine, "port", cwd=project)
+    assert result.stdout.strip().isdigit()
+    assert result.stdout.count("\n") == 1
+    assert "project.localhost" in result.stderr
+
+
+def test_port_says_nothing_on_stderr_when_the_slot_is_free(machine, tmp_path):
+    assert run(machine, "port", cwd=tmp_path).stderr.strip() == ""
+
+
 def test_port_refuses_a_name_that_is_not_a_label(machine, tmp_path):
     assert run(machine, "port", "Not A Name", cwd=tmp_path).returncode == EXIT_USAGE
 
@@ -515,6 +594,73 @@ def test_list_flags_a_domain_with_no_hosts_entry(tool, machine):
     assert "lokl sync" in result.stdout
 
 
+def test_list_marks_a_site_whose_upstreams_disagree(machine):
+    (machine["sites"] / "pot.caddyfile").write_text(mismatched("pot.localhost", 29770, 29768))
+    result = run(machine, "list")
+    assert "upstreams disagree" in result.stdout
+    assert ":29768" in result.stdout and ":29770" in result.stdout
+
+
+def test_list_warns_when_two_domains_share_a_port(tool, machine):
+    for name in ("a", "b"):
+        (machine["sites"] / f"{name}.caddyfile").write_text(
+            tool.render_site(f"{name}.localhost", 3000)
+        )
+    result = run(machine, "list")
+    assert ":3000 is claimed by" in result.stdout
+    assert "a.localhost" in result.stdout and "b.localhost" in result.stdout
+
+
+# --- validate ----------------------------------------------------------------
+
+
+def test_validate_accepts_what_the_tool_wrote(tool, machine):
+    if shutil.which("caddy") is None:
+        pytest.skip("caddy is not installed")
+    (machine["sites"] / "x.caddyfile").write_text(tool.render_site("x.localhost", 3000))
+    assert run(machine, "validate").returncode == EXIT_OK
+
+
+def test_validate_refuses_a_site_naming_two_upstream_ports(machine):
+    """Caddy parses this happily, so it is lokl's to catch: `render_site` cannot produce it."""
+    if shutil.which("caddy") is None:
+        pytest.skip("caddy is not installed")
+    (machine["sites"] / "pot.caddyfile").write_text(mismatched("pot.localhost", 29770, 29768))
+    result = run(machine, "validate")
+    assert result.returncode == EXIT_INVALID
+    assert "pot.localhost" in result.stdout
+
+
+def test_validate_accepts_a_shared_port_with_a_warning(tool, machine):
+    """`add` only warns on this, so `validate` does not get to be stricter."""
+    if shutil.which("caddy") is None:
+        pytest.skip("caddy is not installed")
+    for name in ("a", "b"):
+        (machine["sites"] / f"{name}.caddyfile").write_text(
+            tool.render_site(f"{name}.localhost", 3000)
+        )
+    result = run(machine, "validate")
+    assert result.returncode == EXIT_OK
+    assert ":3000 is claimed by" in result.stdout
+
+
+# --- status ------------------------------------------------------------------
+
+
+def test_status_counts_a_misconfigured_site(machine):
+    (machine["sites"] / "pot.caddyfile").write_text(mismatched("pot.localhost", 29770, 29768))
+    result = run(machine, "status")
+    assert "pot.localhost" in result.stdout
+    assert "lokl validate" in result.stdout
+
+
+def test_status_explains_the_portless_distinction_when_the_proxy_is_down(tool, machine):
+    """A ported URL still answering is what made a stopped proxy look like a running one."""
+    if tool.caddy_running():
+        pytest.skip("this machine's proxy is up, so the stopped branch cannot be reached")
+    assert "http://<domain>:<port>" in run(machine, "status").stdout
+
+
 def test_bare_invocation_prints_help(machine):
     result = run(machine)
     assert result.returncode == EXIT_USAGE
@@ -544,11 +690,13 @@ def test_the_playbook_links_the_site_directory_beside_the_caddyfile():
 def test_every_committed_site_file_is_what_the_tool_would_write(tool):
     """A hand-edited site file is how the fmt warning and the 502 pair come back."""
     for path in sorted(SITES.glob("*.caddyfile")):
-        domain, port = tool.parse_site(path.read_text())
+        domain, ports = tool.parse_site(path.read_text())
         assert domain, f"{path.name} holds no site block"
-        assert port, f"{path.name} holds no reverse_proxy port"
+        assert ports, f"{path.name} holds no reverse_proxy port"
+        split = tool.disagreeing(tool.Site(ports[0], path, ports))
+        assert not split, f"{path.name} names {split}, so `lb_policy first` picks one silently"
         assert path.stem == domain.split(".")[0], f"{path.name} does not match {domain}"
-        assert path.read_text() == tool.render_site(domain, port)
+        assert path.read_text() == tool.render_site(domain, ports[0])
 
 
 def test_the_lokl_aliases_are_gone():

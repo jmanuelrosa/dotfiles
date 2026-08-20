@@ -5,20 +5,29 @@ Every project on `localhost` shares one cookie jar, because cookies isolate by h
 and ignore the port entirely, so signing into one admin panel clobbers another's session
 even when the two run on different ports. A distinct hostname per project is the whole fix.
 
-Two separate things have to be true for `astro dev --host my-custom-project.localhost` to work,
-and this tool owns both:
+Two separate things have to be true for a project to answer on its own hostname, and this
+tool owns both:
 
-  /etc/hosts  macOS does not resolve *.localhost at all. Browsers implement RFC 6761 and
-              resolve it internally, which is why these domains always worked in Chrome
-              while getaddrinfo, curl and every dev server's --host flag did not. dnsmasq
-              behind /etc/resolver is not the alternative it is elsewhere: on macOS 26
-              mDNSResponder intercepts every TLD absent from the IANA root zone and answers
-              it as multicast DNS, never consulting the nameserver the resolver file names,
-              so `dig @127.0.0.1` succeeds while the system resolver still returns nothing.
-              A hosts entry is what is left.
+  /etc/hosts  Belt and braces, not the load-bearing half this was written as. macOS 26
+              resolves every *.localhost name to loopback itself, per RFC 6761, so
+              getaddrinfo and curl answer for a name in no file at all. The block stays
+              because it costs one idempotent line and survives a DNS profile, an MDM
+              payload or a VPN's split-DNS shadowing that handling, and because a fresh
+              machine on an older macOS has nothing else. dnsmasq behind /etc/resolver is
+              still not the alternative it is elsewhere: mDNSResponder intercepts every TLD
+              absent from the IANA root zone and answers it as multicast DNS, never
+              consulting the nameserver the resolver file names, so `dig @127.0.0.1`
+              succeeds while the system resolver returns nothing. That is why the suffix
+              cannot be .test or .internal.
   sites/      One Caddy site file per domain, imported by the Caddyfile, so the portless
-              http://my-custom-project.localhost keeps answering next to the port the dev server
-              actually binds.
+              http://my-custom-project.localhost answers on :80 and routes by Host header to
+              the port the dev server actually binds.
+
+Use the portless URL. A port reaches the dev server whatever hostname is in front of it, so
+http://anything.localhost:4321 serves whichever project holds 4321, while cookies key on
+hostname and ignore the port. On :80 the Host header is the only discriminator, which is what
+keeps one project's session out of another's jar. No --host is needed for that: Caddy dials
+127.0.0.1 with an [::1] fallback, so a default loopback bind is already reachable.
 
 The two are kept consistent by deriving one from the other. The site files are the record,
 committed to this repo, and the /etc/hosts block is rewritten from them on every change,
@@ -54,11 +63,15 @@ EXIT_UNRESOLVED = 5
 # need `allowedHosts` written into a committed vite.config.ts in each project.
 SUFFIX = "localhost"
 
-# One address, deliberately, where /etc/hosts would happily carry two. Listing ::1 as well
-# would let a dev server's resolver pick IPv6 on some runs and IPv4 on others, and "which
-# family did it bind" is exactly the question behind the 502s the upstream pair below
-# exists to absorb. One address is one behaviour.
+# One address in the hosts entry, where the file would happily carry two, but this no longer
+# decides anything: macOS answers every *.localhost name with both families whatever the entry
+# says, so "which family did it bind" is a question only the upstream pair below can settle.
+# The single line stays because a second one would add nothing the resolver is not already doing.
 LOOPBACK = "127.0.0.1"
+
+# Both families, because a name resolving to the pair is the normal answer here rather than a
+# fault to report. Only an address outside this set means something else claimed the name.
+LOOPBACK_ADDRESSES = frozenset({LOOPBACK, "::1"})
 
 BEGIN = "# lokl: development domains. Rewritten by `lokl`, hand edits below are lost."
 END = "# lokl: end"
@@ -83,9 +96,16 @@ PORT_SPAN = PORT_CEILING - PORT_FLOOR + 1
 
 LABEL = re.compile(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$")
 SITE_HOST = re.compile(r"^http://(\S+)\s*\{", re.M)
-SITE_PORT = re.compile(r"^\s*reverse_proxy\s+\S+?:(\d+)", re.M)
+SITE_UPSTREAMS = re.compile(r"^\s*reverse_proxy\s+([^\n{]*)", re.M)
+UPSTREAM_PORT = re.compile(r":(\d+)$")
 
 Paths = collections.namedtuple("Paths", "caddyfile sites hosts overridden")
+
+# `ports` carries every port on the reverse_proxy line where `port` carries the first alone.
+# `render_site` writes one number twice, so two different numbers are a hand edit that
+# `lb_policy first` then resolves silently, which is the one state reading only the first
+# upstream could never see.
+Site = collections.namedtuple("Site", "port path ports")
 
 
 def fail(code, message):
@@ -157,7 +177,7 @@ def derive_port(seed, taken=()):
 
 
 def assigned_ports(configured):
-    return {port for port, _ in configured.values() if port}
+    return {site.port for site in configured.values() if site.port}
 
 
 def render_site(domain, port):
@@ -182,30 +202,55 @@ def render_site(domain, port):
 
 
 def parse_site(text):
-    """(domain, port) out of a site file, with either half allowed to be missing.
+    """(domain, ports) out of a site file, with either half allowed to be missing.
 
-    A hand-written file that this tool did not generate still gets listed, with its port
-    reported as unknown rather than the whole file being ignored.
+    A hand-written file that this tool did not generate still gets listed, with its ports
+    reported as empty rather than the whole file being ignored. Every port on the line is
+    read rather than the first alone, because the first alone is what let a file naming two
+    different upstreams read back as clean while the proxy quietly served one of them.
     """
     host = SITE_HOST.search(text)
     if not host:
-        return None, None
-    port = SITE_PORT.search(text)
-    return host.group(1), int(port.group(1)) if port else None
+        return None, ()
+    upstreams = SITE_UPSTREAMS.search(text)
+    if not upstreams:
+        return host.group(1), ()
+    found = (UPSTREAM_PORT.search(token) for token in upstreams.group(1).split())
+    return host.group(1), tuple(int(match.group(1)) for match in found if match)
+
+
+def disagreeing(site):
+    """The distinct ports a site names, when it names more than one, else ().
+
+    `lb_policy first` makes the pair a failover, so a site naming two different ports serves
+    whichever is listed first and reaches the second only once the first refuses. That is a
+    silent preference rather than the family failover the pair exists to provide.
+    """
+    distinct = set(site.ports)
+    return tuple(sorted(distinct)) if len(distinct) > 1 else ()
+
+
+def duplicates(configured):
+    """{port: [domain, ...]} for every port more than one domain claims."""
+    claimed = collections.defaultdict(list)
+    for domain, site in configured.items():
+        if site.port:
+            claimed[site.port].append(domain)
+    return {port: names for port, names in claimed.items() if len(names) > 1}
 
 
 def sites(directory):
-    """Every configured domain, as an ordered {domain: (port, path)}."""
+    """Every configured domain, as an ordered {domain: Site}."""
     found = {}
     if not directory.is_dir():
         return found
     for path in sorted(directory.glob("*.caddyfile")):
         try:
-            domain, port = parse_site(path.read_text())
+            domain, ports = parse_site(path.read_text())
         except OSError:
             continue
         if domain:
-            found[domain] = (port, path)
+            found[domain] = Site(ports[0] if ports else None, path, ports)
     return found
 
 
@@ -397,18 +442,23 @@ def reload_proxy(paths):
 def report_resolution(paths, domain):
     """Confirm the entry took, because every other step succeeding proves nothing.
 
-    This is the one check covering the assumption the whole design rests on: that a hosts
-    entry still beats mDNSResponder's interception of TLDs absent from the IANA root zone.
-    Writing the file is not evidence of that, and the failure is silent everywhere else.
+    This is the one check covering the assumption the whole design rests on: that the name
+    resolves at all. Writing the file is not evidence of that, and the failure is silent
+    everywhere else.
+
+    Resolving to both loopback families is not a finding. macOS returns the pair for every
+    *.localhost name regardless of what the hosts entry lists, so warning about it fired on
+    every add and named a condition neither this tool nor the user can change.
     """
     if paths.overridden:
         return EXIT_OK
     addresses = resolves(domain)
-    if addresses == [LOOPBACK]:
-        ui.ok(f"{domain} resolves to {LOOPBACK}")
+    stray = [address for address in addresses if address not in LOOPBACK_ADDRESSES]
+    if stray:
+        ui.warn(f"{domain} also resolves to {', '.join(stray)}, which is not loopback")
         return EXIT_OK
-    if LOOPBACK in addresses:
-        ui.warn(f"{domain} resolves to {', '.join(addresses)}, not {LOOPBACK} alone")
+    if addresses:
+        ui.ok(f"{domain} resolves to {', '.join(addresses)}")
         return EXIT_OK
     ui.err(f"{domain} still does not resolve.")
     ui.note("The hosts entry is written, so the system resolver is ignoring it.")
@@ -422,7 +472,7 @@ def cmd_add(args, paths):
         return fail(EXIT_USAGE, domain)
 
     existing = sites(paths.sites)
-    previous = existing.get(domain, (None, None))[0]
+    previous = existing[domain].port if domain in existing else None
 
     # An omitted port is derived from the working directory, and an already-configured
     # domain keeps the port it has. Re-deriving there would let an unrelated project
@@ -442,7 +492,7 @@ def cmd_add(args, paths):
     if not 1 <= port <= 65535:
         return fail(EXIT_USAGE, f"Port {port} is outside the usable range.")
 
-    clashes = [other for other, (taken, _) in existing.items() if taken == port and other != domain]
+    clashes = [other for other, site in existing.items() if site.port == port and other != domain]
 
     # Never conjured on the machine's own prefix. That path is a symlink the playbook owns,
     # and a real directory sitting there is what `ansible.builtin.file state=link` cannot
@@ -507,7 +557,7 @@ def cmd_remove(args, paths):
     if domain not in existing:
         return fail(EXIT_NOT_FOUND, f"{domain} is not configured. `lokl list` shows what is.")
 
-    target = existing[domain][1]
+    target = existing[domain].path
     try:
         target.unlink()
     except OSError as exc:
@@ -556,11 +606,29 @@ def cmd_port(args, paths):
         if label is None:
             return fail(EXIT_USAGE, domain)
         if domain in configured:
-            port = configured[domain][0]
+            port = configured[domain].port
             if port is None:
                 return fail(EXIT_NOT_FOUND, f"{domain} carries no reverse_proxy port to read.")
             print(port)
             return EXIT_OK
+
+    # The unprobed slot for this directory, which is the number `lokl add` derived here the
+    # first time. Threading the taken set in unconditionally counted a domain's own recorded
+    # port as somebody else's and stepped one past it, so this printed a port the proxy points
+    # nowhere near while `lokl port <name>` printed the right one.
+    slot = derive_port(Path.cwd())
+    holders = [domain for domain, site in configured.items() if site.port == slot]
+    if holders:
+        # A genuine collision would put an unrelated project on this slot, and no record here
+        # says which directory a domain was added from, so the note names the holder rather
+        # than pretending the inference is certain. stderr, because stdout carries the value.
+        for domain in holders:
+            ui.note(
+                f"{domain} already holds :{slot}; `lokl port {domain}` reads its file.",
+                stream=sys.stderr,
+            )
+        print(slot)
+        return EXIT_OK
 
     port = derive_port(Path.cwd(), assigned_ports(configured))
     if port is None:
@@ -593,9 +661,13 @@ def cmd_list(args, paths):
     ui.title("🔌 Development domains")
     width = max(len(domain) for domain in configured)
     serving = 0
-    for domain, (port, _) in configured.items():
+    for domain, site in configured.items():
+        port = site.port
+        split = disagreeing(site)
         target = f":{port}" if port else "unparsed"
-        if port and listening(port):
+        if split:
+            state, colour = "upstreams disagree", "red"
+        elif port and listening(port):
             state, colour = "serving", "green"
             serving += 1
         elif port:
@@ -604,8 +676,18 @@ def cmd_list(args, paths):
             state, colour = "no reverse_proxy line", "yellow"
         row = f"{ui.paint(domain.ljust(width), 'cyan')}  {target.ljust(7)} {ui.paint(state, colour)}"
         ui.item(row)
+        if split:
+            named = " and ".join(f":{one}" for one in split)
+            ui.note(
+                f"names {named}, so only :{port} is served until it refuses. "
+                f"`lokl add {domain} <port>` rewrites it.",
+                indent=4,
+            )
         if domain not in resolved:
             ui.note(f"no hosts entry, so --host {domain} will not bind. Run `lokl sync`.", indent=4)
+
+    for port, names in sorted(duplicates(configured).items()):
+        ui.warn(f":{port} is claimed by {ui.names_or_count(names, 'domain')}, so both serve one process")
 
     ui.blank()
     ui.done(f"{len(configured)} domain{'' if len(configured) == 1 else 's'}, {serving} serving")
@@ -665,13 +747,24 @@ def cmd_stop(args, paths):
 
 def cmd_status(args, paths):
     ui.title("🔌 Proxy")
+    configured = sites(paths.sites)
     proc = subprocess.run(["pgrep", "-lf", "caddy run"], capture_output=True, text=True)
     if proc.returncode == 0:
         for line in proc.stdout.strip().splitlines():
             ui.ok(line.strip())
     else:
         ui.note("not running. `lokl start` binds :80.")
-    count = len(sites(paths.sites))
+        # Spelled out because a ported URL still answering is what makes a stopped proxy look
+        # like a running one: the port reaches the dev server whatever name is in front of it,
+        # and only the portless form puts Caddy in the path.
+        ui.note("http://<domain> needs it; http://<domain>:<port> reaches the dev server direct.")
+
+    broken = {domain for domain, site in configured.items() if disagreeing(site)}
+    broken.update(domain for names in duplicates(configured).values() for domain in names)
+    if broken:
+        ui.warn(f"{ui.names_or_count(sorted(broken), 'domain')} misconfigured. Run `lokl validate`.")
+
+    count = len(configured)
     ui.done(f"{count} domain{'' if count == 1 else 's'} configured")
     return EXIT_OK
 
@@ -694,6 +787,21 @@ def cmd_validate(args, paths):
         ui.err("the config does not parse.")
         ui.note(complaint)
         return EXIT_INVALID
+
+    # Caddy accepts both of these, so they are lokl's to catch. A shared port is a choice
+    # `add` already only warns about, but a site naming two different upstreams is a shape
+    # `render_site` cannot produce, so it is never deliberate.
+    configured = sites(paths.sites)
+    for port, names in sorted(duplicates(configured).items()):
+        ui.warn(f":{port} is claimed by {ui.names_or_count(names, 'domain')}")
+    split = {domain: disagreeing(site) for domain, site in configured.items()}
+    split = {domain: ports for domain, ports in split.items() if ports}
+    if split:
+        ui.err("a site names two upstream ports, which `lokl add` never writes.")
+        for domain, ports in sorted(split.items()):
+            ui.note(f"{domain}: {' and '.join(f':{one}' for one in ports)}", indent=2)
+        return EXIT_INVALID
+
     ui.done(f"{ui.path(paths.caddyfile)} is valid")
     return EXIT_OK
 
