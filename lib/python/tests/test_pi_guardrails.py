@@ -12,9 +12,16 @@ writes into a hook's stdin, that hook must read; whatever it looks for in a hook
 hook must print. Plus the rule that keeps the agreement small, which is that the logic stays in
 python. The moment this file has to know how a dash is counted, the extension has stopped being
 an adapter.
+
+The extension also carries rtk, whose failure is quieter still. rtk rewrites a command rather
+than refusing one, so a broken bridge there does not leave a gate that never blocks: it leaves a
+session where nothing is proxied and nothing says so. Its assertions are the same kind, read off
+settings.json and statusline.sh rather than off a hook, plus the one that is really about
+guardrails.ts as a whole: the rewrite has to happen after every gate has read the command.
 """
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -22,10 +29,16 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from dotkit.testing import HOOKS, PI_EXTENSIONS, REPO
+from dotkit.testing import CLAUDE, HOOKS, PI_EXTENSIONS, REPO
 
 EXTENSION = PI_EXTENSIONS / "guardrails.ts"
 TASKS = REPO / "roles/ai/tasks/main.yml"
+SETTINGS = CLAUDE / "settings.json"
+STATUSLINE = CLAUDE / "statusline.sh"
+
+# The gates the rewrite has to come after, in the order guard() runs them. rtk is a gate in
+# position only, so this list is what that position means.
+GATES = ("git-skill-gate.sh", "cloud-readonly-gate.sh", "pre-commit-verify.sh")
 
 # Every hook the extension drives, and what each one reads out of the event it is handed. The
 # direction is what matters: a key a hook reads and the extension never sends is a field the
@@ -162,6 +175,68 @@ def test_the_refusal_says_why_pi_cannot_ask(source):
     assert "no confirmation prompt" in source
 
 
+def test_the_rtk_opt_in_is_read_before_anything_is_spawned(source):
+    """RTK_ENABLE is a per-shell opt-in and nothing in the repo exports it, so a session that did
+    not opt in must not be rewritten. Read before the spawn rather than after, because the check
+    is also what keeps an unset variable from costing a child process on every command."""
+    call = re.search(r"async function rtkRewrite\(.*?\n\}", source, re.S).group(0)
+    assert "process.env.RTK_ENABLE" in call, "the opt-in is not read at all"
+    assert call.index("RTK_ENABLE") < call.index("spawnJson"), "the opt-in is read after the spawn"
+
+
+def test_rtk_is_reached_through_the_target_claude_uses(source):
+    """`hook check` prints the bare rewritten command and would be less code here, but it is a dry
+    run: rtk's own audit and tee side effects do not fire, which would quietly make RTK_HOOK_AUDIT
+    dead weight in pi while it still means something in claude."""
+    assert '"hook", "claude"' in source
+    assert '"check"' not in source
+
+
+def test_the_audit_variable_matches_the_one_claude_sets(source):
+    """Claude sets it in a settings `env` block. Pi's settings have no `env` block at all, so the
+    variable has to reach rtk through the child env, and a value that drifts from claude's would
+    mean the same tool auditing one harness and not the other."""
+    value = json.loads(SETTINGS.read_text())["env"]["RTK_HOOK_AUDIT"]
+    assert f'RTK_HOOK_AUDIT: "{value}"' in source
+
+
+def test_the_rewrite_is_applied_by_mutation(source):
+    """`ToolCallEventResult` carries a block and a reason and nothing else, and pi's own note on
+    the field says to mutate `event.input` instead. A rewrite that were returned would be silently
+    discarded, leaving an extension that spawns rtk on every command and changes nothing."""
+    assert "updatedInput" in source, "the rewritten command is never read"
+    assert "event.input.command = " in source, "the rewrite is not applied"
+
+
+@pytest.mark.parametrize("gate", GATES)
+def test_the_rewrite_runs_after_every_gate(gate, source):
+    """The reason rtk lives in this file rather than in an extension of its own.
+
+    Pi loads extensions in readdir order and runs every tool_call handler in that order, so a
+    separate file could rewrite the command before these gates read it. A gate handed
+    `rtk git commit` instead of `git commit` is one that has stopped matching, and nothing about
+    it looks broken from the outside: the extension loads, the hook runs, the command is allowed.
+    Inside one handler the ordering settings.json states is a property of this file.
+    """
+    rewrite = source.index("await rtkRewrite(event.input.command")
+    assert source.index(f'runHook("{gate}"') < rewrite, (
+        f"the rtk rewrite is applied before {gate} reads the command, which disarms it"
+    )
+
+
+def test_the_footer_mirrors_the_claude_statusline(source):
+    """A rewrite the caller cannot see is worse than no rewrite, so both harnesses show the same
+    toggle. The same glyph and the same words on purpose: a second vocabulary for one state across
+    two harnesses costs the recognition the segment exists for."""
+    segment = re.search(r"def rtk_segment\(\):.*?(?=\ndef )", STATUSLINE.read_text(), re.S).group(0)
+    for token in ("\u2702\ufe0f", "rtk off"):
+        assert token in segment and token in source, f"{token!r} is in one harness and not the other"
+    # Namespaced for the reason velocity.ts records: statuses are keyed and last writer wins, and
+    # herdr installs its own extension into the same directory.
+    key = re.search(r'RTK_STATUS_KEY = "([^"]+)"', source).group(1)
+    assert key.startswith("dotfiles-") and key != "dotfiles-velocity"
+
+
 def test_the_role_installs_the_extension():
     """Pi discovers extensions by directory, so both halves are needed and neither is loud when
     missing: no directory means the link task writes into a path that does not exist, and no link
@@ -182,7 +257,7 @@ def test_the_role_installs_the_extension():
 PI_PACKAGE = "@earendil-works/pi-coding-agent"
 
 # The private functions the executed half drives, re-exported into a copy of the extension.
-DRIVEN = ("activeSkills", "writeTranscript")
+DRIVEN = ("activeSkills", "writeTranscript", "rtkRewrite", "rtkStatus")
 
 
 def pi_package():
@@ -220,14 +295,20 @@ def runner(tmp_path_factory):
     return root
 
 
-def run_in_node(runner, body):
-    """`body` as an ES module beside the extension, with its stdout parsed as JSON."""
+def run_in_node(runner, body, env=None):
+    """`body` as an ES module beside the extension, with its stdout parsed as JSON.
+
+    `env` overrides rather than replaces, so a variable this machine happens to export cannot
+    decide the result. An empty string is the off state, matching what the extension checks.
+    """
     script = f'import {{ {", ".join(DRIVEN)} }} from "./guardrails.ts";\n{body}'
     done = subprocess.run(
-        ["node", "--input-type=module", "-e", script],
+        # Absolute, because a test that empties PATH to hide rtk would otherwise hide node too.
+        [shutil.which("node"), "--input-type=module", "-e", script],
         capture_output=True,
         text=True,
         cwd=runner,
+        env=None if env is None else {**os.environ, **env},
         check=False,
     )
     assert done.returncode == 0, done.stderr
@@ -312,3 +393,76 @@ def test_the_transcript_is_the_jsonl_the_hook_parses(runner):
     """
     lines = [json.loads(line) for line in run_in_node(runner, body)]
     assert sorted(entry["attributionSkill"] for entry in lines) == ["commit", "pr"]
+
+
+def rewrite_of(runner, command, enabled=True):
+    """What rtk would run instead, or None. Skipped rather than xfailed when rtk is absent: it is
+    an opt-in brew formula, so a machine without it is a supported machine."""
+    if shutil.which("rtk") is None:
+        pytest.skip("rtk is needed to drive the rewrite")
+    body = f"""
+    const rewritten = await rtkRewrite({json.dumps(command)}, process.cwd());
+    process.stdout.write(JSON.stringify(rewritten ?? null));
+    """
+    return run_in_node(runner, body, env={"RTK_ENABLE": "1" if enabled else ""})
+
+
+def test_a_command_rtk_proxies_is_rewritten(runner):
+    """The whole point, and the half a source grep cannot see: rtk exits 0 whether or not it
+    rewrote anything, so an extension reading the exit status would find every command clean."""
+    assert rewrite_of(runner, "ls -la") == "rtk ls -la"
+
+
+def test_the_opt_in_actually_gates_the_rewrite(runner):
+    """RTK_ENABLE off has to mean the command runs as written. rtk itself does not consult the
+    variable, so this extension is the only thing standing between an opted-out shell and a
+    rewritten command."""
+    assert rewrite_of(runner, "ls -la", enabled=False) is None
+
+
+def test_a_command_rtk_leaves_alone_is_left_alone(runner):
+    """No rewrite arrives as an empty stdout, not as a non-zero exit or an unchanged command, so
+    reading it wrongly would assign `undefined` over a command pi was about to run."""
+    assert rewrite_of(runner, "echo hi") is None
+
+
+def test_a_missing_rtk_leaves_the_command_alone(runner):
+    """Fail-open, in the direction a rewrite fails: the gates above turn a spawn error into an
+    allowed call, and here the same error has to leave the command exactly as written. PATH is
+    emptied rather than rtk moved, so the test does not depend on where brew put it."""
+    body = """
+    const rewritten = await rtkRewrite("ls -la", process.cwd());
+    process.stdout.write(JSON.stringify(rewritten ?? null));
+    """
+    assert run_in_node(runner, body, env={"RTK_ENABLE": "1", "PATH": ""}) is None
+
+
+def status_for(runner, env):
+    """The footer segment, with pi's theme stubbed to name the colour it was asked for.
+
+    The colour is part of the contract, not decoration: the off state is the one a caller has to
+    be able to overlook, so rendering it at the same weight as the on state would be the bug.
+    """
+    body = """
+    const theme = { fg: (colour, text) => `<${colour}>${text}` };
+    process.stdout.write(JSON.stringify(rtkStatus({ ui: { theme } }) ?? null));
+    """
+    return run_in_node(runner, body, env=env)
+
+
+def test_the_segment_says_rewrites_are_happening(runner):
+    if shutil.which("rtk") is None:
+        pytest.skip("rtk is needed for the on and off states")
+    assert status_for(runner, {"RTK_ENABLE": "1"}) == "\u2702\ufe0f <success>rtk"
+
+
+def test_the_segment_says_rewrites_are_not_happening(runner):
+    if shutil.which("rtk") is None:
+        pytest.skip("rtk is needed for the on and off states")
+    assert status_for(runner, {"RTK_ENABLE": ""}) == "<dim>\u2702\ufe0f rtk off"
+
+
+def test_a_machine_without_rtk_shows_no_segment(runner):
+    """`off` would describe a toggle that changes nothing, and footer width is the scarce thing.
+    PATH is emptied rather than rtk moved, since brew's prefix is not this test's business."""
+    assert status_for(runner, {"RTK_ENABLE": "1", "PATH": ""}) is None

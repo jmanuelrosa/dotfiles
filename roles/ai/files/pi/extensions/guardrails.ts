@@ -1,5 +1,5 @@
 /**
- * guardrails.ts - Claude Code's four PreToolUse enforcement hooks, running in Pi.
+ * guardrails.ts - Claude Code's PreToolUse hooks, running in Pi.
  *
  * An adapter and nothing else. Every decision is made by the python scripts under
  * roles/ai/files/claude/hooks/, which Claude Code runs as PreToolUse hooks and which carry their
@@ -22,17 +22,31 @@
  * - Claude has three answers to a PreToolUse hook and Pi has two. cloud-readonly-gate's `ask`
  *   tier becomes a refusal, for the reasons at `askedForPermission`.
  *
- * All four of Claude's PreToolUse hooks are bridged here. The three that are not are on events
- * this file does not listen to: plan-date-stamp.sh is PostToolUse on ExitPlanMode and Pi has no
- * plan mode at all, while skill-recap.sh (Stop) and context-nudge.sh (UserPromptSubmit) would map
- * onto Pi's `turn_end` and `turn_start` and are deliberately left for their own pass.
+ * All four of those hooks are bridged here. The three that are not are on events this file does
+ * not listen to: plan-date-stamp.sh is PostToolUse on ExitPlanMode and Pi has no plan mode at
+ * all, while skill-recap.sh (Stop) and context-nudge.sh (UserPromptSubmit) would map onto Pi's
+ * `turn_end` and `turn_start` and are deliberately left for their own pass.
+ *
+ * The fifth PreToolUse entry in settings.json is bridged here too, and it is the odd one out: rtk
+ * rewrites a command rather than refusing one, so it is a gate in position only. It lives in this
+ * file rather than in an extension of its own purely for that position. Pi loads extensions in
+ * readdir order and runs every `tool_call` handler in that order, so a separate file's rewrite
+ * could land before the gates above ever read the command, and git-skill-gate handed
+ * `rtk git commit` is a gate that has quietly stopped matching. Inside one handler the ordering
+ * settings.json states is a property of the code instead of of the filesystem. One exposure is
+ * left standing, and it is the one Claude has as well: another extension's handler running after
+ * this one sees the rewritten command, exactly as anything ordered after Claude's hook array
+ * does. The extension also renders the rtk opt-in in the footer, mirroring statusline.sh, because
+ * a rewrite the caller cannot see is worse than no rewrite.
  *
  * Everything fails open: a missing hook, a moved checkout, a spawn error or a timeout allows the
  * call, exactly as the hooks themselves do on malformed input. These are intent friction, not a
  * security boundary. That takes deliberate care here, because Pi and Claude disagree about what a
  * broken guardrail means: a `tool_call` handler that throws blocks the call, so an unwritable
  * temp directory would turn a gate nobody can run into a gate nobody can pass. Nothing below is
- * allowed to throw.
+ * allowed to throw. For rtk the same rule reads the other way round, since its failure mode is
+ * not a refusal: an rtk that is missing, slow or unparseable leaves the command exactly as the
+ * caller wrote it.
  */
 
 import { spawn } from "node:child_process";
@@ -58,6 +72,11 @@ const HOOKS_DIR = join(dirname(realpathSync(fileURLToPath(import.meta.url))), ".
 // Above pre-commit-verify's own 150s ceiling, so its report of a slow lint reaches the caller
 // instead of being replaced by this timeout.
 const HOOK_TIMEOUT_MS = 180_000;
+
+// Far below the hook ceiling, because rtk is answering a different kind of question: a rewrite is
+// a parse and a table lookup, so a limit generous enough for a project's full lint would buy an
+// rtk that hangs three minutes of stalled session before every single command.
+const RTK_TIMEOUT_MS = 5_000;
 
 // User messages, where Claude counts stamped assistant events. The unit has to differ because
 // the signals do: Claude re-stamps `attributionSkill` on every assistant turn for as long as the
@@ -89,30 +108,51 @@ interface HookVerdict {
 
 const ALLOW: HookVerdict = { blocked: false, message: "" };
 
-function runHook(name: string, payload: HookPayload): Promise<HookVerdict> {
-  const script = join(HOOKS_DIR, name);
-  if (!existsSync(script)) {
-    return Promise.resolve(ALLOW);
-  }
+interface SpawnResult {
+  code: number | null;
+  stdout: string;
+  stderr: string;
+}
 
+interface SpawnOptions {
+  timeoutMs: number;
+  // Left unset to inherit, which is what every gate wants. Only rtk passes one, because Claude
+  // hands it a variable through a settings `env` block that pi's settings have no counterpart for.
+  env?: NodeJS.ProcessEnv;
+}
+
+// A process that did not run, in the only vocabulary shared by every caller. Both readings of it
+// are the permissive one: exit 0 is not the 2 a gate refuses with, and an empty stdout is not the
+// JSON a rewrite arrives in.
+const DID_NOT_RUN: SpawnResult = { code: 0, stdout: "", stderr: "" };
+
+/**
+ * Every fail-open guarantee in this file, in one place.
+ *
+ * A settled flag so a timeout and a close cannot both answer, a SIGKILL ceiling, a spawn error
+ * that reads as "did not run" rather than a throw, and a swallowed EPIPE from a child that exits
+ * before reading its input. Callers translate the result into their own vocabulary; none of them
+ * decides what a failure means, because for all of them the answer is the same one.
+ */
+function spawnJson(exec: string, args: string[], payload: unknown, options: SpawnOptions): Promise<SpawnResult> {
   return new Promise((resolve) => {
-    const child = spawn(script, [], { stdio: ["pipe", "pipe", "pipe"] });
+    const child = spawn(exec, args, { stdio: ["pipe", "pipe", "pipe"], env: options.env });
     let stderr = "";
     let stdout = "";
     let settled = false;
     let timer: ReturnType<typeof setTimeout>;
 
-    const finish = (verdict: HookVerdict) => {
+    const finish = (result: SpawnResult) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      resolve(verdict);
+      resolve(result);
     };
 
     timer = setTimeout(() => {
       child.kill("SIGKILL");
-      finish(ALLOW);
-    }, HOOK_TIMEOUT_MS);
+      finish(DID_NOT_RUN);
+    }, options.timeoutMs);
 
     child.stderr.on("data", (chunk) => {
       stderr += String(chunk);
@@ -120,14 +160,65 @@ function runHook(name: string, payload: HookPayload): Promise<HookVerdict> {
     child.stdout.on("data", (chunk) => {
       stdout += String(chunk);
     });
-    // A hook that cannot be spawned at all, and a broken pipe from one that exits before reading
-    // its input, both mean the gate did not run. Neither is the caller's fault.
-    child.on("error", () => finish(ALLOW));
+    // A process that cannot be spawned at all, and a broken pipe from one that exits before
+    // reading its input, both mean the work did not happen. Neither is the caller's fault.
+    child.on("error", () => finish(DID_NOT_RUN));
     child.stdin.on("error", () => {});
-    child.on("close", (code) => finish({ blocked: code === 2, message: stderr.trim(), stdout }));
+    child.on("close", (code) => finish({ code, stdout, stderr }));
 
     child.stdin.end(JSON.stringify(payload));
   });
+}
+
+async function runHook(name: string, payload: HookPayload): Promise<HookVerdict> {
+  const script = join(HOOKS_DIR, name);
+  if (!existsSync(script)) {
+    return ALLOW;
+  }
+
+  const { code, stdout, stderr } = await spawnJson(script, [], payload, { timeoutMs: HOOK_TIMEOUT_MS });
+  return { blocked: code === 2, message: stderr.trim(), stdout };
+}
+
+/**
+ * The command rtk would rather run, or nothing.
+ *
+ * The one thing bridged here that rewrites a call instead of refusing one, which is also why its
+ * answer cannot be returned: `ToolCallEventResult` carries a block and a reason and nothing else,
+ * and pi's own note on that field says to mutate `event.input` in place instead. The caller does
+ * that, last, once every gate above has read the original.
+ *
+ * `hook claude` rather than `hook check`, even though `check` prints the bare rewritten command
+ * and would be less code here: `check` is a dry run, so rtk's own audit and tee side effects do
+ * not fire and RTK_HOOK_AUDIT would be dead weight. Going through the target Claude Code goes
+ * through keeps one code path inside rtk for both harnesses.
+ *
+ * Exit status carries nothing, unlike the hooks: rtk exits 0 whether or not it rewrote anything,
+ * and an empty stdout is the whole of the signal for "no rewrite".
+ */
+async function rtkRewrite(command: string, cwd: string): Promise<string | undefined> {
+  // The opt-in, read the way settings.json and statusline.sh both read it: any non-empty value is
+  // on. Checked before the spawn, so a shell that did not opt in pays nothing.
+  if (!process.env.RTK_ENABLE) return undefined;
+  if (!command.trim()) return undefined;
+
+  const { stdout } = await spawnJson(
+    "rtk",
+    ["hook", "claude"],
+    { tool_name: "Bash", tool_input: { command }, cwd },
+    { timeoutMs: RTK_TIMEOUT_MS, env: { ...process.env, RTK_HOOK_AUDIT: "1" } },
+  );
+
+  const raw = stdout.trim();
+  if (!raw) return undefined;
+  try {
+    const rewritten = JSON.parse(raw)?.hookSpecificOutput?.updatedInput?.command;
+    if (typeof rewritten !== "string" || !rewritten.trim()) return undefined;
+    return rewritten === command ? undefined : rewritten;
+  } catch {
+    // As in askedForPermission: output that will not parse has proposed nothing.
+    return undefined;
+  }
 }
 
 /**
@@ -301,13 +392,56 @@ async function guard(event: ToolCallEvent, ctx: ExtensionContext): Promise<ToolC
       };
     }
 
-    return blockResult(await runHook("pre-commit-verify.sh", { tool_name: "Bash", tool_input, cwd: ctx.cwd }));
+    const verify = await runHook("pre-commit-verify.sh", { tool_name: "Bash", tool_input, cwd: ctx.cwd });
+    if (verify.blocked) return blockResult(verify);
+
+    // Last, as it is last in settings.json, and that ordering is the whole reason rtk lives in
+    // this file. `tool_input` above still holds what the caller asked for, so all three gates
+    // judged the real command and only what runs is rewritten.
+    const rewritten = await rtkRewrite(event.input.command, ctx.cwd);
+    if (rewritten) event.input.command = rewritten;
+    return undefined;
   }
 
   return undefined;
 }
 
+// Namespaces the footer slot, for the reason velocity.ts records at its own key: pi keys statuses
+// by string and last writer wins, and this extension directory holds herdr's extension too.
+const RTK_STATUS_KEY = "dotfiles-rtk";
+
+// PATH walked rather than a process spawned. This answers a display question, and `rtk --version`
+// would spend a child at every session start on something existsSync already knows.
+function onPath(name: string): boolean {
+  return (process.env.PATH ?? "").split(":").some((dir) => dir !== "" && existsSync(join(dir, name)));
+}
+
+/**
+ * The rtk opt-in, as statusline.sh shows it in Claude.
+ *
+ * The same three states and the same three glyphs, deliberately. The segment exists so a session
+ * whose commands are being rewritten cannot be mistaken for one whose commands are not, and a
+ * second vocabulary for that would cost the recognition the segment is for. Nothing at all when
+ * rtk is not installed, since the toggle then describes something that cannot happen either way.
+ */
+function rtkStatus(ctx: ExtensionContext): string | undefined {
+  if (!onPath("rtk")) return undefined;
+  const theme = ctx.ui.theme;
+  if (process.env.RTK_ENABLE) return `✂️ ${theme.fg("success", "rtk")}`;
+  return theme.fg("dim", "✂️ rtk off");
+}
+
 export default function (pi: ExtensionAPI) {
+  pi.on("session_start", async (_event, ctx) => {
+    try {
+      // Every reason, where velocity filters them: this reads the environment, which no session
+      // event can change, so there is no running total to hand over or reset.
+      ctx.ui.setStatus(RTK_STATUS_KEY, rtkStatus(ctx));
+    } catch {
+      // A footer segment is never worth interrupting a session for.
+    }
+  });
+
   pi.on("tool_call", async (event, ctx) => {
     try {
       return await guard(event, ctx);
