@@ -36,6 +36,25 @@ One translation subtlety worth knowing: pi-sandbox runs any pattern containing `
 
 **`git-skill-gate.sh` runs on every bash call in pi and behind three matchers in Claude, and that is deliberate.** Its `main()` refuses `--no-verify` before it works out which subcommands are gated, so that refusal applies to any command at all; everything else exits 0 once `gated` is empty, so a non-git command self-guards for free. Claude's `git *`, `gh *` and `glab *` matchers therefore catch `--no-verify` only inside those three, and narrowing pi to match would **remove** protection. The cost is a `python3` spawn per bash tool call, which is a latency item to measure rather than a correctness one.
 
+## rtk rides along with the gates, because position is the whole contract
+
+`rtk` is the fifth `PreToolUse` entry in Claude's `settings.json`, and the only one that rewrites a command instead of refusing one.
+That makes it a gate in position only, which is exactly what has to be preserved: it is **last** in Claude's hook array, after the three gates have read the command the caller actually wrote.
+
+It therefore lives inside `guardrails.ts` rather than in an `rtk.ts` of its own.
+Pi loads extensions in `readdir` order and runs every `tool_call` handler in that order, and the extension directory is not even exclusively ours (herdr installs one too), so a separate file's rewrite could land before the gates read the command.
+A `git-skill-gate.sh` handed `rtk git commit` instead of `git commit` is a gate that has stopped matching, and nothing about it looks broken from outside: the extension loads, the hook runs, the command is allowed.
+Inside one handler that ordering is a property of the code, and a parametrized test pins the rewrite after each of the three gates.
+One exposure is left standing, and Claude has it too: another extension's handler running after this one sees the rewritten command, exactly as anything ordered after Claude's hook array does.
+
+Three smaller differences:
+
+- **`rtk hook claude`, not `rtk hook check`.** `check` prints the bare rewritten command and would be less code, but it is a dry run, so rtk's own audit and tee side effects never fire. Going through the target Claude goes through keeps one code path inside rtk for both harnesses. The reply is read from `hookSpecificOutput.updatedInput.command`, and exit status carries nothing: rtk exits 0 either way, and an empty stdout is the entire signal for "no rewrite".
+- **`RTK_HOOK_AUDIT` moves from settings into the child env.** Claude sets it in its settings `env` block; pi's settings have no `env` block at all, so the extension passes it on the spawn. A test reads the value out of `settings.json` so the two cannot drift.
+- **The footer segment mirrors `statusline.sh` rather than inventing a state.** Same glyph, same three states: nothing when `rtk` is off `PATH`, `rtk` when `RTK_ENABLE` is set, `rtk off` otherwise. A rewrite the caller cannot see is worse than no rewrite, and a second vocabulary for the same toggle across two harnesses would cost the recognition the segment exists for. `RTK_ENABLE` stays a manual per-shell export for both harnesses; nothing in the repo sets it.
+
+Fail-open reads the other way round here than it does for the gates. Their failure mode is a refusal nobody can pass, so they allow; rtk's is a rewrite nobody asked for, so a missing, slow or unparseable rtk leaves the command exactly as written.
+
 ## What a skill's frontmatter loses
 
 pi's skill loader reads exactly three fields from a `SKILL.md`, `name`, `description` and `disable-model-invocation`, and ignores the rest. So `allowed-tools:`, `model:` and `effort:` are Claude-only, silently, on the 22 skills that carry one.
