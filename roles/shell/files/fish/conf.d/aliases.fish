@@ -76,3 +76,7 @@ end
 function claude:plugin --wraps claude-kit
     claude-kit $argv --type plugin
 end
+
+
+alias pi:debug=pi_debug
+alias pi:log=pi_last_error
