@@ -1,5 +1,5 @@
 http://pot.localhost {
-	reverse_proxy 127.0.0.1:29769 [::1]:29769 {
+	reverse_proxy 127.0.0.1:23946 [::1]:23946 {
 		lb_policy first
 		fail_duration 5s
 	}

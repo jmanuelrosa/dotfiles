@@ -21,11 +21,15 @@ PI_SANDBOX.write_text(json.dumps(derive(json.loads(CLAUDE_SETTINGS.read_text()))
 Four things the translation cannot carry, verified against pi-sandbox 0.6.5 and the
 @carderne/sandbox-runtime it forks, recorded here because each is silent if forgotten:
 
-- `excludedCommands`. Claude runs twelve CLIs outside its sandbox so they can read
-  their own credential stores. pi-sandbox has no per-command exclusion, so those
-  commands are confined like any other. Reads of a denied path are *prompted* rather
-  than refused, so `aws` and friends still work, with a prompt. Blanket-allowing their
-  credential directories would undo the `denyRead` this repo deliberately sets.
+- `excludedCommands`. Claude runs fourteen entries outside its sandbox: twelve CLIs so
+  they can read their own credential stores, plus `bunx ctx7` and `npx -y ctx7`, which
+  need it for network egress rather than for credentials. pi-sandbox has no per-command
+  exclusion, so those commands are confined like any other. Reads of a denied path are
+  *prompted* rather than refused, so `aws` and friends still work, with a prompt.
+  ctx7 is the one that does not degrade gracefully: a blocked request is not a prompt,
+  it is a causeless `fetch failed`, so under pi a docs question falls back to search.
+  Blanket-allowing their credential directories would undo the `denyRead` this repo
+  deliberately sets.
 - `$TMPDIR`. Only a leading `~` is expanded, so a literal `$TMPDIR` entry would match
   nothing. `/var/folders` is what it resolves to on Darwin and stands in for it.
 - Bare tool names and command patterns. `Bash(...)` deny rules describe command shape,

@@ -1,6 +1,0 @@
-http://pot-admin.localhost {
-	reverse_proxy 127.0.0.1:27779 [::1]:27779 {
-		lb_policy first
-		fail_duration 5s
-	}
-}

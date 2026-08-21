@@ -42,6 +42,8 @@
       "Bash(gcloud:*)",
       "Bash(gsutil:*)",
       "Bash(bq:*)",
+      "Bash(bunx ctx7:*)",
+      "Bash(npx -y ctx7:*)",
       "Edit(**/.env.sample)",
       "Edit(**/.env.example)"
     ],
@@ -384,6 +386,8 @@
       "sentry",
       "bru-cli",
       "ntn",
+      "bunx ctx7 *",
+      "npx -y ctx7 *",
       "aws *",
       "gcloud *",
       "gsutil *",

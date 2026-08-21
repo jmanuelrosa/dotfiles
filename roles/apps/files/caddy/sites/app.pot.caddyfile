@@ -1,0 +1,6 @@
+http://app.pot.localhost {
+	reverse_proxy 127.0.0.1:23947 [::1]:23947 {
+		lb_policy first
+		fail_duration 5s
+	}
+}
