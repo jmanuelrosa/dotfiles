@@ -68,6 +68,8 @@ def kit(tmp_path):
         env.pop("XDG_CONFIG_HOME", None)
         if extra_env:
             env.update(extra_env)
+            if extra_env.get("FORCE_COLOR"):
+                env.pop("NO_COLOR", None)
         return subprocess.run(
             [sys.executable, str(SHIM), *argv],
             cwd=str(cwd or h),

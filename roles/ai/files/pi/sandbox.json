@@ -38,7 +38,9 @@
       "~/.gitconfig",
       "~/.ssh/known_hosts",
       "~/.config/acli",
-      "~/Developer/dotfiles/roles/ai/files/claude/skills"
+      "~/Developer/dotfiles/roles/ai/files/claude/skills",
+      "~/Developer/dotfiles/roles/ai/files/claude/hooks",
+      "~/Developer/dotfiles/roles/ai/files/claude/settings.json"
     ],
     "denyRead": [
       "~/.ssh",

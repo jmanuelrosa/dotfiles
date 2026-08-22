@@ -7,10 +7,5 @@
     "name": "Jose Manuel Rosa",
     "email": "josemanuel.rosamoncayo@gmail.com"
   },
-  "groups": [
-    "engineering",
-    "devops",
-    "workflow",
-    "observability"
-  ]
+  "groups": ["engineering", "devops", "workflow", "observability"]
 }

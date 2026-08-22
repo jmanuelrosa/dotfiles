@@ -143,7 +143,7 @@
             "backend",
             "fastify"
           ],
-          "updated_at": "2026-07-25T09:44:18Z"
+          "updated_at": "2026-08-21T11:55:14Z"
         },
         {
           "upstream_path": "skills/node",
@@ -152,7 +152,7 @@
             "backend",
             "node"
           ],
-          "updated_at": "2026-07-25T09:44:18Z"
+          "updated_at": "2026-08-22T06:27:03Z"
         },
         {
           "upstream_path": "skills/typescript-magician",
@@ -214,7 +214,7 @@
             "marketing",
             "seo"
           ],
-          "updated_at": "2026-07-25T09:44:13Z"
+          "updated_at": "2026-08-21T11:55:08Z"
         },
         {
           "upstream_path": "skills/ai-seo",
@@ -222,7 +222,7 @@
             "marketing",
             "seo"
           ],
-          "updated_at": "2026-07-25T09:44:13Z"
+          "updated_at": "2026-08-22T06:26:57Z"
         }
       ]
     },
@@ -386,7 +386,7 @@
             "workflow",
             "global"
           ],
-          "updated_at": "2026-08-01T07:46:38Z"
+          "updated_at": "2026-08-21T11:55:13Z"
         },
         {
           "upstream_path": "skills/productivity/grill-me",
@@ -400,7 +400,7 @@
           "dependencies": [
             "grilling"
           ],
-          "updated_at": "2026-07-25T09:44:17Z"
+          "updated_at": "2026-08-21T11:55:13Z"
         },
         {
           "upstream_path": "skills/engineering/grill-with-docs",
@@ -415,7 +415,7 @@
             "grilling",
             "domain-modeling"
           ],
-          "updated_at": "2026-07-25T09:44:18Z"
+          "updated_at": "2026-08-21T11:55:13Z"
         },
         {
           "upstream_path": "skills/productivity/grilling",
@@ -426,7 +426,7 @@
             "planning"
           ],
           "dependency_only": true,
-          "updated_at": "2026-08-12T04:49:25Z"
+          "updated_at": "2026-08-21T11:55:13Z"
         },
         {
           "upstream_path": "skills/engineering/domain-modeling",
@@ -436,7 +436,7 @@
             "documentation"
           ],
           "dependency_only": true,
-          "updated_at": "2026-08-15T05:58:46Z"
+          "updated_at": "2026-08-21T11:55:13Z"
         }
       ]
     },
@@ -565,7 +565,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-08-04T16:31:47Z"
+          "updated_at": "2026-08-21T11:55:10Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-brownfield",
