@@ -29,12 +29,19 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from dotkit.testing import CLAUDE, HOOKS, PI_EXTENSIONS, REPO
+from dotkit.testing import CLAUDE, HOOKS, PI, PI_EXTENSIONS, REPO
 
 EXTENSION = PI_EXTENSIONS / "guardrails.ts"
 TASKS = REPO / "roles/ai/tasks/main.yml"
 SETTINGS = CLAUDE / "settings.json"
 STATUSLINE = CLAUDE / "statusline.sh"
+APPEND_SYSTEM = PI / "APPEND_SYSTEM.md"
+FISH_CONFIG = REPO / "roles/shell/files/fish/config.fish"
+
+# The variable that decides whether any of this runs at all under the cursor provider. Cursor's
+# host tools do the work by default and pi's builtins are hidden from its bridge, so no gate here
+# sees a `tool_call`. Named once, and read off the three files that have to agree about it.
+EXPOSE = "PI_CURSOR_EXPOSE_BUILTIN_TOOLS"
 
 # The gates the rewrite has to come after, in the order guard() runs them. rtk is a gate in
 # position only, so this list is what that position means.
@@ -237,6 +244,23 @@ def test_the_footer_mirrors_the_claude_statusline(source):
     assert key.startswith("dotfiles-") and key != "dotfiles-velocity"
 
 
+def test_the_shell_exposes_pi_builtins_to_cursor(source):
+    """Without this export the whole file is decoration under the cursor provider: Cursor's own
+    host tools run the command, no `tool_call` is emitted, and every gate below goes unrun while
+    the session reads exactly like one where each command was checked. It lives in config.fish
+    because pi's settings.json has no `env` block, which is the same reason the rtk spawn carries
+    RTK_HOOK_AUDIT itself."""
+    assert f"set -gx {EXPOSE} 1" in FISH_CONFIG.read_text()
+    assert EXPOSE in source, "the footer cannot report a variable it does not read"
+
+
+def test_the_system_prompt_steers_onto_the_bridged_tools(source):
+    """The export only *offers* `pi__bash` beside Cursor's native shell; pi's own --no-tools and
+    --exclude-tools act on pi's registry and cannot retire a Cursor host tool. So the instruction
+    is the other half of the exposure, and dropping it leaves the gates reachable but unused."""
+    assert "pi__" in APPEND_SYSTEM.read_text()
+
+
 def test_the_role_installs_the_extension():
     """Pi discovers extensions by directory, so both halves are needed and neither is loud when
     missing: no directory means the link task writes into a path that does not exist, and no link
@@ -257,7 +281,7 @@ def test_the_role_installs_the_extension():
 PI_PACKAGE = "@earendil-works/pi-coding-agent"
 
 # The private functions the executed half drives, re-exported into a copy of the extension.
-DRIVEN = ("activeSkills", "writeTranscript", "rtkRewrite", "rtkStatus")
+DRIVEN = ("activeSkills", "writeTranscript", "rtkRewrite", "rtkStatus", "gateStatus")
 
 
 def pi_package():
@@ -466,3 +490,30 @@ def test_a_machine_without_rtk_shows_no_segment(runner):
     """`off` would describe a toggle that changes nothing, and footer width is the scarce thing.
     PATH is emptied rather than rtk moved, since brew's prefix is not this test's business."""
     assert status_for(runner, {"RTK_ENABLE": "1", "PATH": ""}) is None
+
+
+def gate_status_for(runner, provider, env):
+    """The gates-off segment, with the model and theme pi would hand the extension stubbed."""
+    body = f"""
+    const theme = {{ fg: (colour, text) => `<${{colour}}>${{text}}` }};
+    const model = {json.dumps(provider)} === null ? undefined : {{ provider: {json.dumps(provider)} }};
+    process.stdout.write(JSON.stringify(gateStatus({{ model, ui: {{ theme }} }}) ?? null));
+    """
+    return run_in_node(runner, body, env=env)
+
+
+def test_the_segment_says_the_gates_are_not_running(runner):
+    """The one state with any text, because it is the one nobody can otherwise see: a session
+    where no hook ran is indistinguishable from one where every command passed."""
+    assert gate_status_for(runner, "cursor", {EXPOSE: ""}) == "<warning>\u26a0\ufe0f gates off"
+
+
+def test_exposing_the_builtins_clears_the_segment(runner):
+    assert gate_status_for(runner, "cursor", {EXPOSE: "1"}) is None
+
+
+def test_a_provider_running_pi_s_own_tools_shows_no_segment(runner):
+    """Nothing at all, and the exposure is irrelevant here: there is no news in a gate doing its
+    job, and footer width is the scarce thing."""
+    assert gate_status_for(runner, "xai", {EXPOSE: ""}) is None
+    assert gate_status_for(runner, None, {EXPOSE: ""}) is None

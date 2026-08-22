@@ -36,6 +36,22 @@ One translation subtlety worth knowing: pi-sandbox runs any pattern containing `
 
 **`git-skill-gate.sh` runs on every bash call in pi and behind three matchers in Claude, and that is deliberate.** Its `main()` refuses `--no-verify` before it works out which subcommands are gated, so that refusal applies to any command at all; everything else exits 0 once `gated` is empty, so a non-git command self-guards for free. Claude's `git *`, `gh *` and `glab *` matchers therefore catch `--no-verify` only inside those three, and narrowing pi to match would **remove** protection. The cost is a `python3` spawn per bash tool call, which is a latency item to measure rather than a correctness one.
 
+## The gates only see pi's own tools, and the cursor provider does not use them
+
+Every hook in `guardrails.ts` hangs off pi's `bash`, `write` and `edit` tool calls.
+That is the whole reach of the translation, and under `defaultProvider: cursor` it reaches nothing.
+
+Pi runs Cursor models through the Cursor SDK's local agent, which brings its own host tools for shell, files, grep and edits, and `pi-cursor-sdk` hides the overlapping pi builtins from its bridge unless `PI_CURSOR_EXPOSE_BUILTIN_TOOLS` is set.
+A hidden builtin never produces a `tool_call`, so `git-skill-gate.sh`, `em-dash-gate.sh`, `cloud-readonly-gate.sh`, `pre-commit-verify.sh` and the rtk rewrite all go unrun, and pi-sandbox does not confine the command either.
+Nothing reports this. A session where no gate ran looks precisely like a session where every command was checked and allowed, which is how it survived unnoticed: the only way to tell them apart from a transcript is that `blockResult` appends `In pi those skills are /skill:commit and /skill:pr` to a refusal, and that string had never once been written.
+
+It also produces a failure that looks like a gate but is not one. Cursor's own shell returns `Cursor shell did not complete / missing completion` for the commands `/skill:commit` needs, while read-only ones return normally, and a model handed that silence in a repo full of hook source will explain it as `git-skill-gate.sh` refusing the commit. It reads as a guardrail working. It is a tool call that never finished.
+
+`config.fish` therefore exports `PI_CURSOR_EXPOSE_BUILTIN_TOOLS=1`, which puts `pi__bash` and its siblings back on the bridge; a bridged call is real pi execution, emitting the `toolCall` the gates are hooked to.
+It cannot live in `pi/settings.json`, which has no `env` block, for the same reason `guardrails.ts` passes `RTK_HOOK_AUDIT` on its own spawn.
+`APPEND_SYSTEM.md` carries the matching instruction, because exposure only *offers* the bridged tools: pi's `--no-tools` and `--exclude-tools` act on pi's own registry and cannot retire Cursor's host tools, so under this provider the gates are steered rather than enforced.
+That gap is what the `gates off` footer segment exists to show, and it is why the warning is the segment's only state with text.
+
 ## rtk rides along with the gates, because position is the whole contract
 
 `rtk` is the fifth `PreToolUse` entry in Claude's `settings.json`, and the only one that rewrites a command instead of refusing one.

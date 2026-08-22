@@ -25,6 +25,10 @@ Tooling, code standards and git conventions are agent-neutral and live in `AGENT
 - Never bypass safety checks (`--no-verify`, `--force` on main, skipping hooks) unless the user explicitly asks.
 - When you hit an obstacle, find the root cause: don't delete state to make the error go away.
 
+## Tools
+
+- When `pi__*` tools are available, use them for every shell command, write and edit, in preference to any host-native equivalent. Only the `pi__*` path runs the session's guardrails, so work done outside it is unchecked.
+
 ## Skills
 
 - Skills are loaded on demand via `/skill:<name>`. Use them when their description matches the task; don't invoke speculatively.

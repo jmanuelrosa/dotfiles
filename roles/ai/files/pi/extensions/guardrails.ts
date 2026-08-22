@@ -39,6 +39,15 @@
  * does. The extension also renders the rtk opt-in in the footer, mirroring statusline.sh, because
  * a rewrite the caller cannot see is worse than no rewrite.
  *
+ * One thing this file cannot reach, and it is the reason for the footer segment below. Every gate
+ * here hangs off pi's own `bash`, `write` and `edit`. Under the cursor provider those builtins are
+ * hidden from the bridge by default and Cursor's host tools do the work instead, which emits no
+ * `tool_call` at all, so the gates go unrun and the session reads exactly like one where every
+ * command passed. `PI_CURSOR_EXPOSE_BUILTIN_TOOLS` puts the builtins back on the bridge, but it
+ * only offers them beside Cursor's native tools rather than replacing them, and pi's own
+ * `--no-tools` / `--exclude-tools` do not reach Cursor's registry. Under that provider these are
+ * therefore best-effort even by the standard of the paragraph below.
+ *
  * Everything fails open: a missing hook, a moved checkout, a spawn error or a timeout allows the
  * call, exactly as the hooks themselves do on malformed input. These are intent friction, not a
  * security boundary. That takes deliberate care here, because Pi and Claude disagree about what a
@@ -409,6 +418,12 @@ async function guard(event: ToolCallEvent, ctx: ExtensionContext): Promise<ToolC
 // Namespaces the footer slot, for the reason velocity.ts records at its own key: pi keys statuses
 // by string and last writer wins, and this extension directory holds herdr's extension too.
 const RTK_STATUS_KEY = "dotfiles-rtk";
+const GATE_STATUS_KEY = "dotfiles-gates";
+
+// The provider whose own host tools do the work, so pi never emits the tool_call every gate above
+// is hooked to. Matched on the model rather than on settings.json, because /model switches it
+// mid-session and a footer read from a file would then be describing the previous model.
+const HOST_TOOL_PROVIDER = "cursor";
 
 // PATH walked rather than a process spawned. This answers a display question, and `rtk --version`
 // would spend a child at every session start on something existsSync already knows.
@@ -431,16 +446,45 @@ function rtkStatus(ctx: ExtensionContext): string | undefined {
   return theme.fg("dim", "✂️ rtk off");
 }
 
+/**
+ * Whether the gates above can see anything at all this session.
+ *
+ * Under the cursor provider, Cursor's own host tools handle shell, files and edits, and pi's
+ * builtins are hidden from the bridge unless PI_CURSOR_EXPOSE_BUILTIN_TOOLS is set. A hidden
+ * builtin never produces a `tool_call`, so every hook in this file goes unrun and nothing says so:
+ * the session looks exactly like one where each command was checked and allowed. That is the
+ * failure this segment exists to make visible, and it is why the warning is the only state with
+ * any text. A provider that runs pi's own tools gets nothing, because there is no news in a gate
+ * doing its job.
+ *
+ * The exposure only offers pi__bash beside Cursor's native shell rather than replacing it, so even
+ * the quiet state is a statement about what is reachable, not a guarantee about what was used.
+ */
+function gateStatus(ctx: ExtensionContext): string | undefined {
+  if (ctx.model?.provider !== HOST_TOOL_PROVIDER) return undefined;
+  if (process.env.PI_CURSOR_EXPOSE_BUILTIN_TOOLS) return undefined;
+  return ctx.ui.theme.fg("warning", "⚠️ gates off");
+}
+
 export default function (pi: ExtensionAPI) {
-  pi.on("session_start", async (_event, ctx) => {
+  const paint = (ctx: ExtensionContext) => {
     try {
-      // Every reason, where velocity filters them: this reads the environment, which no session
-      // event can change, so there is no running total to hand over or reset.
+      // Both segments together, because both are pure reads of state pi already holds. Neither
+      // carries a running total, so a repaint is always safe and there is nothing to hand over.
       ctx.ui.setStatus(RTK_STATUS_KEY, rtkStatus(ctx));
+      ctx.ui.setStatus(GATE_STATUS_KEY, gateStatus(ctx));
     } catch {
       // A footer segment is never worth interrupting a session for.
     }
-  });
+  };
+
+  pi.on("session_start", async (_event, ctx) => paint(ctx));
+
+  // Repainted on a model switch as well, because gateStatus reads the provider: session_start
+  // alone would leave a session that started on a pi-native model showing nothing after /model
+  // moved it onto cursor, which is the exact case the segment is for. `ctx` rather than
+  // `event.model`, since agent-session assigns the new model before it emits this event.
+  pi.on("model_select", async (_event, ctx) => paint(ctx));
 
   pi.on("tool_call", async (event, ctx) => {
     try {
