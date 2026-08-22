@@ -51,6 +51,10 @@ set -gx RIPGREP_CONFIG_PATH $HOME/.config/ripgrep/config
 # SSH environment file
 set -gx SSH_ENV $HOME/.ssh/environment
 
+# pi: route shell, file and edit work through pi's own tools under the cursor provider.
+# Cursor's native host tools bypass the guardrail hooks and pi-sandbox entirely.
+set -gx PI_CURSOR_EXPOSE_BUILTIN_TOOLS 1
+
 # set custom collation rule - sort dotfiles first, followed by uppercase and lowercase filenames
 set -gx LC_COLLATE C
 
