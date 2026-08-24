@@ -24,12 +24,13 @@ end
 
 # Function to display usage
 function usage
-    echo "Usage: s-task [--dry] [--type TYPE] [--jira|--github] <ISSUE>"
+    echo "Usage: s-task [--dry] [--type TYPE] [--jira|--github] [--worktree[=DIR]] <ISSUE>"
     echo "Example: s-task JIRA-123"
     echo "         s-task 456"
     echo "         s-task https://github.com/owner/repo/issues/456"
     echo "         s-task --dry JIRA-123"
     echo "         s-task --type chore --github 456"
+    echo "         s-task --worktree JIRA-123"
     echo ""
     echo "Options:"
     echo "  -d, --dry         Print the branch name that would be created and exit"
@@ -37,6 +38,15 @@ function usage
     echo "  -j, --jira        Treat ISSUE as a Jira key (default for KEY-123 shapes)"
     echo "  -g, --github      Treat ISSUE as a GitHub issue of the current repo"
     echo "  -n, --no-push     Keep the branch local (a GitHub issue then gets no linked branch)"
+    echo "  -w, --worktree[=DIR]"
+    echo "                    Check the branch out in a sibling worktree via 'wt add' instead"
+    echo "                    of in the current one. DIR defaults to the lowercased ticket"
+    echo "                    (proj-123, gh-456)"
+    echo ""
+    echo "With --worktree the current working tree is never switched: the branch is cut off"
+    echo "origin/<default> and 'wt add' checks it out next door, copying env/.vscode/.claude"
+    echo "and installing deps. Inside a herdr session the worktree is opened and focused; a"
+    echo "shell cannot cd its parent, so the path is printed to cd into otherwise."
     echo ""
     echo "Provider is auto-detected when neither --jira nor --github is passed:"
     echo "  KEY-123                          → Jira"
@@ -135,12 +145,30 @@ end
 # Create the branch off an up-to-date default branch, or switch to it if it already exists.
 # Sets BRANCH_WAS_CREATED, which decides whether pushing is safe: a branch we just cut
 # carries no commits, while a pre-existing one may hold work that belongs to /pr.
+#
+# Worktree mode checks nothing out here, because `wt add` is what checks the branch out.
+# It also cuts the branch off origin/$DEFAULT_BRANCH rather than off the local one, which
+# is both current without a pull and safe with a dirty working tree.
 function create_local_branch
     if git rev-parse --verify --quiet "refs/heads/$BRANCH_NAME" >/dev/null
+        set -g BRANCH_WAS_CREATED 0
+        if test $USE_WORKTREE -eq 1
+            _ui warn "Branch already exists locally, reusing it"
+            return 0
+        end
         _ui warn "Branch already exists locally, switching to it"
         git switch "$BRANCH_NAME" >/dev/null 2>&1
         or die "Could not switch to existing branch $BRANCH_NAME"
-        set -g BRANCH_WAS_CREATED 0
+        return 0
+    end
+
+    if test $USE_WORKTREE -eq 1
+        # --no-track, or the branch starts out tracking origin/$DEFAULT_BRANCH, which is
+        # what `git push` in the worktree would then aim at until the first `push -u`.
+        _ui step "Creating the new branch off origin/$DEFAULT_BRANCH"
+        git branch --no-track "$BRANCH_NAME" "origin/$DEFAULT_BRANCH" >/dev/null 2>&1
+        or die "Could not create branch $BRANCH_NAME"
+        set -g BRANCH_WAS_CREATED 1
         return 0
     end
 
@@ -155,19 +183,67 @@ function create_local_branch
     set -g BRANCH_WAS_CREATED 1
 end
 
+# Path of the worktree holding $BRANCH_NAME, empty when no worktree has it checked out.
+function worktree_for_branch
+    set -l current ""
+    for line in (git worktree list --porcelain)
+        if string match -q 'worktree *' -- $line
+            set current (string replace 'worktree ' '' -- $line)
+        else if test "$line" = "branch refs/heads/$BRANCH_NAME"
+            echo $current
+            return 0
+        end
+    end
+end
+
+# Hand the branch to `wt add`, which places the worktree beside the main one and carries
+# the untracked local setup (env files, .vscode, .claude, dependencies) into it. Sets
+# WORKTREE_PATH from `git worktree list` rather than rebuilding the path wt chose.
+function create_worktree
+    set -g WORKTREE_PATH (worktree_for_branch)
+    if test -n "$WORKTREE_PATH"
+        _ui warn "Branch is already checked out in a worktree, reusing it"
+        return 0
+    end
+
+    # --focus is what makes herdr open the workspace focused, so the two travel together.
+    set -l wt_flags
+    if set -q HERDR_ENV; and type -q herdr
+        set wt_flags --herdr --focus
+    end
+
+    wt add -b "$BRANCH_NAME" $wt_flags "$WORKTREE_DIR"
+    or die "Could not create the worktree $WORKTREE_DIR"
+
+    set -g WORKTREE_PATH (worktree_for_branch)
+    if test -z "$WORKTREE_PATH"
+        die "wt add reported success but no worktree holds $BRANCH_NAME"
+    end
+end
+
 # Validate dependencies
 if not command -v jq >/dev/null 2>&1
     die "jq is required but not installed. Install it with: brew install jq"
 end
 
 # Parse arguments
-argparse 'd/dry' 't/type=' 'j/jira' 'g/github' 'n/no-push' -- $argv 2>/dev/null
+argparse 'd/dry' 't/type=' 'j/jira' 'g/github' 'n/no-push' 'w/worktree=?' -- $argv 2>/dev/null
 or usage
 
 if set -q _flag_no_push
     set -g DO_PUSH 0
 else
     set -g DO_PUSH 1
+end
+
+if set -q _flag_worktree
+    set -g USE_WORKTREE 1
+    # wt is a fish function from the shell role, which the work profile always installs
+    # before this one, so its absence means a broken install rather than a missing flag.
+    type -q wt
+    or die "--worktree needs the 'wt' fish function (roles/shell/files/fish/functions/wt.fish)"
+else
+    set -g USE_WORKTREE 0
 end
 
 set -g BRANCH_WAS_CREATED 0
@@ -315,14 +391,31 @@ end
 
 set -g BRANCH_NAME "$BRANCH_BASE$TITLE_SLUG"
 
+# The worktree directory is the ticket, not the branch: it is a name to recognise in a
+# path and in a herdr tab, and the branch already carries the title.
+if test $USE_WORKTREE -eq 1
+    if test -n "$_flag_worktree"
+        set -g WORKTREE_DIR (create_slug "$_flag_worktree")
+    else
+        set -g WORKTREE_DIR (create_slug "$TICKET")
+    end
+end
+
 if set -q _flag_dry
     echo ""
     _ui title "🧪 Dry run: would create branch "(_ui paint cyan $BRANCH_NAME)
+    if test $USE_WORKTREE -eq 1
+        _ui item "in a new worktree at ../$WORKTREE_DIR"
+    end
     exit 0
 end
 
 echo ""
-_ui title "🌿 Creating branch "(_ui paint cyan $BRANCH_NAME)
+if test $USE_WORKTREE -eq 1
+    _ui title "🌿 Creating branch "(_ui paint cyan $BRANCH_NAME)" in worktree ../$WORKTREE_DIR"
+else
+    _ui title "🌿 Creating branch "(_ui paint cyan $BRANCH_NAME)
+end
 
 # Fetch latest changes and detect default branch
 _ui step "Fetching the latest changes"
@@ -348,9 +441,13 @@ _ui ok "Using default branch $DEFAULT_BRANCH"
 # else (Jira, or --no-push) creates the branch locally and pushes it separately.
 if test "$PROVIDER" = github -a $DO_PUSH -eq 1
     if git rev-parse --verify --quiet "refs/heads/$BRANCH_NAME" >/dev/null
-        _ui warn "Branch already exists locally, switching to it"
-        git switch "$BRANCH_NAME" >/dev/null 2>&1
-        or die "Could not switch to existing branch $BRANCH_NAME"
+        if test $USE_WORKTREE -eq 1
+            _ui warn "Branch already exists locally, reusing it"
+        else
+            _ui warn "Branch already exists locally, switching to it"
+            git switch "$BRANCH_NAME" >/dev/null 2>&1
+            or die "Could not switch to existing branch $BRANCH_NAME"
+        end
 
         if string match -q "*$BRANCH_NAME*" -- (gh issue develop $ISSUE_NUMBER --list 2>/dev/null | string collect)
             _ui ok "Already a linked branch on issue #$ISSUE_NUMBER"
@@ -359,13 +456,24 @@ if test "$PROVIDER" = github -a $DO_PUSH -eq 1
         end
     else
         _ui step "Creating a linked branch on issue #$ISSUE_NUMBER"
-        set -g DEVELOP_OUT (gh issue develop $ISSUE_NUMBER --name "$BRANCH_NAME" --base "$DEFAULT_BRANCH" --checkout 2>&1)
+        # --checkout would land the branch in the current working tree, which is the one
+        # thing worktree mode must not touch; `wt add` picks it up from origin instead.
+        set -g DEVELOP_ARGS --checkout
+        if test $USE_WORKTREE -eq 1
+            set -g DEVELOP_ARGS
+        end
+        set -g DEVELOP_OUT (gh issue develop $ISSUE_NUMBER --name "$BRANCH_NAME" --base "$DEFAULT_BRANCH" $DEVELOP_ARGS 2>&1)
         if test $status -ne 0
             _ui err "Could not create the linked branch: $DEVELOP_OUT"
             _ui warn "Creating the branch locally instead; issue #$ISSUE_NUMBER gets no linked branch."
             create_local_branch
         else
             _ui ok "Linked branch registered on issue #$ISSUE_NUMBER"
+            if test $USE_WORKTREE -eq 1
+                # gh made the ref on the remote only; wt add needs origin/$BRANCH_NAME
+                # locally to cut the tracking branch from it.
+                git fetch origin --quiet
+            end
         end
     end
 else
@@ -392,9 +500,17 @@ else
     end
 end
 
+if test $USE_WORKTREE -eq 1
+    create_worktree
+end
+
 # The old `git checkout -b` swallowed its own failure and still reported success, so
 # confirm where we actually landed before claiming the branch is ready.
-set -g CURRENT_BRANCH (git branch --show-current)
+if test $USE_WORKTREE -eq 1
+    set -g CURRENT_BRANCH (git -C "$WORKTREE_PATH" branch --show-current)
+else
+    set -g CURRENT_BRANCH (git branch --show-current)
+end
 if test "$CURRENT_BRANCH" != "$BRANCH_NAME"
     die "Expected to be on $BRANCH_NAME but the current branch is '$CURRENT_BRANCH'"
 end
@@ -404,4 +520,10 @@ if test "$PROVIDER" = jira
     # The one moment the criteria can still be written before the code they measure.
     _ui note "Write $ISSUE_REF's acceptance criteria with /ac before implementing."
 end
-_ui done "Created and checked out branch "(_ui paint cyan $BRANCH_NAME)
+if test $USE_WORKTREE -eq 1
+    _ui done "Checked out "(_ui paint cyan $BRANCH_NAME)" in "(_ui path $WORKTREE_PATH)
+    # A script is its own process, so this is as close to switching as it gets.
+    _ui note "cd "(_ui path $WORKTREE_PATH)
+else
+    _ui done "Created and checked out branch "(_ui paint cyan $BRANCH_NAME)
+end
