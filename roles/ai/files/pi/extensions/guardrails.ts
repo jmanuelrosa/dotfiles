@@ -418,7 +418,7 @@ async function guard(event: ToolCallEvent, ctx: ExtensionContext): Promise<ToolC
 // Namespaces the footer slot, for the reason velocity.ts records at its own key: pi keys statuses
 // by string and last writer wins, and this extension directory holds herdr's extension too.
 const RTK_STATUS_KEY = "dotfiles-rtk";
-const GATE_STATUS_KEY = "dotfiles-gates";
+const CURSOR_STATUS_KEY = "dotfiles-cursor";
 
 // The provider whose own host tools do the work, so pi never emits the tool_call every gate above
 // is hooked to. Matched on the model rather than on settings.json, because /model switches it
@@ -447,23 +447,28 @@ function rtkStatus(ctx: ExtensionContext): string | undefined {
 }
 
 /**
- * Whether the gates above can see anything at all this session.
+ * That the session is on Cursor, and whether the gates above can see anything while it is.
  *
  * Under the cursor provider, Cursor's own host tools handle shell, files and edits, and pi's
  * builtins are hidden from the bridge unless PI_CURSOR_EXPOSE_BUILTIN_TOOLS is set. A hidden
  * builtin never produces a `tool_call`, so every hook in this file goes unrun and nothing says so:
  * the session looks exactly like one where each command was checked and allowed. That is the
- * failure this segment exists to make visible, and it is why the warning is the only state with
- * any text. A provider that runs pi's own tools gets nothing, because there is no news in a gate
- * doing its job.
+ * failure the warning half exists to make visible.
+ *
+ * The quiet half is a badge rather than nothing, which is a deliberate reversal of what this
+ * segment used to do. Cursor is this machine's default provider and the one whose tool calls take
+ * a different path through the harness entirely, so which side of that line a session is on is
+ * worth a word even when the answer is the good one: a badge that only ever appears when
+ * something is wrong cannot be told apart from a badge that failed to render.
  *
  * The exposure only offers pi__bash beside Cursor's native shell rather than replacing it, so even
  * the quiet state is a statement about what is reachable, not a guarantee about what was used.
  */
-function gateStatus(ctx: ExtensionContext): string | undefined {
+function cursorStatus(ctx: ExtensionContext): string | undefined {
   if (ctx.model?.provider !== HOST_TOOL_PROVIDER) return undefined;
-  if (process.env.PI_CURSOR_EXPOSE_BUILTIN_TOOLS) return undefined;
-  return ctx.ui.theme.fg("warning", "⚠️ gates off");
+  const badge = ctx.ui.theme.fg("accent", "⌁ cursor");
+  if (process.env.PI_CURSOR_EXPOSE_BUILTIN_TOOLS) return badge;
+  return `${badge} ${ctx.ui.theme.fg("warning", "⚠️ gates off")}`;
 }
 
 export default function (pi: ExtensionAPI) {
@@ -472,7 +477,7 @@ export default function (pi: ExtensionAPI) {
       // Both segments together, because both are pure reads of state pi already holds. Neither
       // carries a running total, so a repaint is always safe and there is nothing to hand over.
       ctx.ui.setStatus(RTK_STATUS_KEY, rtkStatus(ctx));
-      ctx.ui.setStatus(GATE_STATUS_KEY, gateStatus(ctx));
+      ctx.ui.setStatus(CURSOR_STATUS_KEY, cursorStatus(ctx));
     } catch {
       // A footer segment is never worth interrupting a session for.
     }
@@ -480,7 +485,7 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("session_start", async (_event, ctx) => paint(ctx));
 
-  // Repainted on a model switch as well, because gateStatus reads the provider: session_start
+  // Repainted on a model switch as well, because cursorStatus reads the provider: session_start
   // alone would leave a session that started on a pi-native model showing nothing after /model
   // moved it onto cursor, which is the exact case the segment is for. `ctx` rather than
   // `event.model`, since agent-session assigns the new model before it emits this event.
