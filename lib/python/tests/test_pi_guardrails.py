@@ -281,7 +281,7 @@ def test_the_role_installs_the_extension():
 PI_PACKAGE = "@earendil-works/pi-coding-agent"
 
 # The private functions the executed half drives, re-exported into a copy of the extension.
-DRIVEN = ("activeSkills", "writeTranscript", "rtkRewrite", "rtkStatus", "gateStatus")
+DRIVEN = ("activeSkills", "writeTranscript", "rtkRewrite", "rtkStatus", "cursorStatus")
 
 
 def pi_package():
@@ -492,28 +492,36 @@ def test_a_machine_without_rtk_shows_no_segment(runner):
     assert status_for(runner, {"RTK_ENABLE": "1", "PATH": ""}) is None
 
 
-def gate_status_for(runner, provider, env):
-    """The gates-off segment, with the model and theme pi would hand the extension stubbed."""
+def cursor_status_for(runner, provider, env):
+    """The cursor badge, with the model and theme pi would hand the extension stubbed."""
     body = f"""
     const theme = {{ fg: (colour, text) => `<${{colour}}>${{text}}` }};
     const model = {json.dumps(provider)} === null ? undefined : {{ provider: {json.dumps(provider)} }};
-    process.stdout.write(JSON.stringify(gateStatus({{ model, ui: {{ theme }} }}) ?? null));
+    process.stdout.write(JSON.stringify(cursorStatus({{ model, ui: {{ theme }} }}) ?? null));
     """
     return run_in_node(runner, body, env=env)
 
 
-def test_the_segment_says_the_gates_are_not_running(runner):
-    """The one state with any text, because it is the one nobody can otherwise see: a session
-    where no hook ran is indistinguishable from one where every command passed."""
-    assert gate_status_for(runner, "cursor", {EXPOSE: ""}) == "<warning>\u26a0\ufe0f gates off"
+def test_the_badge_says_the_gates_are_not_running(runner):
+    """The state nobody can otherwise see: a session where no hook ran is indistinguishable from
+    one where every command passed. The warning is painted separately from the badge, so the
+    provider still reads as a fact and only the gate half reads as a problem."""
+    assert cursor_status_for(runner, "cursor", {EXPOSE: ""}) == (
+        "<accent>\u2301 cursor <warning>\u26a0\ufe0f gates off"
+    )
 
 
-def test_exposing_the_builtins_clears_the_segment(runner):
-    assert gate_status_for(runner, "cursor", {EXPOSE: "1"}) is None
+def test_exposing_the_builtins_leaves_the_badge_without_a_warning(runner):
+    """Not cleared, which is the reversal this badge was changed for: cursor is this machine's
+    default provider and the one whose tool calls take a different path through the harness, so
+    which side of that line a session is on is worth a word even when the answer is the good one.
+    A badge that only ever appears when something is wrong cannot be told apart from one that
+    failed to render."""
+    assert cursor_status_for(runner, "cursor", {EXPOSE: "1"}) == "<accent>\u2301 cursor"
 
 
-def test_a_provider_running_pi_s_own_tools_shows_no_segment(runner):
-    """Nothing at all, and the exposure is irrelevant here: there is no news in a gate doing its
-    job, and footer width is the scarce thing."""
-    assert gate_status_for(runner, "xai", {EXPOSE: ""}) is None
-    assert gate_status_for(runner, None, {EXPOSE: ""}) is None
+def test_another_provider_shows_no_badge(runner):
+    """Nothing at all, and the exposure is irrelevant here: the badge reports the provider whose
+    host tools bypass the gates, and footer width is the scarce thing."""
+    assert cursor_status_for(runner, "xai", {EXPOSE: ""}) is None
+    assert cursor_status_for(runner, None, {EXPOSE: ""}) is None
