@@ -41,12 +41,26 @@ import os
 import sys
 import tempfile
 
-HANDOFF_PCT = 35
 BAND = 10
 
 
 def state_dir():
     return tempfile.gettempdir()
+
+
+def handoff_pct():
+    """The wrap-up threshold, from the file statusline.sh and pi's footer.ts read too.
+
+    One number in roles/ai/files/statusline.json rather than a literal in each of the
+    three, since a nudge that fires at a different percentage from the gauge the user
+    is looking at is worse than no nudge. Located through realpath because this hook
+    runs as ~/.claude/hooks/context-nudge.sh, a symlink into the checkout. Unreadable
+    means no nudge, which is this hook's documented behaviour for every other kind of
+    missing input.
+    """
+    here = os.path.dirname(os.path.realpath(__file__))
+    found = read_json(os.path.join(here, "..", "..", "statusline.json")).get("handoffPct")
+    return found if isinstance(found, int) else None
 
 
 def session_is_safe(session_id):
@@ -100,8 +114,11 @@ def main():
     if pct is None:
         return
 
+    threshold = handoff_pct()
+    if threshold is None:
+        return
     band = pct // BAND
-    if pct < HANDOFF_PCT:
+    if pct < threshold:
         # A compact drops the percentage back down; forget the bands already
         # announced so the next climb through them nudges again.
         if last_band(session_id) is not None:

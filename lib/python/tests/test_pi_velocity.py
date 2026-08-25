@@ -96,7 +96,9 @@ def declarations(dist):
 
 def imported(source):
     """The names the extension imports from pi, type imports included."""
-    block = re.search(rf'import \{{(.*?)\}} from "{re.escape(PACKAGE)}"', source, re.S)
+    # `[^}]` rather than a lazy `.`, which crosses the closing brace of an earlier import and
+    # returns the names of whichever block precedes this one.
+    block = re.search(rf'import \{{([^}}]*)\}} from "{re.escape(PACKAGE)}"', source, re.S)
     assert block, "the extension must import from pi by package name, as guardrails.ts does"
     return {name.replace("type ", "").strip() for name in block.group(1).split(",") if name.strip()}
 
@@ -127,6 +129,18 @@ def test_the_theme_colours_exist(source, declarations):
     used = set(re.findall(r'theme\.fg\("([^"]+)"', source))
     assert used, "the extension must paint through theme.fg, so the segment follows the theme"
     assert used <= allowed, f"not pi theme colours: {sorted(used - allowed)}"
+
+
+def test_the_glyph_is_read_rather_than_typed(source):
+    """`⚡` is Claude's statusline.sh glyph too, so it lives in statusline.json and both read it.
+    A copy here renders correctly today and stops matching the first time one is changed."""
+    vocabulary = json.loads((REPO / "roles/ai/files/statusline.json").read_text())
+    assert 'glyph("velocity")' in source
+    # Past the file's header comment, which names the segment it renders and is prose.
+    code = source.split("*/", 1)[1]
+    assert vocabulary["glyphs"]["velocity"] not in code, (
+        "the velocity glyph is hardcoded in the segment again; it belongs to statusline.json"
+    )
 
 
 def test_the_counts_use_the_themes_diff_colours(source):

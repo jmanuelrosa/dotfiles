@@ -31,6 +31,9 @@ from dotkit.testing import CLAUDE, PI_EXTENSIONS, REPO
 
 EXTENSION = PI_EXTENSIONS / "footer.ts"
 STATUSLINE = CLAUDE / "statusline.sh"
+# The one file the glyphs, the gauge, the lockfile table and the handoff threshold come from,
+# for this harness and for Claude's. Nothing below asserts a literal that lives in it.
+VOCABULARY = REPO / "roles/ai/files/statusline.json"
 TASKS = REPO / "roles/ai/tasks/main.yml"
 
 PI_PACKAGE = "@earendil-works/pi-coding-agent"
@@ -66,6 +69,9 @@ def pi_package():
         if candidate.is_dir():
             return candidate
     return None
+
+
+VOCAB = json.loads(VOCABULARY.read_text())
 
 
 @pytest.fixture(scope="module")
@@ -195,14 +201,26 @@ def test_no_optional_theme_colour_is_painted_with(source, declarations):
     assert used.isdisjoint(set(re.findall(r'"([^"]+)"', optional.group(1))))
 
 
-def test_the_handoff_threshold_matches_the_claude_statusline(source):
-    """The marker is what turns an ambient gauge into a prompt, and both harnesses read the same
-    number out of docs/internals/context-hygiene.md. Two harnesses disagreeing about when a
-    handoff is due is worse than neither of them saying so."""
-    claude = re.search(r"CONTEXT_HANDOFF_PCT = (\d+)", STATUSLINE.read_text())
-    pi = re.search(r"HANDOFF_PCT = (\d+)", source)
-    assert claude and pi, "one of the two harnesses no longer names the threshold"
-    assert claude.group(1) == pi.group(1)
+def test_the_threshold_is_read_rather_than_typed(source):
+    """The marker is what turns an ambient gauge into a prompt, and three files answer to the
+    number behind it: this footer, Claude's statusline.sh and Claude's context-nudge.sh. It used
+    to be a literal in each, pinned by comparing two of them. Now they read it, and what this
+    asserts is that none of them has quietly gone back to typing it in."""
+    assert "handoffPct" in source
+    assert not re.search(r"HANDOFF_PCT\s*=\s*\d", source), (
+        "footer.ts hardcodes the handoff threshold again; it belongs to statusline.json"
+    )
+    assert json.loads(VOCABULARY.read_text())["handoffPct"] > 0
+
+
+def test_the_shared_glyphs_are_not_typed_into_the_extension(source):
+    """The same rule for the vocabulary the two harnesses share. A glyph typed here renders
+    correctly today and stops matching Claude's the first time one of them is changed."""
+    vocabulary = json.loads(VOCABULARY.read_text())
+    for name, mark in vocabulary["glyphs"].items():
+        if name in ("rtk", "cursor", "warning"):  # guardrails.ts renders those three
+            continue
+        assert mark not in source, f"{name} is hardcoded in footer.ts; it belongs to statusline.json"
 
 
 def test_the_render_path_spawns_nothing(source):
@@ -225,11 +243,20 @@ def test_the_role_installs_the_extension():
 
 @pytest.fixture(scope="module")
 def runner(package, tmp_path_factory):
-    """A directory the extension can be imported from, with pi and pi-tui resolvable.
+    """A directory the extension can be imported from, with pi, pi-tui and the vocabulary
+    resolvable.
 
-    The file is written rather than linked because node resolves a bare import from the realpath
-    of the importing module, so a link would send it looking for node_modules in this checkout.
-    pi-tui is linked out of pi's own node_modules, which is where pi's loader takes it from.
+    The layout mirrors the repo rather than being flat: the extension reads
+    `../../statusline.json` relative to its own realpath, so a copy dropped in a bare temp
+    directory would find no vocabulary and every glyph assertion below would pass against an
+    empty string. `<root>/pi/extensions/footer.ts` beside `<root>/statusline.json` is the same
+    two levels the checkout has, and the vocabulary is linked rather than copied so a test can
+    never assert against a stale duplicate of the file it is supposed to be pinning.
+
+    The extension itself is written rather than linked because node resolves a bare import from
+    the realpath of the importing module, so a link would send it looking for node_modules in
+    this checkout. pi-tui is linked out of pi's own node_modules, which is where pi's loader
+    takes it from.
     """
     if shutil.which("node") is None:
         pytest.skip("node is needed to execute the extension")
@@ -238,8 +265,13 @@ def runner(package, tmp_path_factory):
     scope.mkdir(parents=True)
     (scope / "pi-coding-agent").symlink_to(package)
     (scope / "pi-tui").symlink_to(package / "node_modules" / TUI_PACKAGE)
-    (root / "footer.ts").write_text(f"{EXTENSION.read_text()}\nexport {{ {', '.join(DRIVEN)} }};\n")
-    return root
+    (root / "statusline.json").symlink_to(VOCABULARY)
+    extensions = root / "pi" / "extensions"
+    extensions.mkdir(parents=True)
+    (extensions / "footer.ts").write_text(
+        f"{EXTENSION.read_text()}\nexport {{ {', '.join(DRIVEN)} }};\n"
+    )
+    return extensions
 
 
 def run_in_node(runner, body, cwd=None):
@@ -284,25 +316,29 @@ def context_for(runner, usage, width=120, theme=PLAIN_THEME):
 
 
 def test_the_gauge_marks_the_handoff_threshold(runner):
-    """35% is where docs/internals/context-hygiene.md says to offer a handoff, and the marker is
-    the whole reason the gauge is worth footer width: a percentage is a fact, a percentage with a
-    threshold applied to it is a prompt."""
-    below = context_for(runner, {"tokens": 68_000, "contextWindow": 200_000, "percent": 34})
-    at = context_for(runner, {"tokens": 70_000, "contextWindow": 200_000, "percent": 35})
-    assert "handoff" not in below
-    assert "handoff" in at
+    """The threshold docs/internals/context-hygiene.md sets, wherever statusline.json currently
+    puts it. The marker is the whole reason the gauge is worth footer width: a percentage is a
+    fact, a percentage with a threshold applied to it is a prompt."""
+    threshold = VOCAB["handoffPct"]
+    marker = VOCAB["labels"]["handoff"]
+    below = context_for(runner, {"tokens": 1, "contextWindow": 200_000, "percent": threshold - 1})
+    at = context_for(runner, {"tokens": 1, "contextWindow": 200_000, "percent": threshold})
+    assert marker not in below
+    assert marker in at
 
 
 def test_the_gauge_reddens_before_the_window_runs_out(runner):
     """Pi's own footer reddens at 90, which is a colour with nothing left to warn about: by then
     the handoff it should have prompted was due twenty points earlier."""
     warning = context_for(
-        runner, {"tokens": 100_000, "contextWindow": 200_000, "percent": 50}, theme=NAMED_THEME
+        runner,
+        {"tokens": 100_000, "contextWindow": 200_000, "percent": VOCAB["handoffPct"] + 15},
+        theme=NAMED_THEME,
     )
     critical = context_for(
         runner, {"tokens": 150_000, "contextWindow": 200_000, "percent": 75}, theme=NAMED_THEME
     )
-    assert "<warning>(50%)" in warning
+    assert f"<warning>({VOCAB['handoffPct'] + 15}%)" in warning
     assert "<error>(75%)" in critical
 
 
@@ -310,15 +346,15 @@ def test_an_unknown_context_is_shown_as_unknown(runner):
     """The turn after a compaction, where pi has no token count until the next response. A gauge
     that guessed would be reporting a window it cannot see."""
     unknown = context_for(runner, {"tokens": None, "contextWindow": 200_000, "percent": None})
-    assert unknown == "context ?/200k"
+    assert unknown == f"{VOCAB['labels']['context']} ?/200k"
 
 
 def test_the_bar_is_dropped_before_the_reading_is(runner):
     """A narrow terminal keeps the number and loses the picture, because eight columns of bar
     say nothing the percentage beside it does not."""
     usage = {"tokens": 39_000, "contextWindow": 200_000, "percent": 19}
-    assert "[" in context_for(runner, usage, width=120)
-    assert "[" not in context_for(runner, usage, width=60)
+    assert VOCAB["bar"]["empty"] in context_for(runner, usage, width=120)
+    assert VOCAB["bar"]["empty"] not in context_for(runner, usage, width=60)
     assert "(19%)" in context_for(runner, usage, width=60)
 
 
@@ -494,7 +530,7 @@ def test_a_model_without_reasoning_shows_no_thinking_level(runner):
     const ctx = {{ model: {{ id: "grok-4.6", provider: "xai" }}, thinkingLevel: "high" }};
     process.stdout.write(JSON.stringify(modelSegment(ctx, theme)));
     """
-    assert run_in_node(runner, body) == "🤖 grok-4.6 (xai)"
+    assert run_in_node(runner, body) == f"{VOCAB['glyphs']['model']} grok-4.6 (xai)"
 
 
 def test_the_provider_is_always_named(runner):

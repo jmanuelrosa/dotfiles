@@ -21,11 +21,53 @@ import tempfile
 RESET, BOLD, DIM = "\033[0m", "\033[1m", "\033[2m"
 GREEN, RED, YELLOW, MAGENTA, CYAN = (f"\033[3{n}m" for n in (2, 1, 3, 5, 6))
 SEP = f" {DIM}│{RESET} "
-BAR_WIDTH = 8
 DEFAULT_CONTEXT_WINDOW = 200_000
-# The wrap-up threshold from docs/internals/context-hygiene.md; the marker turns
-# an ambient gauge into a prompt, so keep the two numbers in step.
-CONTEXT_HANDOFF_PCT = 35
+
+
+def _vocabulary():
+    """Every value this status line shares with pi's footer.ts, read from one file.
+
+    The threshold, the gauge, the lockfile table and the glyphs are rendered by two
+    harnesses in two languages, and a value typed into both is a value that drifts.
+    roles/ai/files/statusline.json owns them; this file, hooks/context-nudge.sh and
+    the three pi extensions read it.
+
+    Located through realpath because this script is reached as ~/.claude/statusline.sh,
+    a symlink into the checkout, which is the same resolution guardrails.ts does to
+    find the hooks it drives. Nothing is defaulted here on purpose: the file is a
+    sibling of the symlink target, so it can only be missing when the checkout itself
+    is, and a copy of every value kept as a fallback would be the duplication this
+    exists to remove. An unreadable file drops the fields that need it, which is what
+    every other field in this script already does when its data is absent.
+    """
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "statusline.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            loaded = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    return loaded if isinstance(loaded, dict) else {}
+
+
+VOCAB = _vocabulary()
+BAR = VOCAB.get("bar") if isinstance(VOCAB.get("bar"), dict) else {}
+GLYPHS = VOCAB.get("glyphs") if isinstance(VOCAB.get("glyphs"), dict) else {}
+LABELS = VOCAB.get("labels") if isinstance(VOCAB.get("labels"), dict) else {}
+BAR_WIDTH = BAR.get("width") if isinstance(BAR.get("width"), int) else 0
+CONTEXT_HANDOFF_PCT = VOCAB.get("handoffPct")
+
+
+def glyph(name):
+    """`<emoji> `, or nothing at all when the vocabulary could not be read."""
+    mark = GLYPHS.get(name)
+    return f"{mark} " if isinstance(mark, str) and mark else ""
+
+
+def word(name):
+    """A shared label, or nothing. Named `word` because `label` is already a loop
+    variable in usage_segment, and a helper a nested scope can shadow is a trap."""
+    found = LABELS.get(name)
+    return found if isinstance(found, str) else ""
 
 def rgb(r, g, b):
     return f"\033[38;2;{r};{g};{b}m"
@@ -57,10 +99,18 @@ def gradient(t):
 
 
 def gradient_bar(pct):
-    filled = int(pct) * BAR_WIDTH // 100
+    """The gauge, or an empty string when the shared vocabulary gave no cells to draw.
+
+    Dropping it is the same degradation a narrow terminal gets in pi's footer: the
+    percentage beside it carries the reading on its own.
+    """
+    cells, full, void = BAR_WIDTH, BAR.get("filled"), BAR.get("empty")
+    if cells < 2 or not isinstance(full, str) or not isinstance(void, str):
+        return ""
+    filled = int(pct) * cells // 100
     return "".join(
-        f"{gradient(i / (BAR_WIDTH - 1))}▓{RESET}" if i < filled else f"{DIM}░{RESET}"
-        for i in range(BAR_WIDTH)
+        f"{gradient(i / (cells - 1))}{full}{RESET}" if i < filled else f"{DIM}{void}{RESET}"
+        for i in range(cells)
     )
 
 
@@ -83,8 +133,11 @@ def context_segment(ctx):
     size = int(size) if isinstance(size, (int, float)) and size else DEFAULT_CONTEXT_WINDOW
     used = _context_used_tokens(ctx, size, pct)
     tokens = f" {DIM}{fmt_tokens(used)}{RESET}" if used is not None else ""
-    mark = f" {BOLD}{gradient(pct / 100)}handoff{RESET}" if pct >= CONTEXT_HANDOFF_PCT else ""
-    return f"{DIM}context{RESET} [{gradient_bar(pct)}]{tokens} {gradient(pct / 100)}({pct}%){RESET}{mark}"
+    due = isinstance(CONTEXT_HANDOFF_PCT, int) and pct >= CONTEXT_HANDOFF_PCT
+    mark = f" {BOLD}{gradient(pct / 100)}{word('handoff')}{RESET}" if due else ""
+    bar = gradient_bar(pct)
+    gauge = f" [{bar}]" if bar else ""
+    return f"{DIM}{word('context')}{RESET}{gauge}{tokens} {gradient(pct / 100)}({pct}%){RESET}{mark}"
 
 
 def _context_used_tokens(ctx, size, pct):
@@ -134,9 +187,9 @@ def repo_segment(workspace):
         name = os.path.basename(cwd.rstrip("/")) or None
     if not name:
         return None
-    label = f"📁 {BOLD}{YELLOW}{name}{RESET}"
+    shown = f"{glyph('repo')}{BOLD}{YELLOW}{name}{RESET}"
     branch = git_branch(cwd)
-    return f"{label} ({BOLD}{CYAN}{branch}{RESET})" if branch else label
+    return f"{shown} ({BOLD}{CYAN}{branch}{RESET})" if branch else shown
 
 
 def velocity_segment(cost):
@@ -147,7 +200,7 @@ def velocity_segment(cost):
         return None
     added = int(added) if isinstance(added, (int, float)) else 0
     removed = int(removed) if isinstance(removed, (int, float)) else 0
-    return f"⚡ {GREEN}+{added}{RESET}/{RED}-{removed}{RESET}"
+    return f"{glyph('velocity')}{GREEN}+{added}{RESET}/{RED}-{removed}{RESET}"
 
 
 TOOL_CACHE_FILE = os.path.join(tempfile.gettempdir(), "claude-statusline-tools.json")
@@ -217,13 +270,14 @@ def tool_version(tool):
 
 def node_segment():
     version = tool_version("node")
-    return f"⬢ {ACCENT_NODE}node {version}{RESET}" if version else None
+    return f"{glyph('node')}{ACCENT_NODE}node {version}{RESET}" if version else None
 
 
 # Lockfile → package-manager name, specific before npm.
-LOCKFILES = (
-    ("bun.lockb", "bun"), ("bun.lock", "bun"), ("pnpm-lock.yaml", "pnpm"),
-    ("yarn.lock", "yarn"), ("package-lock.json", "npm"), ("npm-shrinkwrap.json", "npm"),
+LOCKFILES = tuple(
+    (entry["lockfile"], entry["name"])
+    for entry in VOCAB.get("packageManagers") or ()
+    if isinstance(entry, dict) and isinstance(entry.get("lockfile"), str) and isinstance(entry.get("name"), str)
 )
 KNOWN_PMS = frozenset(name for _, name in LOCKFILES)
 
@@ -273,7 +327,7 @@ def pm_segment(workspace):
     if not found:
         return None
     name, version = found
-    return f"📦 {PM_COLORS.get(name, ACCENT_NODE)}{name}{' ' + version if version else ''}{RESET}"
+    return f"{glyph('packageManager')}{PM_COLORS.get(name, ACCENT_NODE)}{name}{' ' + version if version else ''}{RESET}"
 
 
 def rtk_segment():
@@ -286,13 +340,13 @@ def rtk_segment():
     if not shutil.which("rtk"):
         return None
     if os.environ.get("RTK_ENABLE"):
-        return f"✂️ {GREEN}rtk{RESET}"
-    return f"{DIM}✂️ rtk off{RESET}"
+        return f"{glyph('rtk')}{GREEN}{word('rtkOn')}{RESET}"
+    return f"{DIM}{glyph('rtk')}{word('rtkOff')}{RESET}"
 
 
 def model_segment(model):
     name = model.get("display_name") if isinstance(model, dict) else None
-    return f"🤖 {MAGENTA}{name}{RESET}" if name else None
+    return f"{glyph('model')}{MAGENTA}{name}{RESET}" if name else None
 
 
 def cc_version_segment(version):

@@ -33,6 +33,9 @@ from dotkit.testing import CLAUDE, HOOKS, PI, PI_EXTENSIONS, REPO
 
 EXTENSION = PI_EXTENSIONS / "guardrails.ts"
 TASKS = REPO / "roles/ai/tasks/main.yml"
+# The glyphs and wording the rtk toggle and the cursor badge share with statusline.sh.
+VOCABULARY = REPO / "roles/ai/files/statusline.json"
+VOCAB = json.loads(VOCABULARY.read_text())
 SETTINGS = CLAUDE / "settings.json"
 STATUSLINE = CLAUDE / "statusline.sh"
 APPEND_SYSTEM = PI / "APPEND_SYSTEM.md"
@@ -234,10 +237,19 @@ def test_the_rewrite_runs_after_every_gate(gate, source):
 def test_the_footer_mirrors_the_claude_statusline(source):
     """A rewrite the caller cannot see is worse than no rewrite, so both harnesses show the same
     toggle. The same glyph and the same words on purpose: a second vocabulary for one state across
-    two harnesses costs the recognition the segment exists for."""
+    two harnesses costs the recognition the segment exists for.
+
+    They now read it from statusline.json instead of both typing it, so what this asserts is that
+    neither has gone back to a literal, and that the file still carries what each of them asks
+    for by name."""
     segment = re.search(r"def rtk_segment\(\):.*?(?=\ndef )", STATUSLINE.read_text(), re.S).group(0)
-    for token in ("\u2702\ufe0f", "rtk off"):
-        assert token in segment and token in source, f"{token!r} is in one harness and not the other"
+    for key in ("rtkOn", "rtkOff"):
+        assert key in VOCAB["labels"], f"statusline.json no longer carries {key}"
+        assert f'word("{key}")' in source and f"word('{key}')" in segment
+    assert 'glyph("rtk")' in source and "glyph('rtk')" in segment
+    for mark in (VOCAB["glyphs"]["rtk"], VOCAB["labels"]["rtkOff"]):
+        assert mark not in source, f"{mark!r} is hardcoded in guardrails.ts again"
+        assert mark not in segment, f"{mark!r} is hardcoded in statusline.sh again"
     # Namespaced for the reason velocity.ts records: statuses are keyed and last writer wins, and
     # herdr installs its own extension into the same directory.
     key = re.search(r'RTK_STATUS_KEY = "([^"]+)"', source).group(1)
@@ -313,10 +325,19 @@ def runner(tmp_path_factory):
     scope = root / "node_modules" / "@earendil-works"
     scope.mkdir(parents=True)
     (scope / "pi-coding-agent").symlink_to(package)
+    # The layout mirrors the repo, because the extension reads `../../statusline.json` relative
+    # to its own realpath: a copy in a flat directory would find no vocabulary and every glyph
+    # assertion below would pass against an empty string. Linked rather than copied, so no test
+    # can pin a stale duplicate of the file it exists to pin.
+    (root / "statusline.json").symlink_to(VOCABULARY)
+    extensions = root / "pi" / "extensions"
+    extensions.mkdir(parents=True)
     # Re-exported into the copy rather than exported from the extension, so pi's own surface
     # stays the single default export it loads.
-    (root / "guardrails.ts").write_text(f"{EXTENSION.read_text()}\nexport {{ {', '.join(DRIVEN)} }};\n")
-    return root
+    (extensions / "guardrails.ts").write_text(
+        f"{EXTENSION.read_text()}\nexport {{ {', '.join(DRIVEN)} }};\n"
+    )
+    return extensions
 
 
 def run_in_node(runner, body, env=None):
@@ -325,7 +346,7 @@ def run_in_node(runner, body, env=None):
     `env` overrides rather than replaces, so a variable this machine happens to export cannot
     decide the result. An empty string is the off state, matching what the extension checks.
     """
-    script = f'import {{ {", ".join(DRIVEN)} }} from "./guardrails.ts";\n{body}'
+    script = f'import {{ {", ".join(DRIVEN)} }} from "{runner}/guardrails.ts";\n{body}'
     done = subprocess.run(
         # Absolute, because a test that empties PATH to hide rtk would otherwise hide node too.
         [shutil.which("node"), "--input-type=module", "-e", script],
@@ -477,13 +498,17 @@ def status_for(runner, env):
 def test_the_segment_says_rewrites_are_happening(runner):
     if shutil.which("rtk") is None:
         pytest.skip("rtk is needed for the on and off states")
-    assert status_for(runner, {"RTK_ENABLE": "1"}) == "\u2702\ufe0f <success>rtk"
+    assert status_for(runner, {"RTK_ENABLE": "1"}) == (
+        f"{VOCAB['glyphs']['rtk']} <success>{VOCAB['labels']['rtkOn']}"
+    )
 
 
 def test_the_segment_says_rewrites_are_not_happening(runner):
     if shutil.which("rtk") is None:
         pytest.skip("rtk is needed for the on and off states")
-    assert status_for(runner, {"RTK_ENABLE": ""}) == "<dim>\u2702\ufe0f rtk off"
+    assert status_for(runner, {"RTK_ENABLE": ""}) == (
+        f"<dim>{VOCAB['glyphs']['rtk']} {VOCAB['labels']['rtkOff']}"
+    )
 
 
 def test_a_machine_without_rtk_shows_no_segment(runner):
@@ -506,9 +531,9 @@ def test_the_badge_says_the_gates_are_not_running(runner):
     """The state nobody can otherwise see: a session where no hook ran is indistinguishable from
     one where every command passed. The warning is painted separately from the badge, so the
     provider still reads as a fact and only the gate half reads as a problem."""
-    assert cursor_status_for(runner, "cursor", {EXPOSE: ""}) == (
-        "<accent>\u2301 cursor <warning>\u26a0\ufe0f gates off"
-    )
+    badge = f"{VOCAB['glyphs']['cursor']} {VOCAB['labels']['cursor']}"
+    warning = f"{VOCAB['glyphs']['warning']} {VOCAB['labels']['gatesOff']}"
+    assert cursor_status_for(runner, "cursor", {EXPOSE: ""}) == f"<accent>{badge} <warning>{warning}"
 
 
 def test_exposing_the_builtins_leaves_the_badge_without_a_warning(runner):
@@ -517,7 +542,8 @@ def test_exposing_the_builtins_leaves_the_badge_without_a_warning(runner):
     which side of that line a session is on is worth a word even when the answer is the good one.
     A badge that only ever appears when something is wrong cannot be told apart from one that
     failed to render."""
-    assert cursor_status_for(runner, "cursor", {EXPOSE: "1"}) == "<accent>\u2301 cursor"
+    badge = f"{VOCAB['glyphs']['cursor']} {VOCAB['labels']['cursor']}"
+    assert cursor_status_for(runner, "cursor", {EXPOSE: "1"}) == f"<accent>{badge}"
 
 
 def test_another_provider_shows_no_badge(runner):

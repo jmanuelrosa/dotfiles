@@ -26,6 +26,9 @@
  * is shared with guardrails.ts and one convention for both is easier to keep than two.
  */
 
+import { readFileSync, realpathSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   type ExtensionAPI,
   type ExtensionContext,
@@ -37,6 +40,36 @@ import {
 // Namespaces the footer slot. Pi keys statuses by string and last writer wins, so a name no
 // other extension would pick is what keeps two of them from erasing each other.
 const STATUS_KEY = "dotfiles-velocity";
+
+// The one glyph this segment shares with Claude Code's statusline.sh, from the file both read.
+// Inlined rather than imported from a module beside it: pi loads this file through the symlink
+// the ai role puts in ~/.pi/agent/extensions, and jiti resolves a relative import from that
+// symlink rather than from its realpath, so a shared `.ts` two directories up is looked for
+// inside the pi agent directory and never found. footer.ts carries the full reasoning.
+const VOCABULARY_PATH = join(
+  dirname(realpathSync(fileURLToPath(import.meta.url))),
+  "..",
+  "..",
+  "statusline.json",
+);
+
+function vocabulary(): { glyphs?: Record<string, string> } {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(VOCABULARY_PATH, "utf8"));
+    return typeof parsed === "object" && parsed !== null ? parsed : {};
+  } catch {
+    // No vocabulary renders no glyph, never a broken segment.
+    return {};
+  }
+}
+
+const VOCAB = vocabulary();
+
+function glyph(name: string): string {
+  const mark = VOCAB.glyphs?.[name];
+  return typeof mark === "string" && mark !== "" ? `${mark} ` : "";
+}
+
 
 interface Tally {
   added: number;
@@ -102,7 +135,7 @@ function render(tally: Tally, ctx: ExtensionContext): string {
   // The theme's own diff colours rather than success and error, so the segment agrees with the
   // diffs pi renders above it instead of reading as a pass and a failure.
   return [
-    theme.fg("dim", "⚡ "),
+    theme.fg("dim", glyph("velocity")),
     theme.fg("toolDiffAdded", `+${tally.added}`),
     theme.fg("dim", "/"),
     theme.fg("toolDiffRemoved", `-${tally.removed}`),
