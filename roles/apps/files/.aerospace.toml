@@ -97,7 +97,6 @@ gaps.outer.right =      0
     Browsers = 'secondary'
     Database = 'secondary'
     Editors = ['dell.*', 'main']
-    Harper = 'secondary'
     Music = 'secondary'
     Notion = 'main'
     Personal = 'main'
@@ -176,7 +175,6 @@ gaps.outer.right =      0
     alt-b = 'workspace Browsers'
     alt-d = 'workspace Database'
     alt-e = 'workspace Editors'
-    alt-h = 'workspace Harper'
     alt-m = 'workspace Music'
     alt-o = 'workspace Notion'
     alt-p = 'workspace Personal'
@@ -201,7 +199,6 @@ gaps.outer.right =      0
     alt-shift-b = 'move-node-to-workspace Browsers'
     alt-shift-d = 'move-node-to-workspace Database'
     alt-shift-e = 'move-node-to-workspace Editors'
-    alt-shift-h = 'move-node-to-workspace Harper'
     alt-shift-m = 'move-node-to-workspace Music'
     alt-shift-o = 'move-node-to-workspace Notion'
     alt-shift-p = 'move-node-to-workspace Personal'
@@ -304,7 +301,3 @@ gaps.outer.right =      0
 [[on-window-detected]]
 if.app-id = 'com.bitwarden.desktop'
 run= ["layout floating", 'move-node-to-workspace Vault']
-
-[[on-window-detected]]
-if.app-id = 'com.elijahpotter.harper-desktop'
-run= ["layout floating", 'move-node-to-workspace Harper']
