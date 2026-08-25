@@ -7,7 +7,7 @@ Catch-all role for desktop apps and their configs. Browsers, chat apps, dev tool
 1. Installs all taps, formulas, and casks declared in `BREW_PACKAGES` (defaults/main.yml).
 2. Subtask files under `tasks/` handle config symlinks per category:
    - `development.yml` — git, lazygit, npmrc, gh, pgcli configs.
-   - `editors.yml` — VSCode settings, keybindings, extensions; Harper.app dictionary and config.
+   - `editors.yml` — VSCode settings, keybindings, extensions.
    - `infrastructure.yml` — `brew link docker`, docker config, lazydocker and dive configs.
    - `system.yml` — aerospace.
 

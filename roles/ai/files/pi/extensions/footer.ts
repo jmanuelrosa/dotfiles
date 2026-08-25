@@ -35,8 +35,9 @@
  * footer is the failure state.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type {
   ExtensionAPI,
   ExtensionContext,
@@ -47,17 +48,72 @@ import type {
 import { type Component, truncateToWidth, type TUI, visibleWidth } from "@earendil-works/pi-tui";
 
 const SEPARATOR = " │ ";
-const BAR_WIDTH = 8;
 
-// The wrap-up threshold from docs/internals/context-hygiene.md, and the same number
-// statusline.sh calls CONTEXT_HANDOFF_PCT. The marker is what turns an ambient gauge into a
-// prompt, so the two harnesses have to agree on where it appears or one of them is lying about
-// when a handoff is due.
-const HANDOFF_PCT = 35;
+/**
+ * Every value this footer shares with Claude Code's statusline.sh, read from one file.
+ *
+ * The threshold, the gauge cells, the lockfile table and the glyphs are rendered by two
+ * harnesses in two languages, and a value typed into both is a value that drifts. The wrap-up
+ * threshold is the one that matters most: it also drives Claude's context-nudge.sh, so three
+ * files answer to it and a footer marking a handoff at a different percentage from the hook that
+ * asks for one is worse than neither saying anything.
+ *
+ * Read as JSON by path rather than imported as a module, and that is not a style choice. Pi
+ * loads this file through the symlink the ai role puts in ~/.pi/agent/extensions, and jiti
+ * resolves a relative import from that symlink rather than from its realpath, so `../..`
+ * anything is looked for inside the pi agent directory and is not found. Resolving the realpath
+ * first is what guardrails.ts already does to reach the claude hooks it drives, and it is the
+ * one resolution that works from here.
+ *
+ * Nothing is defaulted. The file is two directories above this one inside the same checkout, so
+ * it can only be missing when the checkout is, and a copy of every value kept as a fallback
+ * would be the duplication this exists to remove. Each reader below degrades on its own: no
+ * glyph renders no glyph, no threshold renders no marker, no table renders no package manager.
+ */
+const VOCABULARY_PATH = join(
+  dirname(realpathSync(fileURLToPath(import.meta.url))),
+  "..",
+  "..",
+  "statusline.json",
+);
 
-// Where the gauge stops being a warning and starts being a problem. Pi's own footer reddens at
-// 90; this reddens at 70 because by then a handoff was already due twelve points ago, and a
-// colour that only arrives once the window is nearly gone has nothing left to warn about.
+interface Vocabulary {
+  handoffPct?: number;
+  bar?: { width?: number; filled?: string; empty?: string };
+  glyphs?: Record<string, string>;
+  labels?: Record<string, string>;
+  packageManagers?: { lockfile: string; name: string }[];
+}
+
+function loadVocabulary(): Vocabulary {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(VOCABULARY_PATH, "utf8"));
+    return typeof parsed === "object" && parsed !== null ? (parsed as Vocabulary) : {};
+  } catch {
+    return {};
+  }
+}
+
+const VOCAB = loadVocabulary();
+const HANDOFF_PCT = typeof VOCAB.handoffPct === "number" ? VOCAB.handoffPct : undefined;
+
+/** `<emoji> `, or nothing at all when the vocabulary could not be read. */
+function glyph(name: string): string {
+  const mark = VOCAB.glyphs?.[name];
+  return typeof mark === "string" && mark !== "" ? `${mark} ` : "";
+}
+
+function word(name: string): string {
+  const found = VOCAB.labels?.[name];
+  return typeof found === "string" ? found : "";
+}
+
+// Where the gauge stops being a warning and starts being a problem. Local rather than shared,
+// because the two harnesses colour differently on purpose: statusline.sh interpolates truecolor
+// Solarized stops, and this paints with pi ThemeColor names so a user-authored theme still
+// governs. Pi's own footer reddens at 90; this reddens at 70 because by then a handoff was
+// already due, and a colour that arrives once the window is nearly gone has nothing left to warn
+// about.
 const CRITICAL_PCT = 70;
 
 // Below this the bar is dropped and the percentage carries the segment alone. A gauge squeezed
@@ -67,7 +123,7 @@ const BAR_MIN_WIDTH = 80;
 /**
  * What a segment is worth when the terminal is too narrow to hold the row.
  *
- * Dropped lowest first, so what survives at 60 columns is the reading that cannot be recovered
+ * Admitted highest first, so what survives at 60 columns is the reading that cannot be recovered
  * from anywhere else: the context gauge and the model. A node version is one `node --version`
  * away, and a token total is in `/usage`.
  */
@@ -99,18 +155,24 @@ function formatTokens(count: number): string {
  * RGB ramp would be the one part of the footer that ignored the theme it sits in. */
 function tier(percent: number): "success" | "warning" | "error" {
   if (percent >= CRITICAL_PCT) return "error";
-  if (percent >= HANDOFF_PCT) return "warning";
+  if (HANDOFF_PCT !== undefined && percent >= HANDOFF_PCT) return "warning";
   return "success";
 }
 
 function gauge(percent: number, theme: Theme): string {
-  const filled = Math.min(BAR_WIDTH, Math.round((percent * BAR_WIDTH) / 100));
+  const width = VOCAB.bar?.width ?? 0;
+  const full = VOCAB.bar?.filled;
+  const void_ = VOCAB.bar?.empty;
+  // Nothing to draw with is the same degradation a narrow terminal gets below BAR_MIN_WIDTH:
+  // the percentage beside it carries the reading on its own.
+  if (width < 2 || typeof full !== "string" || typeof void_ !== "string") return "";
+  const filled = Math.min(width, Math.round((percent * width) / 100));
   const cells = [];
-  for (let cell = 0; cell < BAR_WIDTH; cell += 1) {
+  for (let cell = 0; cell < width; cell += 1) {
     // Each filled cell takes the colour of the percentage it stands for rather than of the
     // total, which is what makes the bar read as a ramp under a theme that has no gradient.
     cells.push(
-      cell < filled ? theme.fg(tier(((cell + 1) * 100) / BAR_WIDTH), "▓") : theme.fg("dim", "░"),
+      cell < filled ? theme.fg(tier(((cell + 1) * 100) / width), full) : theme.fg("dim", void_),
     );
   }
   return cells.join("");
@@ -126,16 +188,18 @@ function gauge(percent: number, theme: Theme): string {
 function contextSegment(ctx: ExtensionContext, theme: Theme, width: number): string {
   const usage = ctx.getContextUsage();
   if (!usage) return "";
-  const label = theme.fg("dim", "context");
+  const label = theme.fg("dim", word("context"));
   const window = formatTokens(usage.contextWindow);
   if (usage.percent === null) {
     return `${label} ${theme.fg("dim", `?/${window}`)}`;
   }
   const percent = Math.max(0, Math.min(100, Math.round(usage.percent)));
-  const bar = width >= BAR_MIN_WIDTH ? `[${gauge(percent, theme)}] ` : "";
+  const cells = width >= BAR_MIN_WIDTH ? gauge(percent, theme) : "";
+  const bar = cells ? `[${cells}] ` : "";
   const tokens = usage.tokens === null ? "" : `${theme.fg("dim", formatTokens(usage.tokens))} `;
   const reading = theme.fg(tier(percent), `(${percent}%)`);
-  const mark = percent >= HANDOFF_PCT ? ` ${theme.bold(theme.fg(tier(percent), "handoff"))}` : "";
+  const due = HANDOFF_PCT !== undefined && percent >= HANDOFF_PCT;
+  const mark = due ? ` ${theme.bold(theme.fg(tier(percent), word("handoff")))}` : "";
   return `${label} ${bar}${tokens}${reading}${mark}`;
 }
 
@@ -152,7 +216,7 @@ function repoSegment(ctx: ExtensionContext, data: ReadonlyFooterDataProvider, th
   const name = basename(cwd) || cwd;
   const branch = data.getGitBranch();
   const session = ctx.sessionManager.getSessionName();
-  const parts = [`📁 ${theme.bold(theme.fg("accent", name))}`];
+  const parts = [`${glyph("repo")}${theme.bold(theme.fg("accent", name))}`];
   if (branch) parts.push(theme.fg("muted", `(${branch})`));
   if (session) parts.push(theme.fg("dim", `• ${session}`));
   return parts.join(" ");
@@ -180,8 +244,11 @@ const THINKING_COLORS = {
  */
 function modelSegment(ctx: ExtensionContext, theme: Theme): string {
   const model = ctx.model;
-  if (!model) return theme.fg("dim", "🤖 no model");
-  const parts = [`🤖 ${theme.fg("accent", model.id)}`, theme.fg("dim", `(${model.provider})`)];
+  if (!model) return theme.fg("dim", `${glyph("model")}no model`);
+  const parts = [
+    `${glyph("model")}${theme.fg("accent", model.id)}`,
+    theme.fg("dim", `(${model.provider})`),
+  ];
   if (model.reasoning) {
     const level = ctx.thinkingLevel ?? "off";
     const colour = THINKING_COLORS[level as keyof typeof THINKING_COLORS];
@@ -274,15 +341,12 @@ function spendSegment(ctx: ExtensionContext, theme: Theme): string {
   return dim ? `${dim} ${cost}${turn}` : `${cost}${turn}`;
 }
 
-// Lockfile → package manager, specific before npm, the same table statusline.sh walks.
-const LOCKFILES: readonly (readonly [string, string])[] = [
-  ["bun.lockb", "bun"],
-  ["bun.lock", "bun"],
-  ["pnpm-lock.yaml", "pnpm"],
-  ["yarn.lock", "yarn"],
-  ["package-lock.json", "npm"],
-  ["npm-shrinkwrap.json", "npm"],
-];
+// Lockfile → package manager, the same ordered table statusline.sh walks, from the same file.
+// Order is the content here: specific before npm is what makes a bun repo carrying a
+// package-lock.json read as bun, so the shared file keeps an array rather than an object.
+const LOCKFILES: readonly (readonly [string, string])[] = (VOCAB.packageManagers ?? [])
+  .filter((entry) => typeof entry?.lockfile === "string" && typeof entry?.name === "string")
+  .map((entry) => [entry.lockfile, entry.name] as const);
 const KNOWN_PMS = new Set(LOCKFILES.map(([, name]) => name));
 
 /**
@@ -358,8 +422,8 @@ async function version(pi: ExtensionAPI, command: string, args: string[], cwd?: 
 function toolchainSegment(toolchain: Toolchain | undefined, theme: Theme): string {
   if (!toolchain) return "";
   const parts = [];
-  if (toolchain.node) parts.push(`⬢ ${theme.fg("success", `node ${toolchain.node}`)}`);
-  if (toolchain.pm) parts.push(`📦 ${theme.fg("accent", toolchain.pm)}`);
+  if (toolchain.node) parts.push(`${glyph("node")}${theme.fg("success", `node ${toolchain.node}`)}`);
+  if (toolchain.pm) parts.push(`${glyph("packageManager")}${theme.fg("accent", toolchain.pm)}`);
   return parts.join(SEPARATOR);
 }
 

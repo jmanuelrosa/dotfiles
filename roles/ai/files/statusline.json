@@ -1,0 +1,34 @@
+{
+  "handoffPct": 35,
+  "bar": {
+    "width": 8,
+    "filled": "▓",
+    "empty": "░"
+  },
+  "glyphs": {
+    "repo": "📁",
+    "node": "⬢",
+    "packageManager": "📦",
+    "velocity": "⚡",
+    "rtk": "✂️",
+    "model": "🤖",
+    "cursor": "⌁",
+    "warning": "⚠️"
+  },
+  "labels": {
+    "context": "context",
+    "handoff": "handoff",
+    "rtkOn": "rtk",
+    "rtkOff": "rtk off",
+    "gatesOff": "gates off",
+    "cursor": "cursor"
+  },
+  "packageManagers": [
+    { "lockfile": "bun.lockb", "name": "bun" },
+    { "lockfile": "bun.lock", "name": "bun" },
+    { "lockfile": "pnpm-lock.yaml", "name": "pnpm" },
+    { "lockfile": "yarn.lock", "name": "yarn" },
+    { "lockfile": "package-lock.json", "name": "npm" },
+    { "lockfile": "npm-shrinkwrap.json", "name": "npm" }
+  ]
+}

@@ -33,6 +33,9 @@ function _wt_help
   echo "                           in the current herdr session. Pass -f/--focus to move to"
   echo "                           the new worktree (cd, and focus the herdr workspace);"
   echo "                           without it the worktree is created in the background."
+  echo "                           Writes .pi/sandbox.json so pi's sandbox can write the"
+  echo "                           repo's git common dir, which a linked worktree keeps"
+  echo "                           outside its own directory."
   echo "  list                     List all worktrees"
   echo "  remove [-h/--herdr] [-f/--force] <name>"
   echo "                           Remove a worktree (by branch name or path). Pass -h/--herdr"
@@ -42,6 +45,39 @@ end
 
 function _wt_in_herdr
   set -q HERDR_ENV; and type -q herdr
+end
+
+function _wt_pi_sandbox --argument-names target
+  # A linked worktree keeps its gitdir under the main checkout's `.git`, which is a
+  # sibling of the worktree rather than a child. pi-sandbox grants `allowWrite: ["."]`,
+  # so every git write in here (index.lock, refs, objects) lands outside the grant and
+  # fails with `Operation not permitted`. Claude Code never sees it, because its
+  # `sandbox.excludedCommands` runs git unsandboxed; pi-sandbox has no per-command
+  # exclusion, so the grant has to name the path instead. Project entries are unioned
+  # with the global ones and non-glob entries are prefix-matched, so one entry covers
+  # the whole common dir.
+  set -l common (git -C $target rev-parse --git-common-dir 2>/dev/null)
+  if test -z "$common"
+    return 0
+  end
+  if not string match -q '/*' -- $common
+    set common $target/$common
+  end
+  set common (realpath $common 2>/dev/null)
+
+  set -l inside (realpath $target 2>/dev/null)
+  if test -z "$common"; or test -z "$inside"; or string match -q "$inside/*" -- $common
+    return 0
+  end
+
+  _ui step "Granting pi's sandbox write access to "(_ui path $common)
+  mkdir -p $target/.pi
+  printf '{\n  "filesystem": {\n    "allowWrite": ["%s"]\n  }\n}\n' $common >$target/.pi/sandbox.json
+  # The file names itself, because a `.gitignore` is not covered by its own patterns and
+  # `git status` would report `.pi/` as untracked for that one file. Same containment
+  # claude-kit gives `.agents/`, and for the same reason: a project's root `.gitignore`
+  # is not ours to edit.
+  printf '%s\n' .gitignore sandbox.json >$target/.pi/.gitignore
 end
 
 function _wt_herdr_workspace_id --argument-names abs_path
@@ -118,6 +154,8 @@ function _wt_add
     _ui step "Copying .claude/"
     cp -R $main_wt/.claude $target/
   end
+
+  _wt_pi_sandbox $target
 
   set -l prev_dir $PWD
   cd $target

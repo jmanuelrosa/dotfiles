@@ -5,7 +5,7 @@
     "keepRecentTokens": 10000,
     "reserveTokens": 8192
   },
-  "defaultModel": "auto",
+  "defaultModel": "claude-opus-5@1m",
   "defaultProvider": "cursor",
   "defaultThinkingLevel": "high",
   "doubleEscapeAction": "tree",

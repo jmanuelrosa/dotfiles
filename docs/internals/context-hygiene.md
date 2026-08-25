@@ -32,7 +32,7 @@ This costs nothing and needs no configuration.
 It is worth more than every artifact change combined.
 
 - **`/clear` between unrelated tasks.** The context does not need to survive a topic change, and keeping it is what turns a cheap session into an expensive one.
-- **Treat 35% context as the wrap-up point**, not 95%. The statusline already renders the meter (`context [▓▓░░░░░░] 100k (19%)`), and the `context-nudge.sh` hook fires at the same threshold so the number is a decision point rather than decoration; lowered from an initial 60% once it was clear that was already 580k tokens on a 967k window before anyone was told.
+- **Treat 35% context as the wrap-up point**, not 95%. The statusline already renders the meter (`context [▓▓░░░░░░] 100k (19%)`), and the `context-nudge.sh` hook fires at the same threshold so the number is a decision point rather than decoration, and pi's footer marks it too; the three read it from `roles/ai/files/statusline.json` rather than each carrying their own copy, so changing it here means changing it there; lowered from an initial 60% once it was clear that was already 580k tokens on a 967k window before anyone was told.
 - **Use the `handoff` skill to carry state across a `/clear`**, rather than avoiding the clear in order to keep the state.
 - **Send searching to the `Explore` subagent** instead of reading files into the main context. A subagent's reading is discarded when it returns; a `Read` in the main thread is re-read on every subsequent turn.
 - **Do not re-read a file you just edited.** The edit would have failed loudly if it had not applied.

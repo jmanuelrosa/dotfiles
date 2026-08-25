@@ -60,7 +60,7 @@
 
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -77,6 +77,40 @@ import {
 // realpath rather than dirname alone: this file is reached through the symlink the ai role puts in
 // ~/.pi/agent/extensions/, so the hooks are siblings of the link's target, not of the link.
 const HOOKS_DIR = join(dirname(realpathSync(fileURLToPath(import.meta.url))), "..", "..", "claude", "hooks");
+
+// The glyphs and wording these two segments share with Claude Code's statusline.sh, from the
+// file both harnesses read. Reached the same way HOOKS_DIR is, and for the same reason: this
+// file is loaded through a symlink, and only the realpath leads back into the checkout.
+// footer.ts carries the full reasoning, including why this is read rather than imported.
+const VOCABULARY_PATH = join(
+  dirname(realpathSync(fileURLToPath(import.meta.url))),
+  "..",
+  "..",
+  "statusline.json",
+);
+
+function vocabulary(): { glyphs?: Record<string, string>; labels?: Record<string, string> } {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(VOCABULARY_PATH, "utf8"));
+    return typeof parsed === "object" && parsed !== null ? parsed : {};
+  } catch {
+    // No vocabulary renders no badge text, never a broken gate: nothing below this line can
+    // decide whether a tool call is allowed.
+    return {};
+  }
+}
+
+const VOCAB = vocabulary();
+
+function glyph(name: string): string {
+  const mark = VOCAB.glyphs?.[name];
+  return typeof mark === "string" && mark !== "" ? `${mark} ` : "";
+}
+
+function word(name: string): string {
+  const found = VOCAB.labels?.[name];
+  return typeof found === "string" ? found : "";
+}
 
 // Above pre-commit-verify's own 150s ceiling, so its report of a slow lint reaches the caller
 // instead of being replaced by this timeout.
@@ -442,8 +476,8 @@ function onPath(name: string): boolean {
 function rtkStatus(ctx: ExtensionContext): string | undefined {
   if (!onPath("rtk")) return undefined;
   const theme = ctx.ui.theme;
-  if (process.env.RTK_ENABLE) return `✂️ ${theme.fg("success", "rtk")}`;
-  return theme.fg("dim", "✂️ rtk off");
+  if (process.env.RTK_ENABLE) return `${glyph("rtk")}${theme.fg("success", word("rtkOn"))}`;
+  return theme.fg("dim", `${glyph("rtk")}${word("rtkOff")}`);
 }
 
 /**
@@ -466,9 +500,9 @@ function rtkStatus(ctx: ExtensionContext): string | undefined {
  */
 function cursorStatus(ctx: ExtensionContext): string | undefined {
   if (ctx.model?.provider !== HOST_TOOL_PROVIDER) return undefined;
-  const badge = ctx.ui.theme.fg("accent", "⌁ cursor");
+  const badge = ctx.ui.theme.fg("accent", `${glyph("cursor")}${word("cursor")}`);
   if (process.env.PI_CURSOR_EXPOSE_BUILTIN_TOOLS) return badge;
-  return `${badge} ${ctx.ui.theme.fg("warning", "⚠️ gates off")}`;
+  return `${badge} ${ctx.ui.theme.fg("warning", `${glyph("warning")}${word("gatesOff")}`)}`;
 }
 
 export default function (pi: ExtensionAPI) {
