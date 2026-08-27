@@ -1,0 +1,17 @@
+{
+  "installed": {
+    "plugins": {
+      "cloud": "direct",
+      "dx": "direct",
+      "platform": "direct",
+      "security": "direct",
+      "sre": "direct"
+    },
+    "skills": {
+      "context-engineering": "dep-of:spec-driven-development",
+      "incremental-implementation": "direct",
+      "spec-driven-development": "direct",
+      "test-driven-development": "direct"
+    }
+  }
+}
