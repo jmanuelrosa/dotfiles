@@ -233,7 +233,7 @@ def test_every_branch_type_but_feature_passes_through():
 def test_an_off_convention_branch_yields_no_title():
     """Given a branch that is not <type>/<slug>, When the title is derived, Then
     nothing is derived, so the skill has to stop and ask."""
-    for branch in ("wip-something", "hotfix/urgent", "main"):
+    for branch in ("wip-something", "hotfix/urgent", "main", "fix/Uppercase", "fix/with_underscore"):
         derived = context.derive_title(branch, ["src/a.ts"])
         assert derived["conventional"] is False
         assert derived["title"] == ""
@@ -392,17 +392,14 @@ def test_a_bare_argument_overrides_the_base(stubs, pr_repo):
     assert target(gather(stubs, pr_repo, "develop").stdout)["BASE"] == "develop"
 
 
-def test_a_title_override_is_used_verbatim(stubs, pr_repo):
-    """Given --title, When context runs, Then the title passes straight through with
-    no ticket suffix appended, while the body's Closes line is still derived."""
+def test_a_title_override_is_rejected(stubs, pr_repo):
+    """Given --title, When context runs, Then it is rejected because branch-derived
+    titles are mandatory."""
     run_git(pr_repo, "switch", "-q", "-c", "feature/gh-99-add-thing")
     write(pr_repo, "src/thing.ts")
     commit(pr_repo, "feat: thing")
-    override = "chore(build): drop the legacy bundler shim"
-    values = target(gather(stubs, pr_repo, "--title", override).stdout)
-    assert values["TITLE"] == override
-    assert values["TITLE_SOURCE"] == "override"
-    assert values["CLOSES"] == "Closes #99"
+    result = gather(stubs, pr_repo, "--title", "chore(build): drop the legacy bundler shim")
+    assert result.returncode == context.EXIT_USAGE
 
 
 def test_a_root_lockfile_is_excluded_from_the_diff_but_kept_in_the_stat(stubs, pr_repo):
@@ -457,13 +454,36 @@ def plan_file(project, tmp_path, **overrides):
         "host": "gh",
         "base": "main",
         "branch": current_branch(project),
-        "title": "fix(app): stop the flicker",
+        "title": "fix: flicker",
         "body_file": str(body),
     }
     plan.update(overrides)
     path = tmp_path / "plan.json"
     path.write_text(json.dumps(plan))
     return path
+
+
+def test_a_nonstandard_branch_is_rejected_before_push(stubs, pr_repo, tmp_path):
+    run_git(pr_repo, "switch", "-q", "-c", "front-reverse-proxy")
+    write(pr_repo, "src/app.ts", "export const a = 2\n")
+    commit(pr_repo, "fix: flicker")
+    plan = plan_file(pr_repo, tmp_path, title="fix: front reverse proxy")
+
+    result = execute(stubs, pr_repo, plan)
+
+    assert result.returncode == apply_pr.EXIT_BLOCKED
+    assert stubs.calls() == []
+
+
+def test_a_title_that_differs_from_the_branch_derivation_is_rejected(
+    stubs, branch_ready, tmp_path
+):
+    plan = plan_file(branch_ready, tmp_path, title="fix(app): stop the flicker")
+
+    result = execute(stubs, branch_ready, plan)
+
+    assert result.returncode == apply_pr.EXIT_BLOCKED
+    assert stubs.calls() == []
 
 
 def test_a_github_pr_is_pushed_over_https_and_then_created(stubs, branch_ready, tmp_path):

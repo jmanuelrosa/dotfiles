@@ -28,7 +28,7 @@ Two bundled scripts do the mechanical work in one call each; don't re-run git fo
 
 ## Steps
 
-1. **Gather context** (single call): `bash ~/.claude/skills/commit/scripts/context.sh`. It prints `BASE`/`BRANCH`, porcelain status, staged + unstaged stats, drafting diffs (noisy paths like lockfiles/minified/generated excluded, capped per file), untracked previews, and recent subjects. Excluded or capped files still show in the stats: commit them with the concern they belong to; only run `git diff -- <path>` when a capped file genuinely matters for clustering. `BASE=<none: no origin>` means skip the default-branch comparison and treat the current branch as the working branch.
+1. **Gather context** (single call): `bash ~/.claude/skills/commit/scripts/context.sh`. It prints `BASE`/`BRANCH`/`BRANCH_CONVENTION`, porcelain status, staged + unstaged stats, drafting diffs (noisy paths like lockfiles/minified/generated excluded, capped per file), untracked previews, and recent subjects. Excluded or capped files still show in the stats: commit them with the concern they belong to; only run `git diff -- <path>` when a capped file genuinely matters for clustering. `BASE=<none: no origin>` means skip the default-branch comparison and treat the current branch as the working branch.
 
 2. **Branch gate:**
    - `BRANCH` == `BASE` (on the default branch) → **ask**: commit into `$BASE`, or create a new branch?
@@ -38,7 +38,9 @@ Two bundled scripts do the mechanical work in one call each; don't re-run git fo
        ^(feature|fix|chore|docs|refactor|test|perf|ci|build|style|revert)\/([A-Z]+-[0-9]+-|gh-[0-9]+-)?[a-z0-9][a-z0-9-]*$
        ```
        Branch types are the Conventional Branch set, commit types are commitlint's, and they disagree on one member: a `feat` commit belongs on a `feature/` branch. The ticket is embedded with a dash, not a separate segment: a Jira key (`PROJ-123-<slug>`) or a GitHub issue (`gh-456-<slug>`). Both are what `s-task` scaffolds. Carry one only when the diff, the current branch, or the user's arguments name it: never invent a key. On failure, show why and re-ask. Create with `git switch -c "$NEW_BRANCH"`.
-   - Non-default branch that matches the work at hand → use it, no prompt. Looks unrelated to the diff (a `chore/bump-*`, a release branch, someone else's feature) → **ask** before reusing it; on "new branch", same name prompt + validation.
+   - `BRANCH_CONVENTION=unresolved` because there is no origin → treat the current branch as the working branch, as step 1 states.
+   - `BRANCH_CONVENTION=nonstandard` on a non-default branch → do not commit on it. Propose two valid names with the same prompt and validation above, then rename it with `git branch -m "$NEW_BRANCH"` before continuing.
+   - Conventional non-default branch that matches the work at hand → use it, no prompt. Looks unrelated to the diff (a `chore/bump-*`, a release branch, someone else's feature) → **ask** before reusing it; on "new branch", same name prompt + validation.
 
 3. **Staging gate.** From the status section: nothing staged or unstaged → stop ("no changes to commit"). Otherwise the candidate is the *staged* set; if there are unstaged changes not already staged, **ask** whether to fold them in (all, a subset, or leave out) and print what's left out. If that empties the candidate set, stop with "no changes to commit". Never auto-stage.
 

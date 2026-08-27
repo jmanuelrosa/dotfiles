@@ -1,7 +1,7 @@
 ---
 name: pr
 description: Generate the PR description from the current branch and open the PR (GitHub) or MR (GitLab), returning the URL
-argument-hint: "[base-branch] [--title \"<title>\"]"
+argument-hint: "[base-branch]"
 model: sonnet
 effort: medium
 disable-model-invocation: true
@@ -11,6 +11,7 @@ allowed-tools:
   - Bash(git push *)
   - Bash(git diff *)
   - Bash(git log *)
+  - Bash(git branch *)
   - Edit(//tmp/claude/**)
   - Edit(//private/tmp/claude/**)
   - Read
@@ -27,8 +28,8 @@ Everything left in this file is judgment: what the description says, whether a c
 
 ## Steps
 
-1. **Gather context** (single call): `python3 ~/.claude/skills/pr/scripts/context.py [<base>] [--title "<title>"]`.
-   Forward the arguments this skill was invoked with: the bare token is `<base>`, `--title` is passed through verbatim.
+1. **Gather context** (single call): `python3 ~/.claude/skills/pr/scripts/context.py [<base>]`.
+   Forward the bare base-branch argument when this skill was invoked with one.
 
    It resolves the host from `origin`, the base from local `origin/HEAD` (falling back to the host CLI), the GitLab account from live `glab auth status`, and the template, then prints:
 
@@ -37,10 +38,10 @@ Everything left in this file is judgment: what the description says, whether a c
    - `== commits ==`, `== changed files (stat) ==`, `== diff (noisy paths excluded, capped per file) ==`. Excluded and capped files still show in the stat: mention them in the description when they matter, and only run `git diff -- <path>` when one genuinely does.
 
    `TITLE` is final. It already applies the branch-type map, the ticket split, the scope precedence and the `(<TICKET>)` suffix rule; don't recompute or rewrite it.
-   Three lines need a decision rather than a read:
+   `SCOPE_CANDIDATES` is informational: when several areas are equally plausible, the deterministic title remains repo-wide rather than asking the model or user to rewrite it.
+   Two lines need a decision rather than a read:
 
-   - `BRANCH_CONVENTION=nonstandard` (so `TITLE_SOURCE=unresolved`): the branch is not `<type>/<slug>` with a known type, so no title can be derived from it. Stop and ask the user to rename the branch or rerun with `--title`.
-   - `SCOPE` empty with `SCOPE_CANDIDATES` listed: the diff crosses two or more areas with no clear primary. Ask the user which to use, listing the candidates, or agree it is repo-wide.
+   - `BRANCH_CONVENTION=nonstandard` (so `TITLE_SOURCE=unresolved`): do not push. Propose two valid names based on the branch's commits and diff, ask the user to choose one, validate it against `^(feature|fix|chore|docs|refactor|test|perf|ci|build|style|revert)\/([A-Z]+-[0-9]+-|gh-[0-9]+-)?[a-z0-9][a-z0-9-]*$`, rename with `git branch -m "$NEW_BRANCH"`, then rerun this context step. There is no title-only bypass.
    - `GLHOST_CANDIDATES` (GitLab only, when one server backs more than one authenticated account): `AskUserQuestion` with `header: "GitLab account"`, `multiSelect: false`, one option per candidate labelled `<host> (<account>)`, defaulting to the account matching `GIT_EMAIL`. Use `<chosen host>/<NS>` as the plan's `repo` in step 4. `NOT_LOGGED_IN=<host>` instead means leave `repo` out and let glab auto-detect; if the create then fails, tell the user to run `glab auth login`.
 
 2. **Fill the template**:
@@ -86,6 +87,6 @@ Every word in the title or description must read like a teammate wrote it: speci
 
 ## Rules
 
-- `TITLE` from `context.py` is authoritative, including the invariant behind it: a Jira key becomes a `(<TICKET>)` suffix, a GitHub issue never does (GitHub appends its own `(#<pr-number>)` on squash merge, so `(#456)` in a title reads as a PR number), and an explicit `--title` is used verbatim, exempt from derivation and from the suffix rule.
+- `TITLE` from `context.py` is authoritative, including the invariant behind it: a Jira key becomes a `(<TICKET>)` suffix, while a GitHub issue never does (GitHub appends its own `(#<pr-number>)` on squash merge, so `(#456)` in a title reads as a PR number). `apply.py` recomputes it and rejects any mismatch.
 - The description travels as a file, never as a shell argument: newlines and code fences survive that way, and nothing in it can reach a shell.
 - Never write `Co-Authored-By: Claude …` or `🤖 Generated with …` in the title or body: `settings.json` handles attribution and `apply.py` hard-blocks both.
