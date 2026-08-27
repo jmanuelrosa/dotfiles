@@ -29,7 +29,7 @@ Tooling, code standards and git conventions are agent-neutral and live in `AGENT
 
 - When `pi__*` tools are available, use them for every shell command, write and edit, in preference to any host-native equivalent. Only the `pi__*` path runs the session's guardrails, so work done outside it is unchecked.
 - `Cursor shell did not complete` and `missing completion` are an SDK failure, not a refusal. Nothing inspected the command and nothing decided anything about it. Retry through `pi__bash`, which is where a real gate would speak.
-- Never report a failure as a hook or guardrail block unless you have the refusal text. A block from this session's gates always names the skill it wants and always ends with `In pi those skills are /skill:commit and /skill:pr`. Without that, say the tool call failed and say which tool.
+- Never report a failure as a hook or guardrail block unless you have the refusal text. A block from this session's gates always names the skill it wants and always ends with `In pi, /commit and /pr load /skill:commit and /skill:pr`. Without that, say the tool call failed and say which tool.
 
 ## Skills
 

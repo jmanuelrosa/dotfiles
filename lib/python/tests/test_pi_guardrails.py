@@ -136,9 +136,9 @@ def test_the_gated_skills_match_the_hook(source):
 
 
 def test_the_translated_refusal_is_one_the_hook_prints(source):
-    """The hook names /commit and ~/.claude/settings.json, so the extension appends pi's spelling
-    of the same instruction. It finds that message by a phrase, and a reworded hook would leave
-    the caller told to run a command that does not exist here."""
+    """The hook names Claude's /commit skill and ~/.claude/settings.json, so the extension
+    appends Pi's explicit skill spelling. It finds that message by a phrase, and a reworded hook
+    would leave the caller without the harness translation."""
     phrase = re.search(r'message\.includes\("([^"]+)"\)', source).group(1)
     assert phrase in hook_source("git-skill-gate.sh")
 

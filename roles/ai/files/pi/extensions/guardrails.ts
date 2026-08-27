@@ -17,8 +17,8 @@
  *   session is inside the commit or pr skill. `activeSkills` answers that question from Pi's own
  *   session and writes the answer in the shape the hook already parses, so the hook stays the only
  *   thing deciding what a gated command is.
- * - The hook's refusal names /commit and ~/.claude/settings.json, neither of which exists here, so
- *   the one message a caller can act on gets a line of Pi translation appended.
+ * - The hook's refusal names Claude's /commit skill and ~/.claude/settings.json. Pi exposes
+ *   /commit as an alias, so the actionable message gets the explicit /skill spelling appended.
  * - Claude has three answers to a PreToolUse hook and Pi has two. cloud-readonly-gate's `ask`
  *   tier becomes a refusal, for the reasons at `askedForPermission`.
  *
@@ -372,7 +372,7 @@ function blockResult(verdict: HookVerdict): ToolCallEventResult | undefined {
   if (!verdict.blocked) return undefined;
   const message = verdict.message || "Blocked by a guardrails hook.";
   const translated = message.includes("is blocked outside")
-    ? `${message}\n\nIn pi those skills are /skill:commit and /skill:pr. Load the right one, then retry.`
+    ? `${message}\n\nIn pi, /commit and /pr load /skill:commit and /skill:pr. Load the right one, then retry.`
     : message;
   return { block: true, reason: translated };
 }
