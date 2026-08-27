@@ -40,6 +40,8 @@
       "~/.config/acli",
       "~/Developer/dotfiles/roles/ai/files/claude/skills",
       "~/Developer/dotfiles/roles/ai/files/claude/hooks",
+      "~/Developer/dotfiles/roles/ai/files/claude/agents",
+      "~/Developer/dotfiles/roles/ai/files/claude/plugins",
       "~/Developer/dotfiles/roles/ai/files/claude/settings.json"
     ],
     "denyRead": [
