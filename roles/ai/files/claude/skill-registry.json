@@ -759,6 +759,15 @@
       "note": "Locally authored"
     },
     {
+      "name": "to-plan",
+      "groups": [
+        "product",
+        "workflow",
+        "global"
+      ],
+      "note": "Locally authored; global signpost to the product-team plugin"
+    },
+    {
       "name": "ac",
       "groups": [
         "productivity",
