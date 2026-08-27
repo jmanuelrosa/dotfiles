@@ -248,6 +248,7 @@
   loop:
     - pi/settings.json
     - pi/models.json
+    - pi/mcp.json
     # pi-sandbox's config, and the only place pi gets a permission model at all.
     # Derived from the `sandbox` block and the path half of the `permissions` block in
     # files/claude/settings.json, so one statement of what may be read, written and

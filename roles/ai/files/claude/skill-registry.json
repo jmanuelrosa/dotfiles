@@ -133,248 +133,6 @@
         }
       ]
     },
-    "mcollina/skills": {
-      "branch": "main",
-      "skills": [
-        {
-          "upstream_path": "skills/fastify",
-          "groups": [
-            "engineering",
-            "backend",
-            "fastify"
-          ],
-          "updated_at": "2026-08-21T11:55:14Z"
-        },
-        {
-          "upstream_path": "skills/node",
-          "groups": [
-            "engineering",
-            "backend",
-            "node"
-          ],
-          "updated_at": "2026-08-22T06:27:03Z"
-        },
-        {
-          "upstream_path": "skills/typescript-magician",
-          "groups": [
-            "engineering",
-            "frontend",
-            "backend",
-            "typescript"
-          ],
-          "updated_at": "2026-07-25T09:44:18Z"
-        }
-      ]
-    },
-    "apollographql/skills": {
-      "branch": "main",
-      "skills": [
-        {
-          "upstream_path": "skills/apollo-client",
-          "groups": [
-            "engineering",
-            "frontend",
-            "graphql"
-          ],
-          "updated_at": "2026-07-25T09:44:08Z"
-        },
-        {
-          "upstream_path": "skills/graphql-operations",
-          "groups": [
-            "engineering",
-            "backend",
-            "graphql"
-          ],
-          "updated_at": "2026-07-25T09:44:08Z"
-        }
-      ]
-    },
-    "coreyhaines31/marketingskills": {
-      "branch": "main",
-      "skills": [
-        {
-          "upstream_path": "skills/copywriting",
-          "groups": [
-            "marketing",
-            "seo"
-          ],
-          "updated_at": "2026-08-24T05:03:58Z"
-        },
-        {
-          "upstream_path": "skills/cro",
-          "groups": [
-            "marketing",
-            "seo"
-          ],
-          "updated_at": "2026-07-25T09:44:13Z"
-        },
-        {
-          "upstream_path": "skills/seo-audit",
-          "groups": [
-            "marketing",
-            "seo"
-          ],
-          "updated_at": "2026-08-21T11:55:08Z"
-        },
-        {
-          "upstream_path": "skills/ai-seo",
-          "groups": [
-            "marketing",
-            "seo"
-          ],
-          "updated_at": "2026-08-22T06:26:57Z"
-        }
-      ]
-    },
-    "vercel-labs/agent-skills": {
-      "branch": "main",
-      "skills": [
-        {
-          "upstream_path": "skills/react-native-skills",
-          "groups": [
-            "engineering",
-            "mobile",
-            "expo"
-          ],
-          "updated_at": "2026-07-25T09:44:35Z"
-        },
-        {
-          "upstream_path": "skills/react-best-practices",
-          "groups": [
-            "engineering",
-            "frontend",
-            "react"
-          ],
-          "updated_at": "2026-07-25T09:44:35Z"
-        },
-        {
-          "upstream_path": "skills/composition-patterns",
-          "groups": [
-            "engineering",
-            "frontend",
-            "react"
-          ],
-          "updated_at": "2026-07-25T09:44:35Z"
-        }
-      ]
-    },
-    "astrolicious/agent-skills": {
-      "branch": "main",
-      "skills": [
-        {
-          "upstream_path": "skills/astro",
-          "groups": [
-            "engineering",
-            "frontend",
-            "astro"
-          ],
-          "updated_at": "2026-07-25T09:44:09Z"
-        }
-      ]
-    },
-    "yusukebe/hono-skill": {
-      "branch": "main",
-      "skills": [
-        {
-          "upstream_path": "skills/hono",
-          "groups": [
-            "engineering",
-            "backend",
-            "hono"
-          ],
-          "updated_at": "2026-07-25T09:44:37Z"
-        }
-      ]
-    },
-    "kadajett/agent-nestjs-skills": {
-      "branch": "main",
-      "skills": [
-        {
-          "upstream_path": "skills/nestjs-best-practices",
-          "groups": [
-            "engineering",
-            "backend",
-            "nestjs"
-          ],
-          "updated_at": "2026-07-25T09:44:17Z"
-        }
-      ]
-    },
-    "sickn33/antigravity-awesome-skills": {
-      "branch": "main",
-      "skills": [
-        {
-          "upstream_path": "skills/prisma-expert",
-          "groups": [
-            "engineering",
-            "backend",
-            "database"
-          ],
-          "updated_at": "2026-07-30T14:16:34Z"
-        }
-      ]
-    },
-    "wshobson/agents": {
-      "branch": "main",
-      "skills": [
-        {
-          "upstream_path": "plugins/frontend-mobile-development/skills/tailwind-design-system",
-          "groups": [
-            "engineering",
-            "frontend",
-            "tailwind"
-          ],
-          "updated_at": "2026-07-25T09:44:36Z"
-        },
-        {
-          "upstream_path": "plugins/javascript-typescript/skills/nodejs-backend-patterns",
-          "groups": [
-            "engineering",
-            "backend",
-            "node"
-          ],
-          "updated_at": "2026-07-25T09:44:36Z"
-        },
-        {
-          "upstream_path": "plugins/cloud-infrastructure/skills/terraform-module-library",
-          "groups": [
-            "engineering",
-            "devops",
-            "infrastructure"
-          ],
-          "updated_at": "2026-08-01T13:17:13Z"
-        }
-      ]
-    },
-    "Microck/ordinary-claude-skills": {
-      "branch": "main",
-      "skills": [
-        {
-          "upstream_path": "skills_all/claude-code-analyzer",
-          "groups": [
-            "ai",
-            "prompt engineering",
-            "claude"
-          ],
-          "updated_at": "2026-07-25T09:44:05Z"
-        }
-      ]
-    },
-    "currents-dev/playwright-best-practices-skill": {
-      "branch": "main",
-      "skills": [
-        {
-          "upstream_path": "playwright-best-practices",
-          "groups": [
-            "engineering",
-            "frontend",
-            "testing",
-            "playwright"
-          ],
-          "updated_at": "2026-07-25T09:44:13Z"
-        }
-      ]
-    },
     "mattpocock/skills": {
       "branch": "main",
       "skills": [
@@ -440,57 +198,165 @@
         }
       ]
     },
-    "brianlovin/agent-config": {
+    "cursor/plugins/": {
       "branch": "main",
       "skills": [
         {
-          "upstream_path": "skills/knip",
+          "upstream_path": "pstack/skills/unslop",
+          "groups": [
+            "engineering",
+            "prompt engineering",
+            "refactoring"
+          ],
+          "updated_at": "2026-08-25T18:10:41Z"
+        }
+      ]
+    },
+    "mcollina/skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/fastify",
           "groups": [
             "engineering",
             "backend",
-            "frontend",
-            "review"
+            "fastify"
           ],
-          "updated_at": "2026-07-25T09:44:12Z"
+          "updated_at": "2026-08-21T11:55:14Z"
         },
         {
-          "upstream_path": "skills/fix-sentry-issues",
+          "upstream_path": "skills/node",
           "groups": [
             "engineering",
             "backend",
-            "frontend",
-            "observability",
-            "sentry"
+            "node"
           ],
-          "updated_at": "2026-07-25T09:44:12Z"
-        }
-      ]
-    },
-    "remix-run/agent-skills": {
-      "branch": "main",
-      "skills": [
+          "updated_at": "2026-08-22T06:27:03Z"
+        },
         {
-          "upstream_path": "skills/react-router-data-mode",
+          "upstream_path": "skills/typescript-magician",
           "groups": [
             "engineering",
             "frontend",
-            "react-router"
+            "backend",
+            "typescript"
           ],
-          "updated_at": "2026-07-25T09:44:19Z"
+          "updated_at": "2026-07-25T09:44:18Z"
         }
       ]
     },
-    "DeckardGer/tanstack-agent-skills": {
+    "vercel-labs/agent-skills": {
       "branch": "main",
       "skills": [
         {
-          "upstream_path": "skills/tanstack-router",
+          "upstream_path": "skills/react-native-skills",
+          "groups": [
+            "engineering",
+            "mobile",
+            "expo"
+          ],
+          "updated_at": "2026-07-25T09:44:35Z"
+        },
+        {
+          "upstream_path": "skills/react-best-practices",
           "groups": [
             "engineering",
             "frontend",
-            "tanstack"
+            "react"
           ],
-          "updated_at": "2026-07-25T09:44:03Z"
+          "updated_at": "2026-07-25T09:44:35Z"
+        },
+        {
+          "upstream_path": "skills/composition-patterns",
+          "groups": [
+            "engineering",
+            "frontend",
+            "react"
+          ],
+          "updated_at": "2026-07-25T09:44:35Z"
+        }
+      ]
+    },
+    "DietrichGebert/ponytail/": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/ponytail",
+          "groups": [
+            "engineering",
+            "prompt engineering",
+            "refactoring"
+          ],
+          "updated_at": "2026-08-25T18:10:28Z"
+        }
+      ]
+    },
+    "wshobson/agents": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "plugins/frontend-mobile-development/skills/tailwind-design-system",
+          "groups": [
+            "engineering",
+            "frontend",
+            "tailwind"
+          ],
+          "updated_at": "2026-07-25T09:44:36Z"
+        },
+        {
+          "upstream_path": "plugins/javascript-typescript/skills/nodejs-backend-patterns",
+          "groups": [
+            "engineering",
+            "backend",
+            "node"
+          ],
+          "updated_at": "2026-07-25T09:44:36Z"
+        },
+        {
+          "upstream_path": "plugins/cloud-infrastructure/skills/terraform-module-library",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-08-01T13:17:13Z"
+        }
+      ]
+    },
+    "apollographql/skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/apollo-client",
+          "groups": [
+            "engineering",
+            "frontend",
+            "graphql"
+          ],
+          "updated_at": "2026-07-25T09:44:08Z"
+        },
+        {
+          "upstream_path": "skills/graphql-operations",
+          "groups": [
+            "engineering",
+            "backend",
+            "graphql"
+          ],
+          "updated_at": "2026-07-25T09:44:08Z"
+        }
+      ]
+    },
+    "astrolicious/agent-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/astro",
+          "groups": [
+            "engineering",
+            "frontend",
+            "astro"
+          ],
+          "updated_at": "2026-07-25T09:44:09Z"
         }
       ]
     },
@@ -537,6 +403,98 @@
             "testing"
           ],
           "updated_at": "2026-07-25T09:44:10Z"
+        }
+      ]
+    },
+    "brianlovin/agent-config": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/knip",
+          "groups": [
+            "engineering",
+            "backend",
+            "frontend",
+            "review"
+          ],
+          "updated_at": "2026-07-25T09:44:12Z"
+        },
+        {
+          "upstream_path": "skills/fix-sentry-issues",
+          "groups": [
+            "engineering",
+            "backend",
+            "frontend",
+            "observability",
+            "sentry"
+          ],
+          "updated_at": "2026-07-25T09:44:12Z"
+        }
+      ]
+    },
+    "coreyhaines31/marketingskills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/copywriting",
+          "groups": [
+            "marketing",
+            "seo"
+          ],
+          "updated_at": "2026-08-24T05:03:58Z"
+        },
+        {
+          "upstream_path": "skills/cro",
+          "groups": [
+            "marketing",
+            "seo"
+          ],
+          "updated_at": "2026-07-25T09:44:13Z"
+        },
+        {
+          "upstream_path": "skills/seo-audit",
+          "groups": [
+            "marketing",
+            "seo"
+          ],
+          "updated_at": "2026-08-21T11:55:08Z"
+        },
+        {
+          "upstream_path": "skills/ai-seo",
+          "groups": [
+            "marketing",
+            "seo"
+          ],
+          "updated_at": "2026-08-22T06:26:57Z"
+        }
+      ]
+    },
+    "currents-dev/playwright-best-practices-skill": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "playwright-best-practices",
+          "groups": [
+            "engineering",
+            "frontend",
+            "testing",
+            "playwright"
+          ],
+          "updated_at": "2026-07-25T09:44:13Z"
+        }
+      ]
+    },
+    "DeckardGer/tanstack-agent-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/tanstack-router",
+          "groups": [
+            "engineering",
+            "frontend",
+            "tanstack"
+          ],
+          "updated_at": "2026-07-25T09:44:03Z"
         }
       ]
     },
@@ -667,6 +625,76 @@
             "infrastructure"
           ],
           "updated_at": "2026-08-01T13:17:57Z"
+        }
+      ]
+    },
+    "kadajett/agent-nestjs-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/nestjs-best-practices",
+          "groups": [
+            "engineering",
+            "backend",
+            "nestjs"
+          ],
+          "updated_at": "2026-07-25T09:44:17Z"
+        }
+      ]
+    },
+    "Microck/ordinary-claude-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills_all/claude-code-analyzer",
+          "groups": [
+            "ai",
+            "prompt engineering",
+            "claude"
+          ],
+          "updated_at": "2026-07-25T09:44:05Z"
+        }
+      ]
+    },
+    "remix-run/agent-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/react-router-data-mode",
+          "groups": [
+            "engineering",
+            "frontend",
+            "react-router"
+          ],
+          "updated_at": "2026-07-25T09:44:19Z"
+        }
+      ]
+    },
+    "sickn33/antigravity-awesome-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/prisma-expert",
+          "groups": [
+            "engineering",
+            "backend",
+            "database"
+          ],
+          "updated_at": "2026-07-30T14:16:34Z"
+        }
+      ]
+    },
+    "yusukebe/hono-skill": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/hono",
+          "groups": [
+            "engineering",
+            "backend",
+            "hono"
+          ],
+          "updated_at": "2026-07-25T09:44:37Z"
         }
       ]
     }
