@@ -1,0 +1,9 @@
+{
+  "mcpServers": {},
+  "imports": [
+    "cursor",
+    "claude-code",
+    "claude-desktop",
+    "codex"
+  ]
+}

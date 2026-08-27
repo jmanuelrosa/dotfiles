@@ -5,7 +5,7 @@
     "keepRecentTokens": 10000,
     "reserveTokens": 8192
   },
-  "defaultModel": "claude-opus-5@1m",
+  "defaultModel": "openai-codex/gpt-5.6-sol",
   "defaultProvider": "cursor",
   "defaultThinkingLevel": "high",
   "doubleEscapeAction": "tree",
@@ -34,7 +34,9 @@
     "npm:@tintinweb/pi-subagents",
     "npm:pi-cc-patch",
     "npm:pi-cursor-sdk",
-    "npm:pi-sandbox"
+    "npm:pi-sandbox",
+    "npm:pi-ask-user",
+    "npm:pi-mcp-adapter"
   ],
   "quietStartup": true,
   "showHardwareCursor": true,
@@ -45,5 +47,5 @@
   "theme": "solarized-dark",
   "transport": "auto",
   "treeFilterMode": "default",
-  "lastChangelogVersion": "0.84.2"
+  "lastChangelogVersion": "0.84.3"
 }

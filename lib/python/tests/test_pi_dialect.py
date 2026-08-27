@@ -44,6 +44,7 @@ from claude_kit import pi  # noqa: E402
 
 AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 PI_SETTINGS = PI / "settings.json"
+PI_MCP_SETTINGS = PI / "mcp.json"
 
 DIRS_TASK = "Ensure AI config directories exist"
 AGENTS_LINK_TASK = "Point pi at the global claude agents"
@@ -228,6 +229,22 @@ def test_pi_subagents_is_declared_in_the_settings_pi_actually_loads():
     entry, pi ships no Agent tool and every path here is a directory nothing reads."""
     packages = json.loads(PI_SETTINGS.read_text())["packages"]
     assert "npm:@tintinweb/pi-subagents" in packages
+
+
+def test_pi_mcp_adapter_imports_existing_host_configs_from_a_linked_config():
+    """The package and its host imports survive a fresh role apply together."""
+    packages = json.loads(PI_SETTINGS.read_text())["packages"]
+    assert "npm:pi-mcp-adapter" in packages
+
+    config = json.loads(PI_MCP_SETTINGS.read_text())
+    assert config == {
+        "mcpServers": {},
+        "imports": ["cursor", "claude-code", "claude-desktop", "codex"],
+    }
+
+    tasks = yaml.safe_load(AI_TASKS.read_text())
+    link_task = next(task for task in tasks if task.get("name") == "Symlink pi agent config")
+    assert "pi/mcp.json" in link_task["loop"]
 
 
 def test_the_role_installs_herdr_for_pi_as_well_as_claude():
