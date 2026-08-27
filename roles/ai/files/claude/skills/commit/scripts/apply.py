@@ -22,6 +22,10 @@ import sys
 import tempfile
 
 HEADER_MAX = 100
+BRANCH_RE = re.compile(
+    r"^(feature|fix|chore|docs|refactor|test|perf|ci|build|style|revert)/"
+    r"([A-Z]+-[0-9]+-|gh-[0-9]+-)?[a-z0-9][a-z0-9-]*$"
+)
 
 ATTRIBUTION_RE = re.compile(r"(?i)co-authored-by:.*claude|generated with.*\bclaude\b|\U0001F916")
 DASH_RE = re.compile("[\u2014\u2013]")
@@ -36,6 +40,20 @@ def fail(msg):
 
 def run(args, **kw):
     return subprocess.run(args, capture_output=True, text=True, **kw)
+
+
+def validate_branch():
+    branch = run(["git", "branch", "--show-current"]).stdout.strip()
+    if not branch:
+        fail("detached HEAD, no branch to commit on")
+
+    base = run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"])
+    default_branch = base.stdout.strip().removeprefix("origin/") if base.returncode == 0 else ""
+    if default_branch and branch != default_branch and not BRANCH_RE.fullmatch(branch):
+        fail(
+            f"branch {branch!r} is nonstandard; rename it to "
+            "<type>/<slug> or <type>/<TICKET>-<slug> before committing"
+        )
 
 
 def validate(commits):
@@ -74,6 +92,7 @@ def main():
 
     commits = plan.get("commits") or []
     validate(commits)
+    validate_branch()
 
     for i, c in enumerate(commits, 1):
         add = run(["git", "add", "--"] + c["files"])

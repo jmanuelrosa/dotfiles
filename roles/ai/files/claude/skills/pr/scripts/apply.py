@@ -14,9 +14,9 @@ is already on the remote.
 
 Because this script pushes outside the git-skill-gate hook's view of the command
 string, the hook gates it by path instead, and it re-implements the outward-text
-blocks itself: attribution lines and typographic dashes in the title or body,
-plus a refusal to push a branch carrying .claude/tasks/ state or a cleartext
-secret. It never passes --no-verify. On a push failure it prints the standalone
+blocks itself: nonstandard branches, titles that differ from context.py's
+derivation, attribution lines and typographic dashes in the title or body, plus
+a refusal to push a branch carrying .claude/tasks/ state or a cleartext secret. It never passes --no-verify. On a push failure it prints the standalone
 `git` command to retry with, because the sandbox only runs a command
 unsandboxed when its leading token is `git`, and a push spawned from here is
 sandboxed: SSH auth and any pre-push hook needing the network or a write outside
@@ -24,6 +24,7 @@ the worktree fail there.
 """
 
 import fnmatch
+import importlib.util
 import json
 import re
 import shlex
@@ -49,6 +50,17 @@ SECRET_BASENAME_GLOBS = (".env", ".env.*", "*.pem", "*-key.json", "credentials*"
 # staging, a push cannot un-publish a secret that is already in history: the
 # check is here to stop a fresh mistake leaving the machine, not to relitigate.
 SECRET_EXEMPT_SUFFIXES = (".example", ".sample", ".template", ".dist")
+
+
+def load_context():
+    path = Path(__file__).with_name("context.py")
+    spec = importlib.util.spec_from_file_location("pr_context_for_apply", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+CONTEXT = load_context()
 
 
 def fail(message, code):
@@ -88,6 +100,28 @@ def changed_files(base):
     if proc.returncode != 0:
         return []
     return [path for path in proc.stdout.split("\0") if path]
+
+
+def validate_target(plan):
+    current = run(["git", "branch", "--show-current"]).stdout.strip()
+    if not current or current != plan["branch"]:
+        fail(
+            f"plan branch {plan['branch']!r} does not match the current branch {current!r}",
+            EXIT_BLOCKED,
+        )
+
+    derived = CONTEXT.derive_title(current, changed_files(plan["base"]))
+    if not derived["conventional"]:
+        fail(
+            f"branch {current!r} is nonstandard; rename it to "
+            "<type>/<slug> or <type>/<TICKET>-<slug> before opening a PR",
+            EXIT_BLOCKED,
+        )
+    if plan["title"] != derived["title"]:
+        fail(
+            f"title must be derived from the branch and changed files: {derived['title']!r}",
+            EXIT_BLOCKED,
+        )
 
 
 def validate_text(label, text):
@@ -210,6 +244,7 @@ def main():
     if not body.strip():
         fail("body file is empty", EXIT_USAGE)
 
+    validate_target(plan)
     validate_text("title", plan["title"])
     validate_text("body", body)
     validate_branch(plan["base"])

@@ -74,6 +74,10 @@ BRANCH_TYPES = frozenset(
 
 # Branch types and commitlint's commit types disagree on exactly one member.
 COMMIT_TYPE_FOR_BRANCH_TYPE = {"feature": "feat"}
+BRANCH_RE = re.compile(
+    rf"^({'|'.join(sorted(BRANCH_TYPES))})/"
+    r"([A-Z]+-[0-9]+-|gh-[0-9]+-)?[a-z0-9][a-z0-9-]*$"
+)
 
 JIRA_TICKET = re.compile(r"^(?P<ref>[A-Z]+-[0-9]+)(?:-|$)")
 GITHUB_TICKET = re.compile(r"^(?P<ref>gh-(?P<number>[0-9]+))(?:-|$)")
@@ -294,9 +298,9 @@ def derive_title(branch, files):
         "closes": "",
         "title": "",
     }
-    branch_type, _, rest = branch.partition("/")
-    if not rest or branch_type not in BRANCH_TYPES:
+    if not BRANCH_RE.fullmatch(branch):
         return derived
+    branch_type, _, rest = branch.partition("/")
 
     ticket, kind, number, tail = split_ticket(rest)
     commit_type = COMMIT_TYPE_FOR_BRANCH_TYPE.get(branch_type, branch_type)
@@ -353,7 +357,6 @@ class Parser(argparse.ArgumentParser):
 def main():
     parser = Parser(prog="context.py", description=__doc__.splitlines()[0])
     parser.add_argument("base", nargs="?", help="base branch, overrides origin/HEAD")
-    parser.add_argument("--title", help="explicit title the caller owns, used verbatim")
     args = parser.parse_args()
 
     toplevel = git("rev-parse", "--show-toplevel")
@@ -391,11 +394,8 @@ def main():
     emit("TYPE", derived["type"])
     emit("SCOPE", derived["scope"])
     emit("SCOPE_CANDIDATES", ", ".join(derived["scope_candidates"]))
-    emit("TITLE", args.title or derived["title"])
-    if args.title:
-        emit("TITLE_SOURCE", "override")
-    else:
-        emit("TITLE_SOURCE", "derived" if derived["conventional"] else "unresolved")
+    emit("TITLE", derived["title"])
+    emit("TITLE_SOURCE", "derived" if derived["conventional"] else "unresolved")
     emit("TICKET", derived["ticket"])
     emit("TICKET_KIND", derived["ticket_kind"])
     emit("CLOSES", derived["closes"])

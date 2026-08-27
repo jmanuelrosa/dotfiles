@@ -47,8 +47,18 @@ if [ -z "$BASE" ] && git remote get-url origin >/dev/null 2>&1; then
   git remote set-head origin -a >/dev/null 2>&1
   BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##')
 fi
+BRANCH=$(git branch --show-current)
 echo "BASE=${BASE:-<none: no origin>}"
-echo "BRANCH=$(git branch --show-current)"
+echo "BRANCH=$BRANCH"
+if [ -z "$BASE" ]; then
+  echo "BRANCH_CONVENTION=unresolved"
+elif [ "$BRANCH" = "$BASE" ]; then
+  echo "BRANCH_CONVENTION=default"
+elif [[ "$BRANCH" =~ ^(feature|fix|chore|docs|refactor|test|perf|ci|build|style|revert)/([A-Z]+-[0-9]+-|gh-[0-9]+-)?[a-z0-9][a-z0-9-]*$ ]]; then
+  echo "BRANCH_CONVENTION=ok"
+else
+  echo "BRANCH_CONVENTION=nonstandard"
+fi
 
 echo
 echo "== status (porcelain) =="
