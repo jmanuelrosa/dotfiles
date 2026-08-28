@@ -178,19 +178,71 @@ function gauge(percent: number, theme: Theme): string {
   return cells.join("");
 }
 
+interface UsageFreshness {
+  quality: "exact" | "unknown";
+  reason?: "model-changed" | "compacted";
+}
+
+function isFreshAssistant(entry: SessionEntry, model: ExtensionContext["model"]): boolean {
+  if (!model || entry.type !== "message") return false;
+  const message = entry.message;
+  if (message.role !== "assistant") return false;
+  if (message.stopReason === "aborted" || message.stopReason === "error") return false;
+  return (
+    message.provider === model.provider &&
+    message.api === model.api &&
+    message.model === model.id
+  );
+}
+
+/**
+ * Whether `getContextUsage()` is a measurement of the model now selected.
+ *
+ * Pi reuses the latest assistant usage without checking which model produced it, so a switch
+ * can leave a percentage that belongs to the previous window. Usage is exact only when a valid
+ * assistant from the current provider, API and model sits after both the latest model change
+ * and the latest compaction. Missing branch or model data is left alone so callers that only
+ * stub `getContextUsage()` keep the reading pi already computed.
+ */
+function usageFreshness(ctx: ExtensionContext): UsageFreshness {
+  const usage = ctx.getContextUsage();
+  if (!usage || usage.percent === null) {
+    return { quality: "unknown", reason: "compacted" };
+  }
+  const branch = ctx.sessionManager?.getBranch?.();
+  const model = ctx.model;
+  if (!branch || !model) return { quality: "exact" };
+
+  let lastModelChange = -1;
+  let lastCompaction = -1;
+  let lastFreshAssistant = -1;
+  for (let index = 0; index < branch.length; index += 1) {
+    const entry = branch[index];
+    if (entry.type === "model_change") lastModelChange = index;
+    else if (entry.type === "compaction") lastCompaction = index;
+    else if (isFreshAssistant(entry, model)) lastFreshAssistant = index;
+  }
+
+  const boundary = Math.max(lastModelChange, lastCompaction);
+  if (lastFreshAssistant > boundary) return { quality: "exact" };
+  if (lastModelChange < 0 && lastCompaction < 0) return { quality: "exact" };
+  if (lastCompaction > lastModelChange) return { quality: "unknown", reason: "compacted" };
+  return { quality: "unknown", reason: "model-changed" };
+}
+
 /**
  * The context reading, and the only segment that is never dropped.
  *
- * `percent` is null in exactly one situation, the turn after a compaction, and pi renders that
- * as `?`. It is kept rather than smoothed over: a gauge that guessed there would be reporting a
- * window it cannot see.
+ * `percent` is null after a compaction, and a model switch can leave a percentage measured
+ * against a different window. Both are rendered as `?` rather than guessed: a gauge that
+ * invented a reading would be reporting a window it cannot see.
  */
 function contextSegment(ctx: ExtensionContext, theme: Theme, width: number): string {
   const usage = ctx.getContextUsage();
   if (!usage) return "";
   const label = theme.fg("dim", word("context"));
   const window = formatTokens(usage.contextWindow);
-  if (usage.percent === null) {
+  if (usageFreshness(ctx).quality === "unknown") {
     return `${label} ${theme.fg("dim", `?/${window}`)}`;
   }
   const percent = Math.max(0, Math.min(100, Math.round(usage.percent)));
