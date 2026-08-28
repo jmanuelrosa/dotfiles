@@ -763,6 +763,7 @@
       "groups": [
         "product",
         "workflow",
+        "research",
         "global"
       ],
       "note": "Locally authored; global signpost to the product-team plugin"
