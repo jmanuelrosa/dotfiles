@@ -239,7 +239,7 @@ def test_pi_mcp_adapter_imports_existing_host_configs_from_a_linked_config():
     config = json.loads(PI_MCP_SETTINGS.read_text())
     assert config == {
         "mcpServers": {},
-        "imports": ["cursor", "claude-code", "claude-desktop", "codex"],
+        "imports": [],
     }
 
     tasks = yaml.safe_load(AI_TASKS.read_text())
