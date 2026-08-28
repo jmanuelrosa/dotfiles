@@ -160,6 +160,10 @@ function _wt_add
   set -l prev_dir $PWD
   cd $target
 
+  if test -d .claude
+    claude-kit converge --quiet
+  end
+
   if test -f pnpm-lock.yaml
     _ui step "pnpm install --frozen-lockfile"
     pnpm install --frozen-lockfile
