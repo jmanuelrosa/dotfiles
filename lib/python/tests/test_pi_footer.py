@@ -349,6 +349,141 @@ def test_an_unknown_context_is_shown_as_unknown(runner):
     assert unknown == f"{VOCAB['labels']['context']} ?/200k"
 
 
+SOL = {
+    "id": "gpt-5.6-sol",
+    "provider": "cursor",
+    "api": "openai-completions",
+    "contextWindow": 200_000,
+}
+GROK = {
+    "id": "grok-4.6",
+    "provider": "xai",
+    "api": "openai-completions",
+    "contextWindow": 500_000,
+}
+STALE_USAGE = {"tokens": 80_000, "contextWindow": 200_000, "percent": 40}
+
+
+def assistant_entry(model, stop="stop"):
+    return {
+        "type": "message",
+        "message": {
+            "role": "assistant",
+            "provider": model["provider"],
+            "api": model["api"],
+            "model": model["id"],
+            "stopReason": stop,
+        },
+    }
+
+
+def model_change_entry(model):
+    return {"type": "model_change", "provider": model["provider"], "modelId": model["id"]}
+
+
+def context_for_branch(runner, usage, branch, model, width=120):
+    """Same rendering as context_for, plus the session branch the freshness check reads."""
+    body = f"""
+    {PLAIN_THEME}
+    const ctx = {{
+      getContextUsage: () => ({json.dumps(usage)}),
+      sessionManager: {{ getBranch: () => ({json.dumps(branch)}) }},
+      model: {json.dumps(model)},
+    }};
+    process.stdout.write(JSON.stringify(contextSegment(ctx, theme, {width})));
+    """
+    return run_in_node(runner, body)
+
+
+def test_a_small_to_large_switch_shows_unknown_until_the_new_model_answers(runner):
+    """Pi can still report the previous model's usage against the new window. That percentage is
+    not a measurement of the model now selected."""
+    rendered = context_for_branch(
+        runner,
+        {"tokens": 80_000, "contextWindow": 500_000, "percent": 16},
+        [assistant_entry(SOL), model_change_entry(GROK)],
+        GROK,
+    )
+    assert rendered == f"{VOCAB['labels']['context']} ?/500k"
+
+
+def test_a_large_to_small_switch_shows_unknown_until_the_new_model_answers(runner):
+    rendered = context_for_branch(
+        runner,
+        STALE_USAGE,
+        [assistant_entry(GROK), model_change_entry(SOL)],
+        SOL,
+    )
+    assert rendered == f"{VOCAB['labels']['context']} ?/200k"
+
+
+def test_switching_away_and_back_invalidates_the_earlier_models_usage(runner):
+    """The earlier matching response belongs to a previous epoch of the same model."""
+    rendered = context_for_branch(
+        runner,
+        STALE_USAGE,
+        [
+            assistant_entry(SOL),
+            model_change_entry(GROK),
+            assistant_entry(GROK),
+            model_change_entry(SOL),
+        ],
+        SOL,
+    )
+    assert rendered == f"{VOCAB['labels']['context']} ?/200k"
+
+
+def test_a_matching_response_after_a_switch_restores_the_percentage(runner):
+    rendered = context_for_branch(
+        runner,
+        {"tokens": 12_000, "contextWindow": 500_000, "percent": 2},
+        [assistant_entry(SOL), model_change_entry(GROK), assistant_entry(GROK)],
+        GROK,
+    )
+    assert "?/500k" not in rendered
+    assert "(2%)" in rendered
+
+
+def test_an_aborted_response_after_a_switch_is_not_usage(runner):
+    rendered = context_for_branch(
+        runner,
+        STALE_USAGE,
+        [assistant_entry(SOL), model_change_entry(SOL), assistant_entry(SOL, stop="aborted")],
+        SOL,
+    )
+    assert rendered == f"{VOCAB['labels']['context']} ?/200k"
+
+
+def test_an_error_response_after_a_switch_is_not_usage(runner):
+    rendered = context_for_branch(
+        runner,
+        {"tokens": 80_000, "contextWindow": 500_000, "percent": 16},
+        [assistant_entry(SOL), model_change_entry(GROK), assistant_entry(GROK, stop="error")],
+        GROK,
+    )
+    assert rendered == f"{VOCAB['labels']['context']} ?/500k"
+
+
+def test_compaction_then_a_model_switch_stays_unknown(runner):
+    rendered = context_for_branch(
+        runner,
+        {"tokens": None, "contextWindow": 200_000, "percent": None},
+        [assistant_entry(SOL), {"type": "compaction"}, model_change_entry(GROK)],
+        GROK,
+    )
+    assert rendered == f"{VOCAB['labels']['context']} ?/200k"
+
+
+def test_resume_after_a_model_change_without_a_new_response_is_unknown(runner):
+    rendered = context_for_branch(
+        runner,
+        {"tokens": 80_000, "contextWindow": 500_000, "percent": 16},
+        [assistant_entry(SOL), model_change_entry(GROK)],
+        GROK,
+    )
+    assert rendered == f"{VOCAB['labels']['context']} ?/500k"
+
+
 def test_the_bar_is_dropped_before_the_reading_is(runner):
     """A narrow terminal keeps the number and loses the picture, because eight columns of bar
     say nothing the percentage beside it does not."""
