@@ -1,0 +1,42 @@
+# Crawlability and indexation
+
+When to read: the brief or diff touches robots.txt, meta robots, canonicals, redirects, sitemaps, index directives, or URL parameters.
+
+## Failure modes to rule out
+
+Each item is a check.
+An unresolved item blocks `done`; if the brief forces it, report `needs-decision`.
+
+- **Staging noindex shipped to production.** A `noindex` meta or `X-Robots-Tag` header added to hide a preview environment survives the deploy and silently deindexes the site.
+  Check: grep the diff and the build output for `noindex` and `X-Robots-Tag`; any occurrence is either scoped to non-production by explicit environment logic or removed.
+- **robots.txt used as an indexing control.** Disallow blocks crawling (RFC 9309), not indexing; a disallowed URL can still be indexed from external links, and a `noindex` on a disallowed page is never seen because the page is never fetched.
+  Check: pages that must not be indexed carry `noindex` and are crawlable, or sit behind authentication; robots.txt is reserved for crawl management.
+- **robots.txt rules read with the wrong semantics.** RFC 9309 matching is case sensitive, `*` and `$` are the only special characters, and the longest matching rule wins with Allow breaking ties; rule order is irrelevant, so reasoning by first match predicts the wrong crawl outcome. A robots.txt served by the application that returns 5xx reads as complete disallow (RFC 9309): crawling of the whole site stops until it recovers.
+  Check: trace each changed rule against RFC 9309 longest-match semantics for the URLs it is meant to affect; an absent robots.txt returns 404, never 500.
+- **Disallow blocking rendering resources.** A Disallow that matches CSS, JS, or API routes the page needs leaves the bot with an unstyled or empty render, and the page is judged on that render.
+  Check: no Disallow pattern matches asset paths or endpoints the page fetches during render.
+- **Canonical pointing at a non-indexable target.** A canonical to a URL that redirects, 404s, is noindexed, or is itself canonicalized elsewhere sends the engine a signal it discards, and it picks its own canonical; multiple canonical tags on one page, or a canonical outside `<head>`, are ignored the same way.
+  Check: every canonical target returns 200, is indexable, and self-canonicalizes; exactly one canonical per page, absolute, in the head, agreeing with any HTTP `Link` header canonical.
+- **Conflicting directives on one page.** `noindex` plus a canonical to another page, a sitemap entry for a noindexed URL, or an `X-Robots-Tag` header contradicting the HTML meta are votes in opposite directions; robots directives from multiple sources resolve to the most restrictive.
+  Check: for each touched page, list its directives across every surface (meta robots, `X-Robots-Tag` from middleware or CDN, canonical, sitemap membership, robots.txt) and confirm they all vote the same way.
+- **Sitemap listing what should not be crawled.** Entries that 404, redirect, are non-canonical, or are noindexed burn crawl budget and erode the engine's trust in the sitemap (sitemaps.org protocol: canonical 200 URLs only, 50k URLs or 50MB uncompressed per file).
+  Check: the sitemap generator only emits canonical, indexable, 200 URLs; `lastmod` is accurate or omitted, never a build timestamp applied to every URL.
+- **Temporary redirect for a permanent move.** A 302/307 where the move is permanent signals the old URL will return, delaying canonical transfer.
+  Check: permanent moves use 301/308; redirect chains are collapsed to a single hop in the diff, not left for the next migration.
+- **Parameter and variant explosion.** Uncontrolled query parameters, session IDs, or sort/filter variants mint unbounded duplicate URLs that dilute crawl budget on large sites.
+  Check: every parameterized variant either canonicalizes to its base URL or is deliberately indexable as a distinct page (an escalation trigger below), and the decision is stated.
+- **Soft 404 from the application.** A missing entity that renders an error state with HTTP 200 gets indexed as a real page and classified as soft 404 at scale.
+  Check: not-found states return a real 404/410 status from the server, including for SPA routes.
+
+## Escalation triggers (`needs-decision`)
+
+- Any robots.txt or index-directive change that can deindex currently indexed pages (also an ask-first boundary in the agent).
+- Removing pages or sections that currently hold rankings or backlinks: 410 vs redirect vs leave is a traffic decision (also an ask-first boundary in the agent).
+- Deliberately indexing parameterized or faceted variants as landing pages.
+
+## What good looks like
+
+- Every URL has exactly one indexable canonical version, and every signal (canonical, sitemap, robots, internal links, redirects) votes for it.
+- robots.txt manages crawl load; `noindex` and authentication manage indexation; neither is doing the other's job.
+- The sitemap is a clean feed of what you want indexed, regenerated by the same pipeline that changes URLs.
+- Status codes tell the truth: 200 for content, 301/308 for moves, 404/410 for gone.
