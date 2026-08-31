@@ -15,6 +15,8 @@
     "openai-codex/gpt-5.6-sol",
     "openai-codex/gpt-5.6-terra",
     "openai-codex/gpt-5.6-luna",
+    "ollama-cloud/nemotron-3-ultra",
+    "ollama-cloud/gpt-oss:120b",
     "xai/grok-4.6",
     "xai/grok-4.5",
     "xai/grok-build-0.1",
@@ -29,6 +31,7 @@
   "extensions": [],
   "followUpMode": "one-at-a-time",
   "hideThinkingBlock": true,
+  "lastChangelogVersion": "0.84.3",
   "packages": [
     "git:github.com/earendil-works/pi-review",
     "npm:@tintinweb/pi-subagents",
@@ -39,6 +42,7 @@
     "npm:pi-mcp-adapter"
   ],
   "quietStartup": true,
+  "showCacheMissNotices": true,
   "showHardwareCursor": true,
   "steeringMode": "all",
   "terminal": {
@@ -46,6 +50,5 @@
   },
   "theme": "solarized-dark",
   "transport": "auto",
-  "treeFilterMode": "default",
-  "lastChangelogVersion": "0.84.3"
+  "treeFilterMode": "default"
 }
