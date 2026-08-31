@@ -1,10 +1,12 @@
 # ai
 
-Installs and configures AI tooling: Claude Code, Gemini CLI, Pi (mariozechner), ChatGPT desktop, CodexBar.
+Installs and configures AI tooling: Claude Code, Gemini CLI, Pi (mariozechner), ChatGPT desktop, Ollama, CodexBar.
 
 ## What it does
 
-- Installs gemini-cli, pi-coding-agent, and casks for ChatGPT/Claude/Claude Code/Cursor/CodexBar via `BREW_PACKAGES`.
+- Installs gemini-cli, pi-coding-agent, and casks for ChatGPT/Claude/Claude Code/Cursor/Ollama/CodexBar via `BREW_PACKAGES`.
+- Configures Pi to call Ollama Cloud directly through `models.json`, without `pi-ollama-cloud` or a local Ollama server. `nemotron-3-ultra` and `gpt-oss:120b` are enabled as coding models available on the free account. In Pi, run `/login`, choose API key authentication, select `ollama-cloud`, and paste a key from the Ollama account settings.
+- The Ollama app uses its own account session: run `ollama signin` after provisioning when using the CLI or desktop app.
 - Symlinks per-tool configs into `~/.claude/`, `~/.gemini/`, `~/.pi/agent/`.
 - Symlinks custom Pi themes into `~/.pi/agent/themes/`.
 - Pi's Cursor models come from the `npm:pi-cursor-sdk` package in `files/pi/settings.json`, not from a `cursor` block in `models.json`. That file is only for HTTP APIs Pi already speaks. The package registers a live `cursor/` provider; `enabledModels` pins the cycle/picker set to the models on in Cursor (Auto, Grok 4.6, Composer 2.5, Opus 5, GPT-5.6 Sol, Fable 5, Grok 4.5). Auth is a Cursor SDK API key saved once with `/login` (or `CURSOR_API_KEY`), then `/cursor-refresh-models` if you logged in after startup. Desktop/CLI login is not reused. The key stays out of the repo.
@@ -24,7 +26,7 @@ Installs and configures AI tooling: Claude Code, Gemini CLI, Pi (mariozechner), 
 
 ## Vars
 
-- `BREW_PACKAGES` (defaults/main.yml) — taps (`steipete/tap`), formulas (gemini-cli, pi-coding-agent), casks (chatgpt, claude, claude-code, cursor, codexbar).
+- `BREW_PACKAGES` (defaults/main.yml): taps (`steipete/tap`), formulas (gemini-cli, pi-coding-agent), casks (chatgpt, claude, claude-code, cursor, ollama-app, codexbar).
 - **There is no var for the global set, and nothing to maintain by hand.** `claude-kit sync` derives it from the `global` group tag in `skill-registry.json`, `agent-registry.json` and the plugin manifests, then expands the skills by one level of declared dependencies, which is why `~/.claude/skills/` holds more than the tagged set (`grilling` and `jira` arrive that way). Tag an entry `global` to add it. This role once derived the same set itself, in about 130 lines of Jinja; it is now one `command` task, because the tool already had to compute the set to answer "does this need `--global`?" and two copies of that rule drifted.
 
 ## Notes

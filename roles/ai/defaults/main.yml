@@ -26,6 +26,7 @@ BREW_PACKAGES:
     - claude
     - claude-code@latest
     - cursor
+    - ollama-app
     - steipete/tap/codexbar
 
 # Tools symlinked onto PATH from files/scripts/, named rather than globbed.

@@ -13,6 +13,74 @@
         }
       }
     },
+    "ollama-cloud": {
+      "baseUrl": "https://ollama.com/v1",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "nemotron-3-ultra",
+          "name": "Nemotron 3 Ultra (Ollama Cloud)",
+          "reasoning": true,
+          "input": ["text"],
+          "contextWindow": 262144,
+          "maxTokens": 32768,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "thinkingLevelMap": {
+            "off": "none",
+            "minimal": null,
+            "low": "low",
+            "medium": "medium",
+            "high": "high",
+            "xhigh": "max"
+          },
+          "compat": {
+            "supportsDeveloperRole": false,
+            "supportsReasoningEffort": true,
+            "supportsLongCacheRetention": false,
+            "supportsStore": false,
+            "supportsStrictMode": false,
+            "maxTokensField": "max_tokens",
+            "thinkingFormat": "openai"
+          }
+        },
+        {
+          "id": "gpt-oss:120b",
+          "name": "GPT-OSS 120B (Ollama Cloud)",
+          "reasoning": true,
+          "input": ["text"],
+          "contextWindow": 131072,
+          "maxTokens": 32768,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": "low",
+            "medium": "medium",
+            "high": "high",
+            "xhigh": null
+          },
+          "compat": {
+            "supportsDeveloperRole": false,
+            "supportsReasoningEffort": true,
+            "supportsLongCacheRetention": false,
+            "supportsStore": false,
+            "supportsStrictMode": false,
+            "maxTokensField": "max_tokens",
+            "thinkingFormat": "openai"
+          }
+        }
+      ]
+    },
     "xai": {
       "models": [
         {
