@@ -9,7 +9,7 @@ font-size = 10.0
 
 # List themes
 # ghostty +list-themes
-# theme = dark:Solarized Dark Patched,light:Catppuccin Latte
+# theme = Github Light High Contrast
 theme = Solarized Dark Patched
 
 # Settings
