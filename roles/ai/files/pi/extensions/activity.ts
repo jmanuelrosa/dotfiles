@@ -8,15 +8,21 @@ import {
   createPowerShellToolDefinition,
   createReadToolDefinition,
   createWriteToolDefinition,
+  CustomEditor,
   keyHint,
   type ExtensionAPI,
   type ExtensionContext,
+  type KeybindingsManager,
+  type MarkdownTransformContext,
   type ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
-import { Container, Text } from "@earendil-works/pi-tui";
+import { Container, Text, visibleWidth, type EditorTheme, type TUI } from "@earendil-works/pi-tui";
 
 const HINT_STATUS_KEY = "dotfiles-activity-hint";
 const ELAPSED_AFTER_MS = 5_000;
+const CLAUDE_PROMPT = "❯ ";
+const CLAUDE_PROMPT_PADDING = visibleWidth(CLAUDE_PROMPT);
+const CLAUDE_WORKING_FRAMES = ["✻", "✽", "✶", "✳", "✢", "✳", "✶", "✽"];
 
 type Activity = {
   action: string;
@@ -28,6 +34,27 @@ type RunningActivity = Activity & {
   toolName: string;
   startedAt: number;
 };
+
+function claudeMessage(markdown: string, context: MarkdownTransformContext): string {
+  return context.messageType === "user" ? `${CLAUDE_PROMPT}${markdown}` : markdown;
+}
+
+function decorateEditorLines(lines: string[], prompt: string): string[] {
+  if (lines.length < 2) return lines;
+  const decorated = [...lines];
+  decorated[1] = `${prompt}${decorated[1]!.slice(CLAUDE_PROMPT_PADDING)}`;
+  return decorated;
+}
+
+class ClaudeEditor extends CustomEditor {
+  constructor(tui: TUI, theme: EditorTheme, keybindings: KeybindingsManager) {
+    super(tui, theme, keybindings, { paddingX: CLAUDE_PROMPT_PADDING });
+  }
+
+  render(width: number): string[] {
+    return decorateEditorLines(super.render(width), `${this.borderColor("❯")} `);
+  }
+}
 
 function relativePath(path: unknown, cwd: string): string | undefined {
   if (typeof path !== "string" || path === "") return undefined;
@@ -89,8 +116,9 @@ function activityMessage(running: RunningActivity[], started: Map<string, number
 
 function conciseCall(activity: Activity, theme: { fg: (color: string, text: string) => string }): Text {
   const colour = activity.action === "Updating" || activity.action === "Writing" ? "toolDiffAdded" : "muted";
+  const marker = `${theme.fg("accent", "●")} `;
   const target = activity.target ? ` ${theme.fg("muted", activity.target)}` : "";
-  return new Text(`${theme.fg(colour, activity.action)}${target}`, 0, 0);
+  return new Text(`${marker}${theme.fg(colour, activity.action)}${target}`, 0, 0);
 }
 
 function conciseResult(isError: boolean, activity: Activity, theme: { fg: (color: string, text: string) => string }): Container | Text {
@@ -178,9 +206,15 @@ export default function activity(pi: ExtensionAPI): void {
     refreshWorking(ctx);
   };
 
+  pi.registerMarkdownTransformer(claudeMessage);
+
   pi.on("session_start", (_event, ctx) => {
     if (ctx.mode !== "tui") return;
     registerConciseTools(pi, ctx.cwd, () => showErrors, errorInvalidators);
+    ctx.ui.setEditorComponent((tui, theme, keybindings) => new ClaudeEditor(tui, theme, keybindings));
+    ctx.ui.setWorkingIndicator({
+      frames: CLAUDE_WORKING_FRAMES.map((frame) => ctx.ui.theme.fg("accent", frame)),
+    });
     ctx.ui.setWorkingVisible(true);
   });
 
@@ -219,6 +253,8 @@ export default function activity(pi: ExtensionAPI): void {
 
   pi.on("session_shutdown", (_event, ctx) => {
     clearTimer();
+    ctx.ui.setEditorComponent(undefined);
+    ctx.ui.setWorkingIndicator();
     ctx.ui.setWorkingMessage();
   });
 }

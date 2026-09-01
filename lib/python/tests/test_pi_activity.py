@@ -15,7 +15,8 @@ from dotkit.testing import PI_EXTENSIONS
 
 EXTENSION = PI_EXTENSIONS / "activity.ts"
 PACKAGE = "@earendil-works/pi-coding-agent"
-DRIVEN = ("describeActivity",)
+DRIVEN = ("claudeMessage", "decorateEditorLines", "describeActivity")
+TEST_EXPORTS = ("claudeMessage", "decorateEditorLines")
 
 
 @pytest.fixture(scope="module")
@@ -38,7 +39,7 @@ def runner(tmp_path_factory):
     scope.mkdir(parents=True)
     (scope / "pi-coding-agent").symlink_to(package)
     (scope / "pi-tui").symlink_to(package / "node_modules" / "@earendil-works/pi-tui")
-    (home / "activity.ts").write_text(f"{EXTENSION.read_text()}\nexport {{ {', '.join(DRIVEN)} }};\n")
+    (home / "activity.ts").write_text(f"{EXTENSION.read_text()}\nexport {{ {', '.join(TEST_EXPORTS)} }};\n")
     return home
 
 
@@ -52,12 +53,46 @@ def run(runner, body):
 
 def test_uses_public_rendering_and_activity_apis(source):
     assert "createReadToolDefinition" in source
+    assert "registerMarkdownTransformer" in source
+    assert "setEditorComponent" in source
+    assert "setWorkingIndicator" in source
     assert "setWorkingMessage" in source
     assert "setWorkingVisible" in source
     assert "setToolsExpanded" not in source
     assert "context.expanded && definition.renderCall" in source
     assert "context.expanded && definition.renderResult" in source
     assert "dist/modes" not in source
+
+
+def test_user_messages_use_the_claude_prompt_caret(runner):
+    result = run(
+        runner,
+        '''
+process.stdout.write(JSON.stringify({
+  user: claudeMessage("Fix the failing test", { messageType: "user" }),
+  assistant: claudeMessage("I found the issue", { messageType: "assistant" }),
+  thinking: claudeMessage("Checking the tests", { messageType: "assistant-thinking" }),
+}));
+''',
+    )
+    assert result == {
+        "user": "❯ Fix the failing test",
+        "assistant": "I found the issue",
+        "thinking": "Checking the tests",
+    }
+
+
+def test_editor_prompt_reuses_padding_for_the_claude_caret(runner):
+    result = run(
+        runner,
+        '''
+process.stdout.write(JSON.stringify(decorateEditorLines(
+  ["────────", "  hello ", "────────"],
+  "❯ ",
+)));
+''',
+    )
+    assert result == ["────────", "❯ hello ", "────────"]
 
 
 def test_read_activity_uses_a_relative_path(runner):
@@ -76,6 +111,49 @@ def test_search_activity_quotes_its_pattern(runner):
     assert result == {"action": "Searching for", "target": '"token refresh"'}
 
 
+def test_collapsed_tool_activity_uses_the_claude_bullet(runner):
+    result = run(
+        runner,
+        '''
+import { initTheme } from "@earendil-works/pi-coding-agent";
+initTheme("dark", false);
+const handlers = new Map();
+const tools = [];
+let editorFactory;
+let workingIndicator;
+const ui = {
+  theme: { fg: (_color, text) => text },
+  setEditorComponent(value) { editorFactory = value; },
+  setStatus() {},
+  setWorkingIndicator(value) { workingIndicator = value; },
+  setWorkingMessage() {},
+  setWorkingVisible() {},
+};
+activity({
+  on(event, handler) { handlers.set(event, handler); },
+  registerMarkdownTransformer() {},
+  registerTool(tool) { tools.push(tool); },
+});
+const ctx = { cwd: "/repo", mode: "tui", ui };
+await handlers.get("session_start")({ reason: "startup" }, ctx);
+const read = tools.find((tool) => tool.name === "read");
+const call = read.renderCall(
+  { path: "src/auth.ts" },
+  ui.theme,
+  { expanded: false },
+);
+process.stdout.write(JSON.stringify({
+  call: call.render(120),
+  hasEditor: typeof editorFactory === "function",
+  workingFrames: workingIndicator.frames,
+}));
+''',
+    )
+    assert [line.rstrip() for line in result["call"]] == ["● Reading src/auth.ts"]
+    assert result["hasEditor"] is True
+    assert result["workingFrames"] == ["✻", "✽", "✶", "✳", "✢", "✳", "✶", "✽"]
+
+
 def test_recovered_failures_are_hidden_after_final_assistant_prose(runner):
     result = run(
         runner,
@@ -86,12 +164,15 @@ const handlers = new Map();
 const tools = [];
 const ui = {
   theme: { fg: (_color, text) => text },
+  setEditorComponent() {},
   setStatus() {},
+  setWorkingIndicator() {},
   setWorkingMessage() {},
   setWorkingVisible() {},
 };
 activity({
   on(event, handler) { handlers.set(event, handler); },
+  registerMarkdownTransformer() {},
   registerTool(tool) { tools.push(tool); },
 });
 const ctx = { cwd: "/repo", mode: "tui", ui };
