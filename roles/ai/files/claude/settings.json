@@ -382,6 +382,7 @@
         "~/.lima",
         "~/.gitconfig",
         "~/.ssh/known_hosts",
+        "/etc/ssl/cert.pem",
         "~/.config/acli",
         "~/Developer/dotfiles/roles/ai/files/claude/skills",
         "~/Developer/dotfiles/roles/ai/files/claude/hooks",

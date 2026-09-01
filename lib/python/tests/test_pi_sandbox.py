@@ -14,7 +14,7 @@ last month's policy.
 
 To regenerate after changing Claude's settings:
 
-    python3 -c "import json,sys; sys.path.insert(0,'lib/python/tests'); \
+    PYTHONPATH=lib/python python3 -c "import json,sys; sys.path.insert(0,'lib/python/tests'); \
 from test_pi_sandbox import derive, CLAUDE_SETTINGS, PI_SANDBOX; \
 PI_SANDBOX.write_text(json.dumps(derive(json.loads(CLAUDE_SETTINGS.read_text())), indent=2)+chr(10))"
 
@@ -48,7 +48,9 @@ Four things the translation cannot carry, verified against pi-sandbox 0.6.5 and 
   `~/.gitconfig` and `~/.ssh/known_hosts` are readable in pi and denied in Claude; the
   ssh *keys* beside them are not, since nothing re-allows them. And every other `Read`
   deny degrades from a refusal to a prompt, which is the same trade `excludedCommands`
-  already makes and the reason none of this is a substitute for the deny list.
+  already makes and the reason none of this is a substitute for the deny list. The
+  system CA bundle is a third carve-out: its `.pem` suffix matches the secret-file deny,
+  but HTTPS subprocesses need this public trust store to verify remote certificates.
 """
 
 import json
@@ -173,6 +175,14 @@ def test_secrets_are_denied_for_write_as_well_as_read():
         assert pattern in fs["denyWrite"], f"{pattern} is writable by pi"
 
 
+def test_the_system_ca_bundle_is_readable_but_not_writable():
+    """HTTPS needs the public trust store without making certificate files editable."""
+    fs = pi_sandbox()["filesystem"]
+    ca_bundle = "/etc/ssl/cert.pem"
+    assert ca_bundle in fs["allowRead"]
+    assert any(covers(pattern, ca_bundle) for pattern in fs["denyWrite"])
+
+
 def test_no_unexpanded_variable_reaches_the_config():
     """Only a leading ~ is expanded, so a `$VAR` entry is a rule that matches nothing."""
     fs = pi_sandbox()["filesystem"]
@@ -219,19 +229,19 @@ def test_no_pattern_is_listed_twice():
         assert len(fs[key]) == len(set(fs[key])), f"{key} repeats a pattern"
 
 
-def test_the_read_carve_outs_are_exactly_the_two_bash_cannot_work_without():
-    """The one place Claude's policy is knowingly loosened, held to two files.
+def test_the_read_carve_outs_are_exactly_the_files_bash_cannot_work_without():
+    """The one place Claude's policy is knowingly loosened, held to three files.
 
     `allowRead` beats `denyRead` for bash and is the only list the read tool consults, so
     anything named there is readable by the agent as well as by git. That is the whole
     reason to keep the list to what a subprocess genuinely cannot work without: git needs
-    an identity to commit and ssh needs known_hosts to verify a host, and neither is a
-    credential. A third entry appearing here is a permission grant, so it fails until
-    somebody writes down why.
+    an identity to commit, ssh needs known_hosts to verify a host, and HTTPS needs the
+    public system CA bundle to verify a server. None is a credential. A fourth entry is a
+    permission grant, so it fails until somebody writes down why.
     """
     fs = pi_sandbox()["filesystem"]
     granted = [p for p in fs["allowRead"] if any(covers(d, p) for d in fs["denyRead"])]
-    assert sorted(granted) == ["~/.gitconfig", "~/.ssh/known_hosts"]
+    assert sorted(granted) == ["/etc/ssl/cert.pem", "~/.gitconfig", "~/.ssh/known_hosts"]
 
 
 def test_the_ssh_keys_are_not_re_allowed_by_the_known_hosts_carve_out():
