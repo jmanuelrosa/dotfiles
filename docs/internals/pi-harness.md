@@ -94,7 +94,9 @@ Agents are the opposite case and are dual-keyed, because `pi-subagents` does rea
 
 This matters because the tool causes the prompt: `add` writes `<project>/.agents/skills`, and pi treats that directory as a reason to ask. `converge --all` therefore arms that prompt in every project it links at once, which is the sweep's one visible cost and is paid once per launch directory. So `trust` names which of the two triggers applies rather than assuming, and accepting pi's own prompt once is the recorded fix. `defaultProjectTrust: "always"` is deliberately not set: pi's trust gates executing project extensions, and blanket-trusting every directory to silence a prompt of our own making is the wrong trade.
 
-`velocity.ts` and `footer.ts` are the display half, and they answer two different questions.
+`activity.ts`, `velocity.ts` and `footer.ts` are the display half, and they answer three different questions.
+
+`activity.ts` makes tool work subordinate to the conversation without touching Pi internals. It re-registers only built-in tool definitions with concise renderers, while `Ctrl+O` keeps Pi's normal detail expansion available. The live spinner uses Claude-style present-tense language, target paths and elapsed time, then yields to the final assistant response. The footer hides its detail hint only while that expansion is open, so the key is discoverable when it is useful and silent otherwise. Package tools keep their own renderers, and all colours are semantic Pi theme tokens rather than a Solarized palette.
 
 `velocity.ts` stays **one segment**: it counts the `+` and `-` lines of the unified `patch` pi reports for each applied edit, never a diff computed here, because `edits[].oldText` is matched against the original file rather than against the result of earlier edits in the same call, so summing the halves of an `edits` array is a different number from what `git diff` reports. A `write` is counted as additions only and that is a known understatement: the event fires after the file is written, so the content it replaced is already gone.
 

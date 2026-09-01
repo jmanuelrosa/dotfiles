@@ -481,8 +481,9 @@ function toolchainSegment(toolchain: Toolchain | undefined, theme: Theme): strin
 
 /** Pi's own rule for extension statuses: one line, no control characters, sorted by key so a
  * repaint never reorders them. */
-function statusSegment(data: ReadonlyFooterDataProvider): string {
+function statusSegment(data: ReadonlyFooterDataProvider, detailsExpanded = false): string {
   return Array.from(data.getExtensionStatuses().entries())
+    .filter(([key]) => !detailsExpanded || key !== "dotfiles-activity-hint")
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([, text]) => text.replace(/[\r\n\t]/g, " ").replace(/ +/g, " ").trim())
     .filter((text) => text !== "")
@@ -579,7 +580,7 @@ class DotfilesFooter implements Component {
     const machine: Segment[] = [
       { text: toolchainSegment(this.toolchain, theme), keep: KEEP.toolchain },
       { text: spendSegment(ctx, theme), keep: KEEP.spend },
-      { text: statusSegment(data), keep: KEEP.statuses },
+      { text: statusSegment(data, ctx.ui.getToolsExpanded()), keep: KEEP.statuses },
     ];
     return [fit(identity, width, theme), fit(machine, width, theme)].filter((row) => row !== "");
   }

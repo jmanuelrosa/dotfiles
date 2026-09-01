@@ -128,18 +128,26 @@ function record(tally: Tally, event: ToolResultEvent): void {
   tally.added += lines(event.input?.content);
 }
 
-function render(tally: Tally, ctx: ExtensionContext): string {
+function counts(tally: Tally, ctx: ExtensionContext): string {
   const theme = ctx.ui.theme;
   const count = tally.files.size;
   const files = `${count} file${count === 1 ? "" : "s"}`;
-  // The theme's own diff colours rather than success and error, so the segment agrees with the
-  // diffs pi renders above it instead of reading as a pass and a failure.
   return [
-    theme.fg("dim", glyph("velocity")),
     theme.fg("toolDiffAdded", `+${tally.added}`),
     theme.fg("dim", "/"),
     theme.fg("toolDiffRemoved", `-${tally.removed}`),
     theme.fg("dim", ` ${files}`),
+  ].join("");
+}
+
+function render(tally: Tally, ctx: ExtensionContext, turn?: Tally): string {
+  const session = counts(tally, ctx);
+  if (!turn || turn.files.size === 0) return `${ctx.ui.theme.fg("dim", glyph("velocity"))}${session}`;
+  return [
+    ctx.ui.theme.fg("dim", `${glyph("velocity")}turn `),
+    counts(turn, ctx),
+    ctx.ui.theme.fg("dim", " · session "),
+    session,
   ].join("");
 }
 
@@ -150,17 +158,24 @@ const FRESH = new Set(["new", "resume", "fork"]);
 
 export default function (pi: ExtensionAPI) {
   let tally = empty();
+  let turn = empty();
 
   pi.on("session_start", async (event, ctx) => {
     try {
       if (!FRESH.has(event.reason)) return;
       tally = empty();
+      turn = empty();
       // Cleared rather than rendered as `+0/-0`, so a fresh session shows no segment at all
       // until it changes something.
       ctx.ui.setStatus(STATUS_KEY, undefined);
     } catch {
       // As below: a footer segment is never worth interrupting a session for.
     }
+  });
+
+  pi.on("before_agent_start", async (_event, ctx) => {
+    turn = empty();
+    ctx.ui.setStatus(STATUS_KEY, tally.files.size === 0 ? undefined : render(tally, ctx));
   });
 
   pi.on("tool_result", async (event, ctx) => {
@@ -170,7 +185,8 @@ export default function (pi: ExtensionAPI) {
       if (event.isError) return;
       if (!isEditToolResult(event) && !isWriteToolResult(event)) return;
       record(tally, event);
-      ctx.ui.setStatus(STATUS_KEY, render(tally, ctx));
+      record(turn, event);
+      ctx.ui.setStatus(STATUS_KEY, render(tally, ctx, turn));
     } catch {
       // A footer segment is never worth interrupting a session for.
     }

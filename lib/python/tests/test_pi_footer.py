@@ -617,6 +617,24 @@ def test_the_statuses_are_ordered_and_flattened(runner):
     assert run_in_node(runner, body) == "first wrapped  second"
 
 
+def test_the_activity_hint_is_hidden_with_expanded_tool_details(runner):
+    body = '''
+    const statuses = new Map([
+      ["dotfiles-activity-hint", "ctrl+o for details"],
+      ["dotfiles-velocity", "turn +1/-0 1 file"],
+    ]);
+    const data = { getExtensionStatuses: () => statuses };
+    process.stdout.write(JSON.stringify({
+      collapsed: statusSegment(data),
+      expanded: statusSegment(data, true),
+    }));
+    '''
+    assert run_in_node(runner, body) == {
+        "collapsed": "ctrl+o for details  turn +1/-0 1 file",
+        "expanded": "turn +1/-0 1 file",
+    }
+
+
 def test_the_package_manager_is_found_above_the_working_directory(runner, tmp_path):
     """A monorepo keeps its lockfile at the root and its package.json files in the packages, so a
     check that stopped at cwd would report nothing from the repos where it matters most."""
