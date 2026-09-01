@@ -85,7 +85,6 @@
   pager = delta
   excludesfile = ~/.gitignore
   attributesfile = ~/.gitattributes
-  sshCommand = ssh -i ~/.ssh/id_ed25519
   whitespace = fix,space-before-tab,tab-in-indent,trailing-space
   editor = vim
   autocrlf = input
