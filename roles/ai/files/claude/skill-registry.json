@@ -37,7 +37,7 @@
             "planning",
             "addy:product-02"
           ],
-          "updated_at": "2026-08-15T05:58:34Z"
+          "updated_at": "2026-09-01T10:20:27Z"
         },
         {
           "upstream_path": "skills/incremental-implementation",
@@ -111,7 +111,7 @@
             "frontend",
             "review"
           ],
-          "updated_at": "2026-08-12T04:49:15Z"
+          "updated_at": "2026-09-01T10:20:27Z"
         },
         {
           "upstream_path": "skills/ci-cd-and-automation",
@@ -544,13 +544,13 @@
           "updated_at": "2026-08-04T16:31:47Z"
         },
         {
-          "upstream_path": "plugins/expo/skills/expo-tailwind-setup",
+          "upstream_path": "plugins/expo/skills/expo-design-system",
           "groups": [
             "engineering",
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-08-04T16:31:47Z"
+          "updated_at": "2026-09-01T10:27:34Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-data-fetching",
@@ -587,6 +587,15 @@
             "expo"
           ],
           "updated_at": "2026-08-04T16:31:47Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/expo-web-to-native",
+          "groups": [
+            "engineering",
+            "mobile",
+            "expo"
+          ],
+          "updated_at": "2026-09-01T10:27:34Z"
         }
       ]
     },
@@ -684,7 +693,7 @@
         }
       ]
     },
-    "yusukebe/hono-skill": {
+    "honojs/skills": {
       "branch": "main",
       "skills": [
         {
@@ -694,7 +703,75 @@
             "backend",
             "hono"
           ],
-          "updated_at": "2026-07-25T09:44:37Z"
+          "updated_at": "2026-09-01T10:27:36Z"
+        }
+      ]
+    },
+    "pulumi/agent-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "pulumi/skills/pulumi-best-practices",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-09-01T10:20:42Z"
+        },
+        {
+          "upstream_path": "pulumi/skills/provider-upgrade",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-09-01T10:20:42Z"
+        },
+        {
+          "upstream_path": "pulumi/skills/pulumi-component",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-09-01T10:20:42Z"
+        },
+        {
+          "upstream_path": "pulumi/skills/pulumi-context-api",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-09-01T10:20:42Z"
+        },
+        {
+          "upstream_path": "pulumi/skills/pulumi-debug-failed-operation",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-09-01T10:20:42Z"
+        },
+        {
+          "upstream_path": "pulumi/skills/pulumi-esc",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-09-01T10:20:42Z"
+        },
+        {
+          "upstream_path": "pulumi/skills/pulumi-overview",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-09-01T10:20:42Z"
         }
       ]
     }
