@@ -10,6 +10,7 @@
   "defaultThinkingLevel": "high",
   "doubleEscapeAction": "tree",
   "editorPaddingX": 2,
+  "enableAnalytics": false,
   "enableInstallTelemetry": false,
   "enabledModels": [
     "openai-codex/gpt-5.6-sol",
@@ -30,7 +31,7 @@
   ],
   "extensions": [],
   "followUpMode": "one-at-a-time",
-  "hideThinkingBlock": true,
+  "hideThinkingBlock": false,
   "lastChangelogVersion": "0.84.3",
   "packages": [
     "git:github.com/earendil-works/pi-review",
