@@ -31,7 +31,7 @@
   ],
   "extensions": [],
   "followUpMode": "one-at-a-time",
-  "hideThinkingBlock": false,
+  "hideThinkingBlock": true,
   "lastChangelogVersion": "0.84.3",
   "packages": [
     "git:github.com/earendil-works/pi-review",

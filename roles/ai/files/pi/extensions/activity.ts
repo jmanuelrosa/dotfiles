@@ -8,15 +8,24 @@ import {
   createPowerShellToolDefinition,
   createReadToolDefinition,
   createWriteToolDefinition,
+  CustomEditor,
   keyHint,
   type ExtensionAPI,
   type ExtensionContext,
+  type KeybindingsManager,
+  type MarkdownTransformContext,
   type ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
-import { Container, Text } from "@earendil-works/pi-tui";
-
-const HINT_STATUS_KEY = "dotfiles-activity-hint";
+import { stripTerminalSequences, Text, visibleWidth, type Component, type EditorTheme, type TUI } from "@earendil-works/pi-tui";
 const ELAPSED_AFTER_MS = 5_000;
+const CLAUDE_PROMPT = "❯ ";
+const CLAUDE_PROMPT_PADDING = visibleWidth(CLAUDE_PROMPT);
+const CLAUDE_WORKING_FRAMES = ["✻", "✽", "✶", "✳", "✢", "✳", "✶", "✽"];
+const THINKING_DURATION_ENTRY = "dotfiles-thinking-duration";
+const SOURCE_PREVIEW_LINES = 10;
+const RESULTS_PREVIEW_LINES = 10;
+const SHELL_PREVIEW_LINES = 20;
+const DIFF_PREVIEW_LINES = 30;
 
 type Activity = {
   action: string;
@@ -28,6 +37,27 @@ type RunningActivity = Activity & {
   toolName: string;
   startedAt: number;
 };
+
+function claudeMessage(markdown: string, context: MarkdownTransformContext): string {
+  return context.messageType === "user" ? `${CLAUDE_PROMPT}${markdown}` : markdown;
+}
+
+function decorateEditorLines(lines: string[], prompt: string): string[] {
+  if (lines.length < 2) return lines;
+  const decorated = [...lines];
+  decorated[1] = `${prompt}${decorated[1]!.slice(CLAUDE_PROMPT_PADDING)}`;
+  return decorated;
+}
+
+class ClaudeEditor extends CustomEditor {
+  constructor(tui: TUI, theme: EditorTheme, keybindings: KeybindingsManager) {
+    super(tui, theme, keybindings, { paddingX: CLAUDE_PROMPT_PADDING });
+  }
+
+  render(width: number): string[] {
+    return decorateEditorLines(super.render(width), `${this.borderColor("❯")} `);
+  }
+}
 
 function relativePath(path: unknown, cwd: string): string | undefined {
   if (typeof path !== "string" || path === "") return undefined;
@@ -87,49 +117,208 @@ function activityMessage(running: RunningActivity[], started: Map<string, number
   return message;
 }
 
-function conciseCall(activity: Activity, theme: { fg: (color: string, text: string) => string }): Text {
-  const colour = activity.action === "Updating" || activity.action === "Writing" ? "toolDiffAdded" : "muted";
-  const target = activity.target ? ` ${theme.fg("muted", activity.target)}` : "";
-  return new Text(`${theme.fg(colour, activity.action)}${target}`, 0, 0);
+class HierarchyComponent implements Component {
+  child: Component;
+  private firstPrefix: string;
+  private continuationPrefix: string;
+  private fallback?: Component;
+
+  constructor(child: Component, firstPrefix: string, continuationPrefix: string, fallback?: Component) {
+    this.child = child;
+    this.firstPrefix = firstPrefix;
+    this.continuationPrefix = continuationPrefix;
+    this.fallback = fallback;
+  }
+
+  update(child: Component, firstPrefix: string, continuationPrefix: string, fallback?: Component): void {
+    this.child = child;
+    this.firstPrefix = firstPrefix;
+    this.continuationPrefix = continuationPrefix;
+    this.fallback = fallback;
+  }
+
+  invalidate(): void {
+    this.child.invalidate();
+    this.fallback?.invalidate();
+  }
+
+  render(width: number): string[] {
+    const prefixWidth = Math.max(visibleWidth(this.firstPrefix), visibleWidth(this.continuationPrefix));
+    const contentWidth = Math.max(1, width - prefixWidth);
+    let lines = this.child.render(contentWidth);
+    while (lines.length > 0 && stripTerminalSequences(lines[0] ?? "").trim() === "") lines.shift();
+    if (lines.length === 0 && this.fallback) lines = this.fallback.render(contentWidth);
+    return lines.map((line, index) => `${index === 0 ? this.firstPrefix : this.continuationPrefix}${line}`);
+  }
 }
 
-function conciseResult(isError: boolean, activity: Activity, theme: { fg: (color: string, text: string) => string }): Container | Text {
-  if (!isError) return new Container();
-  const content = ["Failed", activity.action.toLowerCase(), activity.target].filter((part) => part !== undefined).join(" ");
-  return new Text(theme.fg("error", content), 0, 0);
+type ToolResult = {
+  content: Array<{ type: string; text?: string }>;
+  details?: unknown;
+};
+
+type ThinkingDurationEntry = {
+  durationMs: number;
+  timestamp: number;
+  contentIndex: number;
+  responseId?: string;
+};
+
+function resultText(result: ToolResult): string {
+  return result.content.find((part) => part.type === "text")?.text ?? "";
 }
 
-function conciseDefinition(
-  definition: ToolDefinition<any, any, any>,
+function textLines(text: string): string[] {
+  const lines = text.split("\n");
+  if (lines.at(-1) === "") lines.pop();
+  return lines;
+}
+
+function lineCount(text: string): number {
+  return textLines(text).length;
+}
+
+function resultLineCount(result: ToolResult): number {
+  const details = result.details as { truncation?: { totalLines?: number } } | undefined;
+  return details?.truncation?.totalLines ?? lineCount(resultText(result));
+}
+
+function firstResultLine(result: ToolResult): string | undefined {
+  return textLines(resultText(result)).find((line) => line.trim() !== "")?.trim();
+}
+
+function successfulResult(toolName: string, args: Record<string, unknown>, result: ToolResult, cwd: string): string {
+  const firstLine = firstResultLine(result);
+  const count = resultLineCount(result);
+  const target = relativePath(args.path, cwd);
+  switch (toolName) {
+    case "read":
+      if (firstLine?.startsWith("Read image file")) return firstLine;
+      return `Read ${count} line${count === 1 ? "" : "s"}`;
+    case "grep":
+      if (firstLine === "No matches found") return firstLine;
+      return `Found ${count} match${count === 1 ? "" : "es"}`;
+    case "find":
+      if (firstLine === "No files found matching pattern") return firstLine;
+      return `Found ${count} file${count === 1 ? "" : "s"}`;
+    case "ls":
+      if (firstLine === "(empty directory)") return firstLine;
+      return `Listed ${count} entr${count === 1 ? "y" : "ies"}`;
+    case "edit": {
+      const edits = Array.isArray(args.edits) ? args.edits.length : 1;
+      return [`Updated ${edits} block${edits === 1 ? "" : "s"} in`, target].filter(Boolean).join(" ");
+    }
+    case "write": {
+      const content = typeof args.content === "string" ? args.content : "";
+      const lines = lineCount(content);
+      return [`Wrote ${lines} line${lines === 1 ? "" : "s"} to`, target].filter(Boolean).join(" ");
+    }
+    case "bash":
+    case "powershell":
+      return "Completed";
+    default:
+      return firstLine ?? "Completed";
+  }
+}
+
+function toolCallLabel(toolName: string, args: Record<string, unknown>, cwd: string): string {
+  const path = relativePath(args.path, cwd);
+  switch (toolName) {
+    case "read":
+      return `Read(${path ?? ""})`;
+    case "write":
+      return `Write(${path ?? ""})`;
+    case "edit":
+      return `Update(${path ?? ""})`;
+    case "bash":
+      return `Bash(${String(args.command ?? "")})`;
+    case "powershell":
+      return `PowerShell(${String(args.command ?? "")})`;
+    case "grep":
+      return `Grep(${[quoted(args.pattern), path].filter(Boolean).join(", ")})`;
+    case "find":
+      return `Find(${[args.pattern, path].filter(Boolean).join(", ")})`;
+    case "ls":
+      return `List(${path ?? ""})`;
+    default:
+      return title(toolName);
+  }
+}
+
+function resultOutput(toolName: string, args: Record<string, unknown>, result: ToolResult): string {
+  if (toolName === "write") return typeof args.content === "string" ? args.content : "";
+  if (toolName === "edit") {
+    const diff = (result.details as { diff?: unknown } | undefined)?.diff;
+    return typeof diff === "string" ? diff : resultText(result);
+  }
+  return resultText(result);
+}
+
+function previewLimit(toolName: string): number {
+  if (toolName === "edit") return DIFF_PREVIEW_LINES;
+  if (toolName === "bash" || toolName === "powershell") return SHELL_PREVIEW_LINES;
+  if (toolName === "read" || toolName === "write") return SOURCE_PREVIEW_LINES;
+  return RESULTS_PREVIEW_LINES;
+}
+
+function previewLines(lines: string[], limit: number, fromEnd: boolean, expanded: boolean): { lines: string[]; omitted: number } {
+  if (expanded || lines.length <= limit) return { lines, omitted: 0 };
+  return { lines: fromEnd ? lines.slice(-limit) : lines.slice(0, limit), omitted: lines.length - limit };
+}
+
+function resultComponent(
+  toolName: string,
+  args: Record<string, unknown>,
+  result: ToolResult,
+  expanded: boolean,
+  isError: boolean,
+  theme: { fg: (color: string, text: string) => string },
   cwd: string,
-  showErrors: () => boolean,
-  errorInvalidators: Set<() => void>,
-): ToolDefinition<any, any, any> {
+): Component {
+  const activity = describeActivity(toolName, args, cwd);
+  const summary = isError
+    ? ["Failed", activity.action.toLowerCase(), activity.target].filter(Boolean).join(" ")
+    : successfulResult(toolName, args, result, cwd);
+  const output = resultOutput(toolName, args, result);
+  const preview = previewLines(textLines(output), previewLimit(toolName), toolName === "bash" || toolName === "powershell", expanded || isError);
+  const lines = [theme.fg(isError ? "error" : "muted", summary)];
+  lines.push(...preview.lines.map((line) => theme.fg(isError ? "error" : "toolOutput", line)));
+  if (preview.omitted > 0) {
+    lines.push(theme.fg("muted", `+${preview.omitted} lines (${keyHint("app.tools.expand", "to expand")})`));
+  }
+  return new Text(lines.join("\n"), 0, 0);
+}
+
+function hierarchicalDefinition(definition: ToolDefinition<any, any, any>, cwd: string): ToolDefinition<any, any, any> {
   return {
     ...definition,
     renderShell: "self",
     renderCall(args, theme, context) {
-      if (context.expanded && definition.renderCall) return definition.renderCall(args, theme, context);
-      return conciseCall(describeActivity(definition.name, args as Record<string, unknown>, cwd), theme);
+      const previous = context.lastComponent instanceof HierarchyComponent ? context.lastComponent : undefined;
+      const child = new Text(theme.fg("muted", toolCallLabel(definition.name, args as Record<string, unknown>, cwd)), 0, 0);
+      const component = previous ?? new HierarchyComponent(child, "", "");
+      component.update(child, `${theme.fg("accent", "●")} `, "  ");
+      return component;
     },
     renderResult(result, options, theme, context) {
-      if (context.expanded && definition.renderResult) return definition.renderResult(result, options, theme, context);
-      if (context.isError) errorInvalidators.add(context.invalidate);
-      return conciseResult(
-        context.isError && showErrors(),
-        describeActivity(definition.name, context.args as Record<string, unknown>, cwd),
+      const previous = context.lastComponent instanceof HierarchyComponent ? context.lastComponent : undefined;
+      const child = resultComponent(
+        definition.name,
+        context.args as Record<string, unknown>,
+        result as ToolResult,
+        options.expanded,
+        context.isError,
         theme,
+        cwd,
       );
+      const component = previous ?? new HierarchyComponent(child, "", "");
+      component.update(child, theme.fg("dim", "  └ "), "    ");
+      return component;
     },
   };
 }
 
-function registerConciseTools(
-  pi: ExtensionAPI,
-  cwd: string,
-  showErrors: () => boolean,
-  errorInvalidators: Set<() => void>,
-): void {
+function registerHierarchicalTools(pi: ExtensionAPI, cwd: string): void {
   const definitions = [
     createReadToolDefinition(cwd),
     createGrepToolDefinition(cwd),
@@ -140,17 +329,19 @@ function registerConciseTools(
     createBashToolDefinition(cwd),
     createPowerShellToolDefinition(cwd),
   ];
-  for (const definition of definitions) {
-    pi.registerTool(conciseDefinition(definition, cwd, showErrors, errorInvalidators));
-  }
+  for (const definition of definitions) pi.registerTool(hierarchicalDefinition(definition, cwd));
 }
 
 export default function activity(pi: ExtensionAPI): void {
   let running: RunningActivity[] = [];
   let started = new Map<string, number>();
-  let showErrors = false;
-  const errorInvalidators = new Set<() => void>();
+  let thinkingStartedAt = new Map<number, number>();
   let timer: NodeJS.Timeout | undefined;
+
+  pi.registerEntryRenderer<ThinkingDurationEntry>(THINKING_DURATION_ENTRY, (entry, _options, theme) => {
+    const seconds = Math.max(1, Math.round((entry.data?.durationMs ?? 0) / 1_000));
+    return new Text(theme.fg("dim", `Thought for ${seconds}s`), 0, 0);
+  });
 
   const clearTimer = () => {
     if (!timer) return;
@@ -178,20 +369,49 @@ export default function activity(pi: ExtensionAPI): void {
     refreshWorking(ctx);
   };
 
+  pi.registerMarkdownTransformer(claudeMessage);
+
   pi.on("session_start", (_event, ctx) => {
     if (ctx.mode !== "tui") return;
-    registerConciseTools(pi, ctx.cwd, () => showErrors, errorInvalidators);
+    registerHierarchicalTools(pi, ctx.cwd);
+    ctx.ui.setEditorComponent((tui, theme, keybindings) => new ClaudeEditor(tui, theme, keybindings));
+    ctx.ui.setWorkingIndicator({
+      frames: CLAUDE_WORKING_FRAMES.map((frame) => ctx.ui.theme.fg("accent", frame)),
+    });
     ctx.ui.setWorkingVisible(true);
+    ctx.ui.setHiddenThinkingLabel("");
   });
 
   pi.on("before_agent_start", (_event, ctx) => {
     running = [];
     started = new Map();
-    showErrors = false;
-    errorInvalidators.clear();
+    thinkingStartedAt = new Map();
     clearTimer();
     ctx.ui.setWorkingMessage();
-    ctx.ui.setStatus(HINT_STATUS_KEY, undefined);
+  });
+
+  pi.on("message_update", (event) => {
+    const streamEvent = event.assistantMessageEvent;
+    if (streamEvent.type === "start") {
+      thinkingStartedAt = new Map();
+      return;
+    }
+    if (streamEvent.type === "thinking_start") {
+      thinkingStartedAt.set(streamEvent.contentIndex, Date.now());
+      return;
+    }
+    if (streamEvent.type !== "thinking_end") return;
+    const startedAt = thinkingStartedAt.get(streamEvent.contentIndex);
+    if (startedAt === undefined) return;
+    thinkingStartedAt.delete(streamEvent.contentIndex);
+    const timestamp = Date.now();
+    const responseId = (streamEvent.partial as { responseId?: string }).responseId;
+    pi.appendEntry<ThinkingDurationEntry>(THINKING_DURATION_ENTRY, {
+      durationMs: timestamp - startedAt,
+      timestamp,
+      contentIndex: streamEvent.contentIndex,
+      ...(responseId ? { responseId } : {}),
+    });
   });
 
   pi.on("tool_execution_start", (event, ctx) => {
@@ -202,23 +422,12 @@ export default function activity(pi: ExtensionAPI): void {
     finish(event.toolCallId, ctx);
   });
 
-  pi.on("tool_result", (event, ctx) => {
-    if (event.isError) showErrors = true;
-    ctx.ui.setStatus(HINT_STATUS_KEY, ctx.ui.theme.fg("dim", keyHint("app.tools.expand", "for details")));
-  });
-
-  pi.on("message_end", (event) => {
-    const message = event.message as { content?: unknown; role: string };
-    const hasToolCall = Array.isArray(message.content) && message.content.some(
-      (content) => typeof content === "object" && content !== null && "type" in content && content.type === "toolCall",
-    );
-    if (message.role !== "assistant" || hasToolCall) return;
-    showErrors = false;
-    for (const invalidate of errorInvalidators) invalidate();
-  });
-
   pi.on("session_shutdown", (_event, ctx) => {
     clearTimer();
+    thinkingStartedAt = new Map();
+    ctx.ui.setEditorComponent(undefined);
+    ctx.ui.setWorkingIndicator();
     ctx.ui.setWorkingMessage();
+    ctx.ui.setHiddenThinkingLabel();
   });
 }
