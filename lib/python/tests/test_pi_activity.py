@@ -58,10 +58,10 @@ def test_uses_public_rendering_and_activity_apis(source):
     assert "setWorkingIndicator" in source
     assert "setWorkingMessage" in source
     assert "setWorkingVisible" in source
+    assert "setHiddenThinkingLabel" in source
+    assert "registerEntryRenderer" in source
+    assert "appendEntry" in source
     assert "setToolsExpanded" not in source
-    assert "definition.renderCall(args, theme" in source
-    assert "definition.renderResult(result" in source
-    assert "expanded: true" in source
     assert "dist/modes" not in source
 
 
@@ -112,7 +112,7 @@ def test_search_activity_quotes_its_pattern(runner):
     assert result == {"action": "Searching for", "target": '"token refresh"'}
 
 
-def test_tool_hierarchy_keeps_the_complete_original_details(runner):
+def test_tool_hierarchy_uses_semantic_labels_and_balanced_previews(runner):
     result = run(
         runner,
         '''
@@ -144,15 +144,18 @@ const ui = {
   setWorkingIndicator(value) { workingIndicator = value; },
   setWorkingMessage() {},
   setWorkingVisible() {},
+  setHiddenThinkingLabel() {},
 };
 activity({
   on(event, handler) { handlers.set(event, handler); },
   registerMarkdownTransformer() {},
   registerTool(tool) { tools.push(tool); },
+  registerEntryRenderer() {},
+  appendEntry() {},
 });
 const ctx = { cwd: "/repo", mode: "tui", ui };
 await handlers.get("session_start")({ reason: "startup" }, ctx);
-const render = (toolName, args, content, isError = false) => {
+const render = (toolName, args, content, { expanded = false, isError = false, details = {} } = {}) => {
   const tool = tools.find((candidate) => candidate.name === toolName);
   const state = {};
   const context = {
@@ -165,55 +168,138 @@ const render = (toolName, args, content, isError = false) => {
     executionStarted: true,
     argsComplete: true,
     isPartial: false,
-    expanded: false,
+    expanded,
     showImages: false,
     isError,
   };
   const call = tool.renderCall(args, theme, context);
   const result = tool.renderResult(
-    { content: [{ type: "text", text: content }], details: {} },
-    { expanded: false, isPartial: false },
+    { content: [{ type: "text", text: content }], details },
+    { expanded, isPartial: false },
     theme,
     context,
   );
   return {
-    call: call.render(120).map((line) => line.trimEnd()),
-    result: result.render(120).map((line) => line.trimEnd()),
+    call: call.render(120).map((line) => line.replace(/\x1b\\[[0-9;]*m/g, "").trimEnd()),
+    result: result.render(120).map((line) => line.replace(/\x1b\\[[0-9;]*m/g, "").trimEnd()),
   };
 };
+const twelveLines = Array.from({ length: 12 }, (_, index) => `line ${index + 1}`).join("\\n");
+const shellLines = Array.from({ length: 22 }, (_, index) => `output ${index + 1}`).join("\\n");
 process.stdout.write(JSON.stringify({
-  read: render("read", { path: "src/auth.ts" }, "first line\\nsecond line"),
-  write: render("write", { path: "src/auth.ts", content: "first line\\nsecond line" }, "Successfully wrote 22 bytes to src/auth.ts"),
-  bash: render("bash", { command: "make test" }, "1898 passed\\n1 skipped"),
-  error: render("read", { path: "private.txt" }, "Permission denied\\nprivate.txt", true),
+  read: render("read", { path: "src/auth.ts" }, twelveLines),
+  readExpanded: render("read", { path: "src/auth.ts" }, twelveLines, { expanded: true }),
+  write: render("write", { path: "src/auth.ts", content: twelveLines }, "Successfully wrote 86 bytes to src/auth.ts"),
+  bash: render("bash", { command: "make test" }, shellLines),
+  error: render("read", { path: "private.txt" }, "Permission denied\\nprivate.txt", { isError: true }),
   hasEditor: typeof editorFactory === "function",
   workingFrames: workingIndicator.frames,
 }));
 ''',
     )
-    assert result["read"]["call"][0].startswith("● ")
-    assert "src/auth.ts" in "\n".join(result["read"]["call"])
-    assert result["read"]["result"][0].startswith("  └ ")
-    assert "first line" in "\n".join(result["read"]["result"])
-    assert "second line" in "\n".join(result["read"]["result"])
+    assert result["read"]["call"] == ["● Read(src/auth.ts)"]
+    assert result["read"]["result"] == [
+        "  └ Read 12 lines",
+        "    line 1",
+        "    line 2",
+        "    line 3",
+        "    line 4",
+        "    line 5",
+        "    line 6",
+        "    line 7",
+        "    line 8",
+        "    line 9",
+        "    line 10",
+        "    +2 lines ( to expand)",
+    ]
+    assert result["readExpanded"]["result"] == [
+        "  └ Read 12 lines",
+        *[f"    line {index}" for index in range(1, 13)],
+    ]
 
-    assert result["write"]["call"][0].startswith("● ")
-    assert "first line" in "\n".join(result["write"]["call"])
-    assert "second line" in "\n".join(result["write"]["call"])
-    assert result["write"]["result"] == ["  └ Wrote 2 lines to src/auth.ts"]
+    assert result["write"]["call"] == ["● Write(src/auth.ts)"]
+    assert result["write"]["result"] == [
+        "  └ Wrote 12 lines to src/auth.ts",
+        *[f"    line {index}" for index in range(1, 11)],
+        "    +2 lines ( to expand)",
+    ]
 
-    assert result["bash"]["call"][0].startswith("● ")
-    assert "make test" in "\n".join(result["bash"]["call"])
-    assert result["bash"]["result"][0].startswith("  └ ")
-    assert "1898 passed" in "\n".join(result["bash"]["result"])
-    assert "1 skipped" in "\n".join(result["bash"]["result"])
+    assert result["bash"]["call"] == ["● Bash(make test)"]
+    assert result["bash"]["result"] == [
+        "  └ Completed",
+        *[f"    output {index}" for index in range(3, 23)],
+        "    +2 lines ( to expand)",
+    ]
 
-    assert result["error"]["result"][0].startswith("  └ ")
-    assert "Permission denied" in "\n".join(result["error"]["result"])
-    assert "private.txt" in "\n".join(result["error"]["result"])
+    assert result["error"]["result"] == [
+        "  └ Failed reading private.txt",
+        "    Permission denied",
+        "    private.txt",
+    ]
 
     assert result["hasEditor"] is True
     assert result["workingFrames"] == ["✻", "✽", "✶", "✳", "✢", "✳", "✶", "✽"]
+
+
+def test_completed_thinking_creates_a_durable_duration_entry(runner):
+    result = run(
+        runner,
+        '''
+const handlers = new Map();
+const entries = [];
+let entryRenderer;
+let hiddenThinkingLabel;
+const theme = { fg: (_color, text) => text };
+const ui = {
+  theme,
+  setEditorComponent() {},
+  setWorkingIndicator() {},
+  setWorkingMessage() {},
+  setWorkingVisible() {},
+  setHiddenThinkingLabel(value) { hiddenThinkingLabel = value; },
+};
+activity({
+  on(event, handler) { handlers.set(event, handler); },
+  registerMarkdownTransformer() {},
+  registerTool() {},
+  registerEntryRenderer(_type, renderer) { entryRenderer = renderer; },
+  appendEntry(type, data) { entries.push({ type, data }); },
+});
+const ctx = { cwd: "/repo", mode: "tui", ui };
+await handlers.get("session_start")({ reason: "startup" }, ctx);
+const originalNow = Date.now;
+Date.now = () => 1_000;
+handlers.get("message_update")({
+  assistantMessageEvent: { type: "thinking_start", contentIndex: 3, partial: { responseId: "response-1" } },
+}, ctx);
+Date.now = () => 3_400;
+handlers.get("message_update")({
+  assistantMessageEvent: { type: "thinking_end", contentIndex: 3, content: "reasoning", partial: { responseId: "response-1" } },
+}, ctx);
+Date.now = originalNow;
+const component = entryRenderer({ data: entries[0].data }, { expanded: false }, theme);
+process.stdout.write(JSON.stringify({
+  entries,
+  lines: component.render(120).map((line) => line.trimEnd()),
+  hiddenThinkingLabel,
+}));
+''',
+    )
+    assert result == {
+        "entries": [
+            {
+                "type": "dotfiles-thinking-duration",
+                "data": {
+                    "durationMs": 2400,
+                    "timestamp": 3400,
+                    "contentIndex": 3,
+                    "responseId": "response-1",
+                },
+            }
+        ],
+        "lines": ["Thought for 2s"],
+        "hiddenThinkingLabel": "",
+    }
 
 
 def test_activity_does_not_hide_tool_results_after_the_turn(source):

@@ -9,6 +9,7 @@ import {
   createReadToolDefinition,
   createWriteToolDefinition,
   CustomEditor,
+  keyHint,
   type ExtensionAPI,
   type ExtensionContext,
   type KeybindingsManager,
@@ -20,6 +21,11 @@ const ELAPSED_AFTER_MS = 5_000;
 const CLAUDE_PROMPT = "❯ ";
 const CLAUDE_PROMPT_PADDING = visibleWidth(CLAUDE_PROMPT);
 const CLAUDE_WORKING_FRAMES = ["✻", "✽", "✶", "✳", "✢", "✳", "✶", "✽"];
+const THINKING_DURATION_ENTRY = "dotfiles-thinking-duration";
+const SOURCE_PREVIEW_LINES = 10;
+const RESULTS_PREVIEW_LINES = 10;
+const SHELL_PREVIEW_LINES = 20;
+const DIFF_PREVIEW_LINES = 30;
 
 type Activity = {
   action: string;
@@ -146,43 +152,42 @@ class HierarchyComponent implements Component {
   }
 }
 
-type ConciseToolResult = {
+type ToolResult = {
   content: Array<{ type: string; text?: string }>;
   details?: unknown;
 };
 
-function resultText(result: ConciseToolResult): string | undefined {
-  return result.content.find((part) => part.type === "text")?.text;
+type ThinkingDurationEntry = {
+  durationMs: number;
+  timestamp: number;
+  contentIndex: number;
+  responseId?: string;
+};
+
+function resultText(result: ToolResult): string {
+  return result.content.find((part) => part.type === "text")?.text ?? "";
+}
+
+function textLines(text: string): string[] {
+  const lines = text.split("\n");
+  if (lines.at(-1) === "") lines.pop();
+  return lines;
 }
 
 function lineCount(text: string): number {
-  if (text === "") return 0;
-  const lines = text.split("\n");
-  if (lines.at(-1) === "") lines.pop();
-  while (lines.length >= 2 && lines.at(-2) === "" && /^\[.*(?:continue|more lines).+\]$/.test(lines.at(-1) ?? "")) {
-    lines.splice(-2);
-  }
-  return lines.length;
+  return textLines(text).length;
 }
 
-function resultLineCount(result: ConciseToolResult): number {
+function resultLineCount(result: ToolResult): number {
   const details = result.details as { truncation?: { totalLines?: number } } | undefined;
-  return details?.truncation?.totalLines ?? lineCount(resultText(result) ?? "");
+  return details?.truncation?.totalLines ?? lineCount(resultText(result));
 }
 
-function firstResultLine(result: ConciseToolResult): string | undefined {
-  return resultText(result)
-    ?.split("\n")
-    .find((line) => line.trim() !== "")
-    ?.trim();
+function firstResultLine(result: ToolResult): string | undefined {
+  return textLines(resultText(result)).find((line) => line.trim() !== "")?.trim();
 }
 
-function successfulResult(
-  toolName: string,
-  args: Record<string, unknown>,
-  result: ConciseToolResult,
-  cwd: string,
-): string {
+function successfulResult(toolName: string, args: Record<string, unknown>, result: ToolResult, cwd: string): string {
   const firstLine = firstResultLine(result);
   const count = resultLineCount(result);
   const target = relativePath(args.path, cwd);
@@ -192,7 +197,7 @@ function successfulResult(
       return `Read ${count} line${count === 1 ? "" : "s"}`;
     case "grep":
       if (firstLine === "No matches found") return firstLine;
-      return `Returned ${count} line${count === 1 ? "" : "s"}`;
+      return `Found ${count} match${count === 1 ? "" : "es"}`;
     case "find":
       if (firstLine === "No files found matching pattern") return firstLine;
       return `Found ${count} file${count === 1 ? "" : "s"}`;
@@ -210,47 +215,104 @@ function successfulResult(
     }
     case "bash":
     case "powershell":
-      return firstLine ?? "Completed";
+      return "Completed";
     default:
       return firstLine ?? "Completed";
   }
 }
 
-function hierarchicalDefinition(
-  definition: ToolDefinition<any, any, any>,
+function toolCallLabel(toolName: string, args: Record<string, unknown>, cwd: string): string {
+  const path = relativePath(args.path, cwd);
+  switch (toolName) {
+    case "read":
+      return `Read(${path ?? ""})`;
+    case "write":
+      return `Write(${path ?? ""})`;
+    case "edit":
+      return `Update(${path ?? ""})`;
+    case "bash":
+      return `Bash(${String(args.command ?? "")})`;
+    case "powershell":
+      return `PowerShell(${String(args.command ?? "")})`;
+    case "grep":
+      return `Grep(${[quoted(args.pattern), path].filter(Boolean).join(", ")})`;
+    case "find":
+      return `Find(${[args.pattern, path].filter(Boolean).join(", ")})`;
+    case "ls":
+      return `List(${path ?? ""})`;
+    default:
+      return title(toolName);
+  }
+}
+
+function resultOutput(toolName: string, args: Record<string, unknown>, result: ToolResult): string {
+  if (toolName === "write") return typeof args.content === "string" ? args.content : "";
+  if (toolName === "edit") {
+    const diff = (result.details as { diff?: unknown } | undefined)?.diff;
+    return typeof diff === "string" ? diff : resultText(result);
+  }
+  return resultText(result);
+}
+
+function previewLimit(toolName: string): number {
+  if (toolName === "edit") return DIFF_PREVIEW_LINES;
+  if (toolName === "bash" || toolName === "powershell") return SHELL_PREVIEW_LINES;
+  if (toolName === "read" || toolName === "write") return SOURCE_PREVIEW_LINES;
+  return RESULTS_PREVIEW_LINES;
+}
+
+function previewLines(lines: string[], limit: number, fromEnd: boolean, expanded: boolean): { lines: string[]; omitted: number } {
+  if (expanded || lines.length <= limit) return { lines, omitted: 0 };
+  return { lines: fromEnd ? lines.slice(-limit) : lines.slice(0, limit), omitted: lines.length - limit };
+}
+
+function resultComponent(
+  toolName: string,
+  args: Record<string, unknown>,
+  result: ToolResult,
+  expanded: boolean,
+  isError: boolean,
+  theme: { fg: (color: string, text: string) => string },
   cwd: string,
-): ToolDefinition<any, any, any> {
+): Component {
+  const activity = describeActivity(toolName, args, cwd);
+  const summary = isError
+    ? ["Failed", activity.action.toLowerCase(), activity.target].filter(Boolean).join(" ")
+    : successfulResult(toolName, args, result, cwd);
+  const output = resultOutput(toolName, args, result);
+  const preview = previewLines(textLines(output), previewLimit(toolName), toolName === "bash" || toolName === "powershell", expanded || isError);
+  const lines = [theme.fg(isError ? "error" : "muted", summary)];
+  lines.push(...preview.lines.map((line) => theme.fg(isError ? "error" : "toolOutput", line)));
+  if (preview.omitted > 0) {
+    lines.push(theme.fg("muted", `+${preview.omitted} lines (${keyHint("app.tools.expand", "to expand")})`));
+  }
+  return new Text(lines.join("\n"), 0, 0);
+}
+
+function hierarchicalDefinition(definition: ToolDefinition<any, any, any>, cwd: string): ToolDefinition<any, any, any> {
   return {
     ...definition,
     renderShell: "self",
     renderCall(args, theme, context) {
-      if (!definition.renderCall) return new Text("", 0, 0);
       const previous = context.lastComponent instanceof HierarchyComponent ? context.lastComponent : undefined;
-      const child = definition.renderCall(args, theme, {
-        ...context,
-        expanded: true,
-        lastComponent: previous?.child,
-      });
+      const child = new Text(theme.fg("muted", toolCallLabel(definition.name, args as Record<string, unknown>, cwd)), 0, 0);
       const component = previous ?? new HierarchyComponent(child, "", "");
       component.update(child, `${theme.fg("accent", "●")} `, "  ");
       return component;
     },
     renderResult(result, options, theme, context) {
-      if (!definition.renderResult) return new Text("", 0, 0);
       const previous = context.lastComponent instanceof HierarchyComponent ? context.lastComponent : undefined;
-      const child = definition.renderResult(result, { ...options, expanded: true }, theme, {
-        ...context,
-        expanded: true,
-        lastComponent: previous?.child,
-      });
-      const args = context.args as Record<string, unknown>;
-      const activity = describeActivity(definition.name, args, cwd);
-      const fallbackText = context.isError
-        ? ["Failed", activity.action.toLowerCase(), activity.target].filter(Boolean).join(" ")
-        : successfulResult(definition.name, args, result as ConciseToolResult, cwd);
-      const fallback = new Text(theme.fg(context.isError ? "error" : "muted", fallbackText), 0, 0);
+      const child = resultComponent(
+        definition.name,
+        context.args as Record<string, unknown>,
+        result as ToolResult,
+        options.expanded,
+        context.isError,
+        theme,
+        cwd,
+      );
       const component = previous ?? new HierarchyComponent(child, "", "");
-      component.update(child, theme.fg("dim", "  └ "), "    ", fallback);
+      component.update(child, theme.fg("dim", "  └ "), "    ");
       return component;
     },
   };
@@ -267,15 +329,19 @@ function registerHierarchicalTools(pi: ExtensionAPI, cwd: string): void {
     createBashToolDefinition(cwd),
     createPowerShellToolDefinition(cwd),
   ];
-  for (const definition of definitions) {
-    pi.registerTool(hierarchicalDefinition(definition, cwd));
-  }
+  for (const definition of definitions) pi.registerTool(hierarchicalDefinition(definition, cwd));
 }
 
 export default function activity(pi: ExtensionAPI): void {
   let running: RunningActivity[] = [];
   let started = new Map<string, number>();
+  let thinkingStartedAt = new Map<number, number>();
   let timer: NodeJS.Timeout | undefined;
+
+  pi.registerEntryRenderer<ThinkingDurationEntry>(THINKING_DURATION_ENTRY, (entry, _options, theme) => {
+    const seconds = Math.max(1, Math.round((entry.data?.durationMs ?? 0) / 1_000));
+    return new Text(theme.fg("dim", `Thought for ${seconds}s`), 0, 0);
+  });
 
   const clearTimer = () => {
     if (!timer) return;
@@ -313,13 +379,39 @@ export default function activity(pi: ExtensionAPI): void {
       frames: CLAUDE_WORKING_FRAMES.map((frame) => ctx.ui.theme.fg("accent", frame)),
     });
     ctx.ui.setWorkingVisible(true);
+    ctx.ui.setHiddenThinkingLabel("");
   });
 
   pi.on("before_agent_start", (_event, ctx) => {
     running = [];
     started = new Map();
+    thinkingStartedAt = new Map();
     clearTimer();
     ctx.ui.setWorkingMessage();
+  });
+
+  pi.on("message_update", (event) => {
+    const streamEvent = event.assistantMessageEvent;
+    if (streamEvent.type === "start") {
+      thinkingStartedAt = new Map();
+      return;
+    }
+    if (streamEvent.type === "thinking_start") {
+      thinkingStartedAt.set(streamEvent.contentIndex, Date.now());
+      return;
+    }
+    if (streamEvent.type !== "thinking_end") return;
+    const startedAt = thinkingStartedAt.get(streamEvent.contentIndex);
+    if (startedAt === undefined) return;
+    thinkingStartedAt.delete(streamEvent.contentIndex);
+    const timestamp = Date.now();
+    const responseId = (streamEvent.partial as { responseId?: string }).responseId;
+    pi.appendEntry<ThinkingDurationEntry>(THINKING_DURATION_ENTRY, {
+      durationMs: timestamp - startedAt,
+      timestamp,
+      contentIndex: streamEvent.contentIndex,
+      ...(responseId ? { responseId } : {}),
+    });
   });
 
   pi.on("tool_execution_start", (event, ctx) => {
@@ -332,8 +424,10 @@ export default function activity(pi: ExtensionAPI): void {
 
   pi.on("session_shutdown", (_event, ctx) => {
     clearTimer();
+    thinkingStartedAt = new Map();
     ctx.ui.setEditorComponent(undefined);
     ctx.ui.setWorkingIndicator();
     ctx.ui.setWorkingMessage();
+    ctx.ui.setHiddenThinkingLabel();
   });
 }
