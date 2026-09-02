@@ -59,8 +59,9 @@ def test_uses_public_rendering_and_activity_apis(source):
     assert "setWorkingMessage" in source
     assert "setWorkingVisible" in source
     assert "setToolsExpanded" not in source
-    assert "context.expanded && definition.renderCall" in source
-    assert "context.expanded && definition.renderResult" in source
+    assert "definition.renderCall(args, theme" in source
+    assert "definition.renderResult(result" in source
+    assert "expanded: true" in source
     assert "dist/modes" not in source
 
 
@@ -111,7 +112,7 @@ def test_search_activity_quotes_its_pattern(runner):
     assert result == {"action": "Searching for", "target": '"token refresh"'}
 
 
-def test_collapsed_tool_activity_uses_the_claude_bullet(runner):
+def test_tool_hierarchy_keeps_the_complete_original_details(runner):
     result = run(
         runner,
         '''
@@ -121,8 +122,23 @@ const handlers = new Map();
 const tools = [];
 let editorFactory;
 let workingIndicator;
+const identity = (text) => text;
+const theme = {
+  fg: (_color, text) => text,
+  bg: (_color, text) => text,
+  bold: identity,
+  italic: identity,
+  underline: identity,
+  inverse: identity,
+  strikethrough: identity,
+  getFgAnsi: () => "",
+  getBgAnsi: () => "",
+  getColorMode: () => "truecolor",
+  getThinkingBorderColor: () => identity,
+  getBashModeBorderColor: () => identity,
+};
 const ui = {
-  theme: { fg: (_color, text) => text },
+  theme,
   setEditorComponent(value) { editorFactory = value; },
   setStatus() {},
   setWorkingIndicator(value) { workingIndicator = value; },
@@ -136,71 +152,79 @@ activity({
 });
 const ctx = { cwd: "/repo", mode: "tui", ui };
 await handlers.get("session_start")({ reason: "startup" }, ctx);
-const read = tools.find((tool) => tool.name === "read");
-const call = read.renderCall(
-  { path: "src/auth.ts" },
-  ui.theme,
-  { expanded: false },
-);
+const render = (toolName, args, content, isError = false) => {
+  const tool = tools.find((candidate) => candidate.name === toolName);
+  const state = {};
+  const context = {
+    args,
+    toolCallId: `${toolName}-1`,
+    invalidate() {},
+    lastComponent: undefined,
+    state,
+    cwd: "/repo",
+    executionStarted: true,
+    argsComplete: true,
+    isPartial: false,
+    expanded: false,
+    showImages: false,
+    isError,
+  };
+  const call = tool.renderCall(args, theme, context);
+  const result = tool.renderResult(
+    { content: [{ type: "text", text: content }], details: {} },
+    { expanded: false, isPartial: false },
+    theme,
+    context,
+  );
+  return {
+    call: call.render(120).map((line) => line.trimEnd()),
+    result: result.render(120).map((line) => line.trimEnd()),
+  };
+};
 process.stdout.write(JSON.stringify({
-  call: call.render(120),
+  read: render("read", { path: "src/auth.ts" }, "first line\\nsecond line"),
+  write: render("write", { path: "src/auth.ts", content: "first line\\nsecond line" }, "Successfully wrote 22 bytes to src/auth.ts"),
+  bash: render("bash", { command: "make test" }, "1898 passed\\n1 skipped"),
+  error: render("read", { path: "private.txt" }, "Permission denied\\nprivate.txt", true),
   hasEditor: typeof editorFactory === "function",
   workingFrames: workingIndicator.frames,
 }));
 ''',
     )
-    assert [line.rstrip() for line in result["call"]] == ["● Reading src/auth.ts"]
+    assert result["read"]["call"][0].startswith("● ")
+    assert "src/auth.ts" in "\n".join(result["read"]["call"])
+    assert result["read"]["result"][0].startswith("  └ ")
+    assert "first line" in "\n".join(result["read"]["result"])
+    assert "second line" in "\n".join(result["read"]["result"])
+
+    assert result["write"]["call"][0].startswith("● ")
+    assert "first line" in "\n".join(result["write"]["call"])
+    assert "second line" in "\n".join(result["write"]["call"])
+    assert result["write"]["result"] == ["  └ Wrote 2 lines to src/auth.ts"]
+
+    assert result["bash"]["call"][0].startswith("● ")
+    assert "make test" in "\n".join(result["bash"]["call"])
+    assert result["bash"]["result"][0].startswith("  └ ")
+    assert "1898 passed" in "\n".join(result["bash"]["result"])
+    assert "1 skipped" in "\n".join(result["bash"]["result"])
+
+    assert result["error"]["result"][0].startswith("  └ ")
+    assert "Permission denied" in "\n".join(result["error"]["result"])
+    assert "private.txt" in "\n".join(result["error"]["result"])
+
     assert result["hasEditor"] is True
     assert result["workingFrames"] == ["✻", "✽", "✶", "✳", "✢", "✳", "✶", "✽"]
 
 
-def test_recovered_failures_are_hidden_after_final_assistant_prose(runner):
-    result = run(
-        runner,
-        '''
-import { initTheme } from "@earendil-works/pi-coding-agent";
-initTheme("dark", false);
-const handlers = new Map();
-const tools = [];
-const ui = {
-  theme: { fg: (_color, text) => text },
-  setEditorComponent() {},
-  setStatus() {},
-  setWorkingIndicator() {},
-  setWorkingMessage() {},
-  setWorkingVisible() {},
-};
-activity({
-  on(event, handler) { handlers.set(event, handler); },
-  registerMarkdownTransformer() {},
-  registerTool(tool) { tools.push(tool); },
-});
-const ctx = { cwd: "/repo", mode: "tui", ui };
-await handlers.get("session_start")({ reason: "startup" }, ctx);
-handlers.get("tool_result")({ isError: true }, ctx);
-let invalidated = false;
-const renderContext = {
-  args: { path: "src/auth.ts" },
-  expanded: false,
-  isError: true,
-  invalidate() { invalidated = true; },
-};
-const read = tools.find((tool) => tool.name === "read");
-const visible = read.renderResult({ content: [], details: {} }, { expanded: false }, ui.theme, renderContext);
-handlers.get("message_end")({ message: { role: "assistant", content: [{ type: "text" }] } });
-const hidden = read.renderResult({ content: [], details: {} }, { expanded: false }, ui.theme, renderContext);
-process.stdout.write(JSON.stringify({ visible: visible.render(120), hidden: hidden.render(120), invalidated }));
-''',
-    )
-    assert "Failed reading src/auth.ts" in "\n".join(result["visible"])
-    assert result["hidden"] == []
-    assert result["invalidated"] is True
+def test_activity_does_not_hide_tool_results_after_the_turn(source):
+    assert 'pi.on("message_end"' not in source
+    assert "showErrors" not in source
 
 
 def test_tool_rendering_uses_only_theme_colours(source):
     assert "theme.fg(" in source
     assert "#" not in source
-    for colour in ("accent", "dim", "error", "muted", "toolDiffAdded"):
+    for colour in ("accent", "dim", "error", "muted"):
         assert f'"{colour}"' in source
 
 

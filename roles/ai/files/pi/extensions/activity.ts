@@ -9,16 +9,13 @@ import {
   createReadToolDefinition,
   createWriteToolDefinition,
   CustomEditor,
-  keyHint,
   type ExtensionAPI,
   type ExtensionContext,
   type KeybindingsManager,
   type MarkdownTransformContext,
   type ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
-import { Container, Text, visibleWidth, type EditorTheme, type TUI } from "@earendil-works/pi-tui";
-
-const HINT_STATUS_KEY = "dotfiles-activity-hint";
+import { stripTerminalSequences, Text, visibleWidth, type Component, type EditorTheme, type TUI } from "@earendil-works/pi-tui";
 const ELAPSED_AFTER_MS = 5_000;
 const CLAUDE_PROMPT = "❯ ";
 const CLAUDE_PROMPT_PADDING = visibleWidth(CLAUDE_PROMPT);
@@ -114,50 +111,152 @@ function activityMessage(running: RunningActivity[], started: Map<string, number
   return message;
 }
 
-function conciseCall(activity: Activity, theme: { fg: (color: string, text: string) => string }): Text {
-  const colour = activity.action === "Updating" || activity.action === "Writing" ? "toolDiffAdded" : "muted";
-  const marker = `${theme.fg("accent", "●")} `;
-  const target = activity.target ? ` ${theme.fg("muted", activity.target)}` : "";
-  return new Text(`${marker}${theme.fg(colour, activity.action)}${target}`, 0, 0);
+class HierarchyComponent implements Component {
+  child: Component;
+  private firstPrefix: string;
+  private continuationPrefix: string;
+  private fallback?: Component;
+
+  constructor(child: Component, firstPrefix: string, continuationPrefix: string, fallback?: Component) {
+    this.child = child;
+    this.firstPrefix = firstPrefix;
+    this.continuationPrefix = continuationPrefix;
+    this.fallback = fallback;
+  }
+
+  update(child: Component, firstPrefix: string, continuationPrefix: string, fallback?: Component): void {
+    this.child = child;
+    this.firstPrefix = firstPrefix;
+    this.continuationPrefix = continuationPrefix;
+    this.fallback = fallback;
+  }
+
+  invalidate(): void {
+    this.child.invalidate();
+    this.fallback?.invalidate();
+  }
+
+  render(width: number): string[] {
+    const prefixWidth = Math.max(visibleWidth(this.firstPrefix), visibleWidth(this.continuationPrefix));
+    const contentWidth = Math.max(1, width - prefixWidth);
+    let lines = this.child.render(contentWidth);
+    while (lines.length > 0 && stripTerminalSequences(lines[0] ?? "").trim() === "") lines.shift();
+    if (lines.length === 0 && this.fallback) lines = this.fallback.render(contentWidth);
+    return lines.map((line, index) => `${index === 0 ? this.firstPrefix : this.continuationPrefix}${line}`);
+  }
 }
 
-function conciseResult(isError: boolean, activity: Activity, theme: { fg: (color: string, text: string) => string }): Container | Text {
-  if (!isError) return new Container();
-  const content = ["Failed", activity.action.toLowerCase(), activity.target].filter((part) => part !== undefined).join(" ");
-  return new Text(theme.fg("error", content), 0, 0);
+type ConciseToolResult = {
+  content: Array<{ type: string; text?: string }>;
+  details?: unknown;
+};
+
+function resultText(result: ConciseToolResult): string | undefined {
+  return result.content.find((part) => part.type === "text")?.text;
 }
 
-function conciseDefinition(
+function lineCount(text: string): number {
+  if (text === "") return 0;
+  const lines = text.split("\n");
+  if (lines.at(-1) === "") lines.pop();
+  while (lines.length >= 2 && lines.at(-2) === "" && /^\[.*(?:continue|more lines).+\]$/.test(lines.at(-1) ?? "")) {
+    lines.splice(-2);
+  }
+  return lines.length;
+}
+
+function resultLineCount(result: ConciseToolResult): number {
+  const details = result.details as { truncation?: { totalLines?: number } } | undefined;
+  return details?.truncation?.totalLines ?? lineCount(resultText(result) ?? "");
+}
+
+function firstResultLine(result: ConciseToolResult): string | undefined {
+  return resultText(result)
+    ?.split("\n")
+    .find((line) => line.trim() !== "")
+    ?.trim();
+}
+
+function successfulResult(
+  toolName: string,
+  args: Record<string, unknown>,
+  result: ConciseToolResult,
+  cwd: string,
+): string {
+  const firstLine = firstResultLine(result);
+  const count = resultLineCount(result);
+  const target = relativePath(args.path, cwd);
+  switch (toolName) {
+    case "read":
+      if (firstLine?.startsWith("Read image file")) return firstLine;
+      return `Read ${count} line${count === 1 ? "" : "s"}`;
+    case "grep":
+      if (firstLine === "No matches found") return firstLine;
+      return `Returned ${count} line${count === 1 ? "" : "s"}`;
+    case "find":
+      if (firstLine === "No files found matching pattern") return firstLine;
+      return `Found ${count} file${count === 1 ? "" : "s"}`;
+    case "ls":
+      if (firstLine === "(empty directory)") return firstLine;
+      return `Listed ${count} entr${count === 1 ? "y" : "ies"}`;
+    case "edit": {
+      const edits = Array.isArray(args.edits) ? args.edits.length : 1;
+      return [`Updated ${edits} block${edits === 1 ? "" : "s"} in`, target].filter(Boolean).join(" ");
+    }
+    case "write": {
+      const content = typeof args.content === "string" ? args.content : "";
+      const lines = lineCount(content);
+      return [`Wrote ${lines} line${lines === 1 ? "" : "s"} to`, target].filter(Boolean).join(" ");
+    }
+    case "bash":
+    case "powershell":
+      return firstLine ?? "Completed";
+    default:
+      return firstLine ?? "Completed";
+  }
+}
+
+function hierarchicalDefinition(
   definition: ToolDefinition<any, any, any>,
   cwd: string,
-  showErrors: () => boolean,
-  errorInvalidators: Set<() => void>,
 ): ToolDefinition<any, any, any> {
   return {
     ...definition,
     renderShell: "self",
     renderCall(args, theme, context) {
-      if (context.expanded && definition.renderCall) return definition.renderCall(args, theme, context);
-      return conciseCall(describeActivity(definition.name, args as Record<string, unknown>, cwd), theme);
+      if (!definition.renderCall) return new Text("", 0, 0);
+      const previous = context.lastComponent instanceof HierarchyComponent ? context.lastComponent : undefined;
+      const child = definition.renderCall(args, theme, {
+        ...context,
+        expanded: true,
+        lastComponent: previous?.child,
+      });
+      const component = previous ?? new HierarchyComponent(child, "", "");
+      component.update(child, `${theme.fg("accent", "●")} `, "  ");
+      return component;
     },
     renderResult(result, options, theme, context) {
-      if (context.expanded && definition.renderResult) return definition.renderResult(result, options, theme, context);
-      if (context.isError) errorInvalidators.add(context.invalidate);
-      return conciseResult(
-        context.isError && showErrors(),
-        describeActivity(definition.name, context.args as Record<string, unknown>, cwd),
-        theme,
-      );
+      if (!definition.renderResult) return new Text("", 0, 0);
+      const previous = context.lastComponent instanceof HierarchyComponent ? context.lastComponent : undefined;
+      const child = definition.renderResult(result, { ...options, expanded: true }, theme, {
+        ...context,
+        expanded: true,
+        lastComponent: previous?.child,
+      });
+      const args = context.args as Record<string, unknown>;
+      const activity = describeActivity(definition.name, args, cwd);
+      const fallbackText = context.isError
+        ? ["Failed", activity.action.toLowerCase(), activity.target].filter(Boolean).join(" ")
+        : successfulResult(definition.name, args, result as ConciseToolResult, cwd);
+      const fallback = new Text(theme.fg(context.isError ? "error" : "muted", fallbackText), 0, 0);
+      const component = previous ?? new HierarchyComponent(child, "", "");
+      component.update(child, theme.fg("dim", "  └ "), "    ", fallback);
+      return component;
     },
   };
 }
 
-function registerConciseTools(
-  pi: ExtensionAPI,
-  cwd: string,
-  showErrors: () => boolean,
-  errorInvalidators: Set<() => void>,
-): void {
+function registerHierarchicalTools(pi: ExtensionAPI, cwd: string): void {
   const definitions = [
     createReadToolDefinition(cwd),
     createGrepToolDefinition(cwd),
@@ -169,15 +268,13 @@ function registerConciseTools(
     createPowerShellToolDefinition(cwd),
   ];
   for (const definition of definitions) {
-    pi.registerTool(conciseDefinition(definition, cwd, showErrors, errorInvalidators));
+    pi.registerTool(hierarchicalDefinition(definition, cwd));
   }
 }
 
 export default function activity(pi: ExtensionAPI): void {
   let running: RunningActivity[] = [];
   let started = new Map<string, number>();
-  let showErrors = false;
-  const errorInvalidators = new Set<() => void>();
   let timer: NodeJS.Timeout | undefined;
 
   const clearTimer = () => {
@@ -210,7 +307,7 @@ export default function activity(pi: ExtensionAPI): void {
 
   pi.on("session_start", (_event, ctx) => {
     if (ctx.mode !== "tui") return;
-    registerConciseTools(pi, ctx.cwd, () => showErrors, errorInvalidators);
+    registerHierarchicalTools(pi, ctx.cwd);
     ctx.ui.setEditorComponent((tui, theme, keybindings) => new ClaudeEditor(tui, theme, keybindings));
     ctx.ui.setWorkingIndicator({
       frames: CLAUDE_WORKING_FRAMES.map((frame) => ctx.ui.theme.fg("accent", frame)),
@@ -221,11 +318,8 @@ export default function activity(pi: ExtensionAPI): void {
   pi.on("before_agent_start", (_event, ctx) => {
     running = [];
     started = new Map();
-    showErrors = false;
-    errorInvalidators.clear();
     clearTimer();
     ctx.ui.setWorkingMessage();
-    ctx.ui.setStatus(HINT_STATUS_KEY, undefined);
   });
 
   pi.on("tool_execution_start", (event, ctx) => {
@@ -234,21 +328,6 @@ export default function activity(pi: ExtensionAPI): void {
 
   pi.on("tool_execution_end", (event, ctx) => {
     finish(event.toolCallId, ctx);
-  });
-
-  pi.on("tool_result", (event, ctx) => {
-    if (event.isError) showErrors = true;
-    ctx.ui.setStatus(HINT_STATUS_KEY, ctx.ui.theme.fg("dim", keyHint("app.tools.expand", "for details")));
-  });
-
-  pi.on("message_end", (event) => {
-    const message = event.message as { content?: unknown; role: string };
-    const hasToolCall = Array.isArray(message.content) && message.content.some(
-      (content) => typeof content === "object" && content !== null && "type" in content && content.type === "toolCall",
-    );
-    if (message.role !== "assistant" || hasToolCall) return;
-    showErrors = false;
-    for (const invalidate of errorInvalidators) invalidate();
   });
 
   pi.on("session_shutdown", (_event, ctx) => {
