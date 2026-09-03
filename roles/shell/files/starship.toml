@@ -8,12 +8,12 @@ command_timeout = 1000
 
 # Theme
 format = """
+$cmd_duration\
 $directory\
 $nodejs\
 $custom\
 $git_branch\
 $git_status\
-$cmd_duration\
 $line_break\
 $character"""
 
@@ -27,6 +27,10 @@ disabled = true
 
 [cmd_duration]
 disabled = false
+min_time = 0
+show_milliseconds = true
+format = "[Took $duration]($style)\n"
+style = "dimmed white"
 
 [memory_usage]
 disabled=true
