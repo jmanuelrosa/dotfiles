@@ -8,7 +8,7 @@ command_timeout = 1000
 
 # Theme
 format = """
-$cmd_duration\
+${env_var.STARSHIP_HUMANIZED_DURATION}\
 $directory\
 $nodejs\
 $custom\
@@ -26,10 +26,10 @@ disabled = false
 disabled = true
 
 [cmd_duration]
-disabled = false
-min_time = 0
-show_milliseconds = true
-format = "[Took $duration]($style)\n"
+disabled = true
+
+[env_var.STARSHIP_HUMANIZED_DURATION]
+format = "[Took $env_value]($style)\n"
 style = "dimmed white"
 
 [memory_usage]

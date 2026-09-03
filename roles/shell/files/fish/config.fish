@@ -5,6 +5,32 @@ end
 set -U fish_greeting
 
 starship init fish | source
+
+function __starship_humanize_duration --on-event fish_postexec
+  set -l duration_ms $CMD_DURATION
+
+  if test $duration_ms -lt 1000
+    set -gx STARSHIP_HUMANIZED_DURATION "less than 1s"
+    return
+  end
+
+  set -l remaining (math --scale 0 "floor($duration_ms / 1000)")
+  set -l parts
+  set -l days (math --scale 0 "floor($remaining / 86400)")
+  set remaining (math "$remaining % 86400")
+  set -l hours (math --scale 0 "floor($remaining / 3600)")
+  set remaining (math "$remaining % 3600")
+  set -l minutes (math --scale 0 "floor($remaining / 60)")
+  set -l seconds (math "$remaining % 60")
+
+  test $days -gt 0; and set -a parts "$days"d
+  test $hours -gt 0; and set -a parts "$hours"h
+  test $minutes -gt 0; and set -a parts "$minutes"m
+  test $seconds -gt 0; and set -a parts "$seconds"s
+
+  set -gx STARSHIP_HUMANIZED_DURATION (string join ' ' $parts)
+end
+
 zoxide init fish | source
 fnm env --use-on-cd | source
 
