@@ -7,9 +7,9 @@ description: >-
 disable-model-invocation: true
 ---
 Craft review of Claude Code agent definitions.
-Scope boundary: /cc-review asks "should this agent exist, and is an agent the right primitive?"
+Scope boundary: /setup-review asks "should this agent exist, and is an agent the right primitive?"
 This skill asks "given it exists, is the definition well-crafted?".
-Do not re-litigate existence or primitive choice here; hand those findings to /cc-review instead.
+Do not re-litigate existence or primitive choice here; hand those findings to /setup-review instead.
 
 Advisory-first: produce the report, then offer to apply fixes.
 Never edit before the user accepts findings.

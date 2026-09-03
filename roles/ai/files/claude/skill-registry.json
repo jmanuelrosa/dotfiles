@@ -883,17 +883,27 @@
       "note": "Locally authored, the deferred half of ~/.claude/rules/code-review.md"
     },
     {
-      "name": "cc-review",
+      "name": "setup-review",
       "groups": [
+        "quality",
+        "review",
         "ai",
-        "prompt engineering",
-        "claude",
         "global"
       ],
       "dependencies": [
         "skill-writer"
       ],
       "note": "Locally authored"
+    },
+    {
+      "name": "setup-review-mechanics",
+      "groups": [
+        "quality",
+        "review",
+        "ai",
+        "global"
+      ],
+      "note": "Locally authored; shared method for harness-specific setup reviewers"
     },
     {
       "name": "agent-audit",

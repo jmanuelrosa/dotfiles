@@ -324,8 +324,9 @@ def test_the_repo_root_agents_md_is_the_claude_md_pi_would_otherwise_miss():
 SKILL_KEYS_PI_IGNORES = ("allowed-tools", "model", "effort")
 
 CLAUDE_ONLY_SKILL_FRONTMATTER = {
-    "ac", "agent-writer", "apollo-client", "cc-review", "coderabbit", "commit",
+    "ac", "agent-writer", "apollo-client", "coderabbit", "commit",
     "graphql-operations", "humanizer", "jira", "pr", "product-lead", "research",
+    "setup-review",
     "0-refine-idea", "1-research", "2-write-prd", "3-red-team", "4-tech-shape",
     "5-decompose", "6-verify", "7-push-to-board", "8-living-spec", "setup-strategy",
 }

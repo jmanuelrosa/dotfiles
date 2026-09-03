@@ -20,6 +20,8 @@ The `.agents/skills` link works because of two facts about pi's own discovery, r
 
 **The review policy reaches pi now.** `pi-review` (in `settings.json` `packages`) appends a `REVIEW_GUIDELINES.md` to its review prompt and its rubric defers to project guidelines, so the repo root carries a relative symlink to `rules/code-review.md` and the four severities arrive intact. It only reads that file from a directory that also holds a `.pi` directory, which is why one exists at the root and holds nothing else; [code-review-policy.md](code-review-policy.md) has the detail and the reason this is not the `REVIEW.md` decision reversed.
 
+**Setup review is shared by method, not by inventory.** `/skill:setup-review` detects pi from `PI_SESSION_ID` and delegates to `pi-staff-reviewer`; Claude Code exposes the same skill as `/setup-review` and delegates to `cc-staff-reviewer`. Both reviewers load `setup-review-mechanics` for evidence thresholds, dependency safety, proposal discipline and the P0-P2 report contract, while each owns the paths, precedence rules, current-source lookup and customization vocabulary of its harness. This avoids the old state where pi could invoke `cc-review` successfully and receive a confident audit of `~/.claude`.
+
 ## Permissions and the sandbox
 
 This was recorded as having no pi counterpart, and that was wrong. `pi-sandbox` confines bash at the OS level through a fork of Anthropic's own `sandbox-runtime`, and applies allow/deny lists to read, write and edit directly, so pi does have a permission model: it is simply not Claude's, and it has to be derived rather than copied.
