@@ -1,5 +1,5 @@
 {
   "filesystem": {
-    "allowWrite": [".git"]
+    "allowWrite": ["/Users/jmanuelrosa/Developer/dotfiles/.git"]
   }
 }
