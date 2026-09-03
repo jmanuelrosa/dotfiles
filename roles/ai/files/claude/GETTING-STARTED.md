@@ -49,7 +49,7 @@ Three rules hold across both halves, and they are the ones to remember:
 | `/research "<question>"` | Multi-source research write-up |
 | `/commit`, `/pr` | The only supported git write paths (a hook enforces this) |
 | `/handoff` | Compact a dying session into a doc the next one can pick up |
-| `/cc-review`, `agent-audit`, `skill-writer`, `agent-writer` | Maintaining this setup itself |
+| `/setup-review`, `agent-audit`, `skill-writer`, `agent-writer` | Maintaining this setup itself |
 | `/product-lead` | A signpost that tells you the pipeline is a plugin and hands you the install line |
 
 Everything else is opt in, per project. That is deliberate: the product pipeline writes into `docs/` of whatever repo it runs in, and a seat you never dispatch is context you pay for on every turn.

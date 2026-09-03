@@ -180,14 +180,14 @@ neither, because `[groups]` already carries `global`.
 ```
 $ claude-kit list --type skill
 🧩 Available skills:
-  · cc-review [ai, claude, global, prompt engineering] (needs: skill-writer)
+  · setup-review [ai, global, quality, review] (needs: skill-writer)
   ✓ coderabbit (linked) [productivity, review, workflow]
   ✓ context-engineering (linked) [ai, claude, prompt engineering] (installed for spec-driven-development)
   · grill-me [global, idea-refinement, planning, pm, product] (needs: grilling)
   ✓ jira (linked) [productivity, tasks, workflow] (global for ac, research)
   ✓ spec-driven-development (linked) [planning, pm, product] (needs: context-engineering, incremental-implementation, planning-and-task-breakdown, test-driven-development)
 
-✨ 65 skills, 4 installed
+✨ 66 skills, 4 installed
 ```
 
 Three things sit outside that inherited template: `(installed for <parent>)`, which comes from
@@ -201,7 +201,8 @@ $ claude-kit list --type skill --group
 📚 Available groups:
   ai:
     · agent-audit (global)
-    · cc-review (global) (needs: skill-writer)
+    · setup-review (global) (needs: skill-writer)
+    · setup-review-mechanics (global)
     · claude-code-analyzer
   productivity:
     ✓ jira (global for ac, research)

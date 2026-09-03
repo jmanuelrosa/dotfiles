@@ -8,7 +8,21 @@
         "productivity",
         "global"
       ],
-      "note": "No external source"
+      "note": "No external source",
+      "dependencies": [
+        "setup-review-mechanics"
+      ]
+    },
+    {
+      "name": "pi-staff-reviewer",
+      "groups": [
+        "productivity",
+        "global"
+      ],
+      "note": "No external source",
+      "dependencies": [
+        "setup-review-mechanics"
+      ]
     },
     {
       "name": "architect",

@@ -80,10 +80,10 @@ Everything else is dropped, not deferred to a list, because an appendix of nits 
 
 The reviewer does not mutate, so none of these run during a review:
 
-`/code-review --fix`, `code-simplification`, `/simplify`, `knip --fix`, `coderabbit`, `pr`, `performance-optimization` steps 3 onward, `cc-review`'s apply step.
+`/code-review --fix`, `code-simplification`, `/simplify`, `knip --fix`, `coderabbit`, `pr`, `performance-optimization` steps 3 onward, `setup-review`'s apply step.
 
 `--fix` is named first because it is the one the harness itself ships, so a ban that skipped it would read as forbidding only other people's tools.
-`cc-staff-reviewer` reviews the Claude Code setup and never application code, so no code finding routes there.
+`cc-staff-reviewer` and `pi-staff-reviewer` review harness setup and never application code, so no code finding routes there.
 
 `code-review-and-quality` is superseded as a reviewer, not as a skill.
 Its five axes are a subset of the policy's eight (it covers none of contract and rollback, failure visibility, or test adequacy) and its five-word scale is one of the dialects the policy exists to collapse.

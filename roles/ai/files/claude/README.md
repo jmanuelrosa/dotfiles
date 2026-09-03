@@ -204,8 +204,8 @@ Three tiers are in use. `low` and `max` are deliberately unused: `low` trades aw
 
 | Tier | For | Where it is set today |
 |---|---|---|
-| `medium` | Template-driven and mechanical work, where the procedure carries the result and the model fills it in | `commit`, `pr`, `jira`, `handoff`, `coderabbit`, `cc-review` |
-| `high` | Research, review and read-and-summarize work, where breadth matters more than depth | `security-staff-engineer`, `cc-staff-reviewer`, the five product-team research and scribe agents |
+| `medium` | Template-driven and mechanical work, where the procedure carries the result and the model fills it in | `commit`, `pr`, `jira`, `handoff`, `coderabbit`, `setup-review` |
+| `high` | Research, review and read-and-summarize work, where breadth matters more than depth | `security-staff-engineer`, `cc-staff-reviewer`, `pi-staff-reviewer`, the five product-team research and scribe agents |
 | `xhigh` | Multi-file implementation, cross-stack design, adversarial review | The 14 implementer seats, `architect`, `ux-shaper`, `pm-red-team` |
 
 `high` matches the current `effortLevel`, so setting it explicitly changes nothing today and reads as a no-op. It is not one: it is a **pin**, and its job is to keep that artifact at `high` when you run a session at `xhigh`, `max` or ultracode. Do not delete it as dead config.

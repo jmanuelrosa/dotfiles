@@ -7,7 +7,7 @@ shape as a literal, escape codes included.
 
     🧩 Available skills:
       ✓ coderabbit (linked) [productivity, review, workflow]
-      · cc-review [ai, claude, global, prompt engineering] (needs: skill-writer)
+      · setup-review [ai, global, quality, review] (needs: skill-writer)
       ✓ jira (linked) [productivity, tasks, workflow] (global for ac, research)
       ↓ never-fetched (not downloaded) [engineering]
 
