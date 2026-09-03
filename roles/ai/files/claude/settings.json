@@ -203,7 +203,6 @@
       "mcp__Supabase"
     ]
   },
-  "model": "sonnet",
   "fallbackModel": [
     "opus",
     "sonnet"
