@@ -34,8 +34,8 @@ Four things the translation cannot carry, verified against pi-sandbox 0.6.5 and 
   nothing. `/var/folders` is what it resolves to on Darwin and stands in for it.
 - Bare tool names and command patterns. `Bash(...)` deny rules describe command shape,
   which pi-sandbox does not match on: it confines what a command may touch instead.
-  Those 64 rules have no counterpart here, and `pi-permissions` is the package that
-  would carry them if that ever earns its keep.
+  Those 64 rules, the five bare tool names and the four `mcp__*` entries are carried by
+  the decision layer beside this one, specified in `test_pi_permissions.py`.
 - The split between Claude's two read layers. Claude keeps them apart by subject:
   `sandbox.filesystem` governs bash subprocesses, so git and ssh are handed the few
   files they need, while `permissions.deny` governs the Read tool. pi has one
@@ -51,6 +51,10 @@ Four things the translation cannot carry, verified against pi-sandbox 0.6.5 and 
   already makes and the reason none of this is a substitute for the deny list. The
   system CA bundle is a third carve-out: its `.pem` suffix matches the secret-file deny,
   but HTTPS subprocesses need this public trust store to verify remote certificates.
+  Both consequences are undone a layer up: `path_read` in `test_pi_permissions.py`
+  refuses those paths to any tool or bash token that names one, while the syscall-level
+  grant here keeps working for the subprocess that needs it. The tests below still pin
+  what *this* file does, because that is what the layer above is composing with.
 """
 
 import json
