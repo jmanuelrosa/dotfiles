@@ -34,7 +34,7 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 
 ## Templates
 
-- `templates/secrets.fish.j2` — exports `NPM_TOKEN` and the Cloudflare credentials from vault. Mode 0600. The Cloudflare token is exported twice, as `CLOUDFLARE_API_TOKEN` (wrangler, cf-terraforming, the OpenTofu provider) and `CF_API_TOKEN` (flarectl), because the CLIs disagree on the name.
+- `templates/secrets.fish.j2` — exports `NPM_TOKEN` and the Cloudflare credentials from vault. Mode 0600. `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` cover both `wrangler` and `cf`, so neither needs an interactive login.
 
 ## Output style
 

@@ -326,9 +326,9 @@ def test_the_repo_root_agents_md_is_the_claude_md_pi_would_otherwise_miss():
 # the safe calls, not a gate on the dangerous ones. Under pi the writes prompt like any
 # other command, which is the same outcome the key buys under Claude. The sandbox is not
 # the answer for the rest of that surface either: a Cloudflare write leaves over the
-# network and touches no path pi-sandbox can confine, so the confirmation that actually
-# protects the account is the skill's own "Before any write" section, which both
-# harnesses read as prose.
+# network and touches no path pi-sandbox can confine. What protects the account is
+# `cf`'s own confirmation prompt on destructive commands plus the skill's "Before any
+# write" section, which both harnesses read as prose.
 
 SKILL_KEYS_PI_IGNORES = ("allowed-tools", "model", "effort")
 

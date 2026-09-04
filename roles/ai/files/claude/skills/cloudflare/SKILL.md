@@ -1,178 +1,141 @@
 ---
 name: cloudflare
 description: >-
-  Manage Cloudflare from the command line without an MCP server. Routes to the right binary for the
-  surface being touched: flarectl for zones, DNS and firewall, wrangler for the Workers platform
-  (Workers, Pages, R2, KV, D1), cloudflared for tunnels, cf-terraforming to export existing config
-  into OpenTofu, and the v4 REST API for anything the CLIs do not cover or when output has to be
-  machine-readable. Use when adding or editing DNS records, deploying or tailing a Worker, exposing a
-  local service through a tunnel, or auditing what a Cloudflare account currently holds.
+  Manage Cloudflare from the command line without an MCP server, using the two installed binaries:
+  `cf` for the account API surface (zones, DNS, firewall, rulesets, KV, R2, D1, Queues, Pages,
+  Workers metadata, Zero Trust) and `wrangler` for the Workers project loop (dev, deploy, tail,
+  secrets). Use when adding or editing DNS records, deploying or tailing a Worker, inspecting a
+  binding's stored data, or auditing what a Cloudflare account currently holds.
 effort: medium
 # Reads only. Every mutating command is deliberately absent so it still hits the
 # permission prompt, which is the same confirmation the "Before any write" section
-# below asks for. curl is absent for the same reason: the API's write verbs travel
-# on the same command as its reads, so no pattern here can tell them apart.
+# below asks for.
 allowed-tools:
-  - Bash(flarectl zone list*)
-  - Bash(flarectl zone info*)
-  - Bash(flarectl dns list*)
-  - Bash(flarectl firewall rules list*)
-  - Bash(flarectl user info*)
-  - Bash(flarectl ips*)
+  - Bash(cf auth list*)
+  - Bash(cf user tokens verify*)
+  - Bash(cf zones list*)
+  - Bash(cf zones get*)
+  - Bash(cf dns records list*)
+  - Bash(cf dns records get*)
+  - Bash(cf firewall access-rules list*)
+  - Bash(cf rulesets list*)
+  - Bash(cf kv namespaces list*)
+  - Bash(cf r2 buckets list*)
+  - Bash(cf d1 list*)
+  - Bash(cf queues list*)
+  - Bash(cf pages projects list*)
+  - Bash(cf workers scripts list*)
+  - Bash(cf zero-trust tunnels list*)
+  - Bash(cf schema*)
+  - Bash(cf agent-context*)
   - Bash(wrangler whoami*)
   - Bash(wrangler deployments list*)
-  - Bash(wrangler kv namespace list*)
-  - Bash(wrangler r2 bucket list*)
-  - Bash(wrangler d1 list*)
   - Bash(wrangler secret list*)
-  - Bash(cloudflared tunnel list*)
   - Bash(jq *)
   - Read
 ---
 
 # Cloudflare from the CLI
 
-No single Cloudflare binary covers the account, so the first decision is always which one owns the surface you are touching. Getting this wrong wastes a turn: `wrangler` has no DNS commands and `flarectl` has no Workers commands, and neither says so helpfully.
+Two binaries, and the split is about *where the state lives* rather than which product it belongs to.
 
-| Surface | Tool |
+| You are touching | Tool |
 |---|---|
-| Zones, DNS records, firewall, page rules, cache purge, LB | `flarectl` |
-| Workers, Pages, R2, KV, D1, Queues, secrets, live logs | `wrangler` |
-| Tunnels, exposing a local service, DNS-over-HTTPS proxy | `cloudflared` |
-| Exporting live config into OpenTofu / Terraform | `cf-terraforming`, then `tofu` |
-| Everything else, and any time you need JSON | v4 REST API via `curl` |
+| Anything that is a row in the Cloudflare account: zones, DNS, firewall, rulesets, KV namespaces, R2 buckets, D1 databases, Queues, Pages projects, Zero Trust, tokens | `cf` |
+| Anything that reads the project on disk: local dev server, deploying the Worker in cwd, live logs, a Worker's secrets and bindings | `wrangler` |
 
-The formula is `cloudflare-wrangler` but the binary it installs is `wrangler`. All five are installed by the `apps` role.
+The overlap is real and not a problem: `cf d1 list` and `wrangler d1 list` both work. Reach for `cf` when you want the account's answer as JSON, and `wrangler` when the command only makes sense inside a Workers project. The formula is `cloudflare-wrangler` but the binary is `wrangler`; `cf` is a bun global install (`bun add -g cf`). Both are wired up by the `apps` role.
+
+`cf` is a Cloudflare-published technical preview that is being built to *become* wrangler, so expect its commands to move. Check `cf --help` before trusting a command shape from memory, including the ones below.
 
 ## Auth
 
-The dotfiles `shell` role exports the credentials from vault into every fish session, so nothing here needs a login step:
+The `shell` role exports the credentials from vault into every fish session, so there is no login step for either tool:
 
-- `CLOUDFLARE_API_TOKEN` is read by `wrangler`, `cf-terraforming` and the OpenTofu Cloudflare provider.
-- `CF_API_TOKEN` is the same token under the name `flarectl` reads. `flarectl` supports no config file at all, so the environment is the only channel.
-- `CLOUDFLARE_ACCOUNT_ID` is what `wrangler` needs once a token can see more than one account.
+- `CLOUDFLARE_API_TOKEN` is read by both. `cf` resolves it *before* its own OAuth profiles, so `cf auth login` and named profiles never come into play here.
+- `CLOUDFLARE_ACCOUNT_ID` is what both need once a token can see more than one account.
 
-Verify the token and see exactly what it is allowed to do before assuming a failure is your command's fault:
+Check what the token is actually allowed to do before assuming a failure is your command's fault:
 
 ```bash
-curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-  https://api.cloudflare.com/client/v4/user/tokens/verify | jq
+cf user tokens verify
 ```
 
-A `403` with `Authentication error` on one subcommand while others work is almost always a missing token scope, not a bad token. Say so rather than retrying the same call.
+A `403` on one subcommand while others work is almost always a missing token scope, not a bad token. Say so rather than retrying the same call.
 
-**Never suggest the Global API Key.** It authenticates the entire account including billing and cannot be scoped or narrowed. If a task genuinely needs permission the current token lacks, ask the user to mint a scoped token for it; do not route around the token.
-
-`cloudflared` is the exception: it holds its own certificate at `~/.cloudflared/cert.pem`, written by `cloudflared tunnel login` in a browser. That is a one-time step the user runs themselves.
+**Never suggest the Global API Key.** It authenticates the entire account including billing and cannot be scoped. If a task genuinely needs permission the current token lacks, ask the user to mint a scoped token for it; do not route around the token.
 
 ## Before any write
 
-Cloudflare writes hit live DNS, so the blast radius of a mistake is "the domain is down" and the feedback loop is a TTL. None of these CLIs has a dry-run or an undo.
+Cloudflare writes hit live DNS, so the blast radius of a mistake is "the domain is down" and the feedback loop is a TTL. `cf` gives you two safety rails the older CLIs never had, so use both:
 
-1. **List before you write.** Record IDs are opaque, are not stable across a delete and recreate, and are the only handle `dns update` and `dns delete` accept. Never carry an ID over from an earlier session.
-2. **Show the user the exact command and get confirmation** for anything that deletes, changes an existing record's content, purges cache, or edits firewall rules. Creating a new record on a name that does not exist yet is the one low-risk write.
-3. **Never guess a zone or a record name.** Resolve the zone with `flarectl zone list` and ask if more than one plausibly matches.
-4. **State the proxy mode you are setting.** `--proxy` (orange cloud) versus DNS-only (grey cloud) decides whether traffic passes through Cloudflare, which changes the visible IP and the TLS terminator. Flipping it on an existing record is a user-visible change even though the record content is untouched.
+1. **`--dry-run` first.** It validates the call and shows what would happen without executing. Run it on every mutating command and show the user the output.
+2. **Never pass `-f` / `--force`.** Destructive `cf` commands prompt for confirmation on their own, and `--force` exists to skip that in CI. Letting the prompt reach the user is the point.
+3. **List before you write.** Record IDs are opaque, are not stable across a delete and recreate, and are the only handle `dns records edit` and `dns records delete` accept. Never carry an ID over from an earlier session.
+4. **Never guess a zone.** `-z` takes a zone ID *or* a domain name, so there is no reason to resolve one by hand, but if more than one zone plausibly matches what the user said, ask.
+5. **State the proxy mode you are setting.** Proxied (orange cloud) versus DNS-only (grey cloud) decides whether traffic passes through Cloudflare, which changes the visible IP and the TLS terminator. Flipping it on an existing record is a user-visible change even though the record content is untouched.
 
-## flarectl: zones, DNS, firewall
+## cf: the account
+
+Every command takes `-z <zone-id-or-domain>` where a zone is relevant, and **all output is JSON on stdout** with status messages on stderr, so piping into `jq` always works.
 
 ```bash
-flarectl zone list
-flarectl zone info --zone example.com
-flarectl dns list --zone example.com
+cf zones list | jq -r '.[] | "\(.name)\t\(.id)"'
+cf zones get -z example.com
+cf dns records list -z example.com | jq -r '.[] | "\(.type)\t\(.name)\t\(.content)\t\(.id)"'
+cf dns records list -z example.com --name-contains api
 ```
 
 ```bash
-# create (low risk on a fresh name)
-flarectl dns create --zone example.com --name www --type A --content 203.0.113.10 --proxy
-flarectl dns create --zone example.com --name @ --type MX --content mail.example.com --priority 10
-
-# update and delete address the record by --id, taken from `dns list` in this session
-flarectl dns update --zone example.com --id <record-id> --content 203.0.113.11
-flarectl dns delete --zone example.com --id <record-id>
+# writes: dry-run first, then the same command without it, and let cf prompt
+cf dns records create -z example.com --dry-run --type A --name www --content 203.0.113.10
+cf dns records edit -z example.com <dns-record-id> --content 203.0.113.11
+cf dns records delete -z example.com <dns-record-id>
 ```
 
 ```bash
-flarectl firewall rules list --zone example.com
-flarectl zone purge --zone example.com --everything   # account-visible, confirm first
-flarectl user info
-flarectl ips                                          # Cloudflare's own edge ranges
+cf firewall access-rules list -z example.com
+cf rulesets list -z example.com
+cf kv namespaces list
+cf r2 buckets list
+cf d1 list
+cf queues list
+cf pages projects list
+cf workers scripts list
+cf zero-trust tunnels list
 ```
 
-`flarectl` prints human-readable tables and has no global JSON flag, so do not try to pipe it into `jq`. When a task needs structured output, or needs a resource `flarectl` never exposed, go to the REST API instead of parsing the table. `flarectl` tracks the API loosely and is the least complete of these tools.
+List endpoints paginate. A read that silently stops at the first page and gets reported as the full picture is the most common way an audit here goes wrong, so pass `--per-page` and keep going while a page comes back full.
 
-## wrangler: the Workers platform
+Two commands worth knowing when a command shape is unclear: `cf schema <command>` prints the API schema behind it, and `cf agent-context [product]` prints Cloudflare's own context for a product. Prefer either over guessing flags.
+
+## wrangler: the Workers project
 
 ```bash
 wrangler whoami
-wrangler dev                        # local dev server
-wrangler deploy                     # deploy from wrangler.toml in cwd
+wrangler dev                        # local dev server; press `e` for the Local Explorer
+wrangler deploy                     # deploys the project in cwd
 wrangler tail <worker-name>         # live request logs
 wrangler deployments list
 wrangler rollback                   # previous deployment, confirm first
-```
-
-```bash
-wrangler kv namespace list
-wrangler r2 bucket list
-wrangler d1 list
-wrangler d1 execute <db> --command "select 1"        # add --remote to hit production
 wrangler secret list --name <worker>
 wrangler pages deploy ./dist --project-name <project>
+wrangler d1 execute <db> --command "select 1"        # add --remote to hit production
 ```
 
-Two traps worth naming. `wrangler d1 execute` runs against the **local** simulated database unless you pass `--remote`, so a query that "returns nothing" is usually pointed at the wrong place. And `wrangler deploy` reads `wrangler.toml` from the current directory, so it is only meaningful inside a Workers project; run it anywhere else and it fails on a missing config rather than doing nothing.
+Two traps worth naming. `wrangler d1 execute` runs against the **local** simulated database unless you pass `--remote`, so a query that "returns nothing" is usually pointed at the wrong place. And `wrangler deploy` reads `wrangler.jsonc` (or `wrangler.toml`) from the current directory, so it is only meaningful inside a Workers project; run it anywhere else and it fails on missing config rather than doing nothing.
 
-## cloudflared: tunnels
+The Local Explorer in `wrangler dev` is the fastest way to see what a binding actually holds locally, so reach for it before writing a script to introspect `.wrangler/state`.
 
-This is the tool people reach for expecting general Cloudflare management. It does tunnels and nothing else.
+## Not installed
 
-```bash
-cloudflared tunnel list
-cloudflared tunnel create <name>
-cloudflared tunnel route dns <name> app.example.com   # writes a CNAME into the zone
-cloudflared tunnel run <name>
-cloudflared tunnel delete <name>                      # confirm first
-```
+Deliberately absent, so do not reach for them or suggest they should already be there:
 
-`tunnel route dns` is a DNS write dressed up as a tunnel command, so it falls under the confirmation rule above.
-
-## cf-terraforming: live config into code
-
-Use this when the user wants Cloudflare managed declaratively rather than by imperative CLI calls, or wants a reviewable diff before a change lands.
-
-```bash
-# cf-terraforming takes a zone ID, not a zone name; flarectl prints tables, so get it from the API
-ZONE_ID=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-  "https://api.cloudflare.com/client/v4/zones?name=example.com" | jq -r '.result[0].id')
-
-cf-terraforming generate --resource-type cloudflare_record --zone "$ZONE_ID"
-cf-terraforming import   --resource-type cloudflare_record --zone "$ZONE_ID"
-```
-
-`generate` writes the HCL for what exists; `import` writes the state-import commands that bind that HCL to the real resources. You need both, in that order, or the first `tofu plan` proposes creating everything you already have. Run `tofu plan` and show it to the user; never `tofu apply` on their behalf.
-
-## REST API: the complete surface
-
-Everything is here, including the resources the CLIs skip. This is the right tool for reads that feed into other work.
-
-```bash
-cf() { curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-         -H "Content-Type: application/json" "https://api.cloudflare.com/client/v4/$1"; }
-
-cf zones | jq -r '.result[] | "\(.name)\t\(.id)"'
-cf "zones/$ZONE_ID/dns_records?per_page=100" | jq -r '.result[] | "\(.type)\t\(.name)\t\(.content)\t\(.id)"'
-cf "zones/$ZONE_ID/settings/ssl" | jq '.result.value'
-```
-
-Responses always carry `success`, `errors` and `result`. Check `success` rather than the HTTP status: the API returns `200` with `"success": false` for several classes of validation failure, so a naive `curl -f` reports a write as having worked when it did not.
-
-List endpoints paginate at 20 by default. A read that silently stops at 20 records and gets reported as the full picture is the most common way an audit here goes wrong, so pass `per_page` and check `result_info.total_count`.
+- **`cloudflared`**, the tunnel daemon. `cf zero-trust tunnels list` manages tunnel *records*, but actually carrying traffic needs the daemon. If the user wants a tunnel running, that is `brew install cloudflared` plus a one-time `cloudflared tunnel login`, and it is their call to make.
+- **`cf-terraforming`** and OpenTofu, for exporting live config into IaC. Say so if a task wants Cloudflare managed declaratively; do not improvise an export.
 
 ## Reference
 
-- [flarectl README](https://github.com/cloudflare/cloudflare-go/blob/master/cmd/flarectl/README.md)
+- [cf on npm](https://www.npmjs.com/package/cf) and the [announcement](https://blog.cloudflare.com/cf-cli-local-explorer/)
 - [wrangler commands](https://developers.cloudflare.com/workers/wrangler/commands/)
-- [cloudflared tunnels](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
-- [cf-terraforming](https://github.com/cloudflare/cf-terraforming)
 - [API v4](https://developers.cloudflare.com/api/)

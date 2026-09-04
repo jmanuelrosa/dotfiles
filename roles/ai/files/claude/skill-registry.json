@@ -933,7 +933,7 @@
         "deployment",
         "global"
       ],
-      "note": "Locally authored; drives flarectl/wrangler/cloudflared/cf-terraforming instead of an MCP server"
+      "note": "Locally authored; drives cf and wrangler instead of an MCP server"
     },
     {
       "name": "product-lead",
