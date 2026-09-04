@@ -12,6 +12,7 @@ effort: medium
 # below asks for.
 allowed-tools:
   - Bash(cf auth list*)
+  - Bash(cf auth whoami*)
   - Bash(cf user tokens verify*)
   - Bash(cf zones list*)
   - Bash(cf zones get*)
@@ -50,20 +51,33 @@ The overlap is real and not a problem: `cf d1 list` and `wrangler d1 list` both 
 
 ## Auth
 
-The `shell` role exports the credentials from vault into every fish session, so there is no login step for either tool:
+Nothing is exported into the shell.
+This machine works across several Cloudflare accounts, so each tool holds its own credentials and the account in play is a property of where you are, not of the environment.
 
-- `CLOUDFLARE_API_TOKEN` is read by both. `cf` resolves it *before* its own OAuth profiles, so `cf auth login` and named profiles never come into play here.
-- `CLOUDFLARE_ACCOUNT_ID` is what both need once a token can see more than one account.
-
-Check what the token is actually allowed to do before assuming a failure is your command's fault:
+`cf` resolves credentials in one order: `CLOUDFLARE_API_TOKEN` first, then the profile named by `--profile`, then the profile bound to the nearest parent directory, then `default`.
+That order is why the env var is absent rather than just unused: while it is set, `cf auth login` refuses to run and every `--profile` is ignored, so one token would quietly outrank the account asked for.
 
 ```bash
-cf user tokens verify
+cf auth list                                     # profiles, and which is bound here
+cf auth whoami                                   # account behind the current credentials
+cf auth create <name>                            # browser OAuth, stored under that name
+cf auth activate <name> ~/Developer/<project>    # bind a profile to a directory
+cf zones list --profile <name>                   # one-off override
 ```
 
-A `403` on one subcommand while others work is almost always a missing token scope, not a bad token. Say so rather than retrying the same call.
+Prefer a directory binding over `--profile` for project work, and `--profile` when one session crosses accounts.
+When a read comes back with plausible data for the wrong account, `cf auth whoami` is the first thing to check, ahead of the command itself.
 
-**Never suggest the Global API Key.** It authenticates the entire account including billing and cannot be scoped. If a task genuinely needs permission the current token lacks, ask the user to mint a scoped token for it; do not route around the token.
+`wrangler` has no profile system.
+It has the single OAuth session from `wrangler login`, and it takes the account from `account_id` in the project's `wrangler.jsonc`.
+Set that field in any project outside the default account rather than exporting `CLOUDFLARE_ACCOUNT_ID`, and switch accounts with `wrangler logout` then `wrangler login`.
+Both tools store this under `~/Library/Preferences/.wrangler`, which the agent sandbox denies reading, so credentials stay out of anything an agent can see.
+
+Scope failures read differently under OAuth.
+A `403` on one subcommand while others work still means missing permission rather than broken auth, but with a profile it is the account's role, not a token scope, so say which one you think it is instead of retrying the same call.
+`cf user tokens verify` only answers for an API token, so it applies to a CI token or a token handed over for one task, not to a profile.
+
+**Never suggest the Global API Key.** It authenticates the entire account including billing and cannot be scoped. If a task genuinely needs permission the current credentials lack, ask the user for a profile on an account that has it or a scoped token minted for it; do not route around the restriction.
 
 ## Before any write
 
