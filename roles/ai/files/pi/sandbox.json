@@ -53,6 +53,7 @@
       "~/.netrc",
       "~/.config/gcloud",
       "~/.terraform.d/credentials.tfrc.json",
+      "~/.pulumi/credentials.json",
       "~/Library/Preferences/.wrangler",
       "~/.ssh/**",
       "~/.gnupg/**",
