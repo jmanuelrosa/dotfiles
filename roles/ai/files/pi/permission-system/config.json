@@ -438,6 +438,14 @@
         "action": "deny",
         "reason": "denied by Claude Code policy: Read(~/.terraformrc)"
       },
+      "~/Library/Preferences/.wrangler/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/Library/Preferences/.wrangler/**)"
+      },
+      "~/.config/.wrangler/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.config/.wrangler/**)"
+      },
       "~/.docker/config.json": {
         "action": "deny",
         "reason": "denied by Claude Code policy: Read(~/.docker/config.json)"
@@ -608,6 +616,14 @@
       "~/.terraformrc": {
         "action": "deny",
         "reason": "denied by Claude Code policy: Edit(~/.terraformrc)"
+      },
+      "~/Library/Preferences/.wrangler/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/Library/Preferences/.wrangler/**)"
+      },
+      "~/.config/.wrangler/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.config/.wrangler/**)"
       },
       "~/.docker/config.json": {
         "action": "deny",

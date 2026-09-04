@@ -234,6 +234,7 @@ def test_global_set_holds_exactly_the_documented_membership(catalog, effective):
         "agent-writer",
         "setup-review",
         "setup-review-mechanics",
+        "cloudflare",
         "commit",
         "documentation-and-adrs",
         "domain-modeling",

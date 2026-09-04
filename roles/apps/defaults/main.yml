@@ -75,6 +75,18 @@ BREW_PACKAGES:
     - pgcli
     # Infrastructure
     - awscli
+    # Cloudflare comes as four separate binaries because no single one covers the
+    # account: flarectl does zones/DNS/firewall, wrangler does the Workers platform
+    # (Workers, Pages, R2, KV, D1), cloudflared does tunnels only, and cf-terraforming
+    # exports what already exists into OpenTofu config.
+    - flarectl
+    - cloudflare-wrangler
+    - cloudflared
+    - cf-terraforming
+    # Runs the config cf-terraforming emits. OpenTofu rather than terraform because
+    # terraform left its brew formula for hashicorp/tap under the BUSL relicense,
+    # and the Cloudflare provider is registry-compatible with both.
+    - opentofu
     - colima
     - dive
     - docker
