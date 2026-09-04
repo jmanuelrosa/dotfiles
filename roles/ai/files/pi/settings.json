@@ -39,6 +39,7 @@
     "npm:pi-cc-patch",
     "npm:pi-cursor-sdk",
     "npm:pi-sandbox",
+    "npm:@gotgenes/pi-permission-system@27.1.1",
     "npm:pi-ask-user",
     "npm:pi-mcp-adapter"
   ],

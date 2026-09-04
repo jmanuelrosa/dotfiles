@@ -1,0 +1,682 @@
+{
+  "debugLog": false,
+  "permissionReviewLog": true,
+  "yoloMode": false,
+  "shellTools": {},
+  "authorizerChain": [],
+  "piInfrastructureReadPaths": [
+    "/opt/homebrew/*/@earendil-works/pi-coding-agent/*",
+    "~/.pi/agent/*",
+    "~/.claude/*"
+  ],
+  "permission": {
+    "*": "allow",
+    "read": "allow",
+    "grep": "allow",
+    "find": "allow",
+    "ls": "allow",
+    "write": "allow",
+    "edit": "allow",
+    "bash": {
+      "*": "allow",
+      "find *": "allow",
+      "grep *": "allow",
+      "head *": "allow",
+      "ls *": "allow",
+      "make *": "allow",
+      "mkdir *": "allow",
+      "rg *": "allow",
+      "tail *": "allow",
+      "tree *": "allow",
+      "wc *": "allow",
+      "which *": "allow",
+      "xargs *": "allow",
+      "gh *": "allow",
+      "glab *": "allow",
+      "acli *": "allow",
+      "sentry *": "allow",
+      "bru-cli *": "allow",
+      "ntn *": "allow",
+      "aws *": "allow",
+      "gcloud *": "allow",
+      "gsutil *": "allow",
+      "bq *": "allow",
+      "bunx ctx7 *": "allow",
+      "npx -y ctx7 *": "allow",
+      "dd *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(dd *)"
+      },
+      "diskutil apfs changePassphrase": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil apfs changePassphrase)"
+      },
+      "diskutil apfs decryptVolume": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil apfs decryptVolume)"
+      },
+      "diskutil apfs deleteContainer": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil apfs deleteContainer)"
+      },
+      "diskutil apfs deleteSnapshot": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil apfs deleteSnapshot)"
+      },
+      "diskutil apfs deleteVolume": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil apfs deleteVolume)"
+      },
+      "diskutil apfs deleteVolumeGroup": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil apfs deleteVolumeGroup)"
+      },
+      "diskutil apfs eraseVolume": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil apfs eraseVolume)"
+      },
+      "diskutil appleRAID": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil appleRAID)"
+      },
+      "diskutil coreStorage": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil coreStorage)"
+      },
+      "diskutil cs": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil cs)"
+      },
+      "diskutil disableJournal": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil disableJournal)"
+      },
+      "diskutil disableOwnership": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil disableOwnership)"
+      },
+      "diskutil eraseDisk": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil eraseDisk)"
+      },
+      "diskutil eraseVolume": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil eraseVolume)"
+      },
+      "diskutil partitionDisk": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil partitionDisk)"
+      },
+      "diskutil randomDisk": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil randomDisk)"
+      },
+      "diskutil reformat": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil reformat)"
+      },
+      "diskutil resetFusion": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil resetFusion)"
+      },
+      "diskutil zeroDisk": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(diskutil zeroDisk)"
+      },
+      "gh pr merge *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(gh pr merge *)"
+      },
+      "git branch -D *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git branch -D *)"
+      },
+      "git checkout .": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git checkout .)"
+      },
+      "git checkout -- *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git checkout -- *)"
+      },
+      "git clean -f *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git clean -f *)"
+      },
+      "git clean -fd *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git clean -fd *)"
+      },
+      "git filter-branch *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git filter-branch *)"
+      },
+      "git filter-repo *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git filter-repo *)"
+      },
+      "git push --delete *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git push --delete *)"
+      },
+      "git push --force *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git push --force *)"
+      },
+      "git push --force-with-lease *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git push --force-with-lease *)"
+      },
+      "git push -f *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git push -f *)"
+      },
+      "git push origin main": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git push origin main)"
+      },
+      "git push origin master": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git push origin master)"
+      },
+      "git reflog expire *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git reflog expire *)"
+      },
+      "git reset --hard *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git reset --hard *)"
+      },
+      "git restore .": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git restore .)"
+      },
+      "git restore --worktree *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git restore --worktree *)"
+      },
+      "git stash clear": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git stash clear)"
+      },
+      "git stash drop *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git stash drop *)"
+      },
+      "git switch --discard-changes *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git switch --discard-changes *)"
+      },
+      "git update-ref -d *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git update-ref -d *)"
+      },
+      "git worktree remove --force *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git worktree remove --force *)"
+      },
+      "git worktree remove -f *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git worktree remove -f *)"
+      },
+      "mkfs *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(mkfs *)"
+      },
+      "rm -rf *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(rm -rf *)"
+      },
+      "shred *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(shred *)"
+      },
+      "sudo *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(sudo *)"
+      },
+      "find / *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(find / *)"
+      },
+      "find ~ *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(find ~ *)"
+      },
+      "find ..": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(find ..)"
+      },
+      "find .. *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(find .. *)"
+      },
+      "lazygit": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(lazygit)"
+      },
+      "lazygit *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(lazygit *)"
+      },
+      "btop": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(btop)"
+      },
+      "btop *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(btop *)"
+      },
+      "dive": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(dive)"
+      },
+      "dive *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(dive *)"
+      },
+      "nnn": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(nnn)"
+      },
+      "nnn *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(nnn *)"
+      },
+      "pgcli": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(pgcli)"
+      },
+      "pgcli *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(pgcli *)"
+      },
+      "lazydocker": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(lazydocker)"
+      },
+      "lazydocker *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(lazydocker *)"
+      }
+    },
+    "path_read": {
+      "*": "allow",
+      "~/.ssh/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.ssh/**)"
+      },
+      "~/.gnupg/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.gnupg/**)"
+      },
+      "~/.npmrc": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.npmrc)"
+      },
+      "~/.config/npm/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.config/npm/**)"
+      },
+      "~/.pnpmrc": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.pnpmrc)"
+      },
+      "~/.yarnrc": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.yarnrc)"
+      },
+      "~/.yarnrc.yml": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.yarnrc.yml)"
+      },
+      "*/.env": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/.env)"
+      },
+      "*/.env.local": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/.env.local)"
+      },
+      "*/.env.*.local": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/.env.*.local)"
+      },
+      "*/.env.staging": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/.env.staging)"
+      },
+      "*/.env.production": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/.env.production)"
+      },
+      "*/.env.test": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/.env.test)"
+      },
+      "*/.env.prod": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/.env.prod)"
+      },
+      "*/.env.dev": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/.env.dev)"
+      },
+      "*/.env.development": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/.env.development)"
+      },
+      "*/*.pem": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/*.pem)"
+      },
+      "*/*.key": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/*.key)"
+      },
+      "*/*-key.json": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/*-key.json)"
+      },
+      "*/secrets/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/secrets/**)"
+      },
+      "*/*.p12": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/*.p12)"
+      },
+      "*/*.pfx": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/*.pfx)"
+      },
+      "*/*.jks": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/*.jks)"
+      },
+      "~/.netrc": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.netrc)"
+      },
+      "*/credentials/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/credentials/**)"
+      },
+      "*/credentials.json": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/credentials.json)"
+      },
+      "~/.git-credentials": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.git-credentials)"
+      },
+      "~/.gitconfig": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.gitconfig)"
+      },
+      "~/.aws/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.aws/**)"
+      },
+      "~/.config/gcloud/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.config/gcloud/**)"
+      },
+      "~/.config/terraform/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.config/terraform/**)"
+      },
+      "~/.terraform.d/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.terraform.d/**)"
+      },
+      "*/.terraform.tfstate*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/.terraform.tfstate*)"
+      },
+      "~/.terraformrc": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.terraformrc)"
+      },
+      "~/.docker/config.json": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.docker/config.json)"
+      },
+      "~/.config/Code/User/globalStorage/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.config/Code/User/globalStorage/**)"
+      },
+      "~/.zsh_history": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.zsh_history)"
+      },
+      "*/service-account*.json": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(**/service-account*.json)"
+      }
+    },
+    "path_write": {
+      "*": "allow",
+      "~/.ssh/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.ssh/**)"
+      },
+      "~/.gnupg/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.gnupg/**)"
+      },
+      "~/.npmrc": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.npmrc)"
+      },
+      "~/.config/npm/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.config/npm/**)"
+      },
+      "~/.pnpmrc": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.pnpmrc)"
+      },
+      "~/.yarnrc": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.yarnrc)"
+      },
+      "~/.yarnrc.yml": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.yarnrc.yml)"
+      },
+      "*/package-lock.json": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/package-lock.json)"
+      },
+      "*/pnpm-lock.yaml": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/pnpm-lock.yaml)"
+      },
+      "*/yarn.lock": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/yarn.lock)"
+      },
+      "*/.env": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/.env)"
+      },
+      "*/.env.local": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/.env.local)"
+      },
+      "*/.env.*.local": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/.env.*.local)"
+      },
+      "*/.env.staging": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/.env.staging)"
+      },
+      "*/.env.production": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/.env.production)"
+      },
+      "*/.env.test": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/.env.test)"
+      },
+      "*/.env.prod": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/.env.prod)"
+      },
+      "*/.env.dev": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/.env.dev)"
+      },
+      "*/.env.development": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/.env.development)"
+      },
+      "*/*.pem": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/*.pem)"
+      },
+      "*/*.key": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/*.key)"
+      },
+      "*/*-key.json": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/*-key.json)"
+      },
+      "*/secrets/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/secrets/**)"
+      },
+      "*/*.p12": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/*.p12)"
+      },
+      "*/*.pfx": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/*.pfx)"
+      },
+      "*/*.jks": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/*.jks)"
+      },
+      "~/.netrc": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.netrc)"
+      },
+      "*/credentials/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/credentials/**)"
+      },
+      "*/credentials.json": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/credentials.json)"
+      },
+      "~/.git-credentials": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.git-credentials)"
+      },
+      "~/.gitconfig": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.gitconfig)"
+      },
+      "~/.aws/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.aws/**)"
+      },
+      "~/.config/gcloud/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.config/gcloud/**)"
+      },
+      "~/.config/acli/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.config/acli/**)"
+      },
+      "~/.config/terraform/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.config/terraform/**)"
+      },
+      "~/.terraform.d/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.terraform.d/**)"
+      },
+      "*/.terraform.tfstate*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/.terraform.tfstate*)"
+      },
+      "~/.terraformrc": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.terraformrc)"
+      },
+      "~/.docker/config.json": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.docker/config.json)"
+      },
+      "~/.config/Code/User/globalStorage/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.config/Code/User/globalStorage/**)"
+      },
+      "~/.zsh_history": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.zsh_history)"
+      },
+      "*/service-account*.json": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(**/service-account*.json)"
+      },
+      "*/.env.sample": "allow",
+      "*/.env.example": "allow"
+    },
+    "external_directory": "ask",
+    "mcp": {
+      "*": "allow",
+      "notion*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: mcp__notion"
+      },
+      "Notion*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: mcp__Notion"
+      },
+      "supabase*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: mcp__supabase"
+      },
+      "Supabase*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: mcp__Supabase"
+      }
+    },
+    "Workflow": {
+      "*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Workflow"
+      }
+    },
+    "Artifact": {
+      "*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Artifact"
+      }
+    },
+    "ScheduleWakeup": {
+      "*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: ScheduleWakeup"
+      }
+    },
+    "ReportFindings": {
+      "*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: ReportFindings"
+      }
+    },
+    "ShareOnboardingGuide": {
+      "*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: ShareOnboardingGuide"
+      }
+    }
+  }
+}
