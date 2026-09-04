@@ -20,8 +20,9 @@ import { stripTerminalSequences, Text, visibleWidth, type Component, type Editor
 const ELAPSED_AFTER_MS = 5_000;
 const CLAUDE_PROMPT = "❯ ";
 const CLAUDE_PROMPT_PADDING = visibleWidth(CLAUDE_PROMPT);
+const CLAUDE_BULLET = "⏺ ";
 const CLAUDE_WORKING_FRAMES = ["✻", "✽", "✶", "✳", "✢", "✳", "✶", "✽"];
-const THINKING_DURATION_ENTRY = "dotfiles-thinking-duration";
+const THINKING_LABEL = "✻ Thinking…";
 const SOURCE_PREVIEW_LINES = 10;
 const RESULTS_PREVIEW_LINES = 10;
 const SHELL_PREVIEW_LINES = 20;
@@ -39,7 +40,9 @@ type RunningActivity = Activity & {
 };
 
 function claudeMessage(markdown: string, context: MarkdownTransformContext): string {
-  return context.messageType === "user" ? `${CLAUDE_PROMPT}${markdown}` : markdown;
+  if (context.messageType === "user") return `${CLAUDE_PROMPT}${markdown}`;
+  if (context.messageType === "assistant") return `${CLAUDE_BULLET}${markdown}`;
+  return markdown;
 }
 
 function decorateEditorLines(lines: string[], prompt: string): string[] {
@@ -155,13 +158,6 @@ class HierarchyComponent implements Component {
 type ToolResult = {
   content: Array<{ type: string; text?: string }>;
   details?: unknown;
-};
-
-type ThinkingDurationEntry = {
-  durationMs: number;
-  timestamp: number;
-  contentIndex: number;
-  responseId?: string;
 };
 
 function resultText(result: ToolResult): string {
@@ -295,9 +291,9 @@ function hierarchicalDefinition(definition: ToolDefinition<any, any, any>, cwd: 
     renderShell: "self",
     renderCall(args, theme, context) {
       const previous = context.lastComponent instanceof HierarchyComponent ? context.lastComponent : undefined;
-      const child = new Text(theme.fg("muted", toolCallLabel(definition.name, args as Record<string, unknown>, cwd)), 0, 0);
+      const child = new Text(theme.fg("toolTitle", toolCallLabel(definition.name, args as Record<string, unknown>, cwd)), 0, 0);
       const component = previous ?? new HierarchyComponent(child, "", "");
-      component.update(child, `${theme.fg("accent", "●")} `, "  ");
+      component.update(child, `${theme.fg("accent", "⏺")} `, "  ");
       return component;
     },
     renderResult(result, options, theme, context) {
@@ -312,7 +308,7 @@ function hierarchicalDefinition(definition: ToolDefinition<any, any, any>, cwd: 
         cwd,
       );
       const component = previous ?? new HierarchyComponent(child, "", "");
-      component.update(child, theme.fg("dim", "  └ "), "    ");
+      component.update(child, theme.fg("dim", "  ⎿  "), "     ");
       return component;
     },
   };
@@ -335,13 +331,7 @@ function registerHierarchicalTools(pi: ExtensionAPI, cwd: string): void {
 export default function activity(pi: ExtensionAPI): void {
   let running: RunningActivity[] = [];
   let started = new Map<string, number>();
-  let thinkingStartedAt = new Map<number, number>();
   let timer: NodeJS.Timeout | undefined;
-
-  pi.registerEntryRenderer<ThinkingDurationEntry>(THINKING_DURATION_ENTRY, (entry, _options, theme) => {
-    const seconds = Math.max(1, Math.round((entry.data?.durationMs ?? 0) / 1_000));
-    return new Text(theme.fg("dim", `Thought for ${seconds}s`), 0, 0);
-  });
 
   const clearTimer = () => {
     if (!timer) return;
@@ -379,39 +369,14 @@ export default function activity(pi: ExtensionAPI): void {
       frames: CLAUDE_WORKING_FRAMES.map((frame) => ctx.ui.theme.fg("accent", frame)),
     });
     ctx.ui.setWorkingVisible(true);
-    ctx.ui.setHiddenThinkingLabel("");
+    ctx.ui.setHiddenThinkingLabel(THINKING_LABEL);
   });
 
   pi.on("before_agent_start", (_event, ctx) => {
     running = [];
     started = new Map();
-    thinkingStartedAt = new Map();
     clearTimer();
     ctx.ui.setWorkingMessage();
-  });
-
-  pi.on("message_update", (event) => {
-    const streamEvent = event.assistantMessageEvent;
-    if (streamEvent.type === "start") {
-      thinkingStartedAt = new Map();
-      return;
-    }
-    if (streamEvent.type === "thinking_start") {
-      thinkingStartedAt.set(streamEvent.contentIndex, Date.now());
-      return;
-    }
-    if (streamEvent.type !== "thinking_end") return;
-    const startedAt = thinkingStartedAt.get(streamEvent.contentIndex);
-    if (startedAt === undefined) return;
-    thinkingStartedAt.delete(streamEvent.contentIndex);
-    const timestamp = Date.now();
-    const responseId = (streamEvent.partial as { responseId?: string }).responseId;
-    pi.appendEntry<ThinkingDurationEntry>(THINKING_DURATION_ENTRY, {
-      durationMs: timestamp - startedAt,
-      timestamp,
-      contentIndex: streamEvent.contentIndex,
-      ...(responseId ? { responseId } : {}),
-    });
   });
 
   pi.on("tool_execution_start", (event, ctx) => {
@@ -424,7 +389,6 @@ export default function activity(pi: ExtensionAPI): void {
 
   pi.on("session_shutdown", (_event, ctx) => {
     clearTimer();
-    thinkingStartedAt = new Map();
     ctx.ui.setEditorComponent(undefined);
     ctx.ui.setWorkingIndicator();
     ctx.ui.setWorkingMessage();

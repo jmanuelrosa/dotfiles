@@ -7,7 +7,7 @@
 
 ## Summary
 
-Pi will keep the current Solarized conversation styling while replacing always-expanded built-in tool output with Claude-like semantic rows and bounded previews. The default view will show enough source, diff, command, and search output to remain useful; `Ctrl+O` will reveal the complete available detail. Completed thinking blocks will produce durable `Thought for Ns` rows, while native thinking content remains available through `Ctrl+T`.
+Pi will keep the current Solarized conversation styling while replacing always-expanded built-in tool output with Claude-like semantic rows and bounded previews. The default view will show enough source, diff, command, and search output to remain useful; `Ctrl+O` will reveal the complete available detail. Native thinking stays hidden behind Pi's own inline `✻ Thinking…` label, which remains available through `Ctrl+T`. An earlier revision of this design instead produced a durable `Thought for Ns` row per completed thinking block; superseded in §4.
 
 ## Motivation
 
@@ -62,16 +62,16 @@ The tool renderer remains a deep module: its public behavior is the existing bui
 Add a tool-specific call formatter separate from the live `describeActivity()` formatter:
 
 ```text
-● Read(src/auth.ts)
-● Write(config/settings.json)
-● Update(roles/ai/tasks/main.yml)
-● Bash(make test)
-● Grep("token refresh", src)
-● Find(*.ts, roles/ai)
-● List(docs/design)
+⏺ Read(src/auth.ts)
+⏺ Write(config/settings.json)
+⏺ Update(roles/ai/tasks/main.yml)
+⏺ Bash(make test)
+⏺ Grep("token refresh", src)
+⏺ Find(*.ts, roles/ai)
+⏺ List(docs/design)
 ```
 
-Long commands and arguments wrap within the supplied component width. Continuation lines align after the `● ` prefix. The call row does not include full write content or an edit diff; those belong to the result child.
+Long commands and arguments wrap within the supplied component width. Continuation lines align after the `⏺ ` prefix. The call row does not include full write content or an edit diff; those belong to the result child.
 
 ### 2. Balanced result previews
 
@@ -87,8 +87,8 @@ Replace forced native expansion with a result component that owns a summary, exc
 The component renders:
 
 ```text
-● Read(src/auth.ts)
-  └ Read 42 lines
+⏺ Read(src/auth.ts)
+  ⎿  Read 42 lines
     import { ... }
     ...
     +32 lines (ctrl+o to expand)
@@ -112,7 +112,9 @@ When expanded, the same component removes the preview limit and omission hint. I
 
 Partial results reuse the same component and update in place through `lastComponent`. Failed results render the semantic failure summary followed by the complete returned error text, regardless of expansion state.
 
-### 4. Thinking-duration entries
+### 4. Thinking-duration entries (superseded)
+
+**Superseded by `docs/plans/2026-09-04-following-the-idea-to-cozy-feigenbaum.md`.** On a model that interleaves reasoning between every text block and tool call, a single turn appends ten to fifteen duration entries, and `interactive-mode.js:2920-2925` splices each one *before* the still-streaming assistant component - so every entry for a turn renders as a clump ahead of the prose that produced it, not beside it. This is the answer to the open question below: sibling ordering does not interleave, it clumps. The design was replaced by restoring Pi's own inline hidden-thinking label (§5), which already renders once per run of thinking blocks in the correct position; the fix was to stop blanking it, not to build a parallel display. This section is kept for the record of what was tried and why it failed.
 
 Register an entry renderer with a repository-owned type such as `dotfiles-thinking-duration`:
 
@@ -137,13 +139,11 @@ Durations use rounded whole seconds with a minimum display of one second. A bloc
 
 Custom entries are excluded from model context and survive normal session reloads. Older entries may disappear when they fall before a compaction checkpoint, matching Pi's existing session-history behavior.
 
-### 5. Native thinking visibility
+### 5. Native thinking visibility (revised)
 
-Set `hideThinkingBlock` to true in Pi settings. During TUI startup, call `ctx.ui.setHiddenThinkingLabel("")` so the native static `Thinking...` label does not duplicate the custom duration row. Reset the label on extension shutdown.
+**Revised by `docs/plans/2026-09-04-following-the-idea-to-cozy-feigenbaum.md`.** `hideThinkingBlock` stays true, but the hidden label is now set to `"✻ Thinking…"` instead of the empty string, since §4's custom duration row no longer exists to duplicate. `assistant-message.js:85-115` already renders one hidden-thinking label per run of thinking blocks, inline between the surrounding text blocks - the correct position and granularity that §4's sibling entries could not reach. Reset the label on extension shutdown, unchanged from the original design.
 
-`Ctrl+T` continues to reveal native thinking content. The custom duration entry remains visible because it is session metadata, not the native thinking block. `Ctrl+O` continues to control tool and custom-entry expansion independently.
-
-This is intentionally an approximation. A custom entry is a sibling transcript component, so Pi may place it before the active assistant component rather than at an exact content offset inside that component. Exact inline placement would require replacing native assistant rendering or patching Pi internals and is rejected.
+`Ctrl+T` continues to reveal native thinking content, now in addition to the inline label rather than alongside a separate duration row.
 
 ### 6. Documentation and tests
 
@@ -153,12 +153,12 @@ The Pi harness documentation and AI role README describe bounded defaults, `Ctrl
 
 | State | Tool display | Thinking display |
 |---|---|---|
-| Tool running | Semantic `●` call and live working indicator | Unchanged |
-| Tool succeeds, default view | `└` summary plus bounded excerpt | Unchanged |
+| Tool running | Semantic `⏺` call and live working indicator | Unchanged |
+| Tool succeeds, default view | `⎿` summary plus bounded excerpt | Unchanged |
 | Tool succeeds, `Ctrl+O` | Complete available result detail | Unchanged |
 | Tool fails | Full returned error, even when collapsed | Unchanged |
 | Thinking streams | Native block hidden; existing working UI continues | No duration row until completion |
-| Thinking completes | Unchanged | Durable `Thought for Ns` row |
+| Thinking completes | Unchanged | Native inline `✻ Thinking…` label (see §4 supersession) |
 | User presses `Ctrl+T` | Unchanged | Native thinking content becomes visible in addition to the duration row |
 | Session reloads | Tool transcript renders from persisted calls/results | Duration entries render from session data |
 | Session compacts | Pi's normal retained tool history | Pre-checkpoint duration entries may be omitted |
