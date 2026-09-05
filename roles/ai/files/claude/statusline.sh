@@ -25,7 +25,7 @@ DEFAULT_CONTEXT_WINDOW = 200_000
 
 
 def _vocabulary():
-    """Every value this status line shares with pi's footer.ts, read from one file.
+    """Every value this status line shares with pi's statusline.ts, read from one file.
 
     The threshold, the gauge, the lockfile table and the glyphs are rendered by two
     harnesses in two languages, and a value typed into both is a value that drifts.

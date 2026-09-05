@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from dotkit.testing import PI_EXTENSIONS
 
-EXTENSION = PI_EXTENSIONS / "activity.ts"
+EXTENSION = PI_EXTENSIONS / "claude-ui.ts"
 PACKAGE = "@earendil-works/pi-coding-agent"
 DRIVEN = ("claudeMessage", "decorateEditorLines", "describeActivity")
 TEST_EXPORTS = ("claudeMessage", "decorateEditorLines")
@@ -39,13 +39,13 @@ def runner(tmp_path_factory):
     scope.mkdir(parents=True)
     (scope / "pi-coding-agent").symlink_to(package)
     (scope / "pi-tui").symlink_to(package / "node_modules" / "@earendil-works/pi-tui")
-    (home / "activity.ts").write_text(f"{EXTENSION.read_text()}\nexport {{ {', '.join(TEST_EXPORTS)} }};\n")
+    (home / "claude-ui.ts").write_text(f"{EXTENSION.read_text()}\nexport {{ {', '.join(TEST_EXPORTS)} }};\n")
     return home
 
 
 def run(runner, body):
     script = runner / "run.mjs"
-    script.write_text(f'import activity, {{ {", ".join(DRIVEN)} }} from "./activity.ts";\n{body}')
+    script.write_text(f'import activity, {{ {", ".join(DRIVEN)} }} from "./claude-ui.ts";\n{body}')
     result = subprocess.run(["node", str(script)], capture_output=True, text=True, check=False)
     assert result.returncode == 0, result.stderr
     return json.loads(result.stdout)

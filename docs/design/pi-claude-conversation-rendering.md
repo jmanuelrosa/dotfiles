@@ -11,7 +11,7 @@ Pi will keep the current Solarized conversation styling while replacing always-e
 
 ## Motivation
 
-The current hierarchy successfully aligns built-in tool calls on `●` and nests results under `└`, but it forces both native call and result renderers into `expanded: true` (`roles/ai/files/pi/extensions/activity.ts:219-256`). Large reads, writes, diffs, and command results therefore dominate the conversation and make assistant narration difficult to scan.
+The current hierarchy successfully aligns built-in tool calls on `●` and nests results under `└`, but it forces both native call and result renderers into `expanded: true` (`roles/ai/files/pi/extensions/claude-ui.ts:219-256`). Large reads, writes, diffs, and command results therefore dominate the conversation and make assistant narration difficult to scan.
 
 Claude Code uses a different information hierarchy: a semantic tool label, a short result summary, a bounded excerpt, and an explicit expansion path. Pi exposes only a boolean expanded state, but its public renderer API permits custom default previews and complete expanded output. Pi's own built-in-renderer example already uses bounded 15-, 20-, and 30-line excerpts (`/opt/homebrew/Cellar/pi-coding-agent/0.84.4/libexec/lib/node_modules/@earendil-works/pi-coding-agent/examples/extensions/built-in-tool-renderer.ts:32-249`).
 
@@ -31,7 +31,7 @@ Thinking has a separate limitation. Pi emits exact `thinking_start` and `thinkin
 
 ### Built-in tool rendering today
 
-`activity.ts` re-registers Pi's built-in tool definitions and wraps their native components with `HierarchyComponent` (`roles/ai/files/pi/extensions/activity.ts:114-147,219-272`). The wrapper provides the desired sibling and child indentation, but both renderer calls override Pi's state with `expanded: true`. The existing semantic summary helpers at `roles/ai/files/pi/extensions/activity.ts:149-217` are used only when a native renderer returns no lines.
+`claude-ui.ts` re-registers Pi's built-in tool definitions and wraps their native components with `HierarchyComponent` (`roles/ai/files/pi/extensions/claude-ui.ts:114-147,219-272`). The wrapper provides the desired sibling and child indentation, but both renderer calls override Pi's state with `expanded: true`. The existing semantic summary helpers at `roles/ai/files/pi/extensions/claude-ui.ts:149-217` are used only when a native renderer returns no lines.
 
 Pi permits a same-name tool registration to replace rendering while preserving the original execution definition. Renderer context includes component reuse, errors, partial state, and a boolean `expanded` value (`/opt/homebrew/Cellar/pi-coding-agent/0.84.4/libexec/lib/node_modules/@earendil-works/pi-coding-agent/dist/core/extensions/types.d.ts:307-377`). There is no third native display state, so the extension must define its own bounded default policy.
 
@@ -188,7 +188,7 @@ Tests assert external rendered behavior:
 - startup hides native thinking labels and shutdown restores the default;
 - no imports from `dist/modes`.
 
-The existing Node-driven extension fixture in `lib/python/tests/test_pi_activity.py:22-218` remains the primary test pattern.
+The existing Node-driven extension fixture in `lib/python/tests/test_pi_claude_ui.py:22-218` remains the primary test pattern.
 
 ## Open questions
 
@@ -197,9 +197,9 @@ The existing Node-driven extension fixture in `lib/python/tests/test_pi_activity
 
 ## Appendix - affected files
 
-- `roles/ai/files/pi/extensions/activity.ts`
+- `roles/ai/files/pi/extensions/claude-ui.ts`
 - `roles/ai/files/pi/settings.json`
-- `lib/python/tests/test_pi_activity.py`
+- `lib/python/tests/test_pi_claude_ui.py`
 - `docs/internals/pi-harness.md`
 - `roles/ai/README.md`
 - `docs/design/pi-claude-conversation-rendering.md`

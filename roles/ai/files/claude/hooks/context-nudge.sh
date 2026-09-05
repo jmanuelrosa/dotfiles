@@ -49,7 +49,7 @@ def state_dir():
 
 
 def handoff_pct():
-    """The wrap-up threshold, from the file statusline.sh and pi's footer.ts read too.
+    """The wrap-up threshold, from the file statusline.sh and pi's statusline.ts read too.
 
     One number in roles/ai/files/statusline.json rather than a literal in each of the
     three, since a nudge that fires at a different percentage from the gauge the user

@@ -1,5 +1,5 @@
 /**
- * footer.ts - pi's footer, rebuilt to say what Claude Code's statusline.sh says.
+ * statusline.ts - pi's footer, rebuilt to say what Claude Code's statusline.sh says.
  *
  * Pi's own footer already carries the numbers: cwd with branch, token totals, cache hit rate,
  * cost, context percentage, model, provider, thinking level. What it does not carry is any of
@@ -16,7 +16,7 @@
  * The cost of owning the footer is real and is paid here: the token totals, the cache hit rate
  * and the cost split below are this file's arithmetic over pi's session entries, and a pi release
  * that changes what an entry carries changes these numbers silently. lib/python/tests/
- * test_pi_footer.py is the guard on that, checking every field read here against pi's own `.d.ts`.
+ * test_pi_statusline.py is the guard on that, checking every field read here against pi's own `.d.ts`.
  *
  * Two things the built-in footer shows are deliberately not rebuilt, because the extension API
  * does not reach them: the `(auto)` auto-compaction marker and the `(sub)` subscription marker
