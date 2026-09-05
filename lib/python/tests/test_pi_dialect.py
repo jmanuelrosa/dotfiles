@@ -320,11 +320,20 @@ def test_the_repo_root_agents_md_is_the_claude_md_pi_would_otherwise_miss():
 # The set is frozen so the limitation cannot quietly widen. A skill added here is a
 # decision to make, not a line to update: either the restriction does not matter under
 # pi, or the surface it guards belongs in the sandbox config.
+#
+# `cloudflare` took the first branch. Its `allowed-tools` lists only read-only commands
+# and omits every mutating one, so what Claude gets from the key is a skipped prompt on
+# the safe calls, not a gate on the dangerous ones. Under pi the writes prompt like any
+# other command, which is the same outcome the key buys under Claude. The sandbox is not
+# the answer for the rest of that surface either: a Cloudflare write leaves over the
+# network and touches no path pi-sandbox can confine. What protects the account is
+# `cf`'s own confirmation prompt on destructive commands plus the skill's "Before any
+# write" section, which both harnesses read as prose.
 
 SKILL_KEYS_PI_IGNORES = ("allowed-tools", "model", "effort")
 
 CLAUDE_ONLY_SKILL_FRONTMATTER = {
-    "ac", "agent-writer", "apollo-client", "coderabbit", "commit",
+    "ac", "agent-writer", "apollo-client", "cloudflare", "coderabbit", "commit",
     "graphql-operations", "humanizer", "jira", "pr", "product-lead", "research",
     "setup-review",
     "0-refine-idea", "1-research", "2-write-prd", "3-red-team", "4-tech-shape",

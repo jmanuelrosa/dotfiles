@@ -75,6 +75,10 @@ BREW_PACKAGES:
     - pgcli
     # Infrastructure
     - awscli
+    # Cloudflare needs wrangler for the Workers platform (deploy, dev, tail) and
+    # `cf` for the rest of the account. `cf` is not a brew formula, so it is
+    # installed globally with bun in tasks/infrastructure.yml.
+    - cloudflare-wrangler
     - colima
     - dive
     - docker

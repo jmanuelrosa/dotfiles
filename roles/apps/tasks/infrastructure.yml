@@ -60,3 +60,11 @@
     dest: "{{ HOME }}/.config/dive/config.yaml"
     state: link
     force: true
+
+- name: Install the cf Cloudflare CLI
+  # Cloudflare publishes `cf` on npm only, so it can't ride along with the brew
+  # formulas. `creates` keeps this to a first-run install: `cf` is a technical
+  # preview, so moving to a newer one is a deliberate `bun add -g cf` by hand.
+  ansible.builtin.command:
+    cmd: bun add -g cf
+    creates: "{{ HOME }}/.bun/bin/cf"

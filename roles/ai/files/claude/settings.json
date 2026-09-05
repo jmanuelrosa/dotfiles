@@ -125,6 +125,10 @@
       "Edit(**/.terraform.tfstate*)",
       "Read(~/.terraformrc)",
       "Edit(~/.terraformrc)",
+      "Read(~/Library/Preferences/.wrangler/**)",
+      "Edit(~/Library/Preferences/.wrangler/**)",
+      "Read(~/.config/.wrangler/**)",
+      "Edit(~/.config/.wrangler/**)",
       "Read(~/.docker/config.json)",
       "Edit(~/.docker/config.json)",
       "Read(~/.config/Code/User/globalStorage/**)",
@@ -377,7 +381,8 @@
         "~/.npmrc",
         "~/.netrc",
         "~/.config/gcloud",
-        "~/.terraform.d/credentials.tfrc.json"
+        "~/.terraform.d/credentials.tfrc.json",
+        "~/Library/Preferences/.wrangler"
       ],
       "allowRead": [
         "~/.config/gh",

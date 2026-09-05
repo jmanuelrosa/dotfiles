@@ -926,6 +926,16 @@
       "note": "Locally authored"
     },
     {
+      "name": "cloudflare",
+      "groups": [
+        "engineering",
+        "devops",
+        "deployment",
+        "global"
+      ],
+      "note": "Locally authored; drives cf and wrangler instead of an MCP server"
+    },
+    {
       "name": "product-lead",
       "groups": [
         "product",
