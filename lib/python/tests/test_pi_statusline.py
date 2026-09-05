@@ -1,7 +1,7 @@
 """The footer extension owns pi's footer, so everything pi used to render there is now this
 file's arithmetic, and all of it fails quietly.
 
-Replacing the built-in footer is the trade footer.ts records at the top: one rendering of the
+Replacing the built-in footer is the trade statusline.ts records at the top: one rendering of the
 context percentage instead of two, paid for by re-deriving the token totals, the cache hit rate
 and the cost from pi's session entries. Every field that derivation reads belongs to pi, none of
 them is checked at load time because pi strips types rather than compiling them, and a renamed
@@ -29,7 +29,7 @@ from pathlib import Path
 import pytest
 from dotkit.testing import CLAUDE, PI_EXTENSIONS, REPO
 
-EXTENSION = PI_EXTENSIONS / "footer.ts"
+EXTENSION = PI_EXTENSIONS / "statusline.ts"
 STATUSLINE = CLAUDE / "statusline.sh"
 # The one file the glyphs, the gauge, the lockfile table and the handoff threshold come from,
 # for this harness and for Claude's. Nothing below asserts a literal that lives in it.
@@ -208,7 +208,7 @@ def test_the_threshold_is_read_rather_than_typed(source):
     asserts is that none of them has quietly gone back to typing it in."""
     assert "handoffPct" in source
     assert not re.search(r"HANDOFF_PCT\s*=\s*\d", source), (
-        "footer.ts hardcodes the handoff threshold again; it belongs to statusline.json"
+        "statusline.ts hardcodes the handoff threshold again; it belongs to statusline.json"
     )
     assert json.loads(VOCABULARY.read_text())["handoffPct"] > 0
 
@@ -220,7 +220,7 @@ def test_the_shared_glyphs_are_not_typed_into_the_extension(source):
     for name, mark in vocabulary["glyphs"].items():
         if name in ("rtk", "cursor", "warning"):  # guardrails.ts renders those three
             continue
-        assert mark not in source, f"{name} is hardcoded in footer.ts; it belongs to statusline.json"
+        assert mark not in source, f"{name} is hardcoded in statusline.ts; it belongs to statusline.json"
 
 
 def test_the_render_path_spawns_nothing(source):
@@ -249,7 +249,7 @@ def runner(package, tmp_path_factory):
     The layout mirrors the repo rather than being flat: the extension reads
     `../../statusline.json` relative to its own realpath, so a copy dropped in a bare temp
     directory would find no vocabulary and every glyph assertion below would pass against an
-    empty string. `<root>/pi/extensions/footer.ts` beside `<root>/statusline.json` is the same
+    empty string. `<root>/pi/extensions/statusline.ts` beside `<root>/statusline.json` is the same
     two levels the checkout has, and the vocabulary is linked rather than copied so a test can
     never assert against a stale duplicate of the file it is supposed to be pinning.
 
@@ -268,7 +268,7 @@ def runner(package, tmp_path_factory):
     (root / "statusline.json").symlink_to(VOCABULARY)
     extensions = root / "pi" / "extensions"
     extensions.mkdir(parents=True)
-    (extensions / "footer.ts").write_text(
+    (extensions / "statusline.ts").write_text(
         f"{EXTENSION.read_text()}\nexport {{ {', '.join(DRIVEN)} }};\n"
     )
     return extensions
@@ -276,7 +276,7 @@ def runner(package, tmp_path_factory):
 
 def run_in_node(runner, body, cwd=None):
     """`body` as an ES module beside the extension, with its stdout parsed as JSON."""
-    script = f'import {{ {", ".join(DRIVEN)} }} from "{runner}/footer.ts";\n{body}'
+    script = f'import {{ {", ".join(DRIVEN)} }} from "{runner}/statusline.ts";\n{body}'
     done = subprocess.run(
         [shutil.which("node"), "--input-type=module", "-e", script],
         capture_output=True,
@@ -295,7 +295,7 @@ def test_the_extension_survives_type_stripping(runner):
     trap this caught: `constructor(private readonly ctx: X)` is ordinary TypeScript, is what an
     editor suggests, and takes the whole extension down at startup with the rest of the footer.
     """
-    body = 'const mod = await import("./footer.ts"); process.stdout.write(JSON.stringify(typeof mod.default));'
+    body = 'const mod = await import("./statusline.ts"); process.stdout.write(JSON.stringify(typeof mod.default));'
     assert run_in_node(runner, body) == "function"
 
 

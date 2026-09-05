@@ -25,7 +25,7 @@ Context usage is also misleading immediately after a model switch.
 The same value can influence the pre-turn automatic compaction decision (`/opt/homebrew/Cellar/pi-coding-agent/0.84.3/libexec/lib/node_modules/@earendil-works/pi-coding-agent/dist/core/agent-session.js:864-869,1567-1651`).
 Switching to a smaller window may therefore trigger unnecessary compaction, while switching to a larger window may understate pressure.
 
-The local footer currently treats usage as unknown only after compaction (`roles/ai/files/pi/extensions/footer.ts:182-204`).
+The local footer currently treats usage as unknown only after compaction (`roles/ai/files/pi/extensions/statusline.ts:182-204`).
 The model-switch boundary needs the same honesty until the selected model has supplied relevant usage.
 
 ## Non-goals
@@ -199,7 +199,7 @@ For example: `Context projection changed: 2 images are unavailable to cursor/com
 
 ### 5. Honest footer usage
 
-Modify `roles/ai/files/pi/extensions/footer.ts` so `contextSegment()` checks whether usage belongs to the current model epoch before rendering a percentage.
+Modify `roles/ai/files/pi/extensions/statusline.ts` so `contextSegment()` checks whether usage belongs to the current model epoch before rendering a percentage.
 
 The freshness helper traverses the active branch and finds the latest of:
 
@@ -307,7 +307,7 @@ Cover:
 
 ### Footer tests
 
-Extend `lib/python/tests/test_pi_footer.py`, which already covers context thresholds and post-compaction unknown rendering (`lib/python/tests/test_pi_footer.py:309-349`).
+Extend `lib/python/tests/test_pi_statusline.py`, which already covers context thresholds and post-compaction unknown rendering (`lib/python/tests/test_pi_statusline.py:309-349`).
 Cover:
 
 - small-to-large switch,
@@ -354,8 +354,8 @@ Behavioral coverage must include:
 
 ### Local files to modify
 
-- `roles/ai/files/pi/extensions/footer.ts`
-- `lib/python/tests/test_pi_footer.py`
+- `roles/ai/files/pi/extensions/statusline.ts`
+- `lib/python/tests/test_pi_statusline.py`
 
 ### Local files read for integration and verification
 

@@ -71,7 +71,7 @@ Four things the derivation cannot carry are permanently absent under pi: per-com
 
 Extensions are type-stripped rather than compiled, so a constructor parameter property is a startup load failure rather than a type error.
 Handlers run in `readdir` order across a directory this repo does not exclusively own, which is why the rtk rewrite lives inside `guardrails.ts` rather than beside it.
-And `footer.ts` replaces pi's footer outright, so an extension that fails to render `getExtensionStatuses()` silently deletes every other extension's output.
+And `statusline.ts` replaces pi's footer outright, so an extension that fails to render `getExtensionStatuses()` silently deletes every other extension's output.
 
 Under `defaultProvider: cursor` the guardrails reach nothing unless `PI_CURSOR_EXPOSE_BUILTIN_TOOLS` is set, and a session where no gate ran is indistinguishable from one where every command passed.
 

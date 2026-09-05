@@ -81,7 +81,7 @@ const HOOKS_DIR = join(dirname(realpathSync(fileURLToPath(import.meta.url))), ".
 // The glyphs and wording these two segments share with Claude Code's statusline.sh, from the
 // file both harnesses read. Reached the same way HOOKS_DIR is, and for the same reason: this
 // file is loaded through a symlink, and only the realpath leads back into the checkout.
-// footer.ts carries the full reasoning, including why this is read rather than imported.
+// statusline.ts carries the full reasoning, including why this is read rather than imported.
 const VOCABULARY_PATH = join(
   dirname(realpathSync(fileURLToPath(import.meta.url))),
   "..",

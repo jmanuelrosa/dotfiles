@@ -339,6 +339,26 @@
   with_fileglob:
     - "{{ role_path }}/files/pi/themes/*.json"
 
+# Renaming an auto-discovered extension leaves the old role-owned link dangling. Remove only
+# links so a file written by hand under either superseded name remains the user's to keep.
+- name: Check for superseded pi extension links
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.pi/agent/extensions/{{ item }}"
+    follow: false
+  loop:
+    - activity.ts
+    - footer.ts
+  register: pi_superseded_extension_links
+
+- name: Remove superseded pi extension links
+  ansible.builtin.file:
+    path: "{{ HOME }}/.pi/agent/extensions/{{ item.item }}"
+    state: absent
+  loop: "{{ pi_superseded_extension_links.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.stat.islnk | default(false)
+
 # Globbed for the same reason as the claude hooks: every extension here is meant to be
 # active, and pi auto-discovers whatever lands in this directory, so there is no
 # settings.json entry to keep in step. guardrails.ts resolves its own symlink to find the

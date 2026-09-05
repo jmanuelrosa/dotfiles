@@ -45,7 +45,7 @@ const STATUS_KEY = "dotfiles-velocity";
 // Inlined rather than imported from a module beside it: pi loads this file through the symlink
 // the ai role puts in ~/.pi/agent/extensions, and jiti resolves a relative import from that
 // symlink rather than from its realpath, so a shared `.ts` two directories up is looked for
-// inside the pi agent directory and never found. footer.ts carries the full reasoning.
+// inside the pi agent directory and never found. statusline.ts carries the full reasoning.
 const VOCABULARY_PATH = join(
   dirname(realpathSync(fileURLToPath(import.meta.url))),
   "..",
