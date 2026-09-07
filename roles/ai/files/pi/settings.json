@@ -36,7 +36,7 @@
   "extensions": [],
   "followUpMode": "one-at-a-time",
   "hideThinkingBlock": true,
-  "lastChangelogVersion": "0.84.4",
+  "lastChangelogVersion": "0.85.0",
   "packages": [
     "git:github.com/earendil-works/pi-review",
     "npm:@tintinweb/pi-subagents",

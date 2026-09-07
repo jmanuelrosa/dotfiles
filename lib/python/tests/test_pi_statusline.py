@@ -364,17 +364,23 @@ GROK = {
 STALE_USAGE = {"tokens": 80_000, "contextWindow": 200_000, "percent": 40}
 
 
-def assistant_entry(model, stop="stop"):
-    return {
-        "type": "message",
-        "message": {
-            "role": "assistant",
-            "provider": model["provider"],
-            "api": model["api"],
-            "model": model["id"],
-            "stopReason": stop,
-        },
+def assistant_entry(model, stop="stop", occupancy=None):
+    message = {
+        "role": "assistant",
+        "provider": model["provider"],
+        "api": model["api"],
+        "model": model["id"],
+        "stopReason": stop,
     }
+    if occupancy is not None:
+        message["usage"] = {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": occupancy,
+        }
+    return {"type": "message", "message": message}
 
 
 def model_change_entry(model):
@@ -472,6 +478,79 @@ def test_compaction_then_a_model_switch_stays_unknown(runner):
         GROK,
     )
     assert rendered == f"{VOCAB['labels']['context']} ?/200k"
+
+
+def test_an_occupancy_that_survived_a_compaction_is_not_a_reading(runner):
+    """The cursor provider synthesizes occupancy as a floor that only ratchets up, and only a
+    model change clears it. So the turn after `/compact` reports at least what the turn before it
+    did, and this session did worse than that: 203,612 before the compaction, 241,375 after, then
+    frozen. A gauge that renders it says a handoff is due on tokens already summarized away."""
+    rendered = context_for_branch(
+        runner,
+        {"tokens": 241_375, "contextWindow": 200_000, "percent": 80},
+        [
+            assistant_entry(SOL, occupancy=203_612),
+            {"type": "compaction", "tokensBefore": 203_612},
+            assistant_entry(SOL, occupancy=241_375),
+        ],
+        SOL,
+    )
+    assert rendered == f"{VOCAB['labels']['context']} ?/200k"
+
+
+def test_a_measured_compaction_restores_the_percentage(runner):
+    """The honest case, and the one every real API provider is in: the first response after the
+    compaction reports a prompt smaller than what was compacted away."""
+    rendered = context_for_branch(
+        runner,
+        {"tokens": 60_000, "contextWindow": 200_000, "percent": 30},
+        [
+            assistant_entry(SOL, occupancy=203_612),
+            {"type": "compaction", "tokensBefore": 203_612},
+            assistant_entry(SOL, occupancy=60_000),
+        ],
+        SOL,
+    )
+    assert "?/200k" not in rendered
+    assert "(30%)" in rendered
+
+
+def test_a_provider_that_measured_the_compaction_is_trusted_as_it_grows_back(runner):
+    """The gate is a judgement on the provider, made on the one turn whose size is known to be
+    below `tokensBefore`. A session that legitimately fills back up past that mark is a reading,
+    not a ratchet, and blanking it would hide the handoff prompt exactly when it is due."""
+    rendered = context_for_branch(
+        runner,
+        {"tokens": 210_000, "contextWindow": 200_000, "percent": 90},
+        [
+            {"type": "compaction", "tokensBefore": 203_612},
+            assistant_entry(SOL, occupancy=60_000),
+            assistant_entry(SOL, occupancy=210_000),
+        ],
+        SOL,
+    )
+    assert "(90%)" in rendered
+
+
+def test_a_compaction_with_no_recorded_size_is_left_alone(runner):
+    """`tokensBefore` is what the check compares against; without it there is no evidence the
+    reading is stale, and inventing suspicion would blank the gauge for the rest of the session.
+    """
+    rendered = context_for_branch(
+        runner,
+        {"tokens": 60_000, "contextWindow": 200_000, "percent": 30},
+        [{"type": "compaction"}, assistant_entry(SOL, occupancy=60_000)],
+        SOL,
+    )
+    assert "(30%)" in rendered
+
+
+def test_the_compaction_size_field_is_still_declared(declarations):
+    """The whole gate rests on this one field. Renamed, `measuresCompactedContext` reads undefined,
+    every compaction looks unmeasurable and the ratcheted percentage is believed again."""
+    assert re.search(r'type: "compaction";[^}]*tokensBefore: number', declarations, re.S), (
+        "pi no longer declares `tokensBefore` on its compaction entry"
+    )
 
 
 def test_resume_after_a_model_change_without_a_new_response_is_unknown(runner):

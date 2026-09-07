@@ -180,7 +180,7 @@ function gauge(percent: number, theme: Theme): string {
 
 interface UsageFreshness {
   quality: "exact" | "unknown";
-  reason?: "model-changed" | "compacted";
+  reason?: "model-changed" | "compacted" | "unmeasured";
 }
 
 function isFreshAssistant(entry: SessionEntry, model: ExtensionContext["model"]): boolean {
@@ -196,13 +196,57 @@ function isFreshAssistant(entry: SessionEntry, model: ExtensionContext["model"])
 }
 
 /**
+ * Whether the first reading after a compaction is a reading of the compacted context.
+ *
+ * A provider that cannot count the prompt it sent has to synthesize occupancy, and the cursor
+ * provider synthesizes it as the maximum of a chars-per-token estimate and the last occupancy it
+ * accepted for the same model, which only ever ratchets up. A compaction does not clear that
+ * floor where a model change does, so the turn after `/compact` reports at least what the turn
+ * before it reported: an opus session in this checkout went 203,612 to 241,375 across the
+ * boundary and then froze there for every later turn. A figure that rises when the context was
+ * just emptied is not a measurement, and a gauge that renders it is telling the user a handoff is
+ * due on the strength of tokens that were already summarized away.
+ *
+ * Judged on the first assistant after the compaction, because that is the one turn whose prompt
+ * is known to be smaller than `tokensBefore`. A provider that reports that turn honestly is then
+ * trusted for the rest of the epoch, including the later turns that legitimately grow back past
+ * the mark; one that does not is shown as `?` until the next compaction or model change resets
+ * the question.
+ */
+function measuresCompactedContext(
+  branch: readonly SessionEntry[],
+  compactionIndex: number,
+  model: ExtensionContext["model"],
+): boolean {
+  const compaction = branch[compactionIndex];
+  // Anything other than a positive `tokensBefore` leaves nothing to compare against, and an
+  // absent reading is already handled by the freshness scan below.
+  if (compaction?.type !== "compaction" || !(compaction.tokensBefore > 0)) return true;
+  for (let index = compactionIndex + 1; index < branch.length; index += 1) {
+    const entry = branch[index];
+    if (!isFreshAssistant(entry, model) || entry.type !== "message") continue;
+    const usage = entry.message.role === "assistant" ? entry.message.usage : undefined;
+    if (!usage) continue;
+    // Pi's own occupancy arithmetic: the provider's `totalTokens` when it reports one, and the
+    // sum of the disjoint prompt components when it does not.
+    const total =
+      usage.totalTokens || usage.input + usage.output + usage.cacheRead + usage.cacheWrite;
+    if (total <= 0) continue;
+    return total < compaction.tokensBefore;
+  }
+  return true;
+}
+
+/**
  * Whether `getContextUsage()` is a measurement of the model now selected.
  *
  * Pi reuses the latest assistant usage without checking which model produced it, so a switch
  * can leave a percentage that belongs to the previous window. Usage is exact only when a valid
  * assistant from the current provider, API and model sits after both the latest model change
- * and the latest compaction. Missing branch or model data is left alone so callers that only
- * stub `getContextUsage()` keep the reading pi already computed.
+ * and the latest compaction, and, when the compaction is the later of the two, only when that
+ * assistant measured the compacted context rather than inheriting a pre-compaction figure.
+ * Missing branch or model data is left alone so callers that only stub `getContextUsage()` keep
+ * the reading pi already computed.
  */
 function usageFreshness(ctx: ExtensionContext): UsageFreshness {
   const usage = ctx.getContextUsage();
@@ -224,7 +268,12 @@ function usageFreshness(ctx: ExtensionContext): UsageFreshness {
   }
 
   const boundary = Math.max(lastModelChange, lastCompaction);
-  if (lastFreshAssistant > boundary) return { quality: "exact" };
+  if (lastFreshAssistant > boundary) {
+    if (lastCompaction > lastModelChange && !measuresCompactedContext(branch, lastCompaction, model)) {
+      return { quality: "unknown", reason: "unmeasured" };
+    }
+    return { quality: "exact" };
+  }
   if (lastModelChange < 0 && lastCompaction < 0) return { quality: "exact" };
   if (lastCompaction > lastModelChange) return { quality: "unknown", reason: "compacted" };
   return { quality: "unknown", reason: "model-changed" };
