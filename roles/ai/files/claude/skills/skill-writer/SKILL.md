@@ -1,6 +1,7 @@
 ---
 name: skill-writer
 description: Create, synthesize, and iteratively improve agent skills following the Agent Skills specification. Use when asked to "create a skill", "write a skill", "synthesize sources into a skill", "improve a skill from positive/negative examples", "update a skill", or "maintain skill docs and registration". Handles source capture, precision passes, authoring, registration, and validation.
+model: cursor/claude-sonnet-5@1m
 ---
 
 # Skill Writer

@@ -3,7 +3,7 @@ name: 8-living-spec
 description: "Product Team stage 8 - at ship time, merges the requirements whose tasks are all complete into docs/specs/{capability}/spec.md and appends the docs/LEARNINGS.md retrospective. Run it when work lands, not when the backlog is written."
 argument-hint: "[initiative slug, if not inferable from the branch]"
 disable-model-invocation: true
-model: sonnet
+model: cursor/claude-sonnet-5@1m
 effort: medium
 allowed-tools:
   - Read

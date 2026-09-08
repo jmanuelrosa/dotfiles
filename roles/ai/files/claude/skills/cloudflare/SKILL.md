@@ -6,6 +6,7 @@ description: >-
   Workers metadata, Zero Trust) and `wrangler` for the Workers project loop (dev, deploy, tail,
   secrets). Use when adding or editing DNS records, deploying or tailing a Worker, inspecting a
   binding's stored data, or auditing what a Cloudflare account currently holds.
+model: cursor/composer-2-5
 effort: medium
 # Reads only. Every mutating command is deliberately absent so it still hits the
 # permission prompt, which is the same confirmation the "Before any write" section

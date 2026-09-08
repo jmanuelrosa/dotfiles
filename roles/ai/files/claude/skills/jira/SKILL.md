@@ -5,6 +5,7 @@ description: >-
   are built with the bundled adf.py, which emits proper ADF (Atlassian Document Format) for the
   squad's agreed template: Context, Gherkin acceptance criteria, a link back to the source, and
   Design, each under a colored status-lozenge header.
+model: cursor/composer-2-5
 effort: medium
 disable-model-invocation: true
 allowed-tools:

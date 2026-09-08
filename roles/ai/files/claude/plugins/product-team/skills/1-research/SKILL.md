@@ -2,6 +2,7 @@
 name: 1-research
 description: Product Team stage 1 - fans out the configured researchers (competitive, user evidence, market sizing) in parallel over an approved brief and synthesizes 01-research/summary.md with confidence levels. No gate; feeds Gate 1.
 argument-hint: "[initiative slug, if not inferable from the branch]"
+model: openai-codex/gpt-5.6-sol
 disable-model-invocation: true
 allowed-tools:
   - Read

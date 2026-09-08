@@ -2,6 +2,7 @@
 name: 5-decompose
 description: "Product Team stage 5 - turns the design into 05-tasks.md (the whole build, dependency-ordered from empty repo to accepted) and, in the full profile, thin story headers claiming PRD scenario ids. No gate."
 argument-hint: "[initiative slug, if not inferable from the branch]"
+model: openai-codex/gpt-5.6-sol
 disable-model-invocation: true
 allowed-tools:
   - Read

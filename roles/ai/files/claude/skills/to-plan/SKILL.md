@@ -1,6 +1,7 @@
 ---
 name: to-plan
 description: Research (via subagent), draft, and iteratively review a plan before implementation. Use for cross-cutting changes that need alignment before code — new subsystems, DSLs, permission models, architecture shifts, refactors spanning many files. Exploration runs in a subagent to keep main context clean; produces `docs/design/<name>.md` and walks through it step-by-step.
+model: openai-codex/gpt-5.6-sol
 disable-model-invocation: true
 ---
 

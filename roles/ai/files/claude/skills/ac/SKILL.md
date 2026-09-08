@@ -2,7 +2,7 @@
 name: ac
 description: Write a Jira ticket's acceptance criteria into the branch's working copy before implementing, then publish them to the ticket as one comment that later runs update in place
 argument-hint: "[push] [<TICKET>]"
-model: sonnet
+model: cursor/claude-sonnet-5@1m
 effort: high
 disable-model-invocation: true
 allowed-tools:
