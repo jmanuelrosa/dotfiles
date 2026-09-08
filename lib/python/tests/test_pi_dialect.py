@@ -302,12 +302,15 @@ def test_the_repo_root_agents_md_is_the_claude_md_pi_would_otherwise_miss():
 
 # --- the keys pi ignores on a skill -------------------------------------------
 #
-# Agents are dual-keyed above because pi-subagents reads agent frontmatter. Skills are
-# not, and cannot be: pi's own loader (dist/core/skills.js in 0.84.x) reads exactly
-# three fields from a SKILL.md, `name`, `description` and `disable-model-invocation`,
-# and ignores everything else.
+# Agents are dual-keyed above because pi-subagents reads agent frontmatter. pi's own skill
+# loader (dist/core/skills.js in 0.84.x) reads exactly three fields from a SKILL.md,
+# `name`, `description` and `disable-model-invocation`, and drops the rest. An extension
+# may read the file itself though, which is how `model:` came to mean one thing in both
+# harnesses rather than two: pi/extensions/skill-model.ts parses the frontmatter, resolves
+# the value against the session's scoped catalogue and pins it for one agent run, which is
+# the boundary Claude Code uses as well. That is why `model:` is not in the tuple.
 #
-# So `allowed-tools:`, `model:` and `effort:` on a skill are Claude-only, silently. The
+# `allowed-tools:` and `effort:` still are Claude-only, silently. The
 # consequence worth stating is the first one: a skill Claude Code restricts to a handful
 # of tools runs with pi's full tool set. Enforcing it here was considered and rejected,
 # because the values are Claude permission specifiers with argument patterns
@@ -319,7 +322,9 @@ def test_the_repo_root_agents_md_is_the_claude_md_pi_would_otherwise_miss():
 #
 # The set is frozen so the limitation cannot quietly widen. A skill added here is a
 # decision to make, not a line to update: either the restriction does not matter under
-# pi, or the surface it guards belongs in the sandbox config.
+# pi, or the surface it guards belongs in the sandbox config. Dropping `model:` from the
+# tuple left the set itself unchanged, because every skill that declares a model also
+# carries `allowed-tools:` or `effort:`.
 #
 # `cloudflare` took the first branch. Its `allowed-tools` lists only read-only commands
 # and omits every mutating one, so what Claude gets from the key is a skipped prompt on
@@ -330,7 +335,7 @@ def test_the_repo_root_agents_md_is_the_claude_md_pi_would_otherwise_miss():
 # `cf`'s own confirmation prompt on destructive commands plus the skill's "Before any
 # write" section, which both harnesses read as prose.
 
-SKILL_KEYS_PI_IGNORES = ("allowed-tools", "model", "effort")
+SKILL_KEYS_PI_IGNORES = ("allowed-tools", "effort")
 
 CLAUDE_ONLY_SKILL_FRONTMATTER = {
     "ac", "agent-writer", "apollo-client", "cloudflare", "coderabbit", "commit",
@@ -371,8 +376,8 @@ def test_the_set_of_skills_pi_reads_differently_has_not_widened():
 def test_no_skill_pretends_to_speak_pis_dialect():
     """`thinking:` on a SKILL.md would read as a pin pi honours, and pi reads no such key.
 
-    Dual-keying an agent is correct and dual-keying a skill is theatre, so the mistake
-    worth catching is someone copying the agent convention one directory over.
+    `model:` is shared rather than dual-keyed, so a second key beside it is theatre, and
+    the mistake worth catching is someone copying the agent convention one directory over.
     """
     for path in skill_files():
         text = path.read_text()
