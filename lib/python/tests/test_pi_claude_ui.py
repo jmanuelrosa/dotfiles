@@ -13,7 +13,9 @@ from pathlib import Path
 import pytest
 from dotkit.testing import PI_EXTENSIONS
 
-EXTENSION = PI_EXTENSIONS / "claude-ui.ts"
+# Parked off the `*.ts` glob the role symlinks, so pi does not load it. The checks still
+# run over the source, which is what keeps renaming it back a one-line change.
+EXTENSION = PI_EXTENSIONS / "claude-ui__ts"
 PACKAGE = "@earendil-works/pi-coding-agent"
 DRIVEN = ("claudeMessage", "decorateEditorLines", "describeActivity")
 TEST_EXPORTS = ("claudeMessage", "decorateEditorLines")

@@ -348,6 +348,7 @@
   loop:
     - activity.ts
     - footer.ts
+    - claude-ui.ts
   register: pi_superseded_extension_links
 
 - name: Remove superseded pi extension links

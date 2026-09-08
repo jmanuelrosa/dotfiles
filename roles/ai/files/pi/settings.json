@@ -8,6 +8,10 @@
   "defaultModel": "openai-codex/gpt-5.6-terra",
   "defaultProvider": "cursor",
   "defaultThinkingLevel": "high",
+  "modelThinkingLevels": {
+    "anthropic/claude-opus-5": "max",
+    "anthropic/claude-sonnet-5": "high"
+  },
   "doubleEscapeAction": "tree",
   "editorPaddingX": 2,
   "enableAnalytics": false,
@@ -19,6 +23,8 @@
     "anthropic/claude-opus-5",
     "anthropic/claude-sonnet-5",
     "anthropic/claude-haiku-4-5",
+    "google/gemini-3.6-pro",
+    "google/gemini-3.6-flash",
     "ollama-cloud/nemotron-3-ultra",
     "ollama-cloud/gpt-oss:120b",
     "xai/grok-4.6",
