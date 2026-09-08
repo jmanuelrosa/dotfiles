@@ -2,6 +2,7 @@
 name: 2-write-prd
 description: "Product Team stage 2 - writes the PRD from the approved brief and research: SHALL requirements each carrying WHEN/THEN scenarios with stable ids, mandatory non-goals, and no invented baselines. No gate; 3-red-team attacks it and then opens Gate 1."
 argument-hint: "[initiative slug, if not inferable from the branch]"
+model: cursor/claude-opus-5@1m
 disable-model-invocation: true
 allowed-tools:
   - Read

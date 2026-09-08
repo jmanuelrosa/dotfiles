@@ -2,6 +2,7 @@
 name: 4-tech-shape
 description: Product Team stage 4 - has ux-shaper spec the user-facing behaviour (flows, surfaces, every state) into a UX spec, shapes the approved PRD into a design doc (alternatives, risks, rollout, security) grounded in read-only exploration of this codebase, then has product-team:adr-scribe extract the decisions into numbered ADRs. No gate; the ADRs it writes are reviewed through CODEOWNERS.
 argument-hint: "[initiative slug, if not inferable from the branch]"
+model: openai-codex/gpt-5.6-sol
 disable-model-invocation: true
 allowed-tools:
   - Read

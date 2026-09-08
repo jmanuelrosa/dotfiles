@@ -2,6 +2,7 @@
 name: 0-refine-idea
 description: "Product Team stage 0 - turns a raw idea into an opportunity brief: creates the initiative branch and folder, interviews you, runs the product-team:strategy-checker, and opens Gate 0 (kill or proceed)."
 argument-hint: "\"<raw idea>\" (or the slug of an existing initiative to revise)"
+model: cursor/claude-sonnet-5@1m
 disable-model-invocation: true
 allowed-tools:
   - Read

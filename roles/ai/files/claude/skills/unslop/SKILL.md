@@ -1,6 +1,7 @@
 ---
 name: unslop
 description: Cut AI tells from any writing. Must always apply.
+model: cursor/claude-sonnet-5@1m
 disable-model-invocation: true
 ---
 

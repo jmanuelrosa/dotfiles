@@ -2,6 +2,7 @@
 name: setup-strategy
 description: One-time Product Team foundation - interviews you for vision, bets, non-bets, and OKRs (optionally seeded by an /idea-refine ideation session when you arrive with a raw idea), then scaffolds docs/strategy/ including product-team.yml, docs/LEARNINGS.md, CODEOWNERS, and a three-line CLAUDE.md pointer.
 argument-hint: "[guidance or revision notes]"
+model: cursor/claude-sonnet-5@1m
 disable-model-invocation: true
 allowed-tools:
   - Read

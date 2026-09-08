@@ -4,6 +4,7 @@ description: >-
   Audit Claude Code agent definitions for craft quality: delegation triggers, tool and model fit,
   context economy, reliability contracts. Reviews the agent .md files themselves, not the overall
   setup.
+model: openai-codex/gpt-5.6-sol
 disable-model-invocation: true
 ---
 Craft review of Claude Code agent definitions.

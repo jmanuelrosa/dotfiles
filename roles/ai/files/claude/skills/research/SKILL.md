@@ -3,7 +3,7 @@ name: research
 description: Investigate a question and write a cited decision memo - feasibility ("can we do X", "how would we achieve this"), unfamiliar code areas ("understand how X works"), or general/external investigation. Use when asked to "research", "investigate", "is this feasible", "how would we build X", or to turn a Jira ticket, Notion doc, or pasted Slack thread into a written analysis. Fans out parallel agents per phase - source gathering via acli/ntn/gh/glab/ctx7, code exploration across one or more repos, adversarial claim verification - so raw material stays in subagent contexts, and writes .claude/state/research/YYYY-MM-DD-research-<topic>.md.
 argument-hint: "[question, Jira key, URL, or pasted thread/doc]"
 disable-model-invocation: true
-model: opus
+model: openai-codex/gpt-5.6-sol
 allowed-tools:
   - Read
   - Glob

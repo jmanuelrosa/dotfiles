@@ -7,7 +7,7 @@ description: |
   inflated symbolism, promotional language, superficial -ing analyses, vague
   attributions, em dash overuse, rule of three, AI vocabulary words, negative
   parallelisms, and excessive conjunctive phrases.
-model: opus
+model: cursor/claude-opus-5@1m
 allowed-tools:
   - Read
   - Write

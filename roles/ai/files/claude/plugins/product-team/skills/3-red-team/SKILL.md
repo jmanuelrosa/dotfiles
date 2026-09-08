@@ -2,6 +2,7 @@
 name: 3-red-team
 description: "Product Team stage 3 - spawns a fresh-context product-team:pm-red-team agent that attacks the PRD (reads nothing else), folds the blockers back in, then opens Gate 1: are these the right requirements?"
 argument-hint: "[initiative slug, if not inferable from the branch]"
+model: cursor/claude-sonnet-5@1m
 disable-model-invocation: true
 allowed-tools:
   - Read

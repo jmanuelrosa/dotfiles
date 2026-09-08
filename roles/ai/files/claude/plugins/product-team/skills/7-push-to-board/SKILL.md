@@ -2,6 +2,7 @@
 name: 7-push-to-board
 description: Product Team stage 7 - exports the all-PASS backlog to GitHub as epic parent issues with story sub-issues on the configured Project, after a confirmed dry-run, expanding each story's claimed scenarios into the issue body; writes issue URLs back. Full profile only.
 argument-hint: "[initiative slug, if not inferable from the branch]"
+model: cursor/composer-2-5
 disable-model-invocation: true
 allowed-tools:
   - Read

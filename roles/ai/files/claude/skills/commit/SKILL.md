@@ -2,7 +2,7 @@
 name: commit
 description: Stage changes, split the diff into atomic concerns when it makes sense, and write one strict conventional commit per concern. Stops at commit; does not push.
 argument-hint: "[guidance: scope, how to split, or branch name]"
-model: sonnet
+model: cursor/composer-2-5
 effort: medium
 disable-model-invocation: true
 allowed-tools:

@@ -8,7 +8,7 @@ description: >-
   verification sweep. The agent-side counterpart of skill-writer.
 argument-hint: "<agent name or purpose> (e.g. mobile-staff-engineer, or: upgrade qa-staff-engineer)"
 disable-model-invocation: true
-model: opus
+model: cursor/claude-opus-5@1m
 allowed-tools:
   - Read
   - Glob
