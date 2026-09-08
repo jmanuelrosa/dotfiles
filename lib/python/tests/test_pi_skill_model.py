@@ -13,13 +13,15 @@ import textwrap
 from pathlib import Path
 
 import pytest
-from dotkit.testing import PI_EXTENSIONS
+from dotkit.testing import PI, PI_EXTENSIONS
 
 EXTENSION = PI_EXTENSIONS / "skill-model.ts"
 PI_PACKAGE = "@earendil-works/pi-coding-agent"
 
-# Mirrors the shape and order of `enabledModels` in pi/settings.json: anthropic is declared
-# ahead of cursor, so a bare `opus` must land on anthropic.
+# Deliberately inverted against the real `enabledModels`, which declares cursor ahead of
+# anthropic. What is under test here is the tiebreak rule itself, so the fixture has to be the
+# order that makes a wrong rule visible; the real file's order is pinned separately by
+# test_enabled_models_declares_the_metered_tier_last.
 CATALOGUE = [
     "openai-codex/gpt-5.6-terra",
     "anthropic/claude-opus-5",
@@ -176,6 +178,32 @@ def read(skills, name):
 
 
 SETTLED = {"event": "agent_settled", "payload": {"type": "agent_settled"}}
+
+
+def test_enabled_models_declares_the_metered_tier_last():
+    """Order is the spend policy, because a bare alias resolves by declaration order.
+
+    The seats and eight skills carry a bare `opus` or `sonnet`, so whichever provider is
+    declared first is the one that gets billed for all of them. anthropic is a capped API
+    while cursor is a subscription, and the failure is silent in both directions: nothing
+    warns when a pin lands on the metered tier, and re-ordering this array bills every one
+    of those skills somewhere new without touching a single SKILL.md.
+    """
+    enabled = json.loads((PI / "settings.json").read_text())["enabledModels"]
+
+    for alias in ("opus", "sonnet"):
+        subscription = next(
+            i for i, ref in enumerate(enabled)
+            if ref.startswith("cursor/") and alias in ref
+        )
+        metered = next(
+            i for i, ref in enumerate(enabled)
+            if ref.startswith("anthropic/") and alias in ref
+        )
+        assert subscription < metered, (
+            f"a bare `{alias}` resolves to {enabled[metered]} rather than "
+            f"{enabled[subscription]}, so every skill and seat pinning it bills the capped API"
+        )
 
 
 def test_a_bare_alias_resolves_to_the_first_provider_the_catalogue_declares(harness):
