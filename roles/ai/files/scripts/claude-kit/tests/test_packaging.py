@@ -7,6 +7,7 @@ directory accounted for in the manifest.
 """
 
 import os
+import re
 import stat
 import subprocess
 
@@ -17,18 +18,16 @@ from dotkit.testing import REPO
 from kit_helpers import PACKAGE, SCRIPTS, SHIM, TOOL, subparsers
 
 AI_TASKS = REPO / "roles/ai/tasks/main.yml"
+COREUTILS_DEFAULTS = REPO / "roles/coreutils/defaults/main.yml"
 
 LINK_TASK = "Link AI scripts into the user bin directory"
+HOSTOF_TASK = "Install the pinned hostof release"
 
-# Every role installs scripts the same way, so the shape is checked for all of them
-# here. The work role had no packaging test at all before, which is why its link task
-# could sit next to a dead `Ensure scripts directory exists` creating a path nothing
-# wrote to. coreutils joined when hostof landed, and it is the one role whose link task
-# also has to create ~/.local/bin, because it runs before the ai role that used to.
+# The AI and work roles install checkout-owned scripts with the same manifest and link
+# shape. Externally released commands have their own installation contract.
 INSTALLERS = [
     ("ai", "AI_SCRIPTS", LINK_TASK),
     ("work", "WORK_SCRIPTS", "Link work scripts into the user bin directory"),
-    ("coreutils", "CORE_SCRIPTS", "Link core scripts into the user bin directory"),
 ]
 
 
@@ -41,6 +40,23 @@ def role_task(role, name):
 
 def scripts_task():
     return role_task("ai", LINK_TASK)
+
+
+def test_hostof_release_is_pinned_to_a_checksum():
+    hostof = yaml.safe_load(COREUTILS_DEFAULTS.read_text())["HOSTOF"]
+    assert hostof["repository"] == "https://github.com/jmanuelrosa/hostof"
+    assert re.fullmatch(r"v\d+\.\d+\.\d+", hostof["release"])
+    assert re.fullmatch(r"sha256:[0-9a-f]{64}", hostof["checksum"])
+
+
+def test_coreutils_downloads_hostof_as_the_command_file():
+    task = role_task("coreutils", HOSTOF_TASK)["ansible.builtin.get_url"]
+    assert task == {
+        "url": "{{ HOSTOF.repository }}/releases/download/{{ HOSTOF.release }}/hostof",
+        "dest": "{{ HOME }}/.local/bin/hostof",
+        "checksum": "{{ HOSTOF.checksum }}",
+        "mode": "0755",
+    }
 
 
 def role_manifest(role, var):

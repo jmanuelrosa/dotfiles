@@ -15,26 +15,38 @@
   when: BREW_PACKAGES.formulas | default([]) | length > 0
 
 # The ai role creates this too, but coreutils runs 15 roles earlier in dotfiles.yml,
-# and ansible.builtin.file state=link does not create a missing parent. Without this
-# the link task below fails on a fresh machine.
+# and the hostof release needs its destination to exist on a fresh machine.
 - name: Ensure user bin directory exists
   ansible.builtin.file:
     path: "{{ HOME }}/.local/bin"
     state: directory
     mode: "0755"
 
-- name: Link core scripts into the user bin directory
+- name: Inspect the installed hostof command
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.local/bin/hostof"
+    follow: false
+  register: hostof_command
+
+- name: Refuse to replace an unexpected hostof symlink
+  ansible.builtin.assert:
+    that:
+      - hostof_command.stat.lnk_source == role_path ~ "/files/scripts/hostof/hostof"
+    fail_msg: "Refusing to replace {{ hostof_command.stat.lnk_source }} as hostof"
+  when: hostof_command.stat.islnk | default(false)
+
+- name: Remove the legacy hostof symlink
   ansible.builtin.file:
-    src: "{{ role_path }}/files/scripts/{{ item }}/{{ item }}"
-    dest: "{{ HOME }}/.local/bin/{{ item }}"
-    state: link
-    force: true
-  # One directory per tool, and the executable inside carries the tool's name, so the
-  # source is <name>/<name>. src stays absolute: ansible.builtin.file does not resolve
-  # it through the role search path the way copy and template do, and a relative one
-  # would be read against ~/.local/bin and written as a dangling link that still
-  # reports changed.
-  loop: "{{ CORE_SCRIPTS }}"
+    path: "{{ HOME }}/.local/bin/hostof"
+    state: absent
+  when: hostof_command.stat.islnk | default(false)
+
+- name: Install the pinned hostof release
+  ansible.builtin.get_url:
+    url: "{{ HOSTOF.repository }}/releases/download/{{ HOSTOF.release }}/hostof"
+    dest: "{{ HOME }}/.local/bin/hostof"
+    checksum: "{{ HOSTOF.checksum }}"
+    mode: "0755"
 
 - name: Ensure bat config directory exists
   ansible.builtin.file:
