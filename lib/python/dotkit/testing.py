@@ -49,7 +49,6 @@ PI_EXTENSIONS = PI / "extensions"
 AI_SCRIPTS_DIR = REPO / "roles/ai/files/scripts"
 APPS_SCRIPTS_DIR = REPO / "roles/apps/files/scripts"
 WORK_SCRIPTS_DIR = REPO / "roles/work/files/scripts"
-CORE_SCRIPTS_DIR = REPO / "roles/coreutils/files/scripts"
 
 # The fish half of the output vocabulary lives here, and test_ui.py runs it for real to
 # diff its bytes against this package's.

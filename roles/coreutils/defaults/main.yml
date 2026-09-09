@@ -3,12 +3,10 @@
 
 ---
 
-# Tools symlinked onto PATH from files/scripts/, named rather than globbed, for the
-# same reason the ai and work roles name theirs: every entry is a directory, and
-# Ansible's fileglob lookup filters matches through os.path.isfile, so a glob would
-# match nothing and silently install no tools.
-CORE_SCRIPTS:
-  - hostof
+HOSTOF:
+  repository: https://github.com/jmanuelrosa/hostof
+  release: v0.1.0
+  checksum: sha256:32f6d3e413f77248802f371522c13be53bde8b0da49be5a64e6c609260ec0387
 
 BREW_PACKAGES:
   formulas:

@@ -8,16 +8,22 @@ Installs modern replacements for traditional Unix utilities, plus the configs th
 
 - Installs utilities listed in `BREW_PACKAGES.formulas` via `community.general.homebrew`.
 - Symlinks per-tool configs (bat, ripgrep, eza, btop) from `files/` into `~/.config/`.
-- Symlinks each tool named in `CORE_SCRIPTS` into `~/.local/bin/`, from `files/scripts/<name>/<name>`. `hostof` is the only one. This role also creates `~/.local/bin` itself, because it runs 15 roles before the `ai` role that otherwise would.
+- Downloads the pinned `hostof` release asset directly to `~/.local/bin/hostof`. This role creates `~/.local/bin` itself because it runs before the `ai` role that otherwise would.
 
 ## Vars
 
 - `BREW_PACKAGES` (defaults/main.yml) — formulas only: bat, btop, duf, eza, fastfetch, fd, httpie, hyperfine, nnn, ripgrep, scc, television, vnstat, wget, zoxide, unar.
-- `CORE_SCRIPTS` (defaults/main.yml): tool directories under `files/scripts/` to put on PATH. Named rather than globbed, because Ansible's `fileglob` filters through `os.path.isfile` and every entry is a directory.
+- `HOSTOF` (defaults/main.yml): upstream repository, release, and SHA-256 checksum for the installed `hostof` asset.
 
 ## Tools
 
-- `files/scripts/hostof/` : reports which service and region host a site, keeping edge, origin and network as separate facts rather than collapsing them into one verdict. Reads only what a browser reads (DNS, the TLS certificate, one HTTP response, the assets it links). Stdlib-only, and it needs no brew package: `dig` and `curl` ship with macOS. `--deep` adds conventional undocumented paths and refuses any host without an entry in `~/.config/hostof/authorized.json`.
+- [`hostof`](https://github.com/jmanuelrosa/hostof): reports which service and region host a site while keeping edge, origin, and network as separate facts. The standalone stdlib-only release is checksum-verified before installation. `--deep` adds conventional undocumented paths and refuses any host without an entry in `~/.config/hostof/authorized.json`.
+
+## hostof lifecycle
+
+- Upgrade or rollback by changing `HOSTOF.release` and `HOSTOF.checksum` together, then applying the coreutils role.
+- Develop from a separate checkout and invoke its `./hostof` executable directly; do not replace the managed command on `PATH`.
+- Uninstall through an explicit role change that removes only `~/.local/bin/hostof`. Cache and authorization state remain user-owned.
 
 ## Files
 
