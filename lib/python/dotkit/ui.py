@@ -23,8 +23,9 @@ column zero is what lets a listing stay a listing.
 Indent defaults to 0, or 2 for `item` and `note`; pass indent= to override. Colour is
 colors.py's decision, per stream, so piping to a file yields plain text.
 
-Not claude-kit-only: weekly-recap imports it from beside the shim, and any python CLI
-added to this directory should. The emoji vocabulary is listed in the repo CLAUDE.md.
+Not one tool's: lokl and weekly-recap each import it through a `dotkit` symlink beside
+them, and any python CLI added to this repository should. The emoji vocabulary is
+listed in the repo CLAUDE.md.
 """
 
 import os

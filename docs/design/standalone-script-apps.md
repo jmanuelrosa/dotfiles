@@ -1,6 +1,7 @@
 # Standalone script apps
 
-**Status:** Hostof pilot complete; dotfiles commit pending.
+**Status:** Hostof pilot complete; dotfiles commit on `refactor/extract-hostof`; PR pending merge.
+**Backlog:** [standalone-script-apps-backlog.md](./standalone-script-apps-backlog.md)
 **Author:** José Manuel Rosa Moncayo
 **Date:** 2026-09-09
 **Scope:** Extract `hostof` from dotfiles and install an explicitly versioned release through the coreutils Ansible role.

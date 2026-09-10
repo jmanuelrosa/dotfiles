@@ -25,11 +25,11 @@ def extract_wt_add_body():
 def test_converge_runs_after_claude_copy():
     """The .agents/skills symlink must exist for Pi to discover project-local skills.
 
-    After copying .claude/ from the source worktree, _wt_add must run `claude-kit
+    After copying .claude/ from the source worktree, _wt_add must run `kura
     converge --quiet` in the new worktree to create the bridge. Without this, Pi in
     a fresh `wt add` worktree cannot run project-local skills like /skill:spec-driven-development.
 
-    The test verifies the sequence statically: `claude-kit converge` must appear after
+    The test verifies the sequence statically: `kura converge` must appear after
     the `.claude/` copy block and before the lockfile install section.
     """
     body = extract_wt_add_body()
@@ -49,9 +49,9 @@ def test_converge_runs_after_claude_copy():
 
     between_section = body[claude_copy_end:lockfile_start]
 
-    converge_pattern = re.compile(r"claude-kit converge\b.*--quiet")
+    converge_pattern = re.compile(r"kura converge\b.*--quiet")
     assert converge_pattern.search(between_section), (
-        "claude-kit converge --quiet must be called after copying .claude/ and before "
+        "kura converge --quiet must be called after copying .claude/ and before "
         "lockfile install, to create the .agents/skills symlink that Pi needs for "
         "project-local skill discovery"
     )

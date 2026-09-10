@@ -163,7 +163,7 @@ astro dev --port (lokl port my-custom-project)
 It did not always: the bare form counted a domain's own recorded port among the ports to step over, so it printed one past the number the proxy was pointing at.
 Prefer the named form in anything committed anyway, because the seed is the working directory: run bare from a subdirectory and you get that subdirectory's number, not the project's.
 
-Its output is a bare number with no glyph and no colour, which is the one place here that steps outside the shared line vocabulary, for the same reason `claude-kit list --json` does: the whole content is a fact rather than an account of what a command did.
+Its output is a bare number with no glyph and no colour, which is the one place here that steps outside the shared line vocabulary, for the same reason `kura list --json` does: the whole content is a fact rather than an account of what a command did.
 
 ## Naming a port yourself
 

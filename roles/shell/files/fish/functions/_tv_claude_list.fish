@@ -1,15 +1,15 @@
 function _tv_claude_list --description "Television source: list claude skills or agents with groups and link status" --argument-names kind filter
     # A formatter, and nothing more. Every fact on a row - the catalogue, which entries
     # are hidden as dependency_only, whether an artifact belongs in ~/.claude or the
-    # project, and whether it is linked there - comes from `claude-kit list --json`.
+    # project, and whether it is linked there - comes from `kura list --json`.
     #
     # This used to derive all of it here in jq, against its own rule for what a project
-    # is (the git top level, where claude-kit takes the cwd). In a directory that is not
+    # is (the git top level, where kura takes the cwd). In a directory that is not
     # a repo that rule yielded no project at all, so every non-global row rendered
     # [available] however many links were on disk, and Enter then refused because
-    # claude-kit could see them.
-    if not command -q claude-kit
-        _ui err "claude-kit is not on PATH. Run: make run-role ROLE=ai"
+    # kura could see them.
+    if not command -q kura
+        _ui err "kura is not on PATH. Run: make run-role ROLE=ai"
         return 1
     end
 
@@ -53,7 +53,7 @@ function _tv_claude_list --description "Television source: list claude skills or
 
     begin
         for type in $types
-            claude-kit list --type $type --json | jq -r $prog
+            kura list --type $type --json | jq -r $prog
         end
     end | while read -l -d \t name groups state
         _tv_claude_fmt $name "$groups" $state

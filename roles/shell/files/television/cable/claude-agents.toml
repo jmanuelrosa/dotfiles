@@ -1,7 +1,7 @@
 [metadata]
 name = "claude-agents"
 description = "Manage Claude Code agents and seat plugins (toggle link, open in $EDITOR)"
-requirements = ["fish", "jq", "bat", "claude-kit"]
+requirements = ["fish", "jq", "bat", "kura"]
 
 [source]
 command = [
@@ -13,14 +13,14 @@ command = [
 output = "{split: :0}"
 
 [preview]
-command = "fish -c 'set b $DOTFILES_DIR/roles/ai/files/claude; set p $b/agents/{split: :0}.md; test -f $p; or set p $b/plugins/{split: :0}/agents/{split: :0}-staff-engineer.md; test -f $p; and bat --color=always --plain --language=markdown $p; or echo \"Not downloaded: press Enter to install via claude-kit add --type agent\"'"
+command = "fish -c 'set b $DOTFILES_DIR/roles/ai/files/claude; set p $b/agents/{split: :0}.md; test -f $p; or set p $b/plugins/{split: :0}/agents/{split: :0}-staff-engineer.md; test -f $p; and bat --color=always --plain --language=markdown $p; or echo \"Not downloaded: press Enter to install via kura add --type agent\"'"
 
 [ui]
 layout = "portrait"
 
 # No outdated/update here, unlike the skills cable: agent-registry.json declares no
 # repos and seat plugins are authored in this repo, so nothing on this channel has an
-# upstream to compare against. claude-kit refuses `--type agent` on both commands.
+# upstream to compare against. kura refuses `--type agent` on both commands.
 [keybindings]
 enter = "actions:toggle"
 ctrl-o = "actions:edit"

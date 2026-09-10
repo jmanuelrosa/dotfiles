@@ -75,7 +75,7 @@ function _wt_pi_sandbox --argument-names target
   printf '{\n  "filesystem": {\n    "allowWrite": ["%s"]\n  }\n}\n' $common >$target/.pi/sandbox.json
   # The file names itself, because a `.gitignore` is not covered by its own patterns and
   # `git status` would report `.pi/` as untracked for that one file. Same containment
-  # claude-kit gives `.agents/`, and for the same reason: a project's root `.gitignore`
+  # kura gives `.agents/`, and for the same reason: a project's root `.gitignore`
   # is not ours to edit.
   printf '%s\n' .gitignore sandbox.json >$target/.pi/.gitignore
 end
@@ -161,7 +161,7 @@ function _wt_add
   cd $target
 
   if test -d .claude
-    claude-kit converge --quiet
+    kura converge --quiet
   end
 
   if test -f pnpm-lock.yaml

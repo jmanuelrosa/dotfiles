@@ -18,7 +18,7 @@ no story claims is invisible to any amount of judgment: it is a set difference, 
 belongs here rather than in a prompt.
 
 Both are deliberately incomplete and biased toward silence, in the same way
-claude_kit/frontmatter.py is: a shape this script does not model reads as fine rather
+kura's frontmatter parser is: a shape this script does not model reads as fine rather
 than as broken. A false finding teaches the reader to skip the report, and the report is
 worth nothing the moment that happens. What it cannot decide (is this scenario
 testable, is this slice really vertical) stays with the model in `6-verify`.
@@ -722,7 +722,7 @@ def cmd_check(repo, root, args):
 
     ui.title(f"🔎 {root.name}: mechanical Definition of Ready")
     ui.blank()
-    # Rows under a heading rather than one ✗ each, as claude-kit's doctor reports: `err`
+    # Rows under a heading rather than one ✗ each, as kura's doctor reports: `err`
     # writes to stderr, so a finding printed that way arrives out of order against the
     # heading above it, and a report whose lines interleave is a report nobody trusts.
     if errors:

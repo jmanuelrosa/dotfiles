@@ -45,8 +45,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-# The shared line vocabulary, reached the same way the claude-kit shim reaches its package:
-# by putting this file's own directory on sys.path.
+# The shared line vocabulary, reached by putting this file's own directory on sys.path,
+# where a `dotkit` symlink sits beside this script.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from dotkit import ui  # noqa: E402
@@ -812,7 +812,7 @@ def cmd_port(args, paths):
 
     The only command here whose stdout is a value rather than a report, which is why it
     carries no glyph and no colour: `astro dev --port (lokl port my-custom-project)` cannot be
-    handed a decorated line. `claude-kit list --json` holds the same exemption for the same
+    handed a decorated line. `kura list --json` holds the same exemption for the same
     reason, that its whole content is a fact rather than an account of what a command did.
 
     A configured domain answers from its site file rather than from the hash. That is the

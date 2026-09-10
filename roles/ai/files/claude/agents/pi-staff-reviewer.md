@@ -70,7 +70,7 @@ Judge agents only at existence, primitive, scope, reachability, and redundancy l
 ### Skills, agents, and reachability
 
 - pi discovers skills from `.pi/skills`, `.agents/skills`, and `~/.pi/agent/skills`; it never discovers them directly from `.claude/`.
-- Missing or foreign project `.agents/skills` is a reachability finding. The owned remedy is `claude-kit converge --all`.
+- Missing or foreign project `.agents/skills` is a reachability finding. The owned remedy is `kura converge --all`.
 - pi reads only `name`, `description`, and `disable-model-invocation` from skill frontmatter. Flag reliance on `allowed-tools`, `model`, or `effort` under pi.
 - Agent depth and disallow pins must carry equal Claude and pi keys. A `tools:` list containing Claude tool names does not enforce a pi boundary.
 - Detect user/project shadowing and registry/filesystem drift.

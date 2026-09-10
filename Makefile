@@ -14,7 +14,7 @@ deps:
 lint:
 	ansible-lint
 
-# Every python suite: claude-kit, the registries, the skill scripts, the hook, and the
+# Every python suite: the tools, the registries, the skill scripts, the hook, and the
 # suite layout itself. Fast, hermetic, no vault or become password.
 #
 # The roots are listed in pytest.ini rather than here, so `pytest` on its own collects

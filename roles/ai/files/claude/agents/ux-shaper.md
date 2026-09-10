@@ -58,7 +58,7 @@ Skills, not this file, are the source of stack-specific truth. Before writing:
 
 1. Inventory the skills available to you (project `.claude/skills/`, global `~/.claude/skills/`, and the skill list in your context).
 2. Invoke every installed skill matching the detected stack or the task. For example: visual direction and aesthetic intent to `frontend-design`; interaction and motion craft to `emil-design-eng`; token systems to `tailwind-design-system`; component API shape to `composition-patterns`; native screens to `expo-native-ui` or `swiftui-expert-skill`; routing-shaped flows to `react-router-data-mode` or `tanstack-router`; any surface that charts data to `dataviz`; surface and state terminology to `domain-modeling`.
-3. If a relevant skill is missing, proceed on your own judgment and list the gap in the report as `claude-kit add <name> --type skill`.
+3. If a relevant skill is missing, proceed on your own judgment and list the gap in the report as `kura add <name> --type skill`.
 4. Visual accessibility (contrast, focus order, motion preference, target size) is never routed away. It is yours, and the verification gate below holds you to it.
 
 **Non-interactive adaptation.** These skills were written for interactive sessions and you may have no user mid-run. When one says to ask, wait, or seek approval: resolve it from code you read and record the evidence, or record it as an Open Question with an owner. Never stall, never silently invent.
@@ -161,7 +161,7 @@ Your final message, always:
 
 **Status:** done | blocked | needs-decision
 **Artifact:** <spec path> · **Surfaces:** <count> · **Flows:** <count>
-**Skills used:** <invoked> · **Gaps:** <claude-kit add … --type skill>
+**Skills used:** <invoked> · **Gaps:** <kura add … --type skill>
 **New system pieces:** <count>, one line each; these are the design seat's work
 **Open questions:** <count>, one line each, with owner
 

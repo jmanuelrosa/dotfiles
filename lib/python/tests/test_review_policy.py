@@ -92,7 +92,7 @@ CALL_SITE = re.compile(r"/code-review(?:\s+(\w+))?")
 # A reviewer whose axes are a subset of the policy's and whose severity scale is one of the
 # four this policy collapsed. It is upstream, so its body cannot be fixed; dropping `review`
 # from its groups is what stops `scout` and `--group review` offering it as a reviewer, and
-# that only works while claude-kit leaves hand-maintained groups alone.
+# that only works while kura leaves hand-maintained groups alone.
 SUPERSEDED = "code-review-and-quality"
 
 
@@ -100,7 +100,7 @@ def call_sites():
     """Our own artifacts that tell a caller to run a review, and nothing upstream.
 
     The upstream skill trees are excluded for the reason the policy's own skip rules give:
-    `claude-kit update` replaces them wholesale, so an edit there is discarded on the next
+    `kura update` replaces them wholesale, so an edit there is discarded on the next
     sync.
     """
     yield from sorted(PLUGINS.glob("*/agents/*.md"))
@@ -253,7 +253,7 @@ def test_the_resident_policy_routes_to_the_mechanics_skill():
 def test_the_mechanics_skill_is_tagged_global():
     """Untagged it never links into ~/.claude/skills, so the stub points at nothing.
 
-    `claude-kit sync` derives the user-scope set from the `global` tag, and prunes anything
+    `kura sync` derives the user-scope set from the `global` tag, and prunes anything
     in that tree it cannot derive.
     """
     entries = [
@@ -326,7 +326,7 @@ def test_the_superseded_reviewer_is_named_and_untagged():
 
     Its body is upstream and unfixable, so the policy states precedence and the registry
     stops advertising it as a reviewer. `registry.stamp_entry` writes only `updated_at`,
-    which is what makes a hand-maintained `groups` survive `claude-kit update`; if that ever
+    which is what makes a hand-maintained `groups` survive `kura update`; if that ever
     changes, `review` comes back and this fails.
     """
     assert SUPERSEDED in MECHANICS.read_text(), (
