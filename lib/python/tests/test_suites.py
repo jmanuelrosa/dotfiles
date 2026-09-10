@@ -5,12 +5,13 @@ exist because the failure they catch is silent in both directions: a suite reach
 no `testpaths` entry does not run and reports nothing, and a module imported under a
 name another directory also claims binds to the wrong file without complaint.
 
-Both happened. Commit 7d66f96 deleted `tests/conftest.py` while moving claude-kit's
-suite into the package, and `make test` named the new path explicitly. Four suites
-(coderabbit, pr, jira-adf, git-skill-gate) plus weekly-recap went dark for two
-commits: 2,174 lines that CI reported as passing because CI never collected them.
-Running both roots together showed the second failure on top of the first, with four
-of the five silently binding `REPO` off claude-kit's conftest.
+Both happened. Commit 7d66f96 deleted `tests/conftest.py` while moving the suite of
+the kura CLI (then named `claude-kit`, and since extracted to its own repository) into
+its package, and `make test` named the new path explicitly. Four suites (coderabbit,
+pr, jira-adf, git-skill-gate) plus weekly-recap went dark for two commits: 2,174 lines
+that CI reported as passing because CI never collected them. Running both roots
+together showed the second failure on top of the first, with four of the five silently
+binding `REPO` off that suite's conftest.
 """
 
 import configparser
@@ -44,7 +45,7 @@ def local_skill_names():
     """Skills authored here, as opposed to synced from an upstream repo.
 
     Only these may hold a `tests/` directory. An upstream skill's tree is replaced
-    wholesale by `claude-kit update` (upstream.copy_tree swaps the directory and
+    wholesale by `kura update` (upstream.copy_tree swaps the directory and
     preserves nothing), so a suite added under one would be deleted on the next sync
     and would read as permanently `behind` until then.
     """
@@ -89,7 +90,7 @@ def test_no_suite_directory_is_left_uncollected():
 
     Discovery is scoped to the families that may legitimately hold one, rather than
     walking the repo, so an upstream skill that one day ships its own `tests/` cannot
-    turn this red on an unrelated `claude-kit update`.
+    turn this red on an unrelated `kura update`.
     """
     configured = set(configured_testpaths())
     orphaned = sorted(
@@ -218,13 +219,12 @@ def test_a_dotkit_link_sits_beside_the_tool_that_imports_it():
     in the right place; a tool with no link simply does not import dotkit.
     """
     for link in dotkit_links():
-        siblings = {entry.name for entry in link.parent.iterdir()}
         executables = {
             entry.name
             for entry in link.parent.iterdir()
             if entry.is_file() and entry.stat().st_mode & 0o100
         }
-        assert executables or "claude_kit" in siblings, (
-            f"{link.relative_to(REPO)} sits beside no executable and no package, "
+        assert executables, (
+            f"{link.relative_to(REPO)} sits beside no executable, "
             "so nothing there can import it"
         )

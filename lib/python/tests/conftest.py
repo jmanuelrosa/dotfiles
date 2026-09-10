@@ -1,9 +1,9 @@
 """Fixtures for the dotkit suite.
 
 Only the colour toggles, because `ui` renders and touches nothing else. The helper
-they wrap lives in `dotkit.testing` rather than here: two suites need it now that
-test_ui sits beside the package instead of inside claude-kit's, and a fixture is the
-one thing a `conftest.py` can own without a second directory being able to claim the
+they wrap lives in `dotkit.testing` rather than here: it was shared with the kura
+CLI's suite while that suite still lived in this checkout, and a fixture is the one
+thing a `conftest.py` can own without a second directory being able to claim the
 name. See dotkit/testing.py for why that matters.
 """
 

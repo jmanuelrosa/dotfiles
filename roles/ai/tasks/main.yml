@@ -181,8 +181,61 @@
   # `when` guard to stay off PATH.
   loop: "{{ AI_SCRIPTS }}"
 
+# kura is installed rather than linked, so this block runs after the link loop above:
+# were the order reversed, the loop would relink over the downloaded asset on the same
+# apply. Dropping it from AI_SCRIPTS is what actually prevents that; the ordering is
+# the second guard.
+- name: Inspect the command left by the old claude-kit link
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.local/bin/claude-kit"
+    follow: false
+  register: claude_kit_command
+
+# Only the link this role wrote is ours to remove. Anything else at that name was put
+# there by hand, and replacing it silently is how a machine loses a command nobody
+# remembers installing.
+- name: Refuse to remove an unexpected claude-kit symlink
+  ansible.builtin.assert:
+    that:
+      - claude_kit_command.stat.lnk_source == role_path ~ "/files/scripts/claude-kit/claude-kit"
+    fail_msg: "Refusing to remove {{ claude_kit_command.stat.lnk_source }} as claude-kit"
+  when: claude_kit_command.stat.islnk | default(false)
+
+# Removed rather than replaced: the command is named kura now, and the download below
+# writes a different path. Leaving the old link would leave a claude-kit on PATH
+# pointing into a directory this commit deletes.
+- name: Remove the legacy claude-kit symlink
+  ansible.builtin.file:
+    path: "{{ HOME }}/.local/bin/claude-kit"
+    state: absent
+  when: claude_kit_command.stat.islnk | default(false)
+
+- name: Install the pinned kura release
+  ansible.builtin.get_url:
+    url: "{{ KURA.repository }}/releases/download/{{ KURA.release }}/kura"
+    dest: "{{ HOME }}/.local/bin/kura"
+    checksum: "{{ KURA.checksum }}"
+    mode: "0755"
+
+- name: Ensure the kura data directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.local/share/kura"
+    state: directory
+    mode: "0755"
+
+# kura reads a catalog rather than a checkout: KURA_CATALOG if set, else this path. The
+# link is what makes an interactive `kura list`, the SessionStart hook and `wt add` work
+# with no environment at all, and force: true is what repoints it at this checkout when
+# it names an older one.
+- name: Point kura at the artifact catalog
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/claude"
+    dest: "{{ HOME }}/.local/share/kura/catalog"
+    state: link
+    force: true
+
 # The `global` group tag in the two registries is the single source of truth for what
-# belongs in ~/.claude, and claude-kit already derives that set to answer "does this
+# belongs in ~/.claude, and kura already derives that set to answer "does this
 # need --global?". This task is the only consumer of it here, deliberately: the same
 # derivation once lived in this file as ~130 lines of Jinja, which nothing could
 # unit-test and which drifted from the tool's copy the moment either changed.
@@ -192,29 +245,30 @@
 # hand-made directory in ~/.claude/skills survives untouched.
 - name: Converge global claude skills, agents and plugins
   ansible.builtin.command:
-    cmd: "{{ role_path }}/files/scripts/claude-kit/claude-kit sync{{ ' --dry-run' if ansible_check_mode else '' }}"
+    cmd: "{{ HOME }}/.local/bin/kura sync{{ ' --dry-run' if ansible_check_mode else '' }}"
   environment:
-    # Both of claude-kit's environmental inputs, pinned rather than inherited: the
-    # playbook's HOME is the right one, and DOTFILES_DIR keeps the tool reading this
-    # checkout instead of walking up from wherever the symlink on PATH resolved to.
+    # Both of kura's environmental inputs, pinned rather than inherited: the playbook's
+    # HOME is the right one, and naming the catalog says this apply provisions from this
+    # checkout. Passing it explicitly also keeps --check honest on a machine that has
+    # never been applied, where the symlink task above has created nothing yet.
     HOME: "{{ HOME }}"
-    DOTFILES_DIR: "{{ role_path | dirname | dirname }}"
+    KURA_CATALOG: "{{ role_path }}/files/claude"
     NO_COLOR: "1"
-  register: claude_kit_sync
+  register: kura_sync
   # A dry run is the whole task under --check, so it must not be skipped there.
   check_mode: false
-  changed_when: claude_kit_sync.stdout is not search(', 0 changes')
+  changed_when: kura_sync.stdout is not search(', 0 changes')
 
 # Worth seeing: this is the one task that deletes something nobody named, and its
 # report is the only place a prune or a missing artifact is explained.
 - name: Show what the global sync did
   ansible.builtin.debug:
-    var: claude_kit_sync.stdout_lines
-  when: claude_kit_sync is changed or claude_kit_sync.stderr | length > 0
+    var: kura_sync.stdout_lines
+  when: kura_sync is changed or kura_sync.stderr | length > 0
 
 # The project half of the same idea, and the reason it is a task rather than a chore:
 # pi reads a project's skills from `.agents/skills` and its plugin agents from
-# `.agents/agents/`, never from `.claude/`, and claude-kit maintained those links only as
+# `.agents/agents/`, never from `.claude/`, and kura maintained those links only as
 # a side effect of `add` and `remove`. So every project provisioned before that code
 # existed was invisible to pi until somebody happened to install a skill there, which on
 # this machine was 28 of them. `--all` sweeps Claude Code's own project registry together
@@ -225,23 +279,23 @@
 # else at either path is reported and left alone.
 - name: Converge pi's view of every project's skills and plugin agents
   ansible.builtin.command:
-    cmd: "{{ role_path }}/files/scripts/claude-kit/claude-kit converge --all{{ ' --dry-run' if ansible_check_mode else '' }}"
+    cmd: "{{ HOME }}/.local/bin/kura converge --all{{ ' --dry-run' if ansible_check_mode else '' }}"
   environment:
     # Pinned for the sync task's reasons, and one more: discovery reads $HOME/.claude.json
     # and walks $HOME/Developer, so an inherited HOME would sweep the wrong machine's
     # projects.
     HOME: "{{ HOME }}"
-    DOTFILES_DIR: "{{ role_path | dirname | dirname }}"
+    KURA_CATALOG: "{{ role_path }}/files/claude"
     NO_COLOR: "1"
-  register: claude_kit_converge
+  register: kura_converge
   # A dry run is the whole task under --check, so it must not be skipped there.
   check_mode: false
-  changed_when: claude_kit_converge.stdout is not search(', 0 changes')
+  changed_when: kura_converge.stdout is not search(', 0 changes')
 
 - name: Show what the pi convergence did
   ansible.builtin.debug:
-    var: claude_kit_converge.stdout_lines
-  when: claude_kit_converge is changed or claude_kit_converge.stderr | length > 0
+    var: kura_converge.stdout_lines
+  when: kura_converge is changed or kura_converge.stderr | length > 0
 
 - name: Symlink pi agent config
   ansible.builtin.file:
@@ -283,7 +337,7 @@
     force: true
 
 # Pi's global skills are Claude's global skills, the same set and by the same
-# derivation, because ~/.claude/skills is what `claude-kit sync` above converges from
+# derivation, because ~/.claude/skills is what `kura sync` above converges from
 # the `global` tag. Pointing at the repo instead gave pi every skill in the tree: 69
 # descriptions in every session's system prompt against Claude's 19, most of them
 # project-scoped, several `dependency_only` and one (`claude-api`) about a harness pi
