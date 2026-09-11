@@ -72,13 +72,13 @@
     - .config/fish/functions/clean_docker.fish
     - .config/fish/functions/clean_node.fish
     - .config/fish/functions/create_gitconfig.fish
-    - .config/fish/functions/_tv_claude_list.fish
-    - .config/fish/functions/_tv_claude_toggle.fish
+    - .config/fish/functions/_tv_kura_list.fish
+    - .config/fish/functions/_tv_kura_toggle.fish
     - .config/fish/functions/tv_change_dir.fish
     - .config/television/config.toml
     - .config/television/cable/aerospace.toml
-    - .config/television/cable/claude-skills.toml
-    - .config/television/cable/claude-agents.toml
+    - .config/television/cable/kura-skills.toml
+    - .config/television/cable/kura-agents.toml
     - .config/television/cable/sentry.toml
     - .config/starship.toml
   register: results

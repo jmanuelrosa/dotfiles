@@ -202,13 +202,13 @@ fallback_channel = "files"
 "git-repos" = ["zed", "code", "nvim", "hx", "git clone"]
 "text" = ["rg", "grep"]
 "ssh-hosts" = ["ssh", "scp", "rsync"]
-"claude-agents" = [
+"kura-agents" = [
   "kura add --type agent",
   "kura remove --type agent",
   "kura add --type plugin",
   "kura remove --type plugin"
 ]
-"claude-skills" = [
+"kura-skills" = [
   "kura add --type skill",
   "kura remove --type skill",
   "kura outdated --type skill",

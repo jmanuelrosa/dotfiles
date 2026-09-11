@@ -1,14 +1,14 @@
 [metadata]
-name = "claude-skills"
+name = "kura-skills"
 description = "Manage Claude Code skills (toggle link, check outdated, update)"
 requirements = ["fish", "jq", "bat", "kura"]
 
 [source]
 command = [
-  { name = "No global", run = "fish -c '_tv_claude_list skill noglobal'" },
-  { name = "Linked",    run = "fish -c '_tv_claude_list skill linked'" },
-  { name = "Available", run = "fish -c '_tv_claude_list skill available'" },
-  { name = "All",       run = "fish -c '_tv_claude_list skill'" },
+  { name = "No global", run = "fish -c '_tv_kura_list skill noglobal'" },
+  { name = "Linked",    run = "fish -c '_tv_kura_list skill linked'" },
+  { name = "Available", run = "fish -c '_tv_kura_list skill available'" },
+  { name = "All",       run = "fish -c '_tv_kura_list skill'" },
 ]
 output = "{split: :0}"
 
@@ -33,7 +33,7 @@ ctrl-o = "actions:edit"
 # string_pipeline unescapes; `separator` wants the real byte.
 [actions.toggle]
 description = "Toggle the skill link in this project"
-command = "fish -c '_tv_claude_toggle skill {split:\\n:..|map:{split: :0}|join: }'"
+command = "fish -c '_tv_kura_toggle skill {split:\\n:..|map:{split: :0}|join: }'"
 mode = "execute"
 separator = "\n"
 

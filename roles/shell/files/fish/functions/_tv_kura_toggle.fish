@@ -1,7 +1,7 @@
-function _tv_claude_toggle --description "Television action: toggle link for one or more claude skills or agents" --argument-names kind
+function _tv_kura_toggle --description "Television action: toggle link for one or more catalog skills or agents" --argument-names kind
     set -l names $argv[2..]
     if test (count $names) -eq 0
-        _ui err "_tv_claude_toggle: missing name"
+        _ui err "_tv_kura_toggle: missing name"
         return 1
     end
     if not command -q kura
@@ -11,7 +11,7 @@ function _tv_claude_toggle --description "Television action: toggle link for one
 
     switch $kind
         case skill skills
-            _tv_claude_toggle_type skill $names
+            _tv_kura_toggle_type skill $names
         case agent agents
             # The agent picker lists agents and seat plugins together, so a selection may
             # hold both and each needs its own --type. Which a name is comes from
@@ -31,19 +31,19 @@ function _tv_claude_toggle --description "Television action: toggle link for one
             end
             set -l rc 0
             test (count $agents) -gt 0; and begin
-                _tv_claude_toggle_type agent $agents; or set rc $status
+                _tv_kura_toggle_type agent $agents; or set rc $status
             end
             test (count $plugins) -gt 0; and begin
-                _tv_claude_toggle_type plugin $plugins; or set rc $status
+                _tv_kura_toggle_type plugin $plugins; or set rc $status
             end
             return $rc
         case '*'
-            _ui err "_tv_claude_toggle: kind must be 'skill' or 'agent'"
+            _ui err "_tv_kura_toggle: kind must be 'skill' or 'agent'"
             return 1
     end
 end
 
-function _tv_claude_toggle_type --description "Add or remove every named artifact of one type, in the scope kura reports for it" --argument-names type
+function _tv_kura_toggle_type --description "Add or remove every named artifact of one type, in the scope kura reports for it" --argument-names type
     set -l names $argv[2..]
 
     # kura is the authority on both questions this action has to answer: whether an

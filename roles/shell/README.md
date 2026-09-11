@@ -26,11 +26,11 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 
 ## Files
 
-- `files/fish/` — `config.fish`, `conf.d/{aliases,exports}.fish`, plus functions: `clean_claude` (+ `_clean_claude_{usage,excludes,find,confirm,tracked,purge_state,state_roots,worktree_main}`), `clean_all`, `clean_docker`, `clean_node`, `create_gitconfig`, `lns` (+ `_lns_{usage,target}`), `wt`, `_tv_claude_list`, `_tv_claude_toggle` (both thin: every fact they show or act on comes from `kura list --json`), `tv_change_dir`, `tv_history`, `_ui`. Dropping a new `.fish` in there is self-installing: the role globs the directory, and prunes links whose source is gone. (Work-only helpers like `_tv_jira` live in the `work` role.)
+- `files/fish/` — `config.fish`, `conf.d/{aliases,exports}.fish`, plus functions: `clean_claude` (+ `_clean_claude_{usage,excludes,find,confirm,tracked,purge_state,state_roots,worktree_main}`), `clean_all`, `clean_docker`, `clean_node`, `create_gitconfig`, `lns` (+ `_lns_{usage,target}`), `wt`, `_tv_kura_list`, `_tv_kura_toggle` (both thin: every fact they show or act on comes from `kura list --json`), `tv_change_dir`, `tv_history`, `_ui`. Dropping a new `.fish` in there is self-installing: the role globs the directory, and prunes links whose source is gone. (Work-only helpers like `_tv_jira` live in the `work` role.)
 - `files/ghostty/config` — Ghostty terminal config.
 - `files/starship.toml` — Starship prompt config.
 - `files/television/config.toml` — top-level television config (keybindings, theme, shell-integration channel triggers).
-- `files/television/cable/*.toml` — vendored custom channels. Each one becomes a symlink in `~/.config/television/cable/`. Currently ships: `aerospace`, `claude-agents`, `claude-skills`, `sentry`. (The `jira` cable lives in the `work` role since it depends on `acli`.)
+- `files/television/cable/*.toml` — vendored custom channels. Each one becomes a symlink in `~/.config/television/cable/`. Currently ships: `aerospace`, `kura-agents`, `kura-skills`, `sentry`. (The `jira` cable lives in the `work` role since it depends on `acli`.)
 
 ## Templates
 
@@ -57,7 +57,7 @@ Unlike a bare `set_color`, `_ui` decides colour per stream: `NO_COLOR` beats `FO
 
 That decision is made where a line is **printed**, never where a fragment is composed. `_ui color` and `_ui paint` only run inside a command substitution, and fish gives one a pipe for stdout, so a tty check there is false however the command was run: they emit their escapes regardless (only `NO_COLOR` silences them) and the printing kind strips what its stream refuses. A script building a row with `echo` instead has nothing to strip it, so it asks **`_ui color-enabled`** first, as a bare command, and fills its palette inside that `if`.
 
-**Television cable rows** (`_tv_claude_fmt`) stay outside the vocabulary on purpose: they are fixed-width columns a picker lays out and filters, not lines a human reads.
+**Television cable rows** (`_tv_kura_fmt`) stay outside the vocabulary on purpose: they are fixed-width columns a picker lays out and filters, not lines a human reads.
 
 ## Custom fish commands worth knowing
 

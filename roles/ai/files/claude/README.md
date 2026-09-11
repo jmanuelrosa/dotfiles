@@ -26,7 +26,7 @@ kura trust                                       Show or change whether this wor
 
 `--type` is required except on `doctor`, `adopt`, `restore`, `sync` and `scout`, where it narrows an otherwise cross-type result, and on `trust`, which takes none at all. Nothing is inferred from a name, so a name means one artifact of one type. `add` and `remove` also take `--group <tag>` instead of names, and `--global` for an artifact that lands in `~/.claude`. A project is whatever directory you run it in (`$HOME` excepted, since its `.claude` *is* `~/.claude`).
 
-Full reference, worked examples and a corner-case FAQ: kura's own README, in its repository. The `claude-skills` and `claude-agents` Television cables drive the same commands interactively.
+Full reference, worked examples and a corner-case FAQ: kura's own README, in its repository. The `kura-skills` and `kura-agents` Television cables drive the same commands interactively.
 
 ## Product Team
 
