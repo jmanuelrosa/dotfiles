@@ -10,15 +10,19 @@ released separately now, so what remains is the half this repository can break:
                   registries mean it to say
 
 The tool's own behaviour is asserted in its own repository against a fixture catalog.
-Nothing here imports it: the two derivations that need its answers ask the installed
-command through `list --json`, which is the interface the Television cables read too,
-and skip when it is not installed yet.
+Nothing here imports it: the derivations that need its answers ask the installed command
+and skip when it is not installed yet. `list --json` is the interface the Television
+cables read; `sync --dry-run` is the one that reveals the effective global set, because
+`list` hides dependency-only rows and two of the global skills are reached only as
+dependencies.
 """
 
 import json
 import os
+import re
 import shutil
 import subprocess
+import tempfile
 
 import pytest
 import yaml
@@ -83,6 +87,29 @@ def listing(kind):
         check=True,
     )
     return json.loads(rows.stdout)
+
+
+def effective_global(kind):
+    """The set `sync` would link into a clean `~/.claude`, which is the effective set.
+
+    A dependency-only artifact is global when a global skill pulls it in, and `list`
+    hides those rows by design, so the listing cannot see the whole set. An empty HOME
+    makes every member a link rather than a no-op, so one parse covers all of them.
+    """
+    with tempfile.TemporaryDirectory() as home:
+        run = subprocess.run(
+            [kura_or_skip(), "sync", "--type", kind, "--dry-run"],
+            env={
+                **os.environ,
+                "HOME": home,
+                "KURA_CATALOG": str(CLAUDE),
+                "NO_COLOR": "1",
+            },
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    return set(re.findall(r"Would link '([^']+)'", run.stdout))
 
 
 # --- the installer ------------------------------------------------------------
@@ -354,12 +381,11 @@ def test_the_global_set_holds_exactly_the_documented_membership():
     """Pinned so a registry retag shows up as a failing test rather than as a silent
     change to what lands in ~/.claude.
 
-    Read from `list --json` rather than derived here. The derivation is kura's, it
+    Read from `sync --dry-run` rather than derived here. The derivation is kura's, it
     expands dependencies one level for a global skill and two for a global agent, and a
     second copy of it in this repository is exactly the drift the Jinja version caused.
     """
-    globals_ = {row["name"] for row in listing("skill") if row["global"]}
-    assert globals_ == {
+    assert effective_global("skill") == {
         "ac",
         "agent-audit",
         "agent-writer",

@@ -327,10 +327,9 @@ The boundary is external behaviour: resolved catalog path, command output, JSON 
 
 ## Open questions
 
-- The pinned checksum in `roles/ai/defaults/main.yml` is the digest of the locally built asset, since this environment cannot reach the GitHub API to read the published one. Confirm it matches the release before applying, or the download fails on a checksum mismatch.
-- Which dotfiles branch carries this, given `refactor/extract-hostof` is unmerged.
-- Should the `claude:skill` / `claude:agent` / `claude:plugin` fish wrappers, and the `claude-skills` / `claude-agents` Television cables, be renamed too? Their command lines now call `kura`, but their own names still read as Claude-only while the tool serves both harnesses.
 - Should a `doctor` check report the resolved catalog root and whether it is the managed symlink, or is that a later change once the release has landed?
+
+**Resolved after the walkthrough:** the pinned checksum was confirmed against the published `v0.1.0` asset; the work landed on `refactor/extract-kura` as #119, rebased onto `main` once the hostof pilot merged as #118; and the Claude-branded consumer names were renamed to `kura:skill` / `kura:agent` / `kura:plugin`, `_tv_kura_list` / `_tv_kura_toggle`, and the `kura-skills` / `kura-agents` cables. `clean_claude` and `clean:claude:*` keep their names, since they clean Claude Code state rather than anything kura owns.
 
 **Decided during the walkthrough:** the dotfiles-side remainder tests fold into `lib/python/tests` rather than a new suite root; `AI_SCRIPTS_DIR` in `dotkit.testing` is deleted once its only reader goes standalone; the command is renamed to `kura`; and the manifest rename carries no fallback and no migration.
 

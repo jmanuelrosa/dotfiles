@@ -44,7 +44,7 @@ The state at research time, before either extraction. The first three no longer 
 - Five Python applications import shared `dotkit` code through sibling symlinks; see [the helper-link tests](../../lib/python/tests/test_suites.py), lines 177-223.
 - `claude-kit` discovers `dotfiles.yml` and derives `roles/ai/files/claude` in its own `paths.py`, by walking up from the executable for a marker file.
 - The AI role executes `claude-kit sync` and `converge --all` directly from the checkout; see [AI tasks](../../roles/ai/tasks/main.yml), lines 193-239.
-- Fish/Television consumers depend on `claude-kit` command names and JSON output; see [_tv_claude_list.fish](../../roles/shell/files/fish/functions/_tv_claude_list.fish), lines 11-12 and 54-56.
+- Fish/Television consumers depend on `claude-kit` command names and JSON output, in the Television list helper and the two cables it feeds.
 - Tests live beside each application and are registered in [pytest.ini](../../pytest.ini); the existing [pull-request workflow](../../.github/workflows/pull_request.yml) runs `make test`.
 - Package ownership is per-role, and role order matters; preserve the conventions in [AGENTS.md](../../AGENTS.md).
 

@@ -72,15 +72,15 @@ alias docker:stop='colima stop'
 
 # kura. Functions rather than aliases: fish's alias builtin appends $argv to the
 # body unconditionally, so an alias holding $argv passes every argument twice.
-function claude:skill --wraps kura
+function kura:skill --wraps kura
     kura $argv --type skill
 end
 
-function claude:agent --wraps kura
+function kura:agent --wraps kura
     kura $argv --type agent
 end
 
-function claude:plugin --wraps kura
+function kura:plugin --wraps kura
     kura $argv --type plugin
 end
 

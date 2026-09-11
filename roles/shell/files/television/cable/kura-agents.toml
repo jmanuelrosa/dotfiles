@@ -1,14 +1,14 @@
 [metadata]
-name = "claude-agents"
+name = "kura-agents"
 description = "Manage Claude Code agents and seat plugins (toggle link, open in $EDITOR)"
 requirements = ["fish", "jq", "bat", "kura"]
 
 [source]
 command = [
-  { name = "No global", run = "fish -c '_tv_claude_list agent noglobal'" },
-  { name = "Linked",    run = "fish -c '_tv_claude_list agent linked'" },
-  { name = "Available", run = "fish -c '_tv_claude_list agent available'" },
-  { name = "All",       run = "fish -c '_tv_claude_list agent'" },
+  { name = "No global", run = "fish -c '_tv_kura_list agent noglobal'" },
+  { name = "Linked",    run = "fish -c '_tv_kura_list agent linked'" },
+  { name = "Available", run = "fish -c '_tv_kura_list agent available'" },
+  { name = "All",       run = "fish -c '_tv_kura_list agent'" },
 ]
 output = "{split: :0}"
 
@@ -34,7 +34,7 @@ ctrl-o = "actions:edit"
 # string_pipeline unescapes; `separator` wants the real byte.
 [actions.toggle]
 description = "Toggle the agent link in this project"
-command = "fish -c '_tv_claude_toggle agent {split:\\n:..|map:{split: :0}|join: }'"
+command = "fish -c '_tv_kura_toggle agent {split:\\n:..|map:{split: :0}|join: }'"
 mode = "execute"
 separator = "\n"
 

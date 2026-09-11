@@ -1,7 +1,7 @@
-"""The Television claude cables read kura, and derive nothing themselves.
+"""The Television kura cables read kura, and derive nothing themselves.
 
 There is no fish test suite, and that is how the bug this file guards against shipped.
-`_tv_claude_list` used to rebuild kura's whole answer in jq and fish: the
+`_tv_kura_list` used to rebuild kura's whole answer in jq and fish: the
 catalogue, the dependency_only hiding, the effective global set, and link status. Four
 of those five had a python counterpart under test; the fifth, what counts as a project,
 had none, and the two implementations disagreed. kura takes the cwd, the cable
@@ -22,7 +22,7 @@ import pytest
 from dotkit.testing import FISH_FUNCTIONS, REPO
 
 # The two functions the cables call, and the whole of what fish still owns here.
-CABLES = ("_tv_claude_list.fish", "_tv_claude_toggle.fish")
+CABLES = ("_tv_kura_list.fish", "_tv_kura_toggle.fish")
 
 # Deleted when the cable stopped deriving: three scope helpers and the jq prelude that
 # fed them. Every one had a python counterpart that was already the authority.
@@ -64,7 +64,7 @@ def test_a_cable_derives_nothing_of_its_own(name, forbidden):
 
 
 def test_the_listing_cable_reads_kura():
-    assert re.search(r"kura list --type \$type --json", source("_tv_claude_list.fish"))
+    assert re.search(r"kura list --type \$type --json", source("_tv_kura_list.fish"))
 
 
 def test_the_toggle_reads_its_direction_from_kura():
@@ -73,7 +73,7 @@ def test_the_toggle_reads_its_direction_from_kura():
     Reconstructing either from a tag would put the scope rule back in fish, in the one
     place a wrong answer writes to disk instead of merely rendering oddly.
     """
-    body = source("_tv_claude_toggle.fish")
+    body = source("_tv_kura_toggle.fish")
     assert "kura list --type $type --json" in body
     assert "kura $action $name --type $type $want_global" in body
 
