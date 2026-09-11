@@ -10,7 +10,8 @@ directory with no `__init__.py` is named, literally, `conftest`. With two suite
 directories on `sys.path`, `sys.modules['conftest']` holds whichever loaded last and a
 test module's `import conftest` binds against the wrong file. It fails silently when
 the two happen to agree, which is exactly what it did here: four suites collected
-clean against claude-kit's conftest for two commits.
+clean for two commits against the conftest of the kura CLI's suite, back when that
+suite still lived in this checkout.
 
 So the rule this module exists to enforce: **a test module imports shared names from
 here, never from a module whose name another directory could also claim.**

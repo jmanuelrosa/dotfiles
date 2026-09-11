@@ -203,16 +203,16 @@ fallback_channel = "files"
 "text" = ["rg", "grep"]
 "ssh-hosts" = ["ssh", "scp", "rsync"]
 "claude-agents" = [
-  "claude-kit add --type agent",
-  "claude-kit remove --type agent",
-  "claude-kit add --type plugin",
-  "claude-kit remove --type plugin"
+  "kura add --type agent",
+  "kura remove --type agent",
+  "kura add --type plugin",
+  "kura remove --type plugin"
 ]
 "claude-skills" = [
-  "claude-kit add --type skill",
-  "claude-kit remove --type skill",
-  "claude-kit outdated --type skill",
-  "claude-kit update --type skill"
+  "kura add --type skill",
+  "kura remove --type skill",
+  "kura outdated --type skill",
+  "kura update --type skill"
 ]
 "jira" = ["acli jira"]
 "sentry" = ["sentry-cli issues"]

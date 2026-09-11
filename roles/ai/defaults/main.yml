@@ -3,7 +3,7 @@
 ---
 
 # There is no var for the set symlinked into ~/.claude (the artifacts available in
-# every project without a per-project `add`). `claude-kit sync` derives it from the
+# every project without a per-project `add`). `kura sync` derives it from the
 # `global` group tag in skill-registry.json, agent-registry.json and the plugin
 # manifests, which is the single source of truth, then expands the skills by their
 # declared dependencies. Tag an entry `"global"` to add it to the set. The role runs
@@ -40,5 +40,14 @@ BREW_PACKAGES:
 # at all and silently install no tools. Naming them also drops the `when` guard that
 # used to keep the README off PATH, and gates per tool instead of per role.
 AI_SCRIPTS:
-  - claude-kit
   - tokencost
+
+# kura installs the artifacts in files/claude/ and is no longer developed here, so it
+# arrives as a released asset rather than as a link into this checkout. The release
+# label is for reading and the checksum is the identity: get_url verifies it, skips the
+# download when the file already matches, and replaces it when it does not, so an
+# upgrade and a rollback are the same two-line edit in opposite directions.
+KURA:
+  repository: https://github.com/jmanuelrosa/kura
+  release: v0.1.0
+  checksum: sha256:ad10b184d55385a05a950e9cc824ff7b1866eb476f28867c03373ce4f67bd268

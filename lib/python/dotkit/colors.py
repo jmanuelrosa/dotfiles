@@ -67,7 +67,7 @@ def for_stream(text, stream):
 
     Some text is painted before its destination is known: argparse formats usage
     through a HelpFormatter that has no idea whether the parser is about to print it to
-    stdout for `--help` or to stderr for a refusal. Without this, `claude-kit bogus
+    stdout for `--help` or to stderr for a refusal. Without this, `lokl bogus
     2>log` from a terminal writes escape codes into the log.
     """
     return text if enabled(stream) else strip(text)

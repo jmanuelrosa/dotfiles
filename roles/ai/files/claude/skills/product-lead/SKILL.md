@@ -17,7 +17,7 @@ This skill is a signpost. It holds no pipeline mechanics: the conventions, the t
 ## Install it in this repo
 
 ```
-claude-kit add product-team --type plugin
+kura add product-team --type plugin
 ```
 
 That symlinks the plugin into `.claude/skills/product-team/`. Two things are required before it loads, and both are easy to miss:
@@ -47,4 +47,4 @@ Two gates, not four, and they are answered in the session unless the repo's `doc
 
 Start with `/product-team:product-lead`: it derives each initiative's state from the artifacts on disk and names the exact next command.
 
-If the user wants the pipeline and the plugin is not installed, say so and hand them the `claude-kit add` line above. Do not reconstruct a stage from memory: the stage skills own their own contracts, and paraphrasing them produces artifacts the later gates reject.
+If the user wants the pipeline and the plugin is not installed, say so and hand them the `kura add` line above. Do not reconstruct a stage from memory: the stage skills own their own contracts, and paraphrasing them produces artifacts the later gates reject.

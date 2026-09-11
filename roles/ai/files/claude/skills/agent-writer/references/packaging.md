@@ -40,7 +40,7 @@ Do not tag the discipline `global`; seats are per-project.
 ### How it loads and installs
 
 The folder auto-loads as `<discipline>@skills-dir`; the agent is `<discipline>:<seat>` and the skill is `<discipline>:<seat>-failure-modes`.
-Install into a project with `claude-kit add <discipline> --type plugin` (it symlinks the plugin folder into `.claude/skills/`, the same edit-once-use-everywhere model as flat agents).
+Install into a project with `kura add <discipline> --type plugin` (it symlinks the plugin folder into `.claude/skills/`, the same edit-once-use-everywhere model as flat agents).
 A project-scope plugin loads only in a trusted workspace (the repo root has `hasTrustDialogAccepted: true`) and only when Claude Code is launched from that repo root; a freshly linked plugin needs a full restart, not `/reload-plugins`.
 
 ## Utility agent: flat file plus registry row
@@ -57,7 +57,7 @@ A utility agent (no paired skill) stays a flat file with a registry entry, uncha
 }
 ```
 
-Add `dependencies: ["<skill>"]` only if it invokes a skill at runtime; add `"global"` to its `groups` only if every project needs it, which is what makes `claude-kit sync` link it into `~/.claude/agents/`.
+Add `dependencies: ["<skill>"]` only if it invokes a skill at runtime; add `"global"` to its `groups` only if every project needs it, which is what makes `kura sync` link it into `~/.claude/agents/`.
 Always edit the registry via a python3 round-trip with `json.dump(..., indent=2)`; never hand-edit.
 
 ## Groups vocabulary

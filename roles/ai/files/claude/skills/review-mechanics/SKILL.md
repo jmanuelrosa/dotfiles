@@ -60,7 +60,7 @@ Never assume a seat is present because the axis needs it.
 
 ## Skip rules
 
-Report nothing in: generated or vendored trees, lockfiles, snapshots and fixtures asserting only shape, and `roles/ai/files/claude/skills/<upstream>` trees in the dotfiles repo, since `claude-kit update` replaces those wholesale and a finding there is discarded on the next sync.
+Report nothing in: generated or vendored trees, lockfiles, snapshots and fixtures asserting only shape, and `roles/ai/files/claude/skills/<upstream>` trees in the dotfiles repo, since `kura update` replaces those wholesale and a finding there is discarded on the next sync.
 
 Do not spend the output cap on what a hook already blocks:
 

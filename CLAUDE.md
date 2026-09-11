@@ -56,7 +56,7 @@ Open the one you are working in, and only that one.
 
 | Open this | When you are |
 |---|---|
-| [claude-kit](roles/ai/files/scripts/claude-kit/ARCHITECTURE.md) | Changing the `claude-kit` CLI, its commands, scopes, provenance manifest, dependency resolution, `sync` pruning, or workspace trust |
+| [The ai role](roles/ai/README.md) | Changing how the pinned `kura` release is installed or what catalog it is pointed at. `kura` itself lives in its own repository now, and its commands, scopes, provenance manifest, dependency resolution, `sync` pruning and workspace trust are documented there |
 | [Skill registry & dependencies](docs/internals/skill-registry.md) | Adding or retagging a skill or agent, touching `skill-registry.json` / `agent-registry.json`, the `groups` vocabulary, or the `global` scope tag |
 | [Seat plugins](docs/internals/seat-plugins.md) | Authoring or upgrading a staff-engineer seat, its failure-mode references, or the design-versus-frontend boundary |
 | [The product-team plugin](docs/internals/product-team.md) | Working on the two-gate product pipeline, its stages, `pt.py`, or `docs/initiatives/` artifacts |
@@ -69,7 +69,7 @@ Open the one you are working in, and only that one.
 | [The pi harness](docs/internals/pi-harness.md) | Working on Pi: what it shares with Claude Code by symlink, the translated guardrail hooks, the derived `pi-sandbox` permission config, the two trust stores, the footer segment, or `tokencost --pi` |
 | [Context hygiene](docs/internals/context-hygiene.md) | Investigating token or usage spend, or deciding where a piece of documentation should live |
 
-Two rules that apply without opening anything: a **name must mean one artifact** across `skill-registry.json`, `agent-registry.json` and `plugins/`, and `~/.claude/skills/` and `~/.claude/agents/` are **role-owned and pruned** by `claude-kit sync`, so a link there that is not derived from the `global` tag is deleted on the next run.
+Two rules that apply without opening anything: a **name must mean one artifact** across `skill-registry.json`, `agent-registry.json` and `plugins/`, and `~/.claude/skills/` and `~/.claude/agents/` are **role-owned and pruned** by `kura sync`, so a link there that is not derived from the `global` tag is deleted on the next run.
 
 ## Conventions
 

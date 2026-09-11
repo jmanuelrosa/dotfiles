@@ -1,6 +1,6 @@
 """Pi's skill discovery, run for real, because the whole `.agents/skills` link rests on it.
 
-`claude_kit.pi` links one directory and claims that pi then sees every skill a project
+`kura converge` links one directory and claims that pi then sees every skill a project
 installed. Three facts have to hold for that to be true, and all three live in pi's code
 rather than ours:
 
@@ -67,9 +67,9 @@ def loader():
 
 @pytest.fixture
 def project(tmp_path):
-    """A project as `claude-kit add` leaves it, plus the link `pi.converge` makes.
+    """A project as `kura add` leaves it, plus the link `kura converge` makes.
 
-    Built by hand rather than by calling claude-kit, so a change in this module's
+    Built by hand rather than by calling kura, so a change in this module's
     verdict is a change in pi and never in ours.
     """
     leaf = tmp_path / "proj" / ".claude" / "skills"

@@ -1,6 +1,6 @@
 # Claude
 
-Management system for Claude Code skills, agents, and MCP servers. Skills and agents live in this directory; `claude-kit` links them into a project or into `~/.claude`.
+Management system for Claude Code skills, agents, and MCP servers. Skills and agents live in this directory; `kura` links them into a project or into `~/.claude`.
 
 This document covers how to **use them in a project** and how to **add new skills and agents to the dotfiles repo** itself.
 
@@ -8,25 +8,25 @@ For the worked example (a project from zero, product side then engineering side,
 
 ## Commands
 
-`claude-kit` is the CLI (`roles/ai/files/scripts/claude-kit/`, symlinked into `~/.local/bin` by the `ai` role). It replaced the `claude-skill` / `claude-agent` fish functions, which are gone.
+`kura` is the CLI. It lives in its own repository now: the `ai` role installs a pinned release at `~/.local/bin/kura` and points it at this directory as its catalog (`KURA_CATALOG`, or `~/.local/share/kura/catalog` when that is unset). It replaced the `claude-skill` / `claude-agent` fish functions, which are gone.
 
 ```
-claude-kit add    <name>... --type skill|agent|plugin   Install, resolving dependencies
-claude-kit remove <name>... --type skill|agent|plugin   Uninstall, cascading to dependencies
-claude-kit list            --type skill|agent|plugin   Show artifacts and where they are installed
-claude-kit scout                                       Recommend artifacts matched to this project's stack
-claude-kit doctor                                      Report drift between registries and disk
-claude-kit adopt                                       Rebuild claude-kit.json from what is installed
-claude-kit restore                                     Install what claude-kit.json records
-claude-kit sync                                        Converge ~/.claude on the artifacts tagged global
-claude-kit update   --type skill                       Fetch skills from their upstream repos
-claude-kit outdated --type skill                       Report which skills are behind upstream
-claude-kit trust                                       Show or change whether this workspace is trusted
+kura add    <name>... --type skill|agent|plugin   Install, resolving dependencies
+kura remove <name>... --type skill|agent|plugin   Uninstall, cascading to dependencies
+kura list            --type skill|agent|plugin   Show artifacts and where they are installed
+kura scout                                       Recommend artifacts matched to this project's stack
+kura doctor                                      Report drift between registries and disk
+kura adopt                                       Rebuild kura.json from what is installed
+kura restore                                     Install what kura.json records
+kura sync                                        Converge ~/.claude on the artifacts tagged global
+kura update   --type skill                       Fetch skills from their upstream repos
+kura outdated --type skill                       Report which skills are behind upstream
+kura trust                                       Show or change whether this workspace is trusted
 ```
 
 `--type` is required except on `doctor`, `adopt`, `restore`, `sync` and `scout`, where it narrows an otherwise cross-type result, and on `trust`, which takes none at all. Nothing is inferred from a name, so a name means one artifact of one type. `add` and `remove` also take `--group <tag>` instead of names, and `--global` for an artifact that lands in `~/.claude`. A project is whatever directory you run it in (`$HOME` excepted, since its `.claude` *is* `~/.claude`).
 
-Full reference, worked examples and a corner-case FAQ: [../scripts/claude-kit/README.md](../scripts/claude-kit/README.md). The `claude-skills` and `claude-agents` Television cables drive the same commands interactively.
+Full reference, worked examples and a corner-case FAQ: kura's own README, in its repository. The `claude-skills` and `claude-agents` Television cables drive the same commands interactively.
 
 ## Product Team
 
@@ -80,7 +80,7 @@ A healthy funnel kills most ideas at Gate 0. Killing early is the pipeline worki
 3. `/product-team:1-research`: fans out to the roster's researchers in parallel (the only fan-out in the pipeline) and synthesizes `01-research/summary.md`, naming any pass the roster skipped as an evidence gap.
 4. `/product-team:2-write-prd`: writes `02-prd.md`, where each requirement is a SHALL with at least one WHEN/THEN scenario, a capability, non-goals, and metrics that name the requirement making them measurable.
 5. `/product-team:3-red-team`: `product-team:pm-red-team` attacks the PRD with fresh eyes; agreed fixes are applied by the skill, and then it asks **Gate 1**. That order is deliberate: on a real initiative the gate was answered first and the report then had to amend an already-approved PRD.
-6. `/product-team:4-tech-shape`: dispatches `ux-shaper` to write `04-ux-spec.md` (every flow, every surface, every state, and the design-system pieces that do not exist yet), then explores this codebase read-only and writes `04-design-doc.md` against those states, closing every deferral aimed at it and stating where validity is enforced relative to deploy and who can read the deployed thing; `product-team:adr-scribe` extracts decisions into the repo-wide `docs/adr/`. `ux-shaper` is a registry agent rather than a bundled one, so this stage and the architect share one definition of a UX spec: `claude-kit add ux-shaper --type agent --global`.
+6. `/product-team:4-tech-shape`: dispatches `ux-shaper` to write `04-ux-spec.md` (every flow, every surface, every state, and the design-system pieces that do not exist yet), then explores this codebase read-only and writes `04-design-doc.md` against those states, closing every deferral aimed at it and stating where validity is enforced relative to deploy and who can read the deployed thing; `product-team:adr-scribe` extracts decisions into the repo-wide `docs/adr/`. `ux-shaper` is a registry agent rather than a bundled one, so this stage and the architect share one definition of a UX spec: `kura add ux-shaper --type agent --global`.
 7. `/product-team:5-decompose`: writes `05-tasks.md`, the whole build in dependency order from an empty repo to accepted, including the toolchain, deploy and acceptance work that could never be a story because no requirement asks for it. In the full profile it also writes thin story headers, and `product-team:ac-writer` fills each one's claimed scenario ids and reports any slice needing a criterion the PRD lacks.
 8. `/product-team:6-verify`: runs `pt.py check --strict` (errors and warnings both fail at DoR time), then judges the four items a script cannot, and writes `06-dor-report.md`. Pinned to Sonnet: it used to inherit an Opus session and cost more than research, the PRD and the red team combined.
 9. `/product-team:7-push-to-board`: dry-runs, asks Go/Cancel, then creates the GitHub epic and story issues with each story's claimed scenarios expanded into the body, links them, and adds them to the Project.
@@ -137,7 +137,7 @@ Each is single-artifact and least-privilege: it is dispatched only from its owni
 | `product-team:adr-scribe` | `/product-team:4-tech-shape` | `docs/adr/NNNN-*.md` | Extracts design decisions into numbered, immutable ADRs |
 | `product-team:ac-writer` | `/product-team:5-decompose` | edits `05-backlog/story-*.md` | Claims and completes: fills each story's scenario ids from the PRD and reports any slice needing a scenario the PRD lacks |
 
-The pipeline skills are all `disable-model-invocation: true` (human-invoked only). The one exception is `idea-refine`, vendored pristine from `addyosmani/agent-skills` and left model-invocable: `/product-team:setup-strategy` and `/product-team:0-refine-idea` invoke it via the Skill tool as their ideation front-end, and it works standalone too. Install the whole pipeline into a project with `claude-kit add product-team --type plugin`: the seven product agents ship inside the bundle and its `skillDependencies` pulls `idea-refine` alongside. The one agent to add separately is `ux-shaper` (`claude-kit add ux-shaper --type agent --global`), shared with the architect so both read one definition of a UX spec.
+The pipeline skills are all `disable-model-invocation: true` (human-invoked only). The one exception is `idea-refine`, vendored pristine from `addyosmani/agent-skills` and left model-invocable: `/product-team:setup-strategy` and `/product-team:0-refine-idea` invoke it via the Skill tool as their ideation front-end, and it works standalone too. Install the whole pipeline into a project with `kura add product-team --type plugin`: the seven product agents ship inside the bundle and its `skillDependencies` pulls `idea-refine` alongside. The one agent to add separately is `ux-shaper` (`kura add ux-shaper --type agent --global`), shared with the architect so both read one definition of a UX spec.
 
 ## Staff-engineer bench
 
@@ -162,9 +162,9 @@ A separate delegation system for building what Product Team specs out. Each seat
 | `qa-staff-engineer` | Unit/integration/e2e tests, test infra, fixtures, flake diagnosis | Modifies application source; reports product bugs back to the caller |
 | `security-staff-engineer` | Read-only assessment: STRIDE threat models, dependency audits, secrets hygiene, authn/authz review | Edits files; auto-delegation during coding (diff review is `/security-review`) |
 
-Each seat is a skills-dir plugin under `roles/ai/files/claude/plugins/<discipline>/` that bundles the agent with its `<discipline>-failure-modes` skill (`frontend-failure-modes`, `backend-failure-modes`, and so on): an audited checklist of that domain's common defects the seat consults before it implements. Because the skill lives inside the plugin folder, `claude-kit add <seat> --type plugin` links the whole plugin into the project and the skill travels with it (invoked as `<discipline>:<discipline>-failure-modes`); the seat loads once the workspace is trusted.
+Each seat is a skills-dir plugin under `roles/ai/files/claude/plugins/<discipline>/` that bundles the agent with its `<discipline>-failure-modes` skill (`frontend-failure-modes`, `backend-failure-modes`, and so on): an audited checklist of that domain's common defects the seat consults before it implements. Because the skill lives inside the plugin folder, `kura add <seat> --type plugin` links the whole plugin into the project and the skill travels with it (invoked as `<discipline>:<discipline>-failure-modes`); the seat loads once the workspace is trusted.
 
-Product Team hands off a backlog; then `/feature-team "<brief>"` runs the build side: `architect` writes the spec, you approve the plan, the installed seats implement in parallel, and the skill verifies and returns an integration report. Install a whole discipline with `claude-kit add --group engineering --type plugin` (the 13 seats above except `qa`, which lives under `quality`: add it with `claude-kit add qa --type plugin`), or add individual seats by name. A seat's **plugin name is the bare discipline** (`claude-kit add backend --type plugin`); the namespaced `backend:backend-staff-engineer` is how the agent inside is dispatched, not how it is installed.
+Product Team hands off a backlog; then `/feature-team "<brief>"` runs the build side: `architect` writes the spec, you approve the plan, the installed seats implement in parallel, and the skill verifies and returns an integration report. Install a whole discipline with `kura add --group engineering --type plugin` (the 13 seats above except `qa`, which lives under `quality`: add it with `kura add qa --type plugin`), or add individual seats by name. A seat's **plugin name is the bare discipline** (`kura add backend --type plugin`); the namespaced `backend:backend-staff-engineer` is how the agent inside is dispatched, not how it is installed.
 
 The parallel wave runs in **isolated git worktrees** by default (2+ independent slices; pass `--no-isolate` to keep it in the main checkout). One-file-one-owner stays the primary guarantee against source collisions; the worktree is the mechanism underneath it, fencing each seat's build/test side effects (`node_modules`, build output, generated files) and turning any ownership slip into a visible diff instead of a silent clobber. The architect marks each slice `Parallel: yes|no` and `Depends on:`; the wave (all `Parallel: yes`) dispatches with the Agent tool's `isolation: "worktree"`, and the team lead copies each seat's owned files back into the main checkout (seats never commit, so there is nothing to merge). Held/dependent slices run afterward in the main checkout so they read the integrated work. This relies on `worktree.baseRef: "head"` in [settings.json](settings.json) so seats branch from the current feature tip rather than `origin/main`. It is deliberately **not** wired to the `wt` fish helper: the Agent tool can only isolate subagents into `.claude/worktrees/`, and `wt`'s sibling worktrees fall outside the sandbox write root, so `wt` stays the tool you drive by hand.
 
@@ -255,7 +255,7 @@ Authoring guidance for all three lives with the generators, and they are the fil
    }
    ```
 
-2. Run `claude-kit update <name> --type skill` to pull it down.
+2. Run `kura update <name> --type skill` to pull it down.
 
 ## Adding Agents
 
@@ -289,7 +289,7 @@ Authoring guidance for all three lives with the generators, and they are the fil
    }
    ```
 
-2. Copy the file in by hand and record `updated_at` yourself: `update` and `outdated` cover skills only (`claude-kit update --type agent` refuses), because every agent here is authored in this repo. `repos` is empty today, and this is the reason to think twice before filling it.
+2. Copy the file in by hand and record `updated_at` yourself: `update` and `outdated` cover skills only (`kura update --type agent` refuses), because every agent here is authored in this repo. `repos` is empty today, and this is the reason to think twice before filling it.
 
 ## Registry Format
 
@@ -317,7 +317,7 @@ Authoring guidance for all three lives with the generators, and they are the fil
 }
 ```
 
-- **`repos`** — keyed by `owner/repo`. Each repo has a `branch` and a `skills` array. Each skill maps `upstream_path` (path in the upstream repo) to a `name` used by `claude-kit` commands, plus a `groups` tag array consumed by `claude-kit add --group <tag> --type skill`.
+- **`repos`** — keyed by `owner/repo`. Each repo has a `branch` and a `skills` array. Each skill maps `upstream_path` (path in the upstream repo) to a `name` used by `kura` commands, plus a `groups` tag array consumed by `kura add --group <tag> --type skill`.
 - **`updated_at`** — ISO 8601 UTC timestamp, automatically maintained by `update`. Records the last time `update` confirmed this entry against upstream — whether or not files changed. `outdated` reads it to show "last synced" alongside the diff. Missing on tracked entries that have never been synced after this field was introduced.
 - **`local_skills`** — **authoritative inventory of local skills.** Every local skill directory under `skills/` must appear here, with its `groups` tags and a `note` documenting why it's local (locally authored, consolidated, etc.).
 
@@ -345,7 +345,7 @@ Authoring guidance for all three lives with the generators, and they are the fil
 }
 ```
 
-- **`agents` array** — maps `upstream_path` → `name` (the `.md` filename without extension in `agents/`), plus a `groups` tag array consumed by `claude-kit add --group <tag> --type agent`. An optional `updated_at` is recorded by hand, since `update` covers skills only.
+- **`agents` array** — maps `upstream_path` → `name` (the `.md` filename without extension in `agents/`), plus a `groups` tag array consumed by `kura add --group <tag> --type agent`. An optional `updated_at` is recorded by hand, since `update` covers skills only.
 - **`local_agents`** — **authoritative inventory of local agents.** Every locally-authored `.md` under `agents/` must appear here, with its `groups` tags and a `note` documenting why it's local (locally authored, consolidated, etc.).
 
 ## Directory Structure

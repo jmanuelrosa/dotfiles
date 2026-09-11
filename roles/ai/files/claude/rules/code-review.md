@@ -44,7 +44,7 @@ Fixes are a separate turn the user asks for, so the diff under review stays the 
 **Nits are capped at three, and zero when a blocker is present.**
 An appendix of nits costs a reader the same as reporting them.
 
-**Report nothing in** generated or vendored trees, lockfiles, snapshots asserting only shape, or `roles/ai/files/claude/skills/<upstream>` in the dotfiles repo, since `claude-kit update` discards a finding there on the next sync.
+**Report nothing in** generated or vendored trees, lockfiles, snapshots asserting only shape, or `roles/ai/files/claude/skills/<upstream>` in the dotfiles repo, since `kura update` discards a finding there on the next sync.
 
 **A finding that cannot state a concrete failure scenario is an opinion.**
 Drop it rather than dressing it as a risk.

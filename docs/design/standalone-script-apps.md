@@ -1,6 +1,7 @@
 # Standalone script apps
 
-**Status:** Hostof pilot complete; dotfiles commit pending.
+**Status:** Hostof pilot landed in #118; `claude-kit` extracted as `kura` in [kura-extraction.md](./kura-extraction.md).
+**Backlog:** [standalone-script-apps-backlog.md](./standalone-script-apps-backlog.md)
 **Author:** José Manuel Rosa Moncayo
 **Date:** 2026-09-09
 **Scope:** Extract `hostof` from dotfiles and install an explicitly versioned release through the coreutils Ansible role.
@@ -37,9 +38,11 @@ Do not create a public `dotkit` package as part of the pilot.
 
 ## Existing system and constraints
 
+The state at research time, before either extraction. The first three no longer hold: `hostof` and `kura` are installed as pinned release assets, and neither reads this checkout's layout.
+
 - Commands are symlinked from `roles/<role>/files/scripts/<tool>/<tool>` into `~/.local/bin`; see [coreutils installation](../../roles/coreutils/tasks/main.yml), lines 20-37, and [AI installation](../../roles/ai/tasks/main.yml), lines 167-182.
 - Five Python applications import shared `dotkit` code through sibling symlinks; see [the helper-link tests](../../lib/python/tests/test_suites.py), lines 177-223.
-- `claude-kit` discovers `dotfiles.yml` and derives `roles/ai/files/claude`; see [paths.py](../../roles/ai/files/scripts/claude-kit/claude_kit/paths.py), lines 19-49.
+- `claude-kit` discovers `dotfiles.yml` and derives `roles/ai/files/claude` in its own `paths.py`, by walking up from the executable for a marker file.
 - The AI role executes `claude-kit sync` and `converge --all` directly from the checkout; see [AI tasks](../../roles/ai/tasks/main.yml), lines 193-239.
 - Fish/Television consumers depend on `claude-kit` command names and JSON output; see [_tv_claude_list.fish](../../roles/shell/files/fish/functions/_tv_claude_list.fish), lines 11-12 and 54-56.
 - Tests live beside each application and are registered in [pytest.ini](../../pytest.ini); the existing [pull-request workflow](../../.github/workflows/pull_request.yml) runs `make test`.

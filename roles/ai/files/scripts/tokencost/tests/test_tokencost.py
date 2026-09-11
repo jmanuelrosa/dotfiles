@@ -5,7 +5,7 @@ a pricing bug is invisible in real data (the number simply looks plausible) and 
 the only place it can be caught. Token counts are all round millions so the expected
 dollar amount reads off the multipliers directly.
 
-`HOME` is the single environmental seam, exactly as it is for claude-kit: the tool
+`HOME` is the single environmental seam, exactly as it is for kura: the tool
 resolves `~/.claude/projects` and nothing else, so a fabricated tree under `tmp_path`
 exercises every path without touching the real transcripts.
 """

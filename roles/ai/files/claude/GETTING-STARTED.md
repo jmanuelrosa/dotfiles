@@ -37,7 +37,7 @@ Three rules hold across both halves, and they are the ones to remember:
 
 ## What you already have in every repo
 
-`claude-kit sync` links everything tagged `global` into `~/.claude`, so these need no install and work in any directory:
+`kura sync` links everything tagged `global` into `~/.claude`, so these need no install and work in any directory:
 
 | Command or agent | Use it for |
 |---|---|
@@ -64,31 +64,31 @@ $ claude
 Accept the trust dialog. Then let the catalogue tell you what belongs here:
 
 ```console
-$ claude-kit scout
+$ kura scout
 ```
 
 `scout` fingerprints the directory and ranks the catalogue against it, with the evidence printed beside each row (`react@19.0.0 in package.json`, `no test directory and no test files`). An empty repo has no fingerprint yet, so on a true greenfield you install by intent instead:
 
 ```console
-$ claude-kit add product-team --type plugin      # the product pipeline
-$ claude-kit add --group engineering --type plugin  # 13 staff-engineer seats
-$ claude-kit add qa --type plugin                 # qa is tagged quality, not engineering
+$ kura add product-team --type plugin      # the product pipeline
+$ kura add --group engineering --type plugin  # 13 staff-engineer seats
+$ kura add qa --type plugin                 # qa is tagged quality, not engineering
 ```
 
-Install fewer if you know the shape of the work: `claude-kit add frontend backend database --type plugin` is the common trio. Seats are cheap to add later, and `/feature-team` tells you exactly which one is missing when the spec needs it.
+Install fewer if you know the shape of the work: `kura add frontend backend database --type plugin` is the common trio. Seats are cheap to add later, and `/feature-team` tells you exactly which one is missing when the spec needs it.
 
 **Two things every plugin install needs, and both are easy to forget:**
 
 1. The workspace must be **trusted**.
 2. Claude must be **relaunched from the repo root** afterwards.
 
-Until both hold, `/product-team:setup-strategy` does not exist and `claude plugin list` shows nothing. `claude-kit add` prints this hint on every plugin install.
+Until both hold, `/product-team:setup-strategy` does not exist and `claude plugin list` shows nothing. `kura add` prints this hint on every plugin install.
 
 After the relaunch, re-run scout once the repo has a `package.json` (or `go.mod`, or `pyproject.toml`) so it can see the stack and offer the matching skills:
 
 ```console
-$ claude-kit scout --type skill
-$ claude-kit scout --add        # installs the strong tier only
+$ kura scout --type skill
+$ kura scout --add        # installs the strong tier only
 ```
 
 ## Scenario 1: a new product, from nothing
@@ -184,7 +184,7 @@ Constraints: docs/adr/ (accepted ADRs are immutable)"
 Three anchors, always: the story, the PRD, the ADR directory. What happens next:
 
 1. It restates the brief and confirms scope. If it is fuzzy it stops and suggests `/grill-me` first.
-2. It inventories the installed seats (`.claude/agents/`, `~/.claude/agents/`, `claude plugin list`) and names any missing one with the exact `claude-kit add` line.
+2. It inventories the installed seats (`.claude/agents/`, `~/.claude/agents/`, `claude plugin list`) and names any missing one with the exact `kura add` line.
 3. It dispatches `architect`, which explores read-only and writes `docs/specs/csv-export.md` with an owner-split work breakdown, exact cross-slice contracts, and ADRs for hard-to-reverse choices.
 4. **It stops at the approval gate** and shows you the objective, acceptance criteria, owner split, and decision items. Nothing is implemented until you say so. It is cheaper to fix a bad plan than bad code.
 5. On approval it dispatches every slice marked `Parallel: yes` in one message so they run concurrently, in isolated git worktrees when there are 2+ of them.
@@ -208,7 +208,7 @@ Then move the issue to Done and pick the next PASS story.
 
 Same pipeline, less of it. The only real difference is that stage 4 has a real codebase to read.
 
-1. `claude-kit scout` in the repo, install what it suggests, plus `product-team` if the repo runs initiatives.
+1. `kura scout` in the repo, install what it suggests, plus `product-team` if the repo runs initiatives.
 2. `/product-team:setup-strategy` **once**, if `docs/strategy/` does not exist yet. Skip it forever after.
 3. Every feature is its own initiative: `/product-team:0-refine-idea` through `/product-team:8-living-spec`.
 4. Stage 4 reads the real code, cites `path:line` for every design claim, fits the existing patterns, and numbers new ADRs after the ones already in `docs/adr/`.
@@ -304,9 +304,9 @@ No pipeline, no architect, often no seat.
 
 ## Gotchas
 
-**Plugins.** `--type` is required on `add`, `remove` and `list`; nothing is inferred from a name. A plugin needs workspace trust plus a relaunch before it loads. The plugin name is the discipline (`qa`), while the agent inside carries the namespace (`qa:qa-staff-engineer`); `claude-kit add` takes the former.
+**Plugins.** `--type` is required on `add`, `remove` and `list`; nothing is inferred from a name. A plugin needs workspace trust plus a relaunch before it loads. The plugin name is the discipline (`qa`), while the agent inside carries the namespace (`qa:qa-staff-engineer`); `kura add` takes the former.
 
-**`~/.claude` is owned by the registries.** `claude-kit add --global` on an artifact not tagged `global` is a scratch change: it survives until the next `claude-kit sync` and no longer. To make something durably global, tag it `global` in the registry. Removing a global link by hand is undone the same way.
+**`~/.claude` is owned by the registries.** `kura add --global` on an artifact not tagged `global` is a scratch change: it survives until the next `kura sync` and no longer. To make something durably global, tag it `global` in the registry. Removing a global link by hand is undone the same way.
 
 **Worktrees.** A parallel wave runs in `.claude/worktrees/`, branched from committed HEAD. Uncommitted work in the feature's blast radius is invisible to it, so `/feature-team` checks `git status --porcelain` first and offers `/commit` or `--no-isolate`. This needs `worktree.baseRef: "head"` in [settings.json](settings.json), which is set. The `wt` fish helper is deliberately not wired in: its sibling worktrees fall outside the sandbox write root.
 
@@ -333,5 +333,5 @@ No pipeline, no architect, often no seat.
 | The UX spec contract (flows, surfaces, the state matrix) | [agents/ux-shaper.md](agents/ux-shaper.md), [plugins/product-team/skills/product-lead/references/templates/ux-spec.md](plugins/product-team/skills/product-lead/references/templates/ux-spec.md) |
 | A seat's anatomy, boundaries and report contract | `plugins/<discipline>/agents/<discipline>-staff-engineer.md` |
 | A seat's failure-mode checklists | `plugins/<discipline>/skills/<discipline>-failure-modes/` |
-| `claude-kit` full reference and FAQ | [../scripts/claude-kit/README.md](../scripts/claude-kit/README.md) |
+| `kura` full reference and FAQ | kura's own README, in its repository |
 | Which artifacts are global, and the group vocabulary | [skill-registry.json](skill-registry.json), [agent-registry.json](agent-registry.json) |

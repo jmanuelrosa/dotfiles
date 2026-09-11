@@ -46,7 +46,7 @@ Spawn the **ux-shaper** agent before writing the design doc: input `docs/initiat
 
 It runs first because states drive the data contract: a paginated empty state changes the API sketch below, an optimistic interaction changes the mutation contract.
 
-`ux-shaper` is a registry agent, not bundled in this plugin. If it is not available, stop and tell the human to run `claude-kit add ux-shaper --type agent --global`, then re-run this stage. With `roster.ux_spec: inline` you write the spec yourself against the template and say so in it; there is no setting that skips the artifact, because "no UI" asserted in passing is how a surface with three unhandled states reaches implementation.
+`ux-shaper` is a registry agent, not bundled in this plugin. If it is not available, stop and tell the human to run `kura add ux-shaper --type agent --global`, then re-run this stage. With `roster.ux_spec: inline` you write the spec yourself against the template and say so in it; there is no setting that skips the artifact, because "no UI" asserted in passing is how a surface with three unhandled states reaches implementation.
 
 ## Write
 

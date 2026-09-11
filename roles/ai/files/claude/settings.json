@@ -286,7 +286,7 @@
           },
           {
             "type": "command",
-            "command": "~/.local/bin/claude-kit converge --quiet",
+            "command": "~/.local/bin/kura converge --quiet",
             "timeout": 10
           }
         ]

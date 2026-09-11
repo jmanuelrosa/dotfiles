@@ -70,18 +70,18 @@ alias docker:stop='colima stop'
 #
 #   astro dev --port (lokl port my-custom-project)
 
-# claude-kit. Functions rather than aliases: fish's alias builtin appends $argv to the
+# kura. Functions rather than aliases: fish's alias builtin appends $argv to the
 # body unconditionally, so an alias holding $argv passes every argument twice.
-function claude:skill --wraps claude-kit
-    claude-kit $argv --type skill
+function claude:skill --wraps kura
+    kura $argv --type skill
 end
 
-function claude:agent --wraps claude-kit
-    claude-kit $argv --type agent
+function claude:agent --wraps kura
+    kura $argv --type agent
 end
 
-function claude:plugin --wraps claude-kit
-    claude-kit $argv --type plugin
+function claude:plugin --wraps kura
+    kura $argv --type plugin
 end
 
 

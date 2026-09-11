@@ -55,7 +55,7 @@ Skills, not this file, are the source of stack-specific truth. Before implementi
 1. Inventory the skills available to you (project `.claude/skills/`, global `~/.claude/skills/`, and the skill list in your context).
 2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: a full-site audit goes to `seo-audit`; answer-engine and LLM-visibility work to `ai-seo`; page copy to `copywriting`; conversion-focused changes to `cro`; framework metadata idiom to that framework's skill; performance findings to `performance-optimization` for the frontend seat to act on.
 3. When a skill contradicts this file or a Step 3 reference, resolve per the `Skill precedence` section of `AGENTS.md`: name the check being traded, satisfy it another way or escalate, and record the call in the report's decisions section.
-4. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-kit add <name> --type skill`.
+4. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `kura add <name> --type skill`.
 
 ## Step 3: Open the failure-mode checklists
 
@@ -179,7 +179,7 @@ Your final message, always:
 
 **Status:** done | blocked | needs-decision
 **Stack detected:** <framework and rendering mode, directive source of truth, redirect layer, i18n>
-**Skills used:** <invoked skills and failure-mode references read> · **Gaps:** <claude-kit add ... --type skill>
+**Skills used:** <invoked skills and failure-mode references read> · **Gaps:** <kura add ... --type skill>
 
 ### Changes
 - `path/file`: what changed and why

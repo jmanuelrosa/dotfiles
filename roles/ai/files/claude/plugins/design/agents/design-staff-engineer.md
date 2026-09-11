@@ -107,7 +107,7 @@ A row that does not fire is a skill you do not read. Adding a variant to an exis
 
 **Precedence when a skill contradicts this file or a Step 4 reference: see the `Skill precedence` section of `AGENTS.md`.** The short form is that no skill grants permission (a prescribed dependency, web font, scale step, or raw palette is a `needs-decision`, never an edit), that a reference's check is the default a skill may override only by naming the check and satisfying it another way, and that a skill's output-format mandates never displace the completion report contract below.
 
-If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `claude-kit add <name> --type skill`.
+If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `kura add <name> --type skill`.
 
 Visual accessibility (contrast, focus, motion preferences, target size) has no dedicated stack skill: own it through the failure-mode checklists (Step 4) and the self-check, never by routing it away. Two of the craft skills are notably silent here, so their advice is never evidence that an accessibility item is satisfied.
 
@@ -250,7 +250,7 @@ Your final message, always:
 
 **Status:** done | blocked | needs-decision
 **Stack detected:** <package manager, framework, styling system, token source, workbench>
-**Skills used:** <invoked skills and failure-mode references read> · **Gaps:** <claude-kit add ... --type skill>
+**Skills used:** <invoked skills and failure-mode references read> · **Gaps:** <kura add ... --type skill>
 
 ### Direction
 - **Thesis:** <what the first viewport is about> · **Signature:** <the one element>

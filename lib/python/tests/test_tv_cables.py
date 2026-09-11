@@ -1,13 +1,13 @@
-"""The Television claude cables read claude-kit, and derive nothing themselves.
+"""The Television claude cables read kura, and derive nothing themselves.
 
 There is no fish test suite, and that is how the bug this file guards against shipped.
-`_tv_claude_list` used to rebuild claude-kit's whole answer in jq and fish: the
+`_tv_claude_list` used to rebuild kura's whole answer in jq and fish: the
 catalogue, the dependency_only hiding, the effective global set, and link status. Four
 of those five had a python counterpart under test; the fifth, what counts as a project,
-had none, and the two implementations disagreed. claude-kit takes the cwd, the cable
+had none, and the two implementations disagreed. kura takes the cwd, the cable
 took `git rev-parse --show-toplevel`, so in a directory that is not a git repo the cable
 found no project at all and rendered every non-global artifact `[available]` however
-many links were on disk. Enter then refused, because claude-kit could see them.
+many links were on disk. Enter then refused, because kura could see them.
 
 So the invariant is not "the anchoring rule matches" - a matching second copy is still a
 second copy. It is that **the cable holds no copy**: no project rule, no catalogue, no
@@ -58,24 +58,24 @@ def test_a_cable_derives_nothing_of_its_own(name, forbidden):
     """
     assert forbidden not in source(name), (
         f"{name} reaches for {forbidden!r}. Every fact on a cable row comes from "
-        f"`claude-kit list --json`; deriving one here is what made the picker and "
-        f"claude-kit disagree about whether a skill was installed."
+        f"`kura list --json`; deriving one here is what made the picker and "
+        f"kura disagree about whether a skill was installed."
     )
 
 
-def test_the_listing_cable_reads_claude_kit():
-    assert re.search(r"claude-kit list --type \$type --json", source("_tv_claude_list.fish"))
+def test_the_listing_cable_reads_kura():
+    assert re.search(r"kura list --type \$type --json", source("_tv_claude_list.fish"))
 
 
-def test_the_toggle_reads_its_direction_from_claude_kit():
-    """Which way to toggle, and whether --global applies, are claude-kit's answers.
+def test_the_toggle_reads_its_direction_from_kura():
+    """Which way to toggle, and whether --global applies, are kura's answers.
 
     Reconstructing either from a tag would put the scope rule back in fish, in the one
     place a wrong answer writes to disk instead of merely rendering oddly.
     """
     body = source("_tv_claude_toggle.fish")
-    assert "claude-kit list --type $type --json" in body
-    assert "claude-kit $action $name --type $type $want_global" in body
+    assert "kura list --type $type --json" in body
+    assert "kura $action $name --type $type $want_global" in body
 
 
 def sources():

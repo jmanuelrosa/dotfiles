@@ -36,14 +36,14 @@ The two halves are held together by a **differential test**: `test_both_halves_r
 
 A fish script that prints a row with `echo` or `printf` has no printing kind to resolve it, so it asks **`_ui color-enabled`** first, as a bare command, while fd 1 is still its own stdout, and builds its palette inside that `if`. Initialise each colour to `""` rather than leaving it unset: an empty *list* vanishes from a `printf` argument list and shifts every argument after it. No script does this today (`claude-skill` and `claude-agent` were the two, and they are gone), so this is the rule for the next one rather than a description of the current tree.
 
-A python tool reaches `ui` by putting **its own directory** on `sys.path` and importing `dotkit`, exactly as the claude-kit shim reaches its package:
+A python tool reaches `ui` by putting **its own directory** on `sys.path` and importing `dotkit`:
 
 ```python
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dotkit import ui
 ```
 
-That works because every python tool directory holds a **committed relative symlink** named `dotkit`, pointing at [lib/python/dotkit](../../lib/python/dotkit). The one real copy lives outside the roles because neither role can import from the other, and `weekly-recap` in `work` needs the same vocabulary `claude-kit` in `ai` does. A copy would be a third statement of a style that is already stated twice, so it is a link. `resolve()` follows both the `~/.local/bin` install symlink and this one, which is what makes a tool directory self-contained enough to `cp -r` anywhere and still run.
+That works because every python tool directory holds a **committed relative symlink** named `dotkit`, pointing at [lib/python/dotkit](../../lib/python/dotkit). The one real copy lives outside the roles because neither role can import from the other, and `weekly-recap` in `work` needs the same vocabulary `lokl` in `apps` does. A copy would be a third statement of a style that is already stated twice, so it is a link. `resolve()` follows both the `~/.local/bin` install symlink and this one, which is what makes a tool directory self-contained enough to `cp -r` anywhere and still run.
 
 These are not the only committed symlinks in the repo (`mode 120000`), since the root `AGENTS.md` points at `CLAUDE.md` and `.claude/skills/` holds a dozen more, but they are the ones whose breakage is silent, so `test_suites.py` asserts each resolves to the real package and that its target is relative: a clone with `core.symlinks=false` materialises them as regular files holding a path, and the resulting `ImportError` points nowhere near the cause.
 
