@@ -83,6 +83,11 @@ INFRASTRUCTURE_READ_PATHS = [
     "~/.claude/*",
 ]
 
+SHARED_SKILL_PATHS = [
+    "~/.claude/skills/*",
+    "~/.pi/agent/skills/*",
+]
+
 # Tool surfaces pi gates that Claude never prompts for, listed so the universal
 # fallback does not have to decide them. Claude auto-allows its read-only and
 # orchestration tools in the same way.
@@ -188,7 +193,7 @@ def derive_permissions(settings):
             [(to_path_pattern(p), f"Edit({p})") for p in rules_for(deny, "Edit")],
             [to_path_pattern(p) for p in rules_for(allow, "Edit")],
         ),
-        "external_directory": "ask",
+        "external_directory": surface("ask", SHARED_SKILL_PATHS, []),
         "mcp": surface(
             "allow",
             [],
@@ -370,9 +375,15 @@ def test_writes_are_left_to_the_sandbox_rather_than_prompted_twice():
         assert policy()[tool] == "allow"
 
 
-def test_the_project_boundary_still_prompts():
-    """Claude sets no additionalDirectories, so reaching outside the tree is a question."""
-    assert policy()["external_directory"] == "ask"
+def test_the_project_boundary_still_prompts_except_for_shared_skill_roots():
+    """Role-owned skill scripts are trusted runtime, not arbitrary project escapes."""
+    external = policy()["external_directory"]
+    assert resolve(external, "~/Developer/another-project/file.txt") == "ask"
+    for path in (
+        "~/.claude/skills/pr/scripts/context.py",
+        "~/.pi/agent/skills/pr/scripts/context.py",
+    ):
+        assert resolve(external, path) == "allow", f"{path} prompts as external"
 
 
 def test_the_infrastructure_read_paths_are_the_harness_and_not_a_project():
