@@ -644,7 +644,11 @@
       "*/.env.sample": "allow",
       "*/.env.example": "allow"
     },
-    "external_directory": "ask",
+    "external_directory": {
+      "*": "ask",
+      "~/.claude/skills/*": "allow",
+      "~/.pi/agent/skills/*": "allow"
+    },
     "mcp": {
       "*": "allow",
       "notion*": {
