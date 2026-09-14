@@ -194,15 +194,33 @@ def test_pi_subagents_is_declared_in_the_settings_pi_actually_loads():
     assert "npm:@tintinweb/pi-subagents" in packages
 
 
-def test_pi_mcp_adapter_imports_existing_host_configs_from_a_linked_config():
-    """The package and its host imports survive a fresh role apply together."""
+def test_pi_mcp_adapter_loads_role_owned_servers_from_a_linked_config():
+    """The package and its MCP server config survive a fresh role apply together."""
     packages = json.loads(PI_SETTINGS.read_text())["packages"]
     assert "npm:pi-mcp-adapter" in packages
 
     config = json.loads(PI_MCP_SETTINGS.read_text())
-    assert config == {
-        "mcpServers": {},
-        "imports": [],
+    assert config["imports"] == []
+    assert config["mcpServers"] == {
+        "notion": {
+            "url": "https://mcp.notion.com/mcp",
+            "auth": "oauth",
+        },
+        "slack": {
+            "url": "https://mcp.slack.com/mcp",
+            "auth": "oauth",
+            "exposeResources": False,
+            "oauth": {
+                "clientId": "185316078694.12036247391600",
+                "redirectUri": "http://localhost:19876/callback",
+                "scope": (
+                    "search:read.public channels:read channels:history users:read "
+                    "search:read.users search:read.private search:read.im search:read.mpim "
+                    "groups:read groups:history im:read im:history mpim:read mpim:history "
+                    "chat:write reactions:write"
+                ),
+            },
+        },
     }
 
     tasks = yaml.safe_load(AI_TASKS.read_text())
