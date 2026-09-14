@@ -9,11 +9,11 @@
   "defaultProvider": "cursor",
   "defaultThinkingLevel": "high",
   "modelThinkingLevels": {
-    "anthropic/claude-opus-5": "xhigh",
+    "anthropic/claude-opus-5": "high",
     "anthropic/claude-sonnet-5": "high",
     "openai-codex/gpt-5.6-sol": "xhigh",
     "openai-codex/gpt-5.6-terra": "xhigh",
-    "cursor/claude-opus-5@1m": "xhigh",
+    "cursor/claude-opus-5@1m": "high",
     "cursor/claude-sonnet-5@1m": "high"
   },
   "doubleEscapeAction": "tree",
@@ -46,7 +46,7 @@
   "extensions": [],
   "followUpMode": "one-at-a-time",
   "hideThinkingBlock": true,
-  "lastChangelogVersion": "0.85.0",
+  "lastChangelogVersion": "0.85.1",
   "packages": [
     "git:github.com/earendil-works/pi-review",
     "npm:@tintinweb/pi-subagents",
