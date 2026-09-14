@@ -286,7 +286,7 @@
           },
           {
             "type": "command",
-            "command": "~/.local/bin/kura converge --quiet",
+            "command": "if [ -f ./kura.json ]; then ~/.local/bin/kura converge --quiet; fi",
             "timeout": 10
           }
         ]

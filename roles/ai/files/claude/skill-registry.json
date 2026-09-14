@@ -35,7 +35,8 @@
             "product",
             "pm",
             "planning",
-            "addy:product-02"
+            "addy:product-02",
+            "global"
           ],
           "updated_at": "2026-09-01T10:20:27Z"
         },
@@ -80,7 +81,8 @@
           "groups": [
             "product",
             "pm",
-            "documentation"
+            "documentation",
+            "global"
           ],
           "updated_at": "2026-07-25T09:44:06Z"
         },

@@ -37,7 +37,7 @@ Three rules hold across both halves, and they are the ones to remember:
 
 ## What you already have in every repo
 
-`kura sync` links everything tagged `global` into `~/.claude`, so these need no install and work in any directory:
+`kura sync` links globally tagged skills independently into `~/.claude/skills` and `~/.agents/skills`. The AI role provisions the standalone agents below into `~/.claude/agents` and exposes the same agent set to Pi. These need no per-project install:
 
 | Command or agent | Use it for |
 |---|---|
@@ -52,12 +52,13 @@ Three rules hold across both halves, and they are the ones to remember:
 | `/setup-review`, `agent-audit`, `skill-writer`, `agent-writer` | Maintaining this setup itself |
 | `/product-lead` | A signpost that tells you the pipeline is a plugin and hands you the install line |
 
-Everything else is opt in, per project. That is deliberate: the product pipeline writes into `docs/` of whatever repo it runs in, and a seat you never dispatch is context you pay for on every turn.
+Other skills are opt in per project. Skills-dir plugins remain project-owned legacy state in Kura v0.3, which manages skills only. This walkthrough's product and seat flows therefore assume the repository already carries the plugin links they need.
 
 ## Step 0: bootstrap a repo
 
 ```console
 $ mkdir ledger && cd ledger && git init
+$ kura init --harness claude --harness pi --yes
 $ claude
 ```
 
@@ -67,22 +68,9 @@ Accept the trust dialog. Then let the catalogue tell you what belongs here:
 $ kura scout
 ```
 
-`scout` fingerprints the directory and ranks the catalogue against it, with the evidence printed beside each row (`react@19.0.0 in package.json`, `no test directory and no test files`). An empty repo has no fingerprint yet, so on a true greenfield you install by intent instead:
+`scout` fingerprints the directory and ranks catalog skills against it, with the evidence printed beside each row (`react@19.0.0 in package.json`, `no test directory and no test files`). An empty repo has no fingerprint yet, so add any known skill by intent with `kura add <name> --type skill`.
 
-```console
-$ kura add product-team --type plugin      # the product pipeline
-$ kura add --group engineering --type plugin  # 13 staff-engineer seats
-$ kura add qa --type plugin                 # qa is tagged quality, not engineering
-```
-
-Install fewer if you know the shape of the work: `kura add frontend backend database --type plugin` is the common trio. Seats are cheap to add later, and `/feature-team` tells you exactly which one is missing when the spec needs it.
-
-**Two things every plugin install needs, and both are easy to forget:**
-
-1. The workspace must be **trusted**.
-2. Claude must be **relaunched from the repo root** afterwards.
-
-Until both hold, `/product-team:setup-strategy` does not exist and `claude plugin list` shows nothing. `kura add` prints this hint on every plugin install.
+Kura v0.3 cannot install the product-team or seat plugins into a new repository. Existing project plugin links are preserved but unmanaged. Until a later Kura phase owns those artifact types, establish that project-owned plugin state separately before using the product or seat scenarios below. The workspace must then be trusted and Claude relaunched from the repository root before a plugin loads.
 
 After the relaunch, re-run scout once the repo has a `package.json` (or `go.mod`, or `pyproject.toml`) so it can see the stack and offer the matching skills:
 
@@ -304,9 +292,9 @@ No pipeline, no architect, often no seat.
 
 ## Gotchas
 
-**Plugins.** `--type` is required on `add`, `remove` and `list`; nothing is inferred from a name. A plugin needs workspace trust plus a relaunch before it loads. The plugin name is the discipline (`qa`), while the agent inside carries the namespace (`qa:qa-staff-engineer`); `kura add` takes the former.
+**Plugins.** Kura v0.3 does not manage them. Existing project links remain legacy state and still require workspace trust plus a relaunch before Claude loads them. The plugin name is the discipline (`qa`), while the agent inside carries the namespace (`qa:qa-staff-engineer`).
 
-**`~/.claude` is owned by the registries.** `kura add --global` on an artifact not tagged `global` is a scratch change: it survives until the next `kura sync` and no longer. To make something durably global, tag it `global` in the registry. Removing a global link by hand is undone the same way.
+**Global skills have two owned roots.** `kura add --global` on a skill not tagged `global` is a scratch change in both enabled harnesses: it survives until the next `kura sync` and no longer. To make a skill durably global, tag it `global` in the registry. Removing either native global link by hand is undone the same way.
 
 **Worktrees.** A parallel wave runs in `.claude/worktrees/`, branched from committed HEAD. Uncommitted work in the feature's blast radius is invisible to it, so `/feature-team` checks `git status --porcelain` first and offers `/commit` or `--no-isolate`. This needs `worktree.baseRef: "head"` in [settings.json](settings.json), which is set. The `wt` fish helper is deliberately not wired in: its sibling worktrees fall outside the sandbox write root.
 

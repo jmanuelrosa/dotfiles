@@ -1,51 +1,22 @@
-"""The frontmatter and path assumptions that let pi run the staff-engineer fleet.
+"""The frontmatter and agent paths that let Pi run the shared global agents.
 
 Two harnesses read one payload, and each reads its own frontmatter dialect while
-ignoring the other's. Claude Code reads `effort:` and `disallowedTools:`; pi's
+ignoring the other's. Claude Code reads `effort:` and `disallowedTools:`; Pi's
 pi-subagents extension reads `thinking:` and `disallowed_tools:`. Nothing enforces
-agreement at load time in either harness: a seat whose `thinking:` drifts from its
-`effort:` simply runs at two different depths depending on who spawned it, with no
-error anywhere. Equality here is the only guard.
+agreement at load time in either harness, so equality here is the guard.
 
-The paths are the same shape of assumption, living in someone else's loader.
-pi-subagents discovers agents from exactly three places and never from `.claude/`:
-
-  .pi/agents/           pi's own project namespace; not used here, because nothing
-                        of ours is pi-specific and a second location would be a
-                        second install to converge
-  .agents/agents/       the harness-neutral project location, which `kura converge`
-                        fills with per-file links to each installed plugin's
-                        agents/*.md (no single directory holds every agent the
-                        installed plugins ship, so one directory link cannot do it)
-  ~/.pi/agent/agents/   the global location, which the ai role links wholesale at
-                        ~/.claude/agents, the directory `kura sync` already
-                        converges from the `global` tag
-
-A retargeted role task, a dropped `packages` entry, or a kura release that writes
-somewhere else would each break the fleet under pi while every Claude-side test stays
-green and `add` still reports success. That silence is what this module exists to end.
-
-kura is released separately, so its side of the contract is asserted against the
-installed command rather than by importing it. On a machine without it the writer
-check skips and the reader checks still run, since the paths pi reads are this
-repository's business either way.
+Kura 0.3 manages skills only. The AI role now converges standalone agents into
+`~/.claude/agents` itself and retains `~/.pi/agent/agents` as an agent-only bridge for
+pi-subagents. Project plugin agents remain project-owned legacy links; neither the role
+nor Kura claims to converge them.
 """
 
 import json
-import os
 import re
-import shutil
-import subprocess
 
 import pytest
 import yaml
 from dotkit.testing import AGENTS, CLAUDE, PI, PLUGINS, REPO, SKILLS
-
-# The literals are the contract, written here rather than read out of the tool: a
-# release that renames its own constant and its own tests together would still be
-# wrong, and this is the assertion that says so.
-AGENTS_PARENT = ".agents"
-AGENTS_LEAF = "agents"
 
 AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 PI_SETTINGS = PI / "settings.json"
@@ -196,42 +167,8 @@ def test_architect_bans_the_agent_tool_in_both_dialects():
 # --- the discovery paths ------------------------------------------------------
 
 
-def test_kura_writes_agent_links_where_pi_subagents_reads(tmp_path):
-    """`.agents/agents` is pi-subagents' harness-neutral project location, read out of
-    the extension rather than chosen here. Asserted against the installed command,
-    because a release that renamed the path would leave `add` linking into a directory
-    nothing reads while every test inside that release stayed green.
-
-    A plugin is installed first: convergence has nothing to write for a project whose
-    plugins ship no agents, and an empty leaf would pass this vacuously.
-    """
-    kura = shutil.which("kura")
-    if kura is None:
-        pytest.skip("kura is not installed; the reader half of the contract still runs")
-
-    project = tmp_path / "project"
-    leaf = project / ".claude" / "skills"
-    leaf.mkdir(parents=True)
-    seat = next(p for p in (PLUGINS).iterdir() if (p / "agents").is_dir())
-    (leaf / seat.name).symlink_to(seat)
-
-    result = subprocess.run(
-        [kura, "converge"],
-        cwd=str(project),
-        env={**os.environ, "KURA_CATALOG": str(CLAUDE), "NO_COLOR": "1"},
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0, result.stderr
-
-    written = project / AGENTS_PARENT / AGENTS_LEAF
-    assert written.is_dir(), f"kura converge wrote no {AGENTS_PARENT}/{AGENTS_LEAF}"
-    assert list(written.glob("*.md")), "the leaf exists but holds no agent links"
-
-
 def test_the_ai_role_links_pis_global_agents_at_claudes():
-    """The third discovery location, ~/.pi/agent/agents/, is one directory link at
-    ~/.claude/agents, so the global set is derived, linked and pruned by `sync` alone."""
+    """pi-subagents reads this global location, while Ansible owns the source set."""
     tasks = yaml.safe_load(AI_TASKS.read_text())
     matching = [t for t in tasks if t.get("name") == AGENTS_LINK_TASK]
     assert len(matching) == 1, f"expected exactly one '{AGENTS_LINK_TASK}' task in the ai role"

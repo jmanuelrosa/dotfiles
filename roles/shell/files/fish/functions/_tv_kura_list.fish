@@ -1,4 +1,4 @@
-function _tv_kura_list --description "Television source: list catalog skills or agents with groups and link status" --argument-names kind filter
+function _tv_kura_list --description "Television source: list catalog skills with groups and link status" --argument-names kind filter
     # A formatter, and nothing more. Every fact on a row - the catalogue, which entries
     # are hidden as dependency_only, whether an artifact belongs in ~/.claude or the
     # project, and whether it is linked there - comes from `kura list --json`.
@@ -13,19 +13,11 @@ function _tv_kura_list --description "Television source: list catalog skills or 
         return 1
     end
 
-    set -l types
-    switch $kind
-        case skill skills
-            set types skill
-        case agent agents
-            # The agent picker carries the seat plugins too: a plugin is the other way to
-            # ship an agent, and plugin.json holds its groups. Two calls rather than one,
-            # because --type is per call and a name may legally mean one of each.
-            set types agent plugin
-        case '*'
-            _ui err "_tv_kura_list: kind must be 'skill' or 'agent'"
-            return 1
+    if not contains -- $kind skill skills
+        _ui err "_tv_kura_list: kind must be 'skill'"
+        return 1
     end
+    set -l types skill
 
     set -l select
     switch $filter

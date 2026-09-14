@@ -19,6 +19,7 @@ import re
 from pathlib import Path
 
 import pytest
+import yaml
 from dotkit.testing import FISH_FUNCTIONS, REPO
 
 # The two functions the cables call, and the whole of what fish still owns here.
@@ -38,8 +39,6 @@ RETIRED = (
 DERIVATIONS = (
     "rev-parse",
     "skill-registry.json",
-    "agent-registry.json",
-    ".claude-plugin",
     "DOTFILES_DIR",
 )
 
@@ -76,6 +75,36 @@ def test_the_toggle_reads_its_direction_from_kura():
     body = source("_tv_kura_toggle.fish")
     assert "kura list --type $type --json" in body
     assert "kura $action $name --type $type $want_global" in body
+
+
+def test_shell_kura_surfaces_match_v030s_skills_only_contract():
+    shell = REPO / "roles/shell"
+    paths = [
+        shell / "files/fish/conf.d/aliases.fish",
+        shell / "files/fish/functions/_tv_kura_list.fish",
+        shell / "files/fish/functions/_tv_kura_toggle.fish",
+        shell / "files/television/config.toml",
+    ]
+    for path in paths:
+        text = path.read_text()
+        assert "--type agent" not in text, path
+        assert "--type plugin" not in text, path
+        assert "kura-agents" not in text, path
+    assert not (shell / "files/television/cable/kura-agents.toml").exists()
+
+
+def test_the_retired_agent_cable_link_is_removed_only_when_role_owned():
+    tasks = yaml.safe_load((REPO / "roles/shell/tasks/main.yml").read_text())
+    remove = next(
+        task for task in tasks
+        if task.get("name") == "Remove the superseded kura agents cable link"
+    )
+    assert remove["ansible.builtin.file"] == {
+        "path": "{{ HOME }}/.config/television/cable/kura-agents.toml",
+        "state": "absent",
+    }
+    assert "islnk" in " ".join(remove["when"])
+    assert "lnk_source" in " ".join(remove["when"])
 
 
 def sources():

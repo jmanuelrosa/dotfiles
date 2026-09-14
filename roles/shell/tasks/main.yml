@@ -78,7 +78,6 @@
     - .config/television/config.toml
     - .config/television/cable/aerospace.toml
     - .config/television/cable/kura-skills.toml
-    - .config/television/cable/kura-agents.toml
     - .config/television/cable/sentry.toml
     - .config/starship.toml
   register: results
@@ -363,6 +362,20 @@
     force: true
   with_fileglob:
     - "{{ role_path }}/files/television/cable/*.toml"
+
+- name: Check for the superseded kura agents cable link
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.config/television/cable/kura-agents.toml"
+    follow: false
+  register: kura_agents_cable_link
+
+- name: Remove the superseded kura agents cable link
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/television/cable/kura-agents.toml"
+    state: absent
+  when:
+    - kura_agents_cable_link.stat.islnk | default(false)
+    - kura_agents_cable_link.stat.lnk_source == role_path ~ "/files/television/cable/kura-agents.toml"
 
 - name: Generate television shell integration for fish
   ansible.builtin.shell: tv init fish > {{ HOME }}/.config/television/shell/integration.fish

@@ -34,7 +34,7 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 - `files/ghostty/config` — Ghostty terminal config.
 - `files/starship.toml` — Starship prompt config.
 - `files/television/config.toml` — top-level television config (keybindings, theme, shell-integration channel triggers).
-- `files/television/cable/*.toml` — vendored custom channels. Each one becomes a symlink in `~/.config/television/cable/`. Currently ships: `aerospace`, `kura-agents`, `kura-skills`, `sentry`. (The `jira` cable lives in the `work` role since it depends on `acli`.)
+- `files/television/cable/*.toml`: vendored custom channels. Each one becomes a symlink in `~/.config/television/cable/`. Currently ships: `aerospace`, `kura-skills`, `sentry`. (The `jira` cable lives in the `work` role since it depends on `acli`.)
 
 ## Templates
 
