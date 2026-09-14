@@ -146,6 +146,92 @@
   with_fileglob:
     - "{{ role_path }}/files/fish/conf.d/*.fish"
 
+- name: Inspect the autoloaded lns function link
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.config/fish/functions/lns.fish"
+    follow: false
+  register: lns_function
+
+- name: Refuse to replace an unexpected lns function override
+  ansible.builtin.assert:
+    that:
+      - lns_function.stat.islnk | default(false)
+      - lns_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/lns[.]fish$")
+    fail_msg: "Refusing to replace the Fish function at {{ HOME }}/.config/fish/functions/lns.fish"
+  when: lns_function.stat.exists | default(false)
+
+- name: Inspect the legacy lns usage function link
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.config/fish/functions/_lns_usage.fish"
+    follow: false
+  register: lns_usage_function
+
+- name: Refuse to replace an unexpected lns usage function override
+  ansible.builtin.assert:
+    that:
+      - lns_usage_function.stat.islnk | default(false)
+      - lns_usage_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/_lns_usage[.]fish$")
+    fail_msg: "Refusing to replace the Fish function at {{ HOME }}/.config/fish/functions/_lns_usage.fish"
+  when: lns_usage_function.stat.exists | default(false)
+
+- name: Inspect the legacy lns target function link
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.config/fish/functions/_lns_target.fish"
+    follow: false
+  register: lns_target_function
+
+- name: Refuse to replace an unexpected lns target function override
+  ansible.builtin.assert:
+    that:
+      - lns_target_function.stat.islnk | default(false)
+      - lns_target_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/_lns_target[.]fish$")
+    fail_msg: "Refusing to replace the Fish function at {{ HOME }}/.config/fish/functions/_lns_target.fish"
+  when: lns_target_function.stat.exists | default(false)
+
+- name: Inspect the installed lns command
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.local/bin/lns"
+    follow: false
+  register: lns_command
+
+- name: Refuse to replace an unexpected lns command
+  ansible.builtin.assert:
+    that:
+      - lns_command.stat.isreg | default(false)
+    fail_msg: "Refusing to replace the command at {{ HOME }}/.local/bin/lns"
+  when: lns_command.stat.exists | default(false)
+
+- name: Install the pinned lns release
+  ansible.builtin.get_url:
+    url: "{{ LNS.repository }}/releases/download/{{ LNS.release }}/lns"
+    dest: "{{ HOME }}/.local/bin/lns"
+    checksum: "{{ LNS.checksum }}"
+    mode: "0755"
+
+- name: Remove the legacy lns function symlink
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/fish/functions/lns.fish"
+    state: absent
+  when:
+    - lns_function.stat.islnk | default(false)
+    - lns_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/lns[.]fish$")
+
+- name: Remove the legacy lns usage function symlink
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/fish/functions/_lns_usage.fish"
+    state: absent
+  when:
+    - lns_usage_function.stat.islnk | default(false)
+    - lns_usage_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/_lns_usage[.]fish$")
+
+- name: Remove the legacy lns target function symlink
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/fish/functions/_lns_target.fish"
+    state: absent
+  when:
+    - lns_target_function.stat.islnk | default(false)
+    - lns_target_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/_lns_target[.]fish$")
+
 - name: Inspect the autoloaded port function link
   ansible.builtin.stat:
     path: "{{ HOME }}/.config/fish/functions/port.fish"

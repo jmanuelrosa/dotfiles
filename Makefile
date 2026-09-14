@@ -47,7 +47,7 @@ run-role:
 # Smoke-test that core tooling and config symlinks landed
 verify:
 	@echo "Verifying installed tooling..."
-	@for cmd in bat eza fd rg tv fish starship gh git hostof shoo; do \
+	@for cmd in bat eza fd rg tv fish starship gh git hostof lns shoo; do \
 		if command -v $$cmd >/dev/null 2>&1; then \
 			echo "  [ok]   $$cmd"; \
 		else \
@@ -58,6 +58,11 @@ verify:
 		echo "  [ok]   $$HOME/.local/bin/hostof is a release asset"; \
 	else \
 		echo "  [MISS] $$HOME/.local/bin/hostof is not a release asset" && exit 1; \
+	fi
+	@if [ -f $$HOME/.local/bin/lns ] && [ ! -L $$HOME/.local/bin/lns ]; then \
+		echo "  [ok]   $$HOME/.local/bin/lns is a release asset"; \
+	else \
+		echo "  [MISS] $$HOME/.local/bin/lns is not a release asset" && exit 1; \
 	fi
 	@if [ -f $$HOME/.local/bin/shoo ] && [ ! -L $$HOME/.local/bin/shoo ]; then \
 		echo "  [ok]   $$HOME/.local/bin/shoo is a release asset"; \

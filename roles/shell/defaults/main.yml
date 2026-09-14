@@ -3,6 +3,11 @@
 
 ---
 
+LNS:
+  repository: https://github.com/jmanuelrosa/lns
+  release: v0.1.0
+  checksum: sha256:ce88ce79923e1589873aa91b37d8be41a22c433ba743ce1daced3bde3df963f0
+
 SHOO:
   repository: https://github.com/jmanuelrosa/shoo
   release: v0.2.0
