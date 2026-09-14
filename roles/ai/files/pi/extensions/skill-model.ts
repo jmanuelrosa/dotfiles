@@ -7,10 +7,11 @@
  * string in the shared SKILL.md, and bare values resolve against this session's scoped
  * catalogue, so reordering `enabledModels` reorders which model a bare `opus` wins.
  *
- * Explicit Cursor pins keep Cursor first and route to GPT Sol when Cursor has no auth or
- * returns an account or capacity error. The error is rewritten to pi's retryable provider
- * form after the model switch, so pi repeats the failed assistant turn on the fallback;
- * network, server and generic SDK failures retain pi's normal Cursor retry behavior.
+ * Model pins with an exact route keep their declared model first and switch to the mapped
+ * Codex model when the source has no auth or returns an account or capacity error. The error
+ * is rewritten to pi's retryable provider form after the model switch, so pi repeats the
+ * failed assistant turn on the fallback; network, server and generic SDK failures retain
+ * pi's normal provider retry behavior.
  *
  * The pin lasts one agent run, which is the boundary Claude Code uses as well: the
  * override "applies for the rest of the current turn" and the session model resumes on the
@@ -41,9 +42,16 @@ const MODEL_FIELD = /^model:[ \t]*(.+?)[ \t]*$/m;
 const SKILL_FILE = "SKILL.md";
 const INHERIT = "inherit";
 const MODEL_ROUTES: Readonly<Record<string, readonly string[]>> = {
-  cursor: ["openai-codex/gpt-5.6-sol"],
+  "cursor/claude-opus-5@1m": ["openai-codex/gpt-5.6-sol"],
+  "cursor/claude-sonnet-5@1m": ["openai-codex/gpt-5.6-terra"],
+  "anthropic/claude-opus-5": ["openai-codex/gpt-5.6-sol"],
+  "anthropic/claude-sonnet-5": ["openai-codex/gpt-5.6-terra"],
+  "cursor/composer-2-5": ["openai-codex/gpt-5.6-luna"],
+  "cursor/gpt-5.6-terra@1m": ["openai-codex/gpt-5.6-terra"],
+  "cursor/gpt-5.6-sol@1m": ["openai-codex/gpt-5.6-sol"],
+  "anthropic/claude-haiku-4-5": ["openai-codex/gpt-5.6-terra"],
 };
-const CURSOR_ACCOUNT_OR_LIMIT_ERROR = new RegExp(
+const ACCOUNT_OR_LIMIT_ERROR = new RegExp(
   [
     "unauthenticated",
     "unauthorized",
@@ -108,11 +116,12 @@ function resolveSpec(ctx: ExtensionContext, spec: string): Model | undefined {
   );
 }
 
-function routeFor(spec: string): readonly string[] {
-  const separator = spec.indexOf("/");
-  if (separator < 0) return [spec];
-  const fallbacks = MODEL_ROUTES[spec.slice(0, separator).toLowerCase()];
-  return fallbacks ? [spec, ...fallbacks] : [spec];
+function routeFor(ctx: ExtensionContext, spec: string): readonly string[] {
+  const primary = resolveSpec(ctx, spec);
+  if (!primary) return [spec];
+  const primaryReference = reference(primary);
+  const fallbacks = MODEL_ROUTES[primaryReference.toLowerCase()];
+  return fallbacks ? [primaryReference, ...fallbacks] : [spec];
 }
 
 function declaredModel(skillPath: string): string | null {
@@ -156,7 +165,7 @@ export default function registerSkillModel(pi: ExtensionAPI): void {
     const spec = declaredModel(path);
     if (!spec || spec.toLowerCase() === INHERIT) return;
 
-    const route = routeFor(spec);
+    const route = routeFor(ctx, spec);
     const previousModel = ctx.model ? reference(ctx.model) : null;
     const previousThinking = pi.getThinkingLevel();
     let matchedReference: string | undefined;
@@ -279,14 +288,14 @@ export default function registerSkillModel(pi: ExtensionAPI): void {
   pi.on("message_end", async (event, ctx) => {
     if (!active || event.message.role !== "assistant") return;
     const message = event.message;
-    if (message.stopReason !== "error" || message.provider !== "cursor") return;
-    if (!message.errorMessage || !CURSOR_ACCOUNT_OR_LIMIT_ERROR.test(message.errorMessage)) return;
+    if (message.stopReason !== "error") return;
+    if (!message.errorMessage || !ACCOUNT_OR_LIMIT_ERROR.test(message.errorMessage)) return;
     if (`${message.provider}/${message.model}` !== active.currentModel) return;
 
     const target = await fallback(ctx);
     if (!target) return;
     ctx.ui.notify(
-      `${active.pin.skill}: Cursor account or capacity failure; retrying with ${reference(target)}`,
+      `${active.pin.skill}: ${message.provider} account or capacity failure; retrying with ${reference(target)}`,
       "warning",
     );
     return {
