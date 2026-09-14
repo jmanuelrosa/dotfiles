@@ -146,6 +146,93 @@
   with_fileglob:
     - "{{ role_path }}/files/fish/conf.d/*.fish"
 
+- name: Inspect the autoloaded port function link
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.config/fish/functions/port.fish"
+    follow: false
+  register: port_function
+
+- name: Refuse to replace an unexpected port function override
+  ansible.builtin.assert:
+    that:
+      - port_function.stat.islnk | default(false)
+      - port_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/port[.]fish$")
+    fail_msg: "Refusing to replace the Fish function at {{ HOME }}/.config/fish/functions/port.fish"
+  when: port_function.stat.exists | default(false)
+
+- name: Inspect the legacy port usage function link
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.config/fish/functions/_port_usage.fish"
+    follow: false
+  register: port_usage_function
+
+- name: Refuse to replace an unexpected port usage function override
+  ansible.builtin.assert:
+    that:
+      - port_usage_function.stat.islnk | default(false)
+      - port_usage_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/_port_usage[.]fish$")
+    fail_msg: "Refusing to replace the Fish function at {{ HOME }}/.config/fish/functions/_port_usage.fish"
+  when: port_usage_function.stat.exists | default(false)
+
+- name: Inspect the legacy port command
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.local/bin/port"
+    follow: false
+    checksum_algorithm: sha256
+  register: legacy_port_command
+
+- name: Refuse to remove an unexpected port command
+  ansible.builtin.assert:
+    that:
+      - legacy_port_command.stat.isreg | default(false)
+      - legacy_port_command.stat.checksum | default('') == SHOO.legacy_port_checksum
+    fail_msg: "Refusing to remove the command at {{ HOME }}/.local/bin/port"
+  when: legacy_port_command.stat.exists | default(false)
+
+- name: Inspect the installed shoo command
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.local/bin/shoo"
+    follow: false
+  register: shoo_command
+
+- name: Refuse to replace an unexpected shoo command
+  ansible.builtin.assert:
+    that:
+      - shoo_command.stat.isreg | default(false)
+    fail_msg: "Refusing to replace the command at {{ HOME }}/.local/bin/shoo"
+  when: shoo_command.stat.exists | default(false)
+
+- name: Install the pinned shoo release
+  ansible.builtin.get_url:
+    url: "{{ SHOO.repository }}/releases/download/{{ SHOO.release }}/shoo"
+    dest: "{{ HOME }}/.local/bin/shoo"
+    checksum: "{{ SHOO.checksum }}"
+    mode: "0755"
+
+- name: Remove the legacy port function symlink
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/fish/functions/port.fish"
+    state: absent
+  when:
+    - port_function.stat.islnk | default(false)
+    - port_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/port[.]fish$")
+
+- name: Remove the legacy port usage function symlink
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/fish/functions/_port_usage.fish"
+    state: absent
+  when:
+    - port_usage_function.stat.islnk | default(false)
+    - port_usage_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/_port_usage[.]fish$")
+
+- name: Remove the legacy port command
+  ansible.builtin.file:
+    path: "{{ HOME }}/.local/bin/port"
+    state: absent
+  when:
+    - legacy_port_command.stat.isreg | default(false)
+    - legacy_port_command.stat.checksum | default('') == SHOO.legacy_port_checksum
+
 # Globbed rather than listed: fish autoloads by filename, so a hand-maintained list
 # silently leaves any new function dead in the shell. It had already drifted by six
 # files (clean_all and wt were never linked at all).
