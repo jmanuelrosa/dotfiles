@@ -1,9 +1,9 @@
-"""A skill that declares a model runs on it, for one agent run, or not at all.
+"""A skill runs on its declared model for one agent run, with routed Cursor fallback.
 
 The extension is driven in node against a fake pi, because what is worth asserting is the
-sequence it produces: which candidate a bare alias wins, that a failed switch changes
-nothing, and that the restore puts the thinking level back after the model rather than
-before, since pi resets thinking inside every switch.
+sequence it produces: which candidate a bare alias wins, when a Cursor account failure
+switches to GPT Sol, and that restore puts the thinking level back after the model rather
+than before, since pi resets thinking inside every switch.
 """
 
 import json
@@ -24,15 +24,20 @@ PI_PACKAGE = "@earendil-works/pi-coding-agent"
 # test_enabled_models_declares_the_metered_tier_last.
 CATALOGUE = [
     "openai-codex/gpt-5.6-terra",
+    "openai-codex/gpt-5.6-sol",
     "anthropic/claude-opus-5",
     "anthropic/claude-sonnet-5",
     "cursor/claude-opus-5@1m",
+    "cursor/claude-sonnet-5@1m",
+    "cursor/future-model@1m",
 ]
 DEFAULT = "openai-codex/gpt-5.6-terra"
 
 DRIVER = """
 const handlers = {};
-const calls = { setModel: [], setThinkingLevel: [], entries: [], notify: [], status: [] };
+const calls = {
+  setModel: [], setThinkingLevel: [], entries: [], notify: [], status: [], replacements: [],
+};
 const catalogue = scenario.catalogue.map((ref) => {
   const cut = ref.indexOf("/");
   return { provider: ref.slice(0, cut), id: ref.slice(cut + 1) };
@@ -73,10 +78,22 @@ const ctx = {
 
 register(pi);
 for (const step of scenario.steps) {
-  for (const handler of handlers[step.event] ?? []) await handler(step.payload, ctx);
+  for (const handler of handlers[step.event] ?? []) {
+    const result = await handler(step.payload, ctx);
+    if (step.event === "message_end" && result?.message) {
+      step.payload.message = result.message;
+      calls.replacements.push(result.message);
+    }
+  }
+}
+let retryableReplacements = [];
+if (scenario.piAi) {
+  const { isRetryableAssistantError } = await import(scenario.piAi);
+  retryableReplacements = calls.replacements.map(isRetryableAssistantError);
 }
 process.stdout.write(JSON.stringify({
   ...calls,
+  retryableReplacements,
   current: current ? current.provider + "/" + current.id : null,
   thinking,
 }));
@@ -108,12 +125,16 @@ def harness(tmp_path_factory):
     scope = root / "node_modules" / "@earendil-works"
     scope.mkdir(parents=True)
     (scope / "pi-coding-agent").symlink_to(package)
+    pi_ai = package / "node_modules" / "@earendil-works" / "pi-ai"
+    assert pi_ai.is_dir(), f"{pi_ai} is missing"
     extension = root / "skill-model.ts"
     extension.write_text(EXTENSION.read_text())
 
     skills = root / "skills"
     for name, frontmatter in {
         "commit": "name: commit\nmodel: opus",
+        "cursor-sonnet": "name: cursor-sonnet\nmodel: cursor/claude-sonnet-5@1m",
+        "cursor-future": "name: cursor-future\nmodel: cursor/future-model@1m",
         "pinned-exactly": "name: pinned-exactly\nmodel: anthropic/claude-sonnet-5",
         "quoted": 'name: quoted\nmodel: "sonnet"',
         "inheriting": "name: inheriting\nmodel: inherit",
@@ -123,17 +144,27 @@ def harness(tmp_path_factory):
         skill = skills / name
         skill.mkdir(parents=True)
         (skill / "SKILL.md").write_text(f"---\n{frontmatter}\n---\n\nBody.\n")
-    return extension, skills
+    return extension, skills, pi_ai / "dist" / "index.js"
 
 
-def run(harness, steps, *, current=DEFAULT, thinking="high", branch=None, unauthenticated=None):
-    extension, skills = harness
+def run(
+    harness,
+    steps,
+    *,
+    current=DEFAULT,
+    thinking="high",
+    branch=None,
+    unauthenticated=None,
+    check_retryable=False,
+):
+    extension, skills, pi_ai = harness
     scenario = {
         "catalogue": CATALOGUE,
         "current": current,
         "thinking": thinking,
         "branch": branch or [],
         "unauthenticated": unauthenticated or [],
+        "piAi": str(pi_ai) if check_retryable else None,
         "commands": [
             {
                 "name": f"skill:{path.parent.name}",
@@ -180,6 +211,23 @@ def read(skills, name):
 SETTLED = {"event": "agent_settled", "payload": {"type": "agent_settled"}}
 
 
+def assistant_error(error_message, model="claude-sonnet-5@1m"):
+    return {
+        "event": "message_end",
+        "payload": {
+            "type": "message_end",
+            "message": {
+                "role": "assistant",
+                "content": [],
+                "stopReason": "error",
+                "errorMessage": error_message,
+                "provider": "cursor",
+                "model": model,
+            },
+        },
+    }
+
+
 def test_enabled_models_declares_the_metered_tier_last():
     """Order is the spend policy, because a bare alias resolves by declaration order.
 
@@ -223,6 +271,127 @@ def test_a_bare_alias_resolves_to_the_first_provider_the_catalogue_declares(harn
     }]
 
 
+def test_a_cursor_account_limit_retries_the_skill_turn_on_gpt_sol(harness):
+    result = run(
+        harness,
+        [
+            invoke("cursor-sonnet"),
+            assistant_error("Monthly usage limit reached"),
+            SETTLED,
+        ],
+        check_retryable=True,
+    )
+
+    assert result["setModel"] == [
+        "cursor/claude-sonnet-5@1m",
+        "openai-codex/gpt-5.6-sol",
+        DEFAULT,
+    ]
+    assert result["replacements"] == [{
+        "role": "assistant",
+        "content": [],
+        "stopReason": "error",
+        "errorMessage": (
+            "Provider returned error: retrying cursor-sonnet with "
+            "openai-codex/gpt-5.6-sol"
+        ),
+        "provider": "cursor",
+        "model": "claude-sonnet-5@1m",
+    }]
+    assert result["status"] == [
+        ["dotfiles-skill-model", "cursor-sonnet on claude-sonnet-5@1m"],
+        ["dotfiles-skill-model", "cursor-sonnet on gpt-5.6-sol"],
+        ["dotfiles-skill-model", None],
+    ]
+    assert result["retryableReplacements"] == [True]
+
+
+@pytest.mark.parametrize(
+    "error_message",
+    [
+        "Cursor SDK API key is unauthorized",
+        "HTTP 429: rate limit exceeded",
+        "Quota exceeded for this subscription",
+        "Spend limit reached",
+    ],
+)
+def test_cursor_auth_and_capacity_errors_use_gpt_sol(harness, error_message):
+    result = run(
+        harness,
+        [invoke("cursor-sonnet"), assistant_error(error_message)],
+    )
+
+    assert result["setModel"] == [
+        "cursor/claude-sonnet-5@1m",
+        "openai-codex/gpt-5.6-sol",
+    ]
+
+
+def test_a_cursor_pin_without_auth_starts_directly_on_gpt_sol(harness):
+    result = run(
+        harness,
+        [invoke("cursor-sonnet"), SETTLED],
+        unauthenticated=["cursor/claude-sonnet-5@1m"],
+    )
+
+    assert result["setModel"] == ["openai-codex/gpt-5.6-sol", DEFAULT]
+    assert result["notify"] == [[
+        (
+            "cursor-sonnet: cursor/claude-sonnet-5@1m is unavailable; "
+            "using openai-codex/gpt-5.6-sol"
+        ),
+        "warning",
+    ]]
+
+
+def test_any_explicit_cursor_model_uses_the_central_fallback_route(harness):
+    result = run(
+        harness,
+        [
+            invoke("cursor-future"),
+            assistant_error("Too many requests", model="future-model@1m"),
+        ],
+    )
+
+    assert result["setModel"] == [
+        "cursor/future-model@1m",
+        "openai-codex/gpt-5.6-sol",
+    ]
+
+
+@pytest.mark.parametrize(
+    "error_message",
+    [
+        "Network error: connection reset",
+        "HTTP 503: service unavailable",
+        "Provider returned error: Cursor SDK run failed",
+    ],
+)
+def test_other_cursor_errors_stay_on_the_normal_retry_path(harness, error_message):
+    result = run(
+        harness,
+        [invoke("cursor-sonnet"), assistant_error(error_message)],
+    )
+
+    assert result["setModel"] == ["cursor/claude-sonnet-5@1m"]
+    assert result["replacements"] == []
+
+
+def test_fallback_works_when_the_skill_model_is_already_selected(harness):
+    primary = "cursor/claude-sonnet-5@1m"
+    result = run(
+        harness,
+        [invoke("cursor-sonnet"), assistant_error("Usage limit reached"), SETTLED],
+        current=primary,
+    )
+
+    assert result["setModel"] == ["openai-codex/gpt-5.6-sol", primary]
+    assert [entry["data"]["state"] for entry in result["entries"]] == [
+        "pinned",
+        "released",
+    ]
+
+
 def test_the_run_ending_restores_the_model_before_the_thinking_level(harness):
     result = run(harness, [invoke("commit"), SETTLED], thinking="medium")
 
@@ -242,7 +411,7 @@ def test_an_explicit_reference_and_a_quoted_alias_both_resolve(harness):
 
 
 def test_a_skill_the_model_reads_itself_is_pinned_too(harness):
-    _extension, skills = harness
+    _extension, skills, _pi_ai = harness
 
     result = run(harness, [read(skills, "commit")])
 
