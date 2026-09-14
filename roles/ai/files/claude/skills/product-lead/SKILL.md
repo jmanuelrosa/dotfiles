@@ -14,15 +14,13 @@ The product pipeline is not global. It ships as the `product-team` plugin so it 
 
 This skill is a signpost. It holds no pipeline mechanics: the conventions, the templates, and the stage skills all live inside the plugin.
 
-## Install it in this repo
+## Availability in this repo
 
-```
-kura add product-team --type plugin
-```
+Kura v0.3 manages skills only. It preserves an existing project-owned product-team plugin link as legacy state but cannot install one. If `.claude/skills/product-team/` is absent, report that the pipeline is unavailable until the project provisions its plugin link outside Kura.
 
-That symlinks the plugin into `.claude/skills/product-team/`. Two things are required before it loads, and both are easy to miss:
+When the link exists, two things are required before it loads:
 
-- The workspace must be **trusted**. Accept the trust dialog, or set `hasTrustDialogAccepted` for this project in `~/.claude.json`.
+- The workspace must be **trusted**. Accept the trust dialog or run `kura trust --on` in an initialized project.
 - Claude must be **relaunched** from the repo root afterwards.
 
 ## Then use the namespaced commands
@@ -47,4 +45,4 @@ Two gates, not four, and they are answered in the session unless the repo's `doc
 
 Start with `/product-team:product-lead`: it derives each initiative's state from the artifacts on disk and names the exact next command.
 
-If the user wants the pipeline and the plugin is not installed, say so and hand them the `kura add` line above. Do not reconstruct a stage from memory: the stage skills own their own contracts, and paraphrasing them produces artifacts the later gates reject.
+If the user wants the pipeline and the project-owned plugin link is missing, say that Kura v0.3 cannot provision it. Do not reconstruct a stage from memory: the stage skills own their own contracts, and paraphrasing them produces artifacts the later gates reject.

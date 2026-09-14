@@ -3,18 +3,17 @@
 kura used to live in `roles/ai/files/scripts/claude-kit/` and its suite ran here. It is
 released separately now, so what remains is the half this repository can break:
 
-  the installer   a pinned release and checksum, the legacy link's removal, the catalog
-                  symlink, and the two commands the role runs
+  the installer   a pinned release and checksum, machine config, the legacy command and
+                  cross-harness link removals, and the commands the role runs
   the catalog     that every artifact under files/claude/ is loadable, that seat routing
                   names every implementer seat, and that the `global` tag says what the
                   registries mean it to say
 
-The tool's own behaviour is asserted in its own repository against a fixture catalog.
-Nothing here imports it: the derivations that need its answers ask the installed command
-and skip when it is not installed yet. `list --json` is the interface the Television
-cables read; `sync --dry-run` is the one that reveals the effective global set, because
-`list` hides dependency-only rows and two of the global skills are reached only as
-dependencies.
+Kura 0.3 manages skills only. The role projects global skills independently into Claude
+Code and Pi, provisions standalone global agents itself, and leaves project-owned plugin
+links untouched. The tool's own behaviour is asserted in its own repository against a
+fixture catalog. Nothing here imports it: the derivations that need its answers ask the
+installed command and skip when it is absent or predates the multi-harness interface.
 """
 
 import json
@@ -33,11 +32,17 @@ AI_DEFAULTS = REPO / "roles/ai/defaults/main.yml"
 COREUTILS_DEFAULTS = REPO / "roles/coreutils/defaults/main.yml"
 SETTINGS = CLAUDE / "settings.json"
 
-SYNC_TASK = "Converge global claude skills, agents and plugins"
-CONVERGE_TASK = "Converge pi's view of every project's skills and plugin agents"
+SYNC_TASK = "Converge global skills for Claude Code and Pi"
+CONVERGE_TASK = "Converge initialized project skill views"
 INSTALL_TASK = "Install the pinned kura release"
+MACHINE_CONFIG_TASK = "Provision kura machine config"
 CATALOG_TASK = "Point kura at the artifact catalog"
 LEGACY_REMOVE_TASK = "Remove the legacy claude-kit symlink"
+LEGACY_PI_SKILLS_CHECK_TASK = "Check for the superseded pi skills link"
+LEGACY_PI_SKILLS_REMOVE_TASK = "Remove the superseded pi skills link"
+GLOBAL_AGENTS_TASK = "Symlink global claude agents"
+GLOBAL_AGENT_LINKS_STAT_TASK = "Inspect links in the global claude agents directory"
+GLOBAL_AGENTS_PRUNE_TASK = "Remove global claude agent links the role no longer ships"
 LINK_TASK = "Link AI scripts into the user bin directory"
 HOSTOF_TASK = "Install the pinned hostof release"
 
@@ -75,56 +80,52 @@ def kura_or_skip():
     found = shutil.which("kura")
     if found is None:
         pytest.skip("kura is not installed; run the ai role first")
+    interface = subprocess.run(
+        [found, "config", "--help"], capture_output=True, text=True, check=False
+    )
+    if interface.returncode != 0 or "global harnesses" not in interface.stdout:
+        pytest.skip("installed kura predates v0.3.0; run the ai role first")
     return found
 
 
-def listing(kind):
-    rows = subprocess.run(
-        [kura_or_skip(), "list", "--type", kind, "--json"],
-        env={**os.environ, "KURA_CATALOG": str(CLAUDE), "NO_COLOR": "1"},
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return json.loads(rows.stdout)
-
-
-def effective_global(kind):
-    """The set `sync` would link into a clean `~/.claude`, which is the effective set.
-
-    A dependency-only artifact is global when a global skill pulls it in, and `list`
-    hides those rows by design, so the listing cannot see the whole set. An empty HOME
-    makes every member a link rather than a no-op, so one parse covers all of them.
-    """
+def global_sync_dry_run():
+    """`sync` against the same machine configuration the role provisions."""
     with tempfile.TemporaryDirectory() as home:
-        run = subprocess.run(
-            [kura_or_skip(), "sync", "--type", kind, "--dry-run"],
-            env={
-                **os.environ,
-                "HOME": home,
-                "KURA_CATALOG": str(CLAUDE),
-                "NO_COLOR": "1",
-            },
+        config = {
+            "schemaVersion": 1,
+            "catalog": str(CLAUDE),
+            "globalHarnesses": ["claude", "pi"],
+        }
+        config_path = os.path.join(home, ".config", "kura", "config.json")
+        os.makedirs(os.path.dirname(config_path))
+        with open(config_path, "w") as stream:
+            json.dump(config, stream)
+        return subprocess.run(
+            [kura_or_skip(), "sync", "--type", "skill", "--dry-run"],
+            env={**os.environ, "HOME": home, "NO_COLOR": "1"},
             capture_output=True,
             text=True,
             check=True,
-        )
-    return set(re.findall(r"Would link '([^']+)'", run.stdout))
+        ).stdout
+
+
+def effective_global():
+    """The logical global set, despite each skill now producing two native links."""
+    return set(re.findall(r"Would link '([^']+)'", global_sync_dry_run()))
 
 
 # --- the installer ------------------------------------------------------------
 
 
-def test_the_release_is_pinned_to_a_tag_and_a_checksum():
+def test_the_release_is_pinned_to_kura_v030():
     """The tag is for reading and the checksum is the identity. There is no --version
-    flag to ask the installed file what it is, which is what makes the pin the only
-    record of which build a machine runs."""
-    import re
-
+    flag to ask the installed file what it is, so both values are the release record."""
     kura = yaml.safe_load(AI_DEFAULTS.read_text())["KURA"]
-    assert kura["repository"] == "https://github.com/jmanuelrosa/kura"
-    assert re.fullmatch(r"v\d+\.\d+\.\d+", kura["release"])
-    assert re.fullmatch(r"sha256:[0-9a-f]{64}", kura["checksum"])
+    assert kura == {
+        "repository": "https://github.com/jmanuelrosa/kura",
+        "release": "v0.3.0",
+        "checksum": "sha256:0cf4a2e743e25b59e66afa07a8994460b4b479e84dcb8339d21ddd6935b632ff",
+    }
 
 
 def test_the_role_downloads_kura_as_the_command_file():
@@ -158,9 +159,20 @@ def test_the_legacy_symlink_is_removed_rather_than_replaced():
     assert "islnk" in task["when"], "only a symlink this role wrote is ours to remove"
 
 
-def test_the_role_points_kura_at_this_checkouts_catalog():
-    """kura reads a catalog, not a checkout: this link is what makes an interactive
-    run, the SessionStart hook and `wt add` work with no environment at all."""
+def test_the_role_provisions_kuras_machine_configuration():
+    spec = role_task("ai", MACHINE_CONFIG_TASK)["ansible.builtin.copy"]
+    assert spec["dest"] == "{{ HOME }}/.config/kura/config.json"
+    assert spec["mode"] == "0600"
+    assert json.loads(spec["content"]) == {
+        "schemaVersion": 1,
+        "catalog": "{{ role_path }}/files/claude",
+        "globalHarnesses": ["claude", "pi"],
+    }
+
+
+def test_the_role_keeps_the_catalog_fallback_current():
+    """The saved config is authoritative; the fallback keeps recovery commands usable
+    if that machine-local file is removed."""
     spec = role_task("ai", CATALOG_TASK)["ansible.builtin.file"]
     assert spec["state"] == "link"
     assert spec["src"] == "{{ role_path }}/files/claude"
@@ -176,14 +188,18 @@ def test_the_role_runs_the_installed_command(name):
 
 
 @pytest.mark.parametrize("name", [SYNC_TASK, CONVERGE_TASK])
-def test_the_role_pins_both_environmental_inputs(name):
-    """HOME and KURA_CATALOG are the tool's only environmental inputs. An inherited
-    HOME would sweep another machine's projects, and naming the catalog is what says
-    this apply provisions from this checkout rather than from whatever the managed
-    symlink currently points at."""
+def test_the_role_uses_the_provisioned_machine_configuration(name):
+    """HOME selects the provisioned config. KURA_CATALOG must not bypass its saved
+    catalog, because Kura refuses config changes while that override is active."""
     environment = role_task("ai", name)["environment"]
     assert environment["HOME"] == "{{ HOME }}"
-    assert environment["KURA_CATALOG"] == "{{ role_path }}/files/claude"
+    assert "KURA_CATALOG" not in environment
+
+
+def test_the_project_sweep_names_the_developer_root():
+    command = role_task("ai", CONVERGE_TASK)["ansible.builtin.command"]["cmd"]
+    assert "--all" in command
+    assert "--root {{ HOME }}/Developer" in command
 
 
 @pytest.mark.parametrize("name", [SYNC_TASK, CONVERGE_TASK])
@@ -205,16 +221,83 @@ def test_the_role_dry_runs_under_check_mode(name):
     assert task["check_mode"] is False
 
 
-def test_a_session_start_hook_converges_the_project_being_opened():
-    """The per-repo half: every repo self-heals the moment it is opened, which is also
-    the moment it matters. --quiet is load-bearing rather than tidy, because Claude Code
-    feeds a SessionStart hook's stdout into the session as context."""
+def test_a_session_start_hook_converges_only_an_initialized_exact_cwd():
+    """Kura 0.3 treats cwd as the exact project and refuses when root kura.json is
+    absent. The hook stays silent in an uninitialized directory without hiding a real
+    convergence failure in an initialized one."""
     hooks = json.loads(SETTINGS.read_text())["hooks"]["SessionStart"]
     commands = [hook["command"] for entry in hooks for hook in entry["hooks"]]
     converging = [c for c in commands if "kura converge" in c]
-    assert len(converging) == 1, f"expected one converge hook, got {converging}"
-    assert "--quiet" in converging[0]
-    assert "--all" not in converging[0], "a sweep of every project does not belong on a session start"
+    assert converging == [
+        "if [ -f ./kura.json ]; then ~/.local/bin/kura converge --quiet; fi"
+    ]
+
+
+def test_kura_global_sync_targets_both_native_skill_roots():
+    output = global_sync_dry_run()
+    assert "~/.claude/skills/" in output
+    assert "~/.agents/skills/" in output
+    assert "~/.pi/agent/skills/" not in output
+
+
+def test_the_old_cross_harness_skill_link_is_removed_only_when_it_is_ours():
+    check = role_task("ai", LEGACY_PI_SKILLS_CHECK_TASK)["ansible.builtin.stat"]
+    assert check == {"path": "{{ HOME }}/.pi/agent/skills", "follow": False}
+
+    remove = role_task("ai", LEGACY_PI_SKILLS_REMOVE_TASK)
+    assert remove["ansible.builtin.file"] == {
+        "path": "{{ HOME }}/.pi/agent/skills",
+        "state": "absent",
+    }
+    assert "islnk" in remove["when"]
+
+    assertion = next(
+        task for task in yaml.safe_load(AI_TASKS.read_text())
+        if task.get("ansible.builtin.assert")
+        and "pi skills" in task.get("name", "").lower()
+    )["ansible.builtin.assert"]
+    conditions = " ".join(assertion["that"])
+    assert "lnk_source" in conditions
+    assert '.claude/skills' in conditions
+
+
+def test_standalone_agents_remain_role_provisioned_and_global():
+    task = role_task("ai", GLOBAL_AGENTS_TASK)
+    assert task["ansible.builtin.file"] == {
+        "src": "{{ role_path }}/files/claude/agents/{{ item | basename }}",
+        "dest": "{{ HOME }}/.claude/agents/{{ item | basename }}",
+        "state": "link",
+        "force": True,
+    }
+    assert task["with_fileglob"] == ["{{ role_path }}/files/claude/agents/*.md"]
+
+    registry = json.loads((CLAUDE / "agent-registry.json").read_text())
+    registered = {entry["name"] for entry in registry["local_agents"]}
+    shipped = {path.stem for path in AGENTS.glob("*.md")}
+    assert registered == shipped
+    assert all("global" in entry["groups"] for entry in registry["local_agents"])
+
+
+def test_global_agent_pruning_inspects_link_targets_before_removal():
+    inspect = role_task("ai", GLOBAL_AGENT_LINKS_STAT_TASK)
+    assert inspect["loop"] == "{{ claude_agent_links.files }}"
+    assert inspect["ansible.builtin.stat"] == {
+        "path": "{{ item.path }}",
+        "follow": False,
+    }
+
+    prune = role_task("ai", GLOBAL_AGENTS_PRUNE_TASK)
+    assert prune["loop"] == "{{ claude_agent_link_stats.results }}"
+    conditions = " ".join(prune["when"])
+    assert "item.stat.lnk_source" in conditions
+    assert "item.item.path" in prune["ansible.builtin.file"]["path"]
+
+
+def test_kura_tasks_manage_skills_only_and_leave_project_plugins_alone():
+    for name in (SYNC_TASK, CONVERGE_TASK):
+        command = role_task("ai", name)["ansible.builtin.command"]["cmd"]
+        assert "--type agent" not in command
+        assert "--type plugin" not in command
 
 
 # --- the installers that still link from this checkout ------------------------
@@ -381,11 +464,11 @@ def test_the_global_set_holds_exactly_the_documented_membership():
     """Pinned so a registry retag shows up as a failing test rather than as a silent
     change to what lands in ~/.claude.
 
-    Read from `sync --dry-run` rather than derived here. The derivation is kura's, it
-    expands dependencies one level for a global skill and two for a global agent, and a
-    second copy of it in this repository is exactly the drift the Jinja version caused.
+    Read from `sync --dry-run` rather than derived here. Kura 0.3 derives only skill
+    dependencies, so skills required by role-provisioned global agents carry their own
+    global tag instead of relying on the agent registry to pull them in.
     """
-    assert effective_global("skill") == {
+    assert effective_global() == {
         "ac",
         "agent-audit",
         "agent-writer",
@@ -410,12 +493,3 @@ def test_the_global_set_holds_exactly_the_documented_membership():
         "skill-writer",
         "to-plan",
     }
-
-
-def test_every_manifested_plugin_is_listed():
-    """The plugin namespace comes from manifests on disk rather than from a registry,
-    so a plugin with a malformed manifest disappears from the listing silently."""
-    on_disk = {
-        d.name for d in PLUGINS.iterdir() if (d / ".claude-plugin" / "plugin.json").is_file()
-    }
-    assert {row["name"] for row in listing("plugin")} == on_disk

@@ -42,6 +42,7 @@
     - "{{ HOME }}/.claude/rules"
     - "{{ HOME }}/.claude/skills"
     - "{{ HOME }}/.claude/agents"
+    - "{{ HOME }}/.config/kura"
     - "{{ HOME }}/.local/bin"
     - "{{ HOME }}/.pi/agent"
     - "{{ HOME }}/.pi/agent/themes"
@@ -223,10 +224,9 @@
     state: directory
     mode: "0755"
 
-# kura reads a catalog rather than a checkout: KURA_CATALOG if set, else this path. The
-# link is what makes an interactive `kura list`, the SessionStart hook and `wt add` work
-# with no environment at all, and force: true is what repoints it at this checkout when
-# it names an older one.
+# Kura reads KURA_CATALOG first, saved machine config second, and this path only when
+# neither exists. Keep the fallback pointed at this checkout for recovery commands;
+# force: true repoints a link left by an older checkout.
 - name: Point kura at the artifact catalog
   ansible.builtin.file:
     src: "{{ role_path }}/files/claude"
@@ -234,68 +234,133 @@
     state: link
     force: true
 
-# The `global` group tag in the two registries is the single source of truth for what
-# belongs in ~/.claude, and kura already derives that set to answer "does this
-# need --global?". This task is the only consumer of it here, deliberately: the same
-# derivation once lived in this file as ~130 lines of Jinja, which nothing could
-# unit-test and which drifted from the tool's copy the moment either changed.
-#
-# It converges rather than adds, so a skill that loses its `global` tag is unlinked on
-# the next run. Only symlinks pointing into files/claude/ are candidates, so a
-# hand-made directory in ~/.claude/skills survives untouched.
-- name: Converge global claude skills, agents and plugins
+# Kura 0.3 requires machine configuration before sync or convergence. Ansible owns this
+# machine-level choice: both harnesses receive independent native skill views and the
+# catalog follows this checkout. The fallback link above remains useful if the config is
+# removed, but it does not encode the enabled harness set and cannot replace this file.
+- name: Check for an existing kura machine config
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.config/kura/config.json"
+  register: kura_machine_config_before
+
+- name: Provision kura machine config
+  ansible.builtin.copy:
+    dest: "{{ HOME }}/.config/kura/config.json"
+    mode: "0600"
+    content: |
+      {
+        "schemaVersion": 1,
+        "catalog": "{{ role_path }}/files/claude",
+        "globalHarnesses": ["claude", "pi"]
+      }
+
+# Kura 0.2 and earlier exposed Pi's global skills through Claude's root. Pi 0.85 reads
+# ~/.agents/skills natively, and Kura 0.3 writes independent links there. Keeping this
+# bridge would make every global skill load twice. Refuse an unexpected occupant rather
+# than deleting user-owned content at a path this role no longer manages.
+- name: Check for the superseded pi skills link
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.pi/agent/skills"
+    follow: false
+  register: pi_superseded_skills_link
+
+- name: Refuse to remove an unexpected pi skills path
+  ansible.builtin.assert:
+    that:
+      - >-
+        not pi_superseded_skills_link.stat.exists or
+        (pi_superseded_skills_link.stat.islnk | default(false) and
+        pi_superseded_skills_link.stat.lnk_source == HOME ~ "/.claude/skills")
+    fail_msg: "Refusing to remove user-owned {{ HOME }}/.pi/agent/skills"
+
+- name: Remove the superseded pi skills link
+  ansible.builtin.file:
+    path: "{{ HOME }}/.pi/agent/skills"
+    state: absent
+  when: pi_superseded_skills_link.stat.islnk | default(false)
+
+# Kura 0.3 intentionally manages skills only. Standalone agents in this catalog are all
+# global, so Ansible now owns their Claude Code links. Pi keeps the agent-only bridge
+# below because pi-subagents has no neutral global agent root corresponding to Kura's
+# native skill root. Project plugins and their bundled agents remain project-owned and
+# are not touched by this role.
+- name: Symlink global claude agents
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/claude/agents/{{ item | basename }}"
+    dest: "{{ HOME }}/.claude/agents/{{ item | basename }}"
+    state: link
+    force: true
+  with_fileglob:
+    - "{{ role_path }}/files/claude/agents/*.md"
+
+- name: Find links in the global claude agents directory
+  ansible.builtin.find:
+    paths: "{{ HOME }}/.claude/agents"
+    file_type: link
+  register: claude_agent_links
+
+- name: Inspect links in the global claude agents directory
+  ansible.builtin.stat:
+    path: "{{ item.path }}"
+    follow: false
+  loop: "{{ claude_agent_links.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  register: claude_agent_link_stats
+
+- name: Remove global claude agent links the role no longer ships
+  ansible.builtin.file:
+    path: "{{ item.item.path }}"
+    state: absent
+  loop: "{{ claude_agent_link_stats.results }}"
+  loop_control:
+    label: "{{ item.item.path | basename }}"
+  vars:
+    CLAUDE_AGENTS_SHIPPED: "{{ query('fileglob', role_path ~ '/files/claude/agents/*.md') | map('basename') | list }}"
+  when:
+    - item.item.path | basename not in CLAUDE_AGENTS_SHIPPED
+    - item.stat.islnk | default(false)
+    - item.stat.lnk_source is match('^' ~ role_path ~ '/files/claude/agents/')
+
+# The `global` tag in skill-registry.json is the source of truth for both native global
+# roots. Kura expands skill dependencies and links every selected skill independently at
+# ~/.claude/skills and ~/.agents/skills. It prunes only catalog-backed symlinks, so real
+# paths, foreign links and project plugin links remain outside its ownership.
+- name: Converge global skills for Claude Code and Pi
   ansible.builtin.command:
     cmd: "{{ HOME }}/.local/bin/kura sync{{ ' --dry-run' if ansible_check_mode else '' }}"
   environment:
-    # Both of kura's environmental inputs, pinned rather than inherited: the playbook's
-    # HOME is the right one, and naming the catalog says this apply provisions from this
-    # checkout. Passing it explicitly also keeps --check honest on a machine that has
-    # never been applied, where the symlink task above has created nothing yet.
     HOME: "{{ HOME }}"
-    KURA_CATALOG: "{{ role_path }}/files/claude"
     NO_COLOR: "1"
   register: kura_sync
-  # A dry run is the whole task under --check, so it must not be skipped there.
   check_mode: false
   changed_when: kura_sync.stdout is not search(', 0 changes')
+  # On a fresh --check run the copy task above cannot create machine config. A normal
+  # apply always runs; later checks can dry-run against the file already provisioned.
+  when: not ansible_check_mode or kura_machine_config_before.stat.exists
 
-# Worth seeing: this is the one task that deletes something nobody named, and its
-# report is the only place a prune or a missing artifact is explained.
 - name: Show what the global sync did
   ansible.builtin.debug:
     var: kura_sync.stdout_lines
-  when: kura_sync is changed or kura_sync.stderr | length > 0
+  when: kura_sync is changed or kura_sync.stderr | default('') | length > 0
 
-# The project half of the same idea, and the reason it is a task rather than a chore:
-# pi reads a project's skills from `.agents/skills` and its plugin agents from
-# `.agents/agents/`, never from `.claude/`, and kura maintained those links only as
-# a side effect of `add` and `remove`. So every project provisioned before that code
-# existed was invisible to pi until somebody happened to install a skill there, which on
-# this machine was 28 of them. `--all` sweeps Claude Code's own project registry together
-# with a walk of ~/Developer.
-#
-# Safe to run on every apply: it installs nothing, records nothing, fetches nothing, and
-# the only paths it can write are the two `.agents` leaves. A project holding something
-# else at either path is reported and left alone.
-- name: Converge pi's view of every project's skills and plugin agents
+# Kura 0.3 discovers only root kura.json manifests beneath cwd or explicit --root trees.
+# Name ~/Developer explicitly so Ansible's cwd cannot narrow the sweep to this checkout.
+- name: Converge initialized project skill views
   ansible.builtin.command:
-    cmd: "{{ HOME }}/.local/bin/kura converge --all{{ ' --dry-run' if ansible_check_mode else '' }}"
+    cmd: "{{ HOME }}/.local/bin/kura converge --all --root {{ HOME }}/Developer{{ ' --dry-run' if ansible_check_mode else '' }}"
   environment:
-    # Pinned for the sync task's reasons, and one more: discovery reads $HOME/.claude.json
-    # and walks $HOME/Developer, so an inherited HOME would sweep the wrong machine's
-    # projects.
     HOME: "{{ HOME }}"
-    KURA_CATALOG: "{{ role_path }}/files/claude"
     NO_COLOR: "1"
   register: kura_converge
-  # A dry run is the whole task under --check, so it must not be skipped there.
   check_mode: false
   changed_when: kura_converge.stdout is not search(', 0 changes')
+  when: not ansible_check_mode or kura_machine_config_before.stat.exists
 
-- name: Show what the pi convergence did
+- name: Show what project convergence did
   ansible.builtin.debug:
     var: kura_converge.stdout_lines
-  when: kura_converge is changed or kura_converge.stderr | length > 0
+  when: kura_converge is changed or kura_converge.stderr | default('') | length > 0
 
 - name: Symlink pi agent config
   ansible.builtin.file:
@@ -336,31 +401,9 @@
     state: link
     force: true
 
-# Pi's global skills are Claude's global skills, the same set and by the same
-# derivation, because ~/.claude/skills is what `kura sync` above converges from
-# the `global` tag. Pointing at the repo instead gave pi every skill in the tree: 69
-# descriptions in every session's system prompt against Claude's 19, most of them
-# project-scoped, several `dependency_only` and one (`claude-api`) about a harness pi
-# is not. Tag an entry `global` to reach both, and note that a non-global skill still
-# reaches pi in any project that adds it, since `add` links `.agents/skills` there.
-#
-# Its own task because the source is outside the repo, and after the sync task so the
-# set is converged before pi is pointed at it; the directory itself is created by the
-# directories task above, so the link is never dangling even on a first run.
-- name: Point pi at the global claude skills
-  ansible.builtin.file:
-    src: "{{ HOME }}/.claude/skills"
-    dest: "{{ HOME }}/.pi/agent/skills"
-    state: link
-    force: true
-
-# Same argument one directory over. The pi-subagents extension reads global agents
-# from ~/.pi/agent/agents/*.md and never from ~/.claude/agents, which is the set the
-# sync task above converges from the `global` tag. One directory link means that set
-# is derived, linked and pruned in exactly one place; per-file links here would need
-# a prune pass of their own to restate what sync already does. After the sync task
-# for the same reason as the skills link, and ~/.claude/agents is created by the
-# directories task above, so the link is never dangling even on a first run.
+# pi-subagents reads global agents only from ~/.pi/agent/agents. Kura 0.3 has no agent
+# lifecycle, so the role-owned Claude directory above remains the one source and this
+# agent-only bridge keeps the two harnesses on that same set.
 - name: Point pi at the global claude agents
   ansible.builtin.file:
     src: "{{ HOME }}/.claude/agents"

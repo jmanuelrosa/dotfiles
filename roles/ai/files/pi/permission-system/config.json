@@ -647,7 +647,7 @@
     "external_directory": {
       "*": "ask",
       "~/.claude/skills/*": "allow",
-      "~/.pi/agent/skills/*": "allow"
+      "~/.agents/skills/*": "allow"
     },
     "mcp": {
       "*": "allow",

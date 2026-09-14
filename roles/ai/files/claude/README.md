@@ -1,6 +1,6 @@
 # Claude
 
-Management system for Claude Code skills, agents, and MCP servers. Skills and agents live in this directory; `kura` links them into a project or into `~/.claude`.
+Catalog for Claude Code and Pi skills, Claude agents, and skills-dir plugins. Kura v0.3 manages the skill lifecycle across both harnesses. The AI role provisions standalone agents globally, while project plugin links remain project-owned legacy state until Kura adds agent and plugin management.
 
 This document covers how to **use them in a project** and how to **add new skills and agents to the dotfiles repo** itself.
 
@@ -11,22 +11,29 @@ For the worked example (a project from zero, product side then engineering side,
 `kura` is the CLI. It lives in its own repository now: the `ai` role installs a pinned release at `~/.local/bin/kura` and points it at this directory as its catalog (`KURA_CATALOG`, or `~/.local/share/kura/catalog` when that is unset). It replaced the `claude-skill` / `claude-agent` fish functions, which are gone.
 
 ```
-kura add    <name>... --type skill|agent|plugin   Install, resolving dependencies
-kura remove <name>... --type skill|agent|plugin   Uninstall, cascading to dependencies
-kura list            --type skill|agent|plugin   Show artifacts and where they are installed
-kura scout                                       Recommend artifacts matched to this project's stack
-kura doctor                                      Report drift between registries and disk
-kura adopt                                       Rebuild kura.json from what is installed
-kura restore                                     Install what kura.json records
-kura sync                                        Converge ~/.claude on the artifacts tagged global
+kura init                                        Initialize the exact cwd and selected harnesses
+kura config                                      Show or change machine catalog and global harnesses
+kura add    <name>... --type skill               Add direct project skill intent
+kura remove <name>... --type skill               Remove direct project skill intent
+kura list            --type skill               Show catalog, intent, and native views
+kura scout                                       Recommend skills matched to this project's stack
+kura doctor                                      Report configuration and native-view drift
+kura adopt                                       Adopt catalog-backed native skill links
+kura restore                                     Recreate missing links without deleting anything
+kura converge                                    Reconcile the exact cwd's selected skill views
+kura sync                                        Converge global skills across enabled harnesses
 kura update   --type skill                       Fetch skills from their upstream repos
 kura outdated --type skill                       Report which skills are behind upstream
-kura trust                                       Show or change whether this workspace is trusted
+kura trust                                       Show or change selected harness trust
 ```
 
-`--type` is required except on `doctor`, `adopt`, `restore`, `sync` and `scout`, where it narrows an otherwise cross-type result, and on `trust`, which takes none at all. Nothing is inferred from a name, so a name means one artifact of one type. `add` and `remove` also take `--group <tag>` instead of names, and `--global` for an artifact that lands in `~/.claude`. A project is whatever directory you run it in (`$HOME` excepted, since its `.claude` *is* `~/.claude`).
+Artifact commands accept only `--type skill` in v0.3. `add` and `remove` also take `--group <tag>` instead of names, and `--global` for temporary machine-wide links. A project is the exact directory containing root `kura.json`; Kura never searches Git or ancestors and `$HOME` is not a project. Full reference, migration behavior and the corner-case FAQ live in Kura's own README.
 
-Full reference, worked examples and a corner-case FAQ: kura's own README, in its repository. The `kura-skills` and `kura-agents` Television cables drive the same commands interactively.
+## Agents and plugins in Kura v0.3
+
+Kura intentionally does not manage agents or plugins in this phase. The AI role links every standalone file under `agents/` into `~/.claude/agents/`, then points Pi's global pi-subagents root at that directory. Every registry agent is therefore global. Skills required by those agents must independently be global in `skill-registry.json`.
+
+Existing project plugin links under `.claude/skills/` and their Pi agent links under `.agents/agents/` are preserved as project-owned legacy state. `kura init` can record old agent and plugin manifest rows under `legacy`, but no v0.3 command creates, updates, or removes those links. The role also leaves them untouched.
 
 ## Product Team
 
@@ -80,7 +87,7 @@ A healthy funnel kills most ideas at Gate 0. Killing early is the pipeline worki
 3. `/product-team:1-research`: fans out to the roster's researchers in parallel (the only fan-out in the pipeline) and synthesizes `01-research/summary.md`, naming any pass the roster skipped as an evidence gap.
 4. `/product-team:2-write-prd`: writes `02-prd.md`, where each requirement is a SHALL with at least one WHEN/THEN scenario, a capability, non-goals, and metrics that name the requirement making them measurable.
 5. `/product-team:3-red-team`: `product-team:pm-red-team` attacks the PRD with fresh eyes; agreed fixes are applied by the skill, and then it asks **Gate 1**. That order is deliberate: on a real initiative the gate was answered first and the report then had to amend an already-approved PRD.
-6. `/product-team:4-tech-shape`: dispatches `ux-shaper` to write `04-ux-spec.md` (every flow, every surface, every state, and the design-system pieces that do not exist yet), then explores this codebase read-only and writes `04-design-doc.md` against those states, closing every deferral aimed at it and stating where validity is enforced relative to deploy and who can read the deployed thing; `product-team:adr-scribe` extracts decisions into the repo-wide `docs/adr/`. `ux-shaper` is a registry agent rather than a bundled one, so this stage and the architect share one definition of a UX spec: `kura add ux-shaper --type agent --global`.
+6. `/product-team:4-tech-shape`: dispatches `ux-shaper` to write `04-ux-spec.md` (every flow, every surface, every state, and the design-system pieces that do not exist yet), then explores this codebase read-only and writes `04-design-doc.md` against those states, closing every deferral aimed at it and stating where validity is enforced relative to deploy and who can read the deployed thing; `product-team:adr-scribe` extracts decisions into the repo-wide `docs/adr/`. `ux-shaper` is a standalone global agent provisioned by the AI role, so this stage and the architect share one definition of a UX spec.
 7. `/product-team:5-decompose`: writes `05-tasks.md`, the whole build in dependency order from an empty repo to accepted, including the toolchain, deploy and acceptance work that could never be a story because no requirement asks for it. In the full profile it also writes thin story headers, and `product-team:ac-writer` fills each one's claimed scenario ids and reports any slice needing a criterion the PRD lacks.
 8. `/product-team:6-verify`: runs `pt.py check --strict` (errors and warnings both fail at DoR time), then judges the four items a script cannot, and writes `06-dor-report.md`. Pinned to Sonnet: it used to inherit an Opus session and cost more than research, the PRD and the red team combined.
 9. `/product-team:7-push-to-board`: dry-runs, asks Go/Cancel, then creates the GitHub epic and story issues with each story's claimed scenarios expanded into the body, links them, and adds them to the Project.
@@ -137,7 +144,7 @@ Each is single-artifact and least-privilege: it is dispatched only from its owni
 | `product-team:adr-scribe` | `/product-team:4-tech-shape` | `docs/adr/NNNN-*.md` | Extracts design decisions into numbered, immutable ADRs |
 | `product-team:ac-writer` | `/product-team:5-decompose` | edits `05-backlog/story-*.md` | Claims and completes: fills each story's scenario ids from the PRD and reports any slice needing a scenario the PRD lacks |
 
-The pipeline skills are all `disable-model-invocation: true` (human-invoked only). The one exception is `idea-refine`, vendored pristine from `addyosmani/agent-skills` and left model-invocable: `/product-team:setup-strategy` and `/product-team:0-refine-idea` invoke it via the Skill tool as their ideation front-end, and it works standalone too. Install the whole pipeline into a project with `kura add product-team --type plugin`: the seven product agents ship inside the bundle and its `skillDependencies` pulls `idea-refine` alongside. The one agent to add separately is `ux-shaper` (`kura add ux-shaper --type agent --global`), shared with the architect so both read one definition of a UX spec.
+The pipeline skills are all `disable-model-invocation: true` (human-invoked only). The one exception is `idea-refine`, vendored pristine from `addyosmani/agent-skills` and left model-invocable: `/product-team:setup-strategy` and `/product-team:0-refine-idea` invoke it via the Skill tool as their ideation front-end, and it works standalone too. The seven product agents ship inside the project-owned plugin bundle and `ux-shaper` is provisioned globally by the AI role. Kura v0.3 preserves an existing pipeline plugin link as legacy state but does not install one.
 
 ## Staff-engineer bench
 
@@ -164,7 +171,7 @@ A separate delegation system for building what Product Team specs out. Each seat
 
 Each seat is a skills-dir plugin under `roles/ai/files/claude/plugins/<discipline>/` that bundles the agent with its `<discipline>-failure-modes` skill (`frontend-failure-modes`, `backend-failure-modes`, and so on): an audited checklist of that domain's common defects the seat consults before it implements. Because the skill lives inside the plugin folder, `kura add <seat> --type plugin` links the whole plugin into the project and the skill travels with it (invoked as `<discipline>:<discipline>-failure-modes`); the seat loads once the workspace is trusted.
 
-Product Team hands off a backlog; then `/feature-team "<brief>"` runs the build side: `architect` writes the spec, you approve the plan, the installed seats implement in parallel, and the skill verifies and returns an integration report. Install a whole discipline with `kura add --group engineering --type plugin` (the 13 seats above except `qa`, which lives under `quality`: add it with `kura add qa --type plugin`), or add individual seats by name. A seat's **plugin name is the bare discipline** (`kura add backend --type plugin`); the namespaced `backend:backend-staff-engineer` is how the agent inside is dispatched, not how it is installed.
+Product Team hands off a backlog; then `/feature-team "<brief>"` runs the build side: `architect` writes the spec, you approve the plan, the available project-owned seats implement in parallel, and the skill verifies and returns an integration report. A seat's **plugin name is the bare discipline** (`backend`); the namespaced `backend:backend-staff-engineer` is how the agent inside is dispatched. Kura v0.3 does not add or remove these plugin links.
 
 The parallel wave runs in **isolated git worktrees** by default (2+ independent slices; pass `--no-isolate` to keep it in the main checkout). One-file-one-owner stays the primary guarantee against source collisions; the worktree is the mechanism underneath it, fencing each seat's build/test side effects (`node_modules`, build output, generated files) and turning any ownership slip into a visible diff instead of a silent clobber. The architect marks each slice `Parallel: yes|no` and `Depends on:`; the wave (all `Parallel: yes`) dispatches with the Agent tool's `isolation: "worktree"`, and the team lead copies each seat's owned files back into the main checkout (seats never commit, so there is nothing to merge). Held/dependent slices run afterward in the main checkout so they read the integrated work. This relies on `worktree.baseRef: "head"` in [settings.json](settings.json) so seats branch from the current feature tip rather than `origin/main`. It is deliberately **not** wired to the `wt` fish helper: the Agent tool can only isolate subagents into `.claude/worktrees/`, and `wt`'s sibling worktrees fall outside the sandbox write root, so `wt` stays the tool you drive by hand.
 
@@ -270,12 +277,12 @@ Authoring guidance for all three lives with the generators, and they are the fil
 2. Declare it in `local_agents` in [agent-registry.json](agent-registry.json) with its groups and a note:
 
    ```json
-   { "name": "my-agent", "groups": ["quality"], "note": "Locally authored" }
+   { "name": "my-agent", "groups": ["quality", "global"], "note": "Locally authored" }
    ```
 
    Common notes: `"Locally authored"`, `"Consolidated from multiple sources"`, `"No external source"`.
 
-3. Set `effort:` from the [Model and effort policy](#model-and-effort-policy) tiers; a delegated agent should never be left on the session default. Add `memory: project` if the agent benefits from carrying stack facts between dispatches, and pair it with a boundary bullet telling the agent to write there. A seat goes through `/agent-writer` instead, which owns the whole frontmatter contract.
+3. Keep the `global` tag: every standalone agent is role-provisioned globally in Kura v0.3, while project-scoped agents belong inside project-owned plugins. Set `effort:` from the [Model and effort policy](#model-and-effort-policy) tiers; a delegated agent should never be left on the session default. Add `memory: project` if the agent benefits from carrying stack facts between dispatches, and pair it with a boundary bullet telling the agent to write there. A seat goes through `/agent-writer` instead, which owns the whole frontmatter contract.
 
 ### Option B — Track from an upstream repo
 
@@ -333,20 +340,20 @@ Authoring guidance for all three lives with the generators, and they are the fil
         {
           "upstream_path": "agents/some-agent.md",
           "name": "my-agent",
-          "groups": ["quality", "review"],
+          "groups": ["quality", "review", "global"],
           "updated_at": "2026-05-12T10:23:45Z"
         }
       ]
     }
   },
   "local_agents": [
-    { "name": "agent-name", "groups": ["quality"], "note": "Locally authored" }
+    { "name": "agent-name", "groups": ["quality", "global"], "note": "Locally authored" }
   ]
 }
 ```
 
-- **`agents` array** — maps `upstream_path` → `name` (the `.md` filename without extension in `agents/`), plus a `groups` tag array consumed by `kura add --group <tag> --type agent`. An optional `updated_at` is recorded by hand, since `update` covers skills only.
-- **`local_agents`** — **authoritative inventory of local agents.** Every locally-authored `.md` under `agents/` must appear here, with its `groups` tags and a `note` documenting why it's local (locally authored, consolidated, etc.).
+- **`agents` array** — maps `upstream_path` → `name` (the `.md` filename without extension in `agents/`), plus repository metadata such as `groups`. Kura v0.3 does not consume this registry. An optional `updated_at` is recorded by hand, since agent updates remain manual.
+- **`local_agents`** is the authoritative inventory of local agents. Every locally-authored `.md` under `agents/` must appear here with a `global` group, its capability tags, and a note documenting why it is local. The AI role, not Kura v0.3, links those files.
 
 ## Directory Structure
 

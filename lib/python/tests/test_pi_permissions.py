@@ -85,7 +85,7 @@ INFRASTRUCTURE_READ_PATHS = [
 
 SHARED_SKILL_PATHS = [
     "~/.claude/skills/*",
-    "~/.pi/agent/skills/*",
+    "~/.agents/skills/*",
 ]
 
 # Tool surfaces pi gates that Claude never prompts for, listed so the universal
@@ -381,7 +381,7 @@ def test_the_project_boundary_still_prompts_except_for_shared_skill_roots():
     assert resolve(external, "~/Developer/another-project/file.txt") == "ask"
     for path in (
         "~/.claude/skills/pr/scripts/context.py",
-        "~/.pi/agent/skills/pr/scripts/context.py",
+        "~/.agents/skills/pr/scripts/context.py",
     ):
         assert resolve(external, path) == "allow", f"{path} prompts as external"
 

@@ -76,14 +76,6 @@ function kura:skill --wraps kura
     kura $argv --type skill
 end
 
-function kura:agent --wraps kura
-    kura $argv --type agent
-end
-
-function kura:plugin --wraps kura
-    kura $argv --type plugin
-end
-
 
 alias pi:debug=pi_debug
 alias pi:log=pi_last_error
