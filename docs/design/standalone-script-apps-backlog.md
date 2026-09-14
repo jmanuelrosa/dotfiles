@@ -1,6 +1,6 @@
 # Standalone script apps backlog
 
-**Status:** `hostof`, `kura`, and `shoo` extractions complete; waiting for explicit approval before the next extraction.
+**Status:** `hostof`, `kura`, `shoo`, and `lns` extractions complete.
 **Updated:** 2026-09-14
 **Full design:** [standalone-script-apps.md](./standalone-script-apps.md)
 
@@ -29,6 +29,7 @@ Reference: [jmanuelrosa/hostof](https://github.com/jmanuelrosa/hostof) at `v0.1.
 | `hostof` | Done | ~1,100 | Generic network diagnostics; clean boundary; pilot complete |
 | `claude-kit` | Done, as `kura` | ~6,356 | Largest app; released at `v0.1.0` and installed by checksum; source removed from this repo |
 | `port` | Done, as `shoo` | ~575 | Generic macOS port diagnostics; renamed to avoid MacPorts and installed from `v0.2.0` |
+| `lns` | Done | ~350 | Generic symlink discovery and safe removal; dotfiles pinned to `v0.1.0` |
 | `tokencost` | Next candidate | small | Useful standalone CLI; pricing updates have their own cadence |
 | `lokl` | Defer | medium | Reusable Caddy/hosts command, but dotfiles owns committed site configuration |
 | `weekly-recap` | Optional later | medium | Coherent reporting CLI; Jira/GitHub/GitLab auth is the main coupling |
@@ -83,18 +84,33 @@ Design: [port-extraction.md](./port-extraction.md).
 - [ ] Dotfiles PR merged
 - [ ] Upgrade/rollback exercise when the next release exists
 
-### 4. `tokencost` - not started (needs approval)
+### 4. `lns` - complete
 
-- [ ] Explicit approval after `claude-kit` or as a smaller parallel if scope stays narrow
+Design: [lns-extraction.md](./lns-extraction.md).
+
+- [x] Explicit approval to extract into `~/Developer/personal/lns`
+- [x] Original behavior characterized with 20 black-box tests
+- [x] Self-contained Fish release candidate with 22 passing tests
+- [x] Documentation, local verification, and pull-request workflow prepared
+- [x] Published `jmanuelrosa/lns` and `v0.1.0`
+- [x] Downloaded asset and checksum file verified against the local release bytes
+- [x] Shell-role installer pinned to the release and SHA-256 checksum
+- [x] Role-owned legacy Fish links handled safely and old source retired
+- [x] `make run-role ROLE=shell`, then `make verify`
+- [ ] Upgrade/rollback exercise when the next release exists
+
+### 5. `tokencost` - not started (needs approval)
+
+- [ ] Explicit approval after `lns`
 - [ ] Choose repo boundary (standalone vs small personal-tools monorepo)
 - [ ] Standalone repo, release asset, dotfiles installer
 
-### 5. `lokl` - deferred
+### 6. `lokl` - deferred
 
 - [ ] Define configuration boundary (command vs committed Caddy site files in dotfiles)
 - [ ] Explicit approval before any extraction work
 
-### 6. `weekly-recap` - optional
+### 7. `weekly-recap` - optional
 
 - [ ] Document authenticated integration dependencies
 - [ ] Explicit approval if pursued
@@ -113,4 +129,4 @@ Design: [port-extraction.md](./port-extraction.md).
 
 ## Next step
 
-Pick the next candidate and approve a separate plan. Recommended order: `claude-kit` (highest impact) or `tokencost` (simpler boundary than `claude-kit` or `lokl`).
+Pick the next candidate and approve a separate plan. `tokencost` remains next in the queue.

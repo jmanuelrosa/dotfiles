@@ -8,6 +8,7 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 - Adds fish to `/etc/shells` and switches the user's login shell to fish.
 - Installs Fisher plugins listed in `FISH_PLUGINS`.
 - Backs up any pre-existing fish / ghostty / starship / television configs to `<repo>/backups/` before symlinking.
+- Downloads the pinned [`lns`](https://github.com/jmanuelrosa/lns) release asset directly to `~/.local/bin/lns`, removing only the role-owned legacy Fish function links.
 - Downloads the pinned [`shoo`](https://github.com/jmanuelrosa/shoo) release asset directly to `~/.local/bin/shoo`, removing only the checksum-matched `port` executable and role-owned `port.fish` link from the earlier command name.
 - Symlinks Ghostty config, fish `config.fish` + conf.d snippets + functions, and the Starship prompt config from `files/`.
 - Renders `~/.config/fish/conf.d/secrets.fish` from `templates/secrets.fish.j2` using vault vars (mode 0600).
@@ -20,6 +21,7 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 
 ## Vars
 
+- `LNS` (defaults/main.yml): upstream repository, release, and SHA-256 checksum for the installed `lns` asset.
 - `SHOO` (defaults/main.yml): upstream repository, release, SHA-256 checksum, and legacy `port` checksum for the installed `shoo` asset and command migration.
 - `FISH_PATH` (defaults/main.yml) — Apple Silicon Homebrew fish path. Override per-profile if your layout differs.
 - `FISH_PLUGINS` (defaults/main.yml) — list of Fisher plugin specs.
@@ -28,7 +30,7 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 
 ## Files
 
-- `files/fish/` — `config.fish`, `conf.d/{aliases,exports}.fish`, plus functions: `clean_claude` (+ `_clean_claude_{usage,excludes,find,confirm,tracked,purge_state,state_roots,worktree_main}`), `clean_all`, `clean_docker`, `clean_node`, `create_gitconfig`, `lns` (+ `_lns_{usage,target}`), `wt`, `_tv_kura_list`, `_tv_kura_toggle` (both thin: every fact they show or act on comes from `kura list --json`), `tv_change_dir`, `tv_history`, `_ui`. Dropping a new `.fish` in there is self-installing: the role globs the directory, and prunes links whose source is gone. (Work-only helpers like `_tv_jira` live in the `work` role.)
+- `files/fish/` — `config.fish`, `conf.d/{aliases,exports}.fish`, plus functions: `clean_claude` (+ `_clean_claude_{usage,excludes,find,confirm,tracked,purge_state,state_roots,worktree_main}`), `clean_all`, `clean_docker`, `clean_node`, `create_gitconfig`, `wt`, `_tv_kura_list`, `_tv_kura_toggle` (both thin: every fact they show or act on comes from `kura list --json`), `tv_change_dir`, `tv_history`, `_ui`. Dropping a new `.fish` in there is self-installing: the role globs the directory, and prunes links whose source is gone. (Work-only helpers like `_tv_jira` live in the `work` role.)
 - `files/ghostty/config` — Ghostty terminal config.
 - `files/starship.toml` — Starship prompt config.
 - `files/television/config.toml` — top-level television config (keybindings, theme, shell-integration channel triggers).
@@ -82,7 +84,7 @@ That decision is made where a line is **printed**, never where a fragment is com
   `--broken` keeps only the links that resolve to nothing, so `lns --broken` is the report and `lns --broken --remove` is the sweep. The two filters compose (`lns -b -c old-repo` is the dead links from one target), and both are independent of `--remove`, which is why either reads the same whether you are looking or deleting. Unlike `--contains` it is a claim about the **link**, answered by `test -e` and nothing else, so an `⚠ unreadable` link counts as broken: it resolves to nothing either way, and the case for excluding it from `--contains` was that its target is unknown, which `--broken` never asks about.
   The target is resolved **one hop** and normalized, not chased to the end of the chain. `path resolve` would be shorter but rewrites the path out from under you: on macOS a link to `/var/folders/x` reads back as `/private/var/folders/x`, which no longer contains the string you asked about.
   A link is reported and never followed (no `fd -L`), so the walk cannot descend into a target and loop.
-  Like `clean_claude`, it skips dependency, cache and build trees unless `--all`, because recursing them means hundreds of `node_modules/.bin` links drowning your own. It reuses `_clean_claude_excludes` rather than restating forty names, so `CLEAN_CLAUDE_EXCLUDES` extends `lns` too, and the skip is always stated in a note so a count never reads as "that is all of them".
+  Like `clean_claude`, it skips dependency, cache and build trees unless `--all`, because recursing them means hundreds of `node_modules/.bin` links drowning your own. The standalone release carries the extraction-time snapshot of that list and retains `CLEAN_CLAUDE_EXCLUDES` as its compatibility override, and the skip is always stated in a note so a count never reads as "that is all of them".
   `--remove` lists candidates first, then confirms once (`--yes` skips the prompt, `--dry-run` stops before it). Only the links go; their targets are untouched.
 - `tv_change_dir` — bound to `alt-c` in `config.fish`. Pipes the `dirs` television channel into `tv` and `cd`s to the pick.
 
