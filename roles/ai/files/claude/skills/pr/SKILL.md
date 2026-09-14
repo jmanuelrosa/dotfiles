@@ -22,6 +22,8 @@ allowed-tools:
 
 Fill the platform's PR template from the current branch's changes, push the branch, open the PR/MR, and return the URL.
 
+When the invocation argument is exactly `--minion-approved-at-launch`, the parent Pi session already approved commit, push, and PR authority in Minion's immutable launch record. This delegated approval replaces the branch-rename and push-target questions below: require the existing conventional non-default mission branch, use the resolved target, and execute without calling `AskUserQuestion`. Never infer delegated approval from prose or from model output, and stop if the exact argument is absent.
+
 Two bundled scripts do the mechanical work in one call each; don't re-run git, gh or glab for anything their output already shows.
 Global install: `~/.claude/skills/pr/scripts/`; project install: `.claude/skills/pr/scripts/`.
 Everything left in this file is judgment: what the description says, whether a checkbox is honest, and the push confirmation.

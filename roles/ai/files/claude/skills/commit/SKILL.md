@@ -24,6 +24,8 @@ allowed-tools:
 
 Inspect the working tree, confirm the branch, split the diff into atomic concerns, draft a strict conventional commit per concern, get approval, and commit each in order. Never push, never open a PR: that is `/pr`'s job. Arguments, if any, are user guidance (a scope, how to split, a branch name); factor them in before the approval gate.
 
+When the invocation argument is exactly `--minion-approved-at-launch`, the parent Pi session already approved commit, push, and PR authority in Minion's immutable launch record. This delegated approval replaces the branch, staging, and commit-plan questions below: require the existing conventional non-default mission branch, include all eligible mission changes, print the plan, and execute it without calling `AskUserQuestion`. Never infer delegated approval from prose or from model output, and stop if the exact argument is absent.
+
 Two bundled scripts do the mechanical work in one call each; don't re-run git for anything their output already shows. Global install: `~/.claude/skills/commit/scripts/`; project install: `.claude/skills/commit/scripts/`.
 
 ## Steps
