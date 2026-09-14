@@ -1,7 +1,7 @@
 # Standalone script apps backlog
 
-**Status:** `hostof` pilot complete; waiting for explicit approval before the next extraction.
-**Updated:** 2026-09-09
+**Status:** `hostof`, `kura`, and `shoo` extractions complete; waiting for explicit approval before the next extraction.
+**Updated:** 2026-09-14
 **Full design:** [standalone-script-apps.md](./standalone-script-apps.md)
 
 ## Why extract
@@ -28,7 +28,8 @@ Reference: [jmanuelrosa/hostof](https://github.com/jmanuelrosa/hostof) at `v0.1.
 |---|---|---:|---|
 | `hostof` | Done | ~1,100 | Generic network diagnostics; clean boundary; pilot complete |
 | `claude-kit` | Done, as `kura` | ~6,356 | Largest app; released at `v0.1.0` and installed by checksum; source removed from this repo |
-| `tokencost` | After `claude-kit` | small | Useful standalone CLI; pricing updates have their own cadence |
+| `port` | Done, as `shoo` | ~575 | Generic macOS port diagnostics; renamed to avoid MacPorts and installed from `v0.2.0` |
+| `tokencost` | Next candidate | small | Useful standalone CLI; pricing updates have their own cadence |
 | `lokl` | Defer | medium | Reusable Caddy/hosts command, but dotfiles owns committed site configuration |
 | `weekly-recap` | Optional later | medium | Coherent reporting CLI; Jira/GitHub/GitLab auth is the main coupling |
 | `s-db` | Keep | n/a | Fixed work checkout, database, proxy, and backup assumptions |
@@ -67,18 +68,33 @@ The blockers named here are resolved rather than open: the role's two calls beco
 path and a variable change, and the Fish and Television consumers read the command
 name and `list --json` only, so the rename is one token each.
 
-### 3. `tokencost` - not started (needs approval)
+### 3. `port` - complete, renamed to `shoo`
+
+Design: [port-extraction.md](./port-extraction.md).
+
+- [x] Explicit approval and separate extraction design
+- [x] Initial `port` release retained as historical `v0.1.0`
+- [x] Standalone repository renamed: https://github.com/jmanuelrosa/shoo
+- [x] Renamed `shoo` executable published as checksum-verified `v0.2.0`
+- [x] Shell role installer pinned to the release and SHA-256 checksum
+- [x] Legacy Fish function and checksum-matched `port` executable handled safely
+- [x] Old Fish source removed from dotfiles
+- [x] Local install resolves to `~/.local/bin/shoo`; managed `port` artifacts are absent
+- [ ] Dotfiles PR merged
+- [ ] Upgrade/rollback exercise when the next release exists
+
+### 4. `tokencost` - not started (needs approval)
 
 - [ ] Explicit approval after `claude-kit` or as a smaller parallel if scope stays narrow
 - [ ] Choose repo boundary (standalone vs small personal-tools monorepo)
 - [ ] Standalone repo, release asset, dotfiles installer
 
-### 4. `lokl` - deferred
+### 5. `lokl` - deferred
 
 - [ ] Define configuration boundary (command vs committed Caddy site files in dotfiles)
 - [ ] Explicit approval before any extraction work
 
-### 5. `weekly-recap` - optional
+### 6. `weekly-recap` - optional
 
 - [ ] Document authenticated integration dependencies
 - [ ] Explicit approval if pursued

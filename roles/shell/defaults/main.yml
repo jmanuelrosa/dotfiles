@@ -3,6 +3,12 @@
 
 ---
 
+SHOO:
+  repository: https://github.com/jmanuelrosa/shoo
+  release: v0.2.0
+  checksum: sha256:f3a8bca655b7e68ff2b1e40547dcd05c6447b23feaa3eac3ad00d1a8c3e0af70
+  legacy_port_checksum: 14ff0cad83dc4c48442b63fc0a0d36c81a2c9a085ebebf63b93478e14c974335
+
 FISH_PATH: /opt/homebrew/bin/fish
 
 FISH_PLUGINS:

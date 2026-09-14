@@ -8,6 +8,7 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 - Adds fish to `/etc/shells` and switches the user's login shell to fish.
 - Installs Fisher plugins listed in `FISH_PLUGINS`.
 - Backs up any pre-existing fish / ghostty / starship / television configs to `<repo>/backups/` before symlinking.
+- Downloads the pinned [`shoo`](https://github.com/jmanuelrosa/shoo) release asset directly to `~/.local/bin/shoo`, removing only the checksum-matched `port` executable and role-owned `port.fish` link from the earlier command name.
 - Symlinks Ghostty config, fish `config.fish` + conf.d snippets + functions, and the Starship prompt config from `files/`.
 - Renders `~/.config/fish/conf.d/secrets.fish` from `templates/secrets.fish.j2` using vault vars (mode 0600).
 - Television management:
@@ -19,6 +20,7 @@ Sets up the interactive shell stack: Fish, Ghostty, Starship, and Television. Ma
 
 ## Vars
 
+- `SHOO` (defaults/main.yml): upstream repository, release, SHA-256 checksum, and legacy `port` checksum for the installed `shoo` asset and command migration.
 - `FISH_PATH` (defaults/main.yml) — Apple Silicon Homebrew fish path. Override per-profile if your layout differs.
 - `FISH_PLUGINS` (defaults/main.yml) — list of Fisher plugin specs.
 - `BREW_PACKAGES` (defaults/main.yml) — fish, fisher, starship, gnupg formulas + ghostty cask.
