@@ -60,5 +60,5 @@ AI_SCRIPTS:
 # upgrade and a rollback are the same two-line edit in opposite directions.
 KURA:
   repository: https://github.com/jmanuelrosa/kura
-  release: v0.3.0
-  checksum: sha256:0cf4a2e743e25b59e66afa07a8994460b4b479e84dcb8339d21ddd6935b632ff
+  release: v0.4.0
+  checksum: sha256:3906811b8f651a5421d5ae19b9535eb2bb657d141598fd835664d2eefe0fe346

@@ -218,26 +218,18 @@
     checksum: "{{ KURA.checksum }}"
     mode: "0755"
 
-- name: Ensure the kura data directory exists
-  ansible.builtin.file:
-    path: "{{ HOME }}/.local/share/kura"
-    state: directory
-    mode: "0755"
-
-# Kura reads KURA_CATALOG first, saved machine config second, and this path only when
-# neither exists. Keep the fallback pointed at this checkout for recovery commands;
-# force: true repoints a link left by an older checkout.
-- name: Point kura at the artifact catalog
+# Kura reads only ~/.config/kura/catalog. Ansible owns the symlink so this checkout
+# remains the catalog without a flag, env var, or saved config path; force: true
+# repoints a link left by an older checkout.
+- name: Link the artifact catalog at the fixed path
   ansible.builtin.file:
     src: "{{ role_path }}/files/claude"
-    dest: "{{ HOME }}/.local/share/kura/catalog"
+    dest: "{{ HOME }}/.config/kura/catalog"
     state: link
     force: true
 
-# Kura 0.3 requires machine configuration before sync or convergence. Ansible owns this
-# machine-level choice: both harnesses receive independent native skill views and the
-# catalog follows this checkout. The fallback link above remains useful if the config is
-# removed, but it does not encode the enabled harness set and cannot replace this file.
+# Kura requires machine configuration before sync or convergence. Ansible owns the
+# global harness set; the catalog path is fixed and is not stored here.
 - name: Check for an existing kura machine config
   ansible.builtin.stat:
     path: "{{ HOME }}/.config/kura/config.json"
@@ -250,7 +242,6 @@
     content: |
       {
         "schemaVersion": 1,
-        "catalog": "{{ role_path }}/files/claude",
         "globalHarnesses": ["claude", "pi"]
       }
 

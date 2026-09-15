@@ -36,7 +36,7 @@ SYNC_TASK = "Converge global skills for Claude Code and Pi"
 CONVERGE_TASK = "Converge initialized project skill views"
 INSTALL_TASK = "Install the pinned kura release"
 MACHINE_CONFIG_TASK = "Provision kura machine config"
-CATALOG_TASK = "Point kura at the artifact catalog"
+CATALOG_TASK = "Link the artifact catalog at the fixed path"
 LEGACY_REMOVE_TASK = "Remove the legacy claude-kit symlink"
 LEGACY_PI_SKILLS_CHECK_TASK = "Check for the superseded pi skills link"
 LEGACY_PI_SKILLS_REMOVE_TASK = "Remove the superseded pi skills link"
@@ -83,8 +83,8 @@ def kura_or_skip():
     interface = subprocess.run(
         [found, "config", "--help"], capture_output=True, text=True, check=False
     )
-    if interface.returncode != 0 or "global harnesses" not in interface.stdout:
-        pytest.skip("installed kura predates v0.3.0; run the ai role first")
+    if interface.returncode != 0 or "--catalog" in interface.stdout:
+        pytest.skip("installed kura predates v0.4.0; run the ai role first")
     return found
 
 
@@ -93,11 +93,13 @@ def global_sync_dry_run():
     with tempfile.TemporaryDirectory() as home:
         config = {
             "schemaVersion": 1,
-            "catalog": str(CLAUDE),
             "globalHarnesses": ["claude", "pi"],
         }
-        config_path = os.path.join(home, ".config", "kura", "config.json")
-        os.makedirs(os.path.dirname(config_path))
+        config_dir = os.path.join(home, ".config", "kura")
+        os.makedirs(config_dir)
+        catalog_path = os.path.join(config_dir, "catalog")
+        os.symlink(str(CLAUDE), catalog_path)
+        config_path = os.path.join(config_dir, "config.json")
         with open(config_path, "w") as stream:
             json.dump(config, stream)
         return subprocess.run(
@@ -117,14 +119,14 @@ def effective_global():
 # --- the installer ------------------------------------------------------------
 
 
-def test_the_release_is_pinned_to_kura_v030():
+def test_the_release_is_pinned_to_kura_v040():
     """The tag is for reading and the checksum is the identity. There is no --version
     flag to ask the installed file what it is, so both values are the release record."""
     kura = yaml.safe_load(AI_DEFAULTS.read_text())["KURA"]
     assert kura == {
         "repository": "https://github.com/jmanuelrosa/kura",
-        "release": "v0.3.0",
-        "checksum": "sha256:0cf4a2e743e25b59e66afa07a8994460b4b479e84dcb8339d21ddd6935b632ff",
+        "release": "v0.4.0",
+        "checksum": "sha256:3906811b8f651a5421d5ae19b9535eb2bb657d141598fd835664d2eefe0fe346",
     }
 
 
@@ -165,18 +167,15 @@ def test_the_role_provisions_kuras_machine_configuration():
     assert spec["mode"] == "0600"
     assert json.loads(spec["content"]) == {
         "schemaVersion": 1,
-        "catalog": "{{ role_path }}/files/claude",
         "globalHarnesses": ["claude", "pi"],
     }
 
 
-def test_the_role_keeps_the_catalog_fallback_current():
-    """The saved config is authoritative; the fallback keeps recovery commands usable
-    if that machine-local file is removed."""
+def test_the_role_links_the_catalog_at_the_fixed_path():
     spec = role_task("ai", CATALOG_TASK)["ansible.builtin.file"]
     assert spec["state"] == "link"
     assert spec["src"] == "{{ role_path }}/files/claude"
-    assert spec["dest"] == "{{ HOME }}/.local/share/kura/catalog"
+    assert spec["dest"] == "{{ HOME }}/.config/kura/catalog"
     assert spec["force"] is True, "a link naming an older checkout must be repointed"
 
 
@@ -189,8 +188,7 @@ def test_the_role_runs_the_installed_command(name):
 
 @pytest.mark.parametrize("name", [SYNC_TASK, CONVERGE_TASK])
 def test_the_role_uses_the_provisioned_machine_configuration(name):
-    """HOME selects the provisioned config. KURA_CATALOG must not bypass its saved
-    catalog, because Kura refuses config changes while that override is active."""
+    """HOME selects the provisioned config and the fixed catalog symlink."""
     environment = role_task("ai", name)["environment"]
     assert environment["HOME"] == "{{ HOME }}"
     assert "KURA_CATALOG" not in environment
