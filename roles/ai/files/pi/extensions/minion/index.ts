@@ -6,7 +6,7 @@ import { pathToFileURL, fileURLToPath } from "node:url";
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 
 const PACKAGE_NAME = "@earendil-works/pi-coding-agent";
-const CONTROL_PATH = join(dirname(realpathSync(fileURLToPath(import.meta.url))), "..", "minion", "control.ts");
+const CONTROL_PATH = join(dirname(realpathSync(fileURLToPath(import.meta.url))), "..", "..", "minion", "control.ts");
 
 function resolveSdkPath(): string {
   try {

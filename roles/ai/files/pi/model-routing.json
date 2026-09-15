@@ -1,0 +1,18 @@
+{
+  "cursorModels": ["composer-2-5", "grok-4.6"],
+  "redirects": {
+    "cursor/claude-opus-5@1m": "anthropic/claude-opus-5",
+    "cursor/claude-sonnet-5@1m": "anthropic/claude-sonnet-5",
+    "cursor/claude-fable-5@1m": "anthropic/claude-opus-5",
+    "cursor/gpt-5.6-luna@1m": "openai-codex/gpt-5.6-luna",
+    "cursor/gpt-5.6-terra@1m": "openai-codex/gpt-5.6-terra",
+    "cursor/gpt-5.6-sol@1m": "openai-codex/gpt-5.6-sol"
+  },
+  "fallbacks": {
+    "anthropic/claude-opus-5": ["openai-codex/gpt-5.6-sol"],
+    "anthropic/claude-sonnet-5": ["openai-codex/gpt-5.6-terra"],
+    "anthropic/claude-haiku-4-5": ["openai-codex/gpt-5.6-luna"],
+    "cursor/composer-2-5": ["openai-codex/gpt-5.6-luna"],
+    "cursor/grok-4.6": ["openai-codex/gpt-5.6-terra"]
+  }
+}

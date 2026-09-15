@@ -1,5 +1,5 @@
 /**
- * context-continuity.ts - a model switch is a new projection of the same conversation.
+ * context-continuity - a model switch is a new projection of the same conversation.
  *
  * Pi keeps one JSONL branch across `/model`. The next request is not the same effective
  * context: images may become placeholders, opaque reasoning may disappear, and usage from the

@@ -1,5 +1,5 @@
 /**
- * statusline.ts - pi's footer, rebuilt to say what Claude Code's statusline.sh says.
+ * statusline - pi's footer, rebuilt to say what Claude Code's statusline.sh says.
  *
  * Pi's own footer already carries the numbers: cwd with branch, token totals, cache hit rate,
  * cost, context percentage, model, provider, thinking level. What it does not carry is any of
@@ -59,19 +59,20 @@ const SEPARATOR = " │ ";
  * asks for one is worse than neither saying anything.
  *
  * Read as JSON by path rather than imported as a module, and that is not a style choice. Pi
- * loads this file through the symlink the ai role puts in ~/.pi/agent/extensions, and jiti
+ * loads this file through the directory link the ai role puts in ~/.pi/agent/extensions, and jiti
  * resolves a relative import from that symlink rather than from its realpath, so `../..`
  * anything is looked for inside the pi agent directory and is not found. Resolving the realpath
  * first is what guardrails.ts already does to reach the claude hooks it drives, and it is the
  * one resolution that works from here.
  *
- * Nothing is defaulted. The file is two directories above this one inside the same checkout, so
+ * Nothing is defaulted. The file is three directories above this one inside the same checkout, so
  * it can only be missing when the checkout is, and a copy of every value kept as a fallback
  * would be the duplication this exists to remove. Each reader below degrades on its own: no
  * glyph renders no glyph, no threshold renders no marker, no table renders no package manager.
  */
 const VOCABULARY_PATH = join(
   dirname(realpathSync(fileURLToPath(import.meta.url))),
+  "..",
   "..",
   "..",
   "statusline.json",

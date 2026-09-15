@@ -202,7 +202,7 @@ The human inspects the result and starts a new Minion if desired.
 
 ## Placement
 
-- Pi command extension: `roles/ai/files/pi/extensions/minion.ts`
+- Pi command extension: `roles/ai/files/pi/extensions/minion/index.ts`
 - Background runner and small helpers: `roles/ai/files/pi/minion/`
 - Integration tests: `lib/python/tests/test_pi_minion.py` and disposable fixtures beside the existing Minion fixtures
 

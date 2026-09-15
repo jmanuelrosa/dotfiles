@@ -25,7 +25,7 @@ Context usage is also misleading immediately after a model switch.
 The same value can influence the pre-turn automatic compaction decision (`/opt/homebrew/Cellar/pi-coding-agent/0.84.3/libexec/lib/node_modules/@earendil-works/pi-coding-agent/dist/core/agent-session.js:864-869,1567-1651`).
 Switching to a smaller window may therefore trigger unnecessary compaction, while switching to a larger window may understate pressure.
 
-The local footer currently treats usage as unknown only after compaction (`roles/ai/files/pi/extensions/statusline.ts:182-204`).
+The local footer currently treats usage as unknown only after compaction (`roles/ai/files/pi/extensions/statusline/index.ts`).
 The model-switch boundary needs the same honesty until the selected model has supplied relevant usage.
 
 ## Non-goals
@@ -150,7 +150,7 @@ It does not claim that compaction is required because the pre-response token est
 
 ### 3. Continuity extension
 
-Create `roles/ai/files/pi/extensions/context-continuity.ts`.
+Create `roles/ai/files/pi/extensions/context-continuity/index.ts`.
 The extension owns model-epoch reconstruction, degradation detection, persistence, and one-time notifications.
 
 ```typescript
@@ -199,7 +199,7 @@ For example: `Context projection changed: 2 images are unavailable to cursor/com
 
 ### 5. Honest footer usage
 
-Modify `roles/ai/files/pi/extensions/statusline.ts` so `contextSegment()` checks whether usage belongs to the current model epoch before rendering a percentage.
+Modify `roles/ai/files/pi/extensions/statusline/index.ts` so `contextSegment()` checks whether usage belongs to the current model epoch before rendering a percentage.
 
 The freshness helper traverses the active branch and finds the latest of:
 
@@ -349,12 +349,12 @@ Behavioral coverage must include:
 
 ### Local files to create
 
-- `roles/ai/files/pi/extensions/context-continuity.ts`
+- `roles/ai/files/pi/extensions/context-continuity/index.ts`
 - `lib/python/tests/test_pi_context_continuity.py`
 
 ### Local files to modify
 
-- `roles/ai/files/pi/extensions/statusline.ts`
+- `roles/ai/files/pi/extensions/statusline/index.ts`
 - `lib/python/tests/test_pi_statusline.py`
 
 ### Local files read for integration and verification

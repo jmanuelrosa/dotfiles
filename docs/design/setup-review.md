@@ -211,7 +211,7 @@ Also in scope for the refresh: the installed versions of the declared packages, 
 | `SYSTEM.md` | must not exist as a real file; if it does, that is a P0, because it replaces the harness's own prompt |
 | `APPEND_SYSTEM.md` | content that has a counterpart in `AGENTS.md`, which is duplication; content that contradicts it, which is worse |
 | `AGENTS.md` | shared with Claude Code, so every finding here is tagged shared-file |
-| `extensions/*.ts` | type-stripping load failures; a `tool_call` handler whose position matters; a footer replacement that drops `getExtensionStatuses()` |
+| `extensions/*/index.ts` | type-stripping load failures; a `tool_call` handler whose position matters; a footer replacement that drops `getExtensionStatuses()` |
 | `sandbox.json` | derived, so hand-edit drift is the finding and the fix is to regenerate; the four things the derivation cannot carry are stated as known gaps, not proposed as work |
 | `mcp.json` | servers configured but never referenced |
 | `agents/`, `skills/` | reachability and shadowing, the same cross-scope checks as Claude; plus a skill carrying `allowed-tools:`, `model:` or `effort:`, which pi silently ignores |
@@ -346,7 +346,7 @@ Read:
 - `roles/ai/tasks/main.yml`
 - `roles/ai/files/pi/settings.json`
 - `roles/ai/files/pi/APPEND_SYSTEM.md`
-- `roles/ai/files/pi/extensions/*.ts`
+- `roles/ai/files/pi/extensions/*/index.ts`
 - `roles/shell/files/fish/conf.d/exports.fish`
 
 Left alone:

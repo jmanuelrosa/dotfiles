@@ -28,6 +28,18 @@ BREW_PACKAGES:
     - ollama-app
     - steipete/tap/codexbar
 
+# Directories symlinked into Pi's global extension root. Every entry contains the
+# auto-discovered index.ts and a README; claude-ui is deliberately not active.
+PI_EXTENSIONS:
+  - context-continuity
+  - cursor-model-policy
+  - guardrails
+  - minion
+  - skill-aliases
+  - skill-model
+  - statusline
+  - velocity
+
 # Tools symlinked onto PATH from files/scripts/, named rather than globbed.
 #
 # Each entry is a directory holding everything that tool owns, and the executable

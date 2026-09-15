@@ -31,7 +31,7 @@ from pathlib import Path
 import pytest
 from dotkit.testing import CLAUDE, HOOKS, PI, PI_EXTENSIONS, REPO
 
-EXTENSION = PI_EXTENSIONS / "guardrails.ts"
+EXTENSION = PI_EXTENSIONS / "guardrails" / "index.ts"
 TASKS = REPO / "roles/ai/tasks/main.yml"
 # The glyphs and wording the rtk toggle and the cursor badge share with statusline.sh.
 VOCABULARY = REPO / "roles/ai/files/statusline.json"
@@ -279,7 +279,7 @@ def test_the_role_installs_the_extension():
     task means a directory pi finds empty."""
     tasks = TASKS.read_text()
     assert ".pi/agent/extensions" in tasks
-    assert "files/pi/extensions/*.ts" in tasks
+    assert 'loop: "{{ PI_EXTENSIONS }}"' in tasks
 
 
 # --- the extension, executed ---------------------------------------------------
@@ -325,19 +325,17 @@ def runner(tmp_path_factory):
     scope = root / "node_modules" / "@earendil-works"
     scope.mkdir(parents=True)
     (scope / "pi-coding-agent").symlink_to(package)
-    # The layout mirrors the repo, because the extension reads `../../statusline.json` relative
+    # The layout mirrors the repo, because the extension reads `../../../statusline.json` relative
     # to its own realpath: a copy in a flat directory would find no vocabulary and every glyph
     # assertion below would pass against an empty string. Linked rather than copied, so no test
     # can pin a stale duplicate of the file it exists to pin.
     (root / "statusline.json").symlink_to(VOCABULARY)
-    extensions = root / "pi" / "extensions"
-    extensions.mkdir(parents=True)
+    extension = root / "pi" / "extensions" / "guardrails" / "index.ts"
+    extension.parent.mkdir(parents=True)
     # Re-exported into the copy rather than exported from the extension, so pi's own surface
     # stays the single default export it loads.
-    (extensions / "guardrails.ts").write_text(
-        f"{EXTENSION.read_text()}\nexport {{ {', '.join(DRIVEN)} }};\n"
-    )
-    return extensions
+    extension.write_text(f"{EXTENSION.read_text()}\nexport {{ {', '.join(DRIVEN)} }};\n")
+    return extension
 
 
 def run_in_node(runner, body, env=None):
@@ -346,13 +344,13 @@ def run_in_node(runner, body, env=None):
     `env` overrides rather than replaces, so a variable this machine happens to export cannot
     decide the result. An empty string is the off state, matching what the extension checks.
     """
-    script = f'import {{ {", ".join(DRIVEN)} }} from "{runner}/guardrails.ts";\n{body}'
+    script = f'import {{ {", ".join(DRIVEN)} }} from "{runner}";\n{body}'
     done = subprocess.run(
         # Absolute, because a test that empties PATH to hide rtk would otherwise hide node too.
         [shutil.which("node"), "--input-type=module", "-e", script],
         capture_output=True,
         text=True,
-        cwd=runner,
+        cwd=runner.parent,
         env=None if env is None else {**os.environ, **env},
         check=False,
     )

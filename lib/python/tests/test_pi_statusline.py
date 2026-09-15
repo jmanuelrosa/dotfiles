@@ -29,7 +29,7 @@ from pathlib import Path
 import pytest
 from dotkit.testing import CLAUDE, PI_EXTENSIONS, REPO
 
-EXTENSION = PI_EXTENSIONS / "statusline.ts"
+EXTENSION = PI_EXTENSIONS / "statusline" / "index.ts"
 STATUSLINE = CLAUDE / "statusline.sh"
 # The one file the glyphs, the gauge, the lockfile table and the handoff threshold come from,
 # for this harness and for Claude's. Nothing below asserts a literal that lives in it.
@@ -232,10 +232,8 @@ def test_the_render_path_spawns_nothing(source):
 
 
 def test_the_role_installs_the_extension():
-    """The glob covers any `.ts` dropped in the directory, so this file needs no task of its own.
-    Asserted anyway, because that is exactly the kind of thing a later refactor narrows to a named
-    list, and a dropped extension is silent at both ends."""
-    assert "files/pi/extensions/*.ts" in TASKS.read_text()
+    """The role installs the extension directories named in its manifest."""
+    assert 'loop: "{{ PI_EXTENSIONS }}"' in TASKS.read_text()
 
 
 # --- the extension, executed ---------------------------------------------------
@@ -247,10 +245,10 @@ def runner(package, tmp_path_factory):
     resolvable.
 
     The layout mirrors the repo rather than being flat: the extension reads
-    `../../statusline.json` relative to its own realpath, so a copy dropped in a bare temp
+    `../../../statusline.json` relative to its own realpath, so a copy dropped in a bare temp
     directory would find no vocabulary and every glyph assertion below would pass against an
-    empty string. `<root>/pi/extensions/statusline.ts` beside `<root>/statusline.json` is the same
-    two levels the checkout has, and the vocabulary is linked rather than copied so a test can
+    empty string. `<root>/pi/extensions/statusline/index.ts` beside `<root>/statusline.json` is
+    the same three levels the checkout has, and the vocabulary is linked rather than copied so a test can
     never assert against a stale duplicate of the file it is supposed to be pinning.
 
     The extension itself is written rather than linked because node resolves a bare import from
@@ -266,22 +264,20 @@ def runner(package, tmp_path_factory):
     (scope / "pi-coding-agent").symlink_to(package)
     (scope / "pi-tui").symlink_to(package / "node_modules" / TUI_PACKAGE)
     (root / "statusline.json").symlink_to(VOCABULARY)
-    extensions = root / "pi" / "extensions"
-    extensions.mkdir(parents=True)
-    (extensions / "statusline.ts").write_text(
-        f"{EXTENSION.read_text()}\nexport {{ {', '.join(DRIVEN)} }};\n"
-    )
-    return extensions
+    extension = root / "pi" / "extensions" / "statusline" / "index.ts"
+    extension.parent.mkdir(parents=True)
+    extension.write_text(f"{EXTENSION.read_text()}\nexport {{ {', '.join(DRIVEN)} }};\n")
+    return extension
 
 
 def run_in_node(runner, body, cwd=None):
     """`body` as an ES module beside the extension, with its stdout parsed as JSON."""
-    script = f'import {{ {", ".join(DRIVEN)} }} from "{runner}/statusline.ts";\n{body}'
+    script = f'import {{ {", ".join(DRIVEN)} }} from "{runner}";\n{body}'
     done = subprocess.run(
         [shutil.which("node"), "--input-type=module", "-e", script],
         capture_output=True,
         text=True,
-        cwd=cwd or runner,
+        cwd=cwd or runner.parent,
         env={**os.environ},
         check=False,
     )
@@ -295,7 +291,7 @@ def test_the_extension_survives_type_stripping(runner):
     trap this caught: `constructor(private readonly ctx: X)` is ordinary TypeScript, is what an
     editor suggests, and takes the whole extension down at startup with the rest of the footer.
     """
-    body = 'const mod = await import("./statusline.ts"); process.stdout.write(JSON.stringify(typeof mod.default));'
+    body = f'const mod = await import({json.dumps(str(runner))}); process.stdout.write(JSON.stringify(typeof mod.default));'
     assert run_in_node(runner, body) == "function"
 
 
