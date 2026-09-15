@@ -8,11 +8,11 @@ For the worked example (a project from zero, product side then engineering side,
 
 ## Commands
 
-`kura` is the CLI. It lives in its own repository now: the `ai` role installs a pinned release at `~/.local/bin/kura` and points it at this directory as its catalog (`KURA_CATALOG`, or `~/.local/share/kura/catalog` when that is unset). It replaced the `claude-skill` / `claude-agent` fish functions, which are gone.
+`kura` is the CLI. It lives in its own repository now: the `ai` role installs a pinned release at `~/.local/bin/kura` and links `~/.config/kura/catalog` at this directory. It replaced the `claude-skill` / `claude-agent` fish functions, which are gone.
 
 ```
 kura init                                        Initialize the exact cwd and selected harnesses
-kura config                                      Show or change machine catalog and global harnesses
+kura config                                      Show or change global harnesses
 kura add    <name>... --type skill               Add direct project skill intent
 kura remove <name>... --type skill               Remove direct project skill intent
 kura list            --type skill               Show catalog, intent, and native views
