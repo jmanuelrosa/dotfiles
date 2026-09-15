@@ -41,17 +41,17 @@ NUDGE = CLAUDE / "hooks/context-nudge.sh"
 READERS = {
     STATUSLINE: 1,
     NUDGE: 2,
-    PI_EXTENSIONS / "statusline.ts": 2,
-    PI_EXTENSIONS / "velocity.ts": 2,
-    PI_EXTENSIONS / "guardrails.ts": 2,
+    PI_EXTENSIONS / "statusline" / "index.ts": 3,
+    PI_EXTENSIONS / "velocity" / "index.ts": 3,
+    PI_EXTENSIONS / "guardrails" / "index.ts": 3,
 }
 
 # What each reader asks the vocabulary for by name. A key dropped from the file is a glyph that
 # stops rendering, which is exactly the kind of thing nobody notices in a footer.
 REQUIRED = {
-    "handoffPct": (STATUSLINE, NUDGE, PI_EXTENSIONS / "statusline.ts"),
-    "bar": (STATUSLINE, PI_EXTENSIONS / "statusline.ts"),
-    "packageManagers": (STATUSLINE, PI_EXTENSIONS / "statusline.ts"),
+    "handoffPct": (STATUSLINE, NUDGE, PI_EXTENSIONS / "statusline" / "index.ts"),
+    "bar": (STATUSLINE, PI_EXTENSIONS / "statusline" / "index.ts"),
+    "packageManagers": (STATUSLINE, PI_EXTENSIONS / "statusline" / "index.ts"),
 }
 
 

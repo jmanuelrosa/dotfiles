@@ -5,6 +5,25 @@ The two-gate product pipeline ships as a plugin at `roles/ai/files/claude/plugin
 It bundles eleven skills (the nine numbered stages, `setup-strategy`, and `product-lead`) with the seven agents the stages dispatch (`competitive-researcher`, `user-evidence-researcher`, `market-sizer`, `strategy-checker`, `pm-red-team`, `ac-writer`, `adr-scribe`).
 The pipeline is per-repo by nature: every stage writes `docs/initiatives/<slug>/` and reads `docs/strategy/`, so only a repo actually running initiatives needs it loaded.
 
+Model assignments follow the approved subscription routing rather than a fleet-wide premium tier:
+
+| Artifacts | Model | Reason |
+|---|---|---|
+| `competitive-researcher`, `market-sizer`, `user-evidence-researcher` | `openai-codex/gpt-5.6-terra` | Bounded evidence collection and synthesis |
+| `pm-red-team`, `strategy-checker` | `openai-codex/gpt-5.6-sol` | Adversarial reasoning and strategic contradictions |
+| `adr-scribe` | `cursor/composer-2-5` | Extract decisions already made, without designing alternatives |
+| `ac-writer` | `sonnet` | Precise acceptance-criteria writing, consistent with the local `ac` skill |
+| `1-research`, `4-tech-shape`, `5-decompose` | `openai-codex/gpt-5.6-sol` | Cross-artifact synthesis, technical planning and decomposition |
+| `2-write-prd` | `anthropic/claude-opus-5` | Requirements synthesis and trade-offs |
+| `setup-strategy`, `0-refine-idea`, `3-red-team`, `6-verify`, `8-living-spec` | `anthropic/claude-sonnet-5` | Interviews, constrained writing and stage coordination |
+| `product-lead`, `7-push-to-board` | `cursor/composer-2-5` | Pipeline dispatch and board operations |
+
+These are workload-based choices, not comparative benchmark results.
+Provider-qualified model pins are Pi-first, not portable Claude Code model selections; that compatibility trade was accepted when choosing the routes.
+Existing effort/thinking pins, tool allowlists and artifact contracts remain unchanged.
+Direct Anthropic skill pins retain the [skill-model fallbacks](pi-harness.md), but those fallbacks do not protect agent pins, including `ac-writer` and `adr-scribe`.
+Cursor on-demand billing must still be disabled to bound Composer charges.
+
 `product-lead` lives *inside* the bundle because it owns the pipeline's shared library: `references/conventions.md` (gates, gate medium, deferrals, profiles), twelve templates, and `scripts/pt.py`, which every stage reaches via `../product-lead/`.
 A thin signpost skill of the same name stays at `skills/product-lead/` and carries the bundle's only registry row: it holds no mechanics, it names the namespaced entry point and explains the v0.3 limitation when a repo has no project-owned plugin link.
 
@@ -21,7 +40,7 @@ That spec closes a loop that was open. `templates/story.md` has always carried a
 
 **A gate answered in session must record its reason.** `gate_medium: session` is the default and costs seconds against a PR gate's day, but a PR leaves the reviewer's thinking in its comments and an `AskUserQuestion` leaves nothing, so the STATUS.md gate row carries decider, date **and** one line on what convinced them. Without it, `approved` is indistinguishable from nobody having read the artifact, which is a worse position than the gate cost bought.
 
-**Stage order is derived, and `STATUS.md` holds only decisions.** [scripts/pt.py](../../roles/ai/files/claude/plugins/product-team/skills/product-lead/scripts/pt.py) reports each stage as `done`, `partial`, `ready` or `blocked` from the artifacts on disk, so the eight-row state machine every stage used to read and rewrite twice per run is gone; what a file listing cannot derive (who decided a gate, why, what killed the initiative) is what stays in the file. The script owns two more jobs, and the split is by who can decide: `check` does the lexical DoR items including the **coverage set difference** that nothing used to check, split into errors (broken references, wrong at any point) and warnings (incompleteness that is normal mid-pipeline), and `spec-merge` applies shipped requirements to `docs/specs/`. `6-verify` runs `check --strict` first, where warnings fail too, and judges only testability, slice verticality, spine completeness and unowned questions, pinned to `model: sonnet`; in `solo`, `check --strict` from the decompose handoff **is** the Definition of Ready.
+**Stage order is derived, and `STATUS.md` holds only decisions.** [scripts/pt.py](../../roles/ai/files/claude/plugins/product-team/skills/product-lead/scripts/pt.py) reports each stage as `done`, `partial`, `ready` or `blocked` from the artifacts on disk, so the eight-row state machine every stage used to read and rewrite twice per run is gone; what a file listing cannot derive (who decided a gate, why, what killed the initiative) is what stays in the file. The script owns two more jobs, and the split is by who can decide: `check` does the lexical DoR items including the **coverage set difference** that nothing used to check, split into errors (broken references, wrong at any point) and warnings (incompleteness that is normal mid-pipeline), and `spec-merge` applies shipped requirements to `docs/specs/`. `6-verify` runs `check --strict` first, where warnings fail too, and judges only testability, slice verticality, spine completeness and unowned questions, pinned to `model: anthropic/claude-sonnet-5`; in `solo`, `check --strict` from the decompose handoff **is** the Definition of Ready.
 
 `partial` exists because of the repo's own history: two initiatives on disk completed stage 4 before `04-ux-spec.md` was an artifact at all, and a stage judged only complete-or-not reported them `ready`, telling the reader to re-run a stage that had finished, below two stages already reading done. The same rule covers a legacy `05-backlog/` with no `05-tasks.md`. Both were caught by running `pt.py status` against the three real initiatives before the stage table was deleted, which is why that comparison is the one verification step that had to happen first.
 

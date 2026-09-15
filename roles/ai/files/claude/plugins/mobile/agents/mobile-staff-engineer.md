@@ -10,7 +10,7 @@ description: >-
   tooling exists), and returns a structured completion report. Not the frontend seat (no web
   UI), not the backend seat (no server code), and it never submits to a store or publishes
   an OTA update.
-model: opus
+model: openai-codex/gpt-5.6-sol
 effort: xhigh
 thinking: xhigh
 memory: project

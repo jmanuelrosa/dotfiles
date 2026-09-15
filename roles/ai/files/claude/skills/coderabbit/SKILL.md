@@ -2,7 +2,7 @@
 name: coderabbit
 description: Walk open CodeRabbit review threads on a GitHub PR, investigate each in the code, then either fix it or reply to @coderabbitai explaining why it stays. Resolves each thread it handles. Stops before commit.
 argument-hint: "[pr-number]"
-model: cursor/claude-sonnet-5@1m
+model: sonnet
 effort: medium
 disable-model-invocation: true
 allowed-tools:

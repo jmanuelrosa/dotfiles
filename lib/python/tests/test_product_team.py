@@ -138,15 +138,9 @@ def test_no_diagram_label_line_can_be_clipped():
 
 
 def test_the_verifier_is_pinned_off_the_session_model():
-    """It inherited Opus and cost more than research, the PRD and the red team combined.
-
-    The value moved off a bare `sonnet` when `enabledModels` was ordered to keep the capped
-    anthropic API last: a bare alias resolves by declaration order, so it was billing
-    `anthropic/claude-sonnet-5`. What this guards is unchanged, that the stage never runs on
-    an Opus tier.
-    """
+    """The constrained verifier uses direct Sonnet, not the session's reasoning tier."""
     body = (SKILLS / "6-verify/SKILL.md").read_text(encoding="utf-8")
-    assert re.search(r"^model: cursor/claude-sonnet-5@1m$", body, re.MULTILINE)
+    assert re.search(r"^model: anthropic/claude-sonnet-5$", body, re.MULTILINE)
     assert re.search(r"^effort: medium$", body, re.MULTILINE)
 
 

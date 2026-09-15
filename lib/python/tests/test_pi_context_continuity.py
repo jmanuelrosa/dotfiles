@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 from dotkit.testing import PI_EXTENSIONS, REPO
 
-EXTENSION = PI_EXTENSIONS / "context-continuity.ts"
+EXTENSION = PI_EXTENSIONS / "context-continuity" / "index.ts"
 TASKS = REPO / "roles/ai/tasks/main.yml"
 PACKAGE = "@earendil-works/pi-coding-agent"
 
@@ -92,7 +92,7 @@ def test_the_extension_uses_public_hooks_not_private_dist_modules(source):
 
 
 def test_the_role_installs_the_extension():
-    assert "files/pi/extensions/*.ts" in TASKS.read_text()
+    assert 'loop: "{{ PI_EXTENSIONS }}"' in TASKS.read_text()
 
 
 @pytest.fixture(scope="module")
@@ -101,8 +101,10 @@ def runner(dist, tmp_path_factory):
         pytest.skip("node is needed to execute the extension")
     home = tmp_path_factory.mktemp("continuity")
     (home / "node_modules").symlink_to(dist.parents[2])
-    (home / "context-continuity.ts").write_text(EXTENSION.read_text())
-    return home
+    extension = home / "context-continuity" / "index.ts"
+    extension.parent.mkdir()
+    extension.write_text(EXTENSION.read_text())
+    return extension
 
 
 def run_events(runner, script):
@@ -110,7 +112,7 @@ def run_events(runner, script):
         [shutil.which("node"), "--input-type=module", "-e", script],
         capture_output=True,
         text=True,
-        cwd=runner,
+        cwd=runner.parent,
         env={**os.environ},
         check=False,
     )
@@ -120,7 +122,7 @@ def run_events(runner, script):
 
 def drive(branch, model, previous=None, source="set", prompt="SYSTEM", tools=None, extra=""):
     return f"""
-import continuity from "./context-continuity.ts";
+import continuity from "./index.ts";
 
 const entries = [];
 const notifications = [];

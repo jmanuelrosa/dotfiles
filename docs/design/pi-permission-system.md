@@ -208,7 +208,7 @@ Two edits in `roles/ai/tasks/main.yml`:
     force: true
 ```
 
-The existing extension task at `:327-334` globs `files/pi/extensions/*.ts` and is unaffected: the new config lives under `files/pi/permission-system/`, not under `files/pi/extensions/`, so it cannot be swept into the glob.
+The extension task links only the directories named in `PI_EXTENSIONS` and is unaffected: the new config lives under `files/pi/permission-system/`, not under `files/pi/extensions/`.
 
 No project-scoped config is shipped. Since 22.0.0 a project config loads only once pi trusts the directory, and a per-repo policy is a second place a rule can live, which the first design rule forbids.
 

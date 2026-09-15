@@ -8,7 +8,7 @@ description: >-
   implements within strict boundaries with staff-level judgment, self-verifies (lint,
   typecheck, tests; a11y and performance gates when tooling exists), and returns a structured
   completion report. Not a reviewer or test designer: review belongs to the caller.
-model: opus
+model: openai-codex/gpt-5.6-terra
 effort: xhigh
 thinking: xhigh
 memory: project

@@ -1,5 +1,5 @@
 /**
- * guardrails.ts - Claude Code's PreToolUse hooks, running in Pi.
+ * guardrails - Claude Code's PreToolUse hooks, running in Pi.
  *
  * An adapter and nothing else. Every decision is made by the python scripts under
  * roles/ai/files/claude/hooks/, which Claude Code runs as PreToolUse hooks and which carry their
@@ -74,9 +74,9 @@ import {
   type ToolCallEventResult,
 } from "@earendil-works/pi-coding-agent";
 
-// realpath rather than dirname alone: this file is reached through the symlink the ai role puts in
-// ~/.pi/agent/extensions/, so the hooks are siblings of the link's target, not of the link.
-const HOOKS_DIR = join(dirname(realpathSync(fileURLToPath(import.meta.url))), "..", "..", "claude", "hooks");
+// realpath rather than dirname alone: this file is reached through the directory link the ai role
+// puts in ~/.pi/agent/extensions/, so the hooks are relative to the link's target, not the link.
+const HOOKS_DIR = join(dirname(realpathSync(fileURLToPath(import.meta.url))), "..", "..", "..", "claude", "hooks");
 
 // The glyphs and wording these two segments share with Claude Code's statusline.sh, from the
 // file both harnesses read. Reached the same way HOOKS_DIR is, and for the same reason: this
@@ -84,6 +84,7 @@ const HOOKS_DIR = join(dirname(realpathSync(fileURLToPath(import.meta.url))), ".
 // statusline.ts carries the full reasoning, including why this is read rather than imported.
 const VOCABULARY_PATH = join(
   dirname(realpathSync(fileURLToPath(import.meta.url))),
+  "..",
   "..",
   "..",
   "statusline.json",

@@ -10,7 +10,7 @@ description: >-
   policy scanners; plan when credentials allow; never apply), and returns a structured completion
   report. Not the platform seat (no CI pipelines), not the SRE seat (no alert rules), and it
   NEVER mutates live infrastructure: it writes and plans, a human applies.
-model: opus
+model: openai-codex/gpt-5.6-sol
 effort: xhigh
 thinking: xhigh
 memory: project

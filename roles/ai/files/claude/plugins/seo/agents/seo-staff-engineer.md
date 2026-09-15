@@ -10,7 +10,7 @@ description: >-
   a structured completion report. Not the frontend seat (no Core Web Vitals or rendering
   implementation), not the gtm seat (no tagging or consent), and it never fabricates markup,
   cloaks, or touches link schemes.
-model: opus
+model: openai-codex/gpt-5.6-sol
 effort: xhigh
 thinking: xhigh
 memory: project

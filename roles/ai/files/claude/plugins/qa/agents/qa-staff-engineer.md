@@ -9,7 +9,7 @@ description: >-
   and provably able to fail; repeat runs for e2e and integration), and returns a structured
   completion report. Writes tests ONLY, never application source: product bugs it finds become
   failing tests and report lines for the implementer seats.
-model: opus
+model: openai-codex/gpt-5.6-sol
 effort: xhigh
 thinking: xhigh
 memory: project

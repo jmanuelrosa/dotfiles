@@ -287,7 +287,7 @@ def test_the_repo_root_agents_md_is_the_claude_md_pi_would_otherwise_miss():
 # loader (dist/core/skills.js in 0.84.x) reads exactly three fields from a SKILL.md,
 # `name`, `description` and `disable-model-invocation`, and drops the rest. An extension
 # may read the file itself though, which is how `model:` came to mean one thing in both
-# harnesses rather than two: pi/extensions/skill-model.ts parses the frontmatter, resolves
+# harnesses rather than two: pi/extensions/skill-model/index.ts parses the frontmatter, resolves
 # the value against the session's scoped catalogue and pins it for one agent run, which is
 # the boundary Claude Code uses as well. That is why `model:` is not in the tuple.
 #

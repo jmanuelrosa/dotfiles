@@ -10,7 +10,7 @@ description: >-
   tests; contract and quality gates when tooling exists), and returns a structured completion
   report. Not the analytics seat (no dbt or metrics models), not the database seat (no OLTP
   schemas), and it never runs pipelines or backfills against production.
-model: opus
+model: openai-codex/gpt-5.6-sol
 effort: xhigh
 thinking: xhigh
 memory: project

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from dotkit.testing import PI_EXTENSIONS
 
-EXTENSION = PI_EXTENSIONS / "skill-aliases.ts"
+EXTENSION = PI_EXTENSIONS / "skill-aliases" / "index.ts"
 PI_PACKAGE = "@earendil-works/pi-coding-agent"
 
 

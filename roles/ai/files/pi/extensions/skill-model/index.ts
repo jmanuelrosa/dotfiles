@@ -1,5 +1,5 @@
 /**
- * skill-model.ts - a skill that names a model runs on that model.
+ * skill-model - a skill that names a model runs on that model.
  *
  * Pi's skill loader reads `name`, `description` and `disable-model-invocation` from a
  * SKILL.md and drops everything else, so `model:` is inert under pi while Claude Code
@@ -7,8 +7,8 @@
  * string in the shared SKILL.md, and bare values resolve against this session's scoped
  * catalogue, so reordering `enabledModels` reorders which model a bare `opus` wins.
  *
- * Model pins with an exact route keep their declared model first and switch to the mapped
- * Codex model when the source has no auth or returns an account or capacity error. The error
+ * model-routing.json redirects legacy Cursor pins before lookup, then switches to a mapped
+ * Codex model when the primary has no auth or returns an account or capacity error. The error
  * is rewritten to pi's retryable provider form after the model switch, so pi repeats the
  * failed assistant turn on the fallback; network, server and generic SDK failures retain
  * pi's normal provider retry behavior.
@@ -22,8 +22,9 @@
  * pinned model with nothing left that knows what to restore.
  */
 
-import { readFileSync } from "node:fs";
-import { basename, dirname } from "node:path";
+import { readFileSync, realpathSync } from "node:fs";
+import { basename, dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import type {
   ExtensionAPI,
   ExtensionContext,
@@ -41,15 +42,10 @@ const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---/;
 const MODEL_FIELD = /^model:[ \t]*(.+?)[ \t]*$/m;
 const SKILL_FILE = "SKILL.md";
 const INHERIT = "inherit";
-const MODEL_ROUTES: Readonly<Record<string, readonly string[]>> = {
-  "cursor/claude-opus-5@1m": ["openai-codex/gpt-5.6-sol"],
-  "cursor/claude-sonnet-5@1m": ["openai-codex/gpt-5.6-terra"],
-  "anthropic/claude-opus-5": ["openai-codex/gpt-5.6-sol"],
-  "anthropic/claude-sonnet-5": ["openai-codex/gpt-5.6-terra"],
-  "cursor/composer-2-5": ["openai-codex/gpt-5.6-luna"],
-  "cursor/gpt-5.6-terra@1m": ["openai-codex/gpt-5.6-terra"],
-  "cursor/gpt-5.6-sol@1m": ["openai-codex/gpt-5.6-sol"],
-  "anthropic/claude-haiku-4-5": ["openai-codex/gpt-5.6-terra"],
+const routingPath = resolve(dirname(realpathSync(fileURLToPath(import.meta.url))), "../../model-routing.json");
+const MODEL_ROUTING = JSON.parse(readFileSync(routingPath, "utf8")) as {
+  redirects: Readonly<Record<string, string>>;
+  fallbacks: Readonly<Record<string, readonly string[]>>;
 };
 const ACCOUNT_OR_LIMIT_ERROR = new RegExp(
   [
@@ -117,11 +113,11 @@ function resolveSpec(ctx: ExtensionContext, spec: string): Model | undefined {
 }
 
 function routeFor(ctx: ExtensionContext, spec: string): readonly string[] {
-  const primary = resolveSpec(ctx, spec);
-  if (!primary) return [spec];
-  const primaryReference = reference(primary);
-  const fallbacks = MODEL_ROUTES[primaryReference.toLowerCase()];
-  return fallbacks ? [primaryReference, ...fallbacks] : [spec];
+  const redirected = MODEL_ROUTING.redirects[spec.toLowerCase()] ?? spec;
+  const primary = resolveSpec(ctx, redirected);
+  const primaryReference = primary ? reference(primary) : redirected;
+  const fallbacks = MODEL_ROUTING.fallbacks[primaryReference.toLowerCase()] ?? [];
+  return [primaryReference, ...fallbacks];
 }
 
 function declaredModel(skillPath: string): string | null {

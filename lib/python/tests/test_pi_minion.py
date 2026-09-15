@@ -20,7 +20,7 @@ DELIVERY = PI / "minion" / "delivery.ts"
 CHECKOUT = PI / "minion" / "checkout.ts"
 GOAL_LOOP = PI / "minion" / "goal-loop.ts"
 RUNTIME = PI / "minion" / "runtime.ts"
-MINION_EXTENSION = PI / "extensions" / "minion.ts"
+MINION_EXTENSION = PI / "extensions" / "minion" / "index.ts"
 COMMIT_SKILL = PI.parent / "claude" / "skills" / "commit" / "SKILL.md"
 PR_SKILL = PI.parent / "claude" / "skills" / "pr" / "SKILL.md"
 PI_PACKAGE = "@earendil-works/pi-coding-agent"
@@ -136,7 +136,7 @@ def wait_for_minion_status(status_path, states, timeout=5):
 
 def test_minion_extension_resolves_helpers_from_its_realpath():
     source = MINION_EXTENSION.read_text()
-    assert 'from "../minion/' not in source
+    assert 'from "../../minion/' not in source
     assert 'import { getAgentDir' not in source
     assert "realpathSync(fileURLToPath(import.meta.url))" in source
     assert "realpathSync(process.argv[1])" in source
@@ -147,9 +147,10 @@ def test_minion_extension_loads_from_the_deployed_symlink(tmp_path):
     if package is None or shutil.which("node") is None:
         pytest.skip("pi and node are required to verify the deployed Minion extension")
     agent_dir = tmp_path / "agent"
-    extension = agent_dir / "extensions" / "minion.ts"
-    extension.parent.mkdir(parents=True)
-    extension.symlink_to(MINION_EXTENSION)
+    extension_dir = agent_dir / "extensions" / "minion"
+    extension_dir.parent.mkdir(parents=True)
+    extension_dir.symlink_to(MINION_EXTENSION.parent)
+    extension = extension_dir / "index.ts"
     script = f'''
     process.argv[1] = {json.dumps(str(package / "dist" / "bundle" / "cli.js"))};
     const loaded = await import({json.dumps(extension.as_uri())});
@@ -174,8 +175,8 @@ def minion_extension(tmp_path):
     scope = root / "node_modules" / "@earendil-works"
     scope.mkdir(parents=True)
     (scope / "pi-coding-agent").symlink_to(package)
-    copied = root / "extensions" / "minion.ts"
-    copied.parent.mkdir()
+    copied = root / "extensions" / "minion" / "index.ts"
+    copied.parent.mkdir(parents=True)
     copied.write_text(MINION_EXTENSION.read_text())
     shutil.copytree(PI / "minion", root / "minion")
     return copied
@@ -1902,7 +1903,7 @@ def test_probe_rejects_installed_sandbox_disabled_by_project_config(probe, tmp_p
     extensions = [
         packages / "pi-sandbox" / "index.ts",
         packages / "@gotgenes" / "pi-permission-system" / "src" / "index.ts",
-        PI / "extensions" / "guardrails.ts",
+        PI / "extensions" / "guardrails" / "index.ts",
     ]
     if not all(path.is_file() for path in extensions):
         pytest.skip("installed guard packages are required for the disabled-project diagnostic")
@@ -2048,7 +2049,7 @@ def test_installed_guards_report_policy_immutability_or_startup_refusal(policy_p
     extensions = [
         packages / "pi-sandbox" / "index.ts",
         packages / "@gotgenes" / "pi-permission-system" / "src" / "index.ts",
-        PI / "extensions" / "guardrails.ts",
+        PI / "extensions" / "guardrails" / "index.ts",
     ]
     if not all(path.is_file() for path in extensions):
         pytest.skip("installed guard packages are required for the policy exercise")
@@ -2093,7 +2094,7 @@ def test_installed_guards_report_minion_project_policy_protection_or_startup_ref
     extensions = [
         packages / "pi-sandbox" / "index.ts",
         packages / "@gotgenes" / "pi-permission-system" / "src" / "index.ts",
-        PI / "extensions" / "guardrails.ts",
+        PI / "extensions" / "guardrails" / "index.ts",
     ]
     if not all(path.is_file() for path in extensions):
         pytest.skip("installed guard packages are required for the Minion project-policy exercise")
@@ -2452,7 +2453,7 @@ def test_installed_guards_reject_startup_or_protect_scratch_files(probe, tmp_pat
     extensions = [
         packages / "pi-sandbox" / "index.ts",
         packages / "@gotgenes" / "pi-permission-system" / "src" / "index.ts",
-        PI / "extensions" / "guardrails.ts",
+        PI / "extensions" / "guardrails" / "index.ts",
     ]
     if not all(path.is_file() for path in extensions):
         pytest.skip("installed guard packages are required for the compatibility exercise")
@@ -2568,7 +2569,7 @@ def test_installed_guards_report_cancellation_or_startup_refusal(probe, tmp_path
     extensions = [
         packages / "pi-sandbox" / "index.ts",
         packages / "@gotgenes" / "pi-permission-system" / "src" / "index.ts",
-        PI / "extensions" / "guardrails.ts",
+        PI / "extensions" / "guardrails" / "index.ts",
     ]
     if not all(path.is_file() for path in extensions):
         pytest.skip("installed guard packages are required for the cancellation exercise")

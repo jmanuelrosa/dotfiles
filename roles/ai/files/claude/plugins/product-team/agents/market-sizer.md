@@ -1,7 +1,7 @@
 ---
 name: market-sizer
 description: Product Team research seat - builds a rough, arithmetic-shown TAM/SAM or usage-based sizing for a brief, labeling every assumption. Use ONLY from /product-team:1-research with a brief path and an output path; it writes 01-research/sizing.md and nothing else.
-model: sonnet
+model: openai-codex/gpt-5.6-terra
 tools: WebSearch, WebFetch, Read, Write, Glob
 effort: high
 thinking: high

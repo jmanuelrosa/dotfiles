@@ -371,6 +371,8 @@
   loop:
     - pi/settings.json
     - pi/models.json
+    - pi/model-routing.json
+    - pi/subagents.json
     - pi/mcp.json
     # pi-sandbox's config: the layer that contains. Derived from the `sandbox` block and
     # the path half of the `permissions` block in files/claude/settings.json, so one
@@ -444,8 +446,16 @@
     follow: false
   loop:
     - activity.ts
-    - footer.ts
     - claude-ui.ts
+    - context-continuity.ts
+    - cursor-model-policy.ts
+    - footer.ts
+    - guardrails.ts
+    - minion.ts
+    - skill-aliases.ts
+    - skill-model.ts
+    - statusline.ts
+    - velocity.ts
   register: pi_superseded_extension_links
 
 - name: Remove superseded pi extension links
@@ -457,18 +467,16 @@
     label: "{{ item.item }}"
   when: item.stat.islnk | default(false)
 
-# Globbed for the same reason as the claude hooks: every extension here is meant to be
-# active, and pi auto-discovers whatever lands in this directory, so there is no
-# settings.json entry to keep in step. guardrails.ts resolves its own symlink to find the
-# claude hooks it drives, which is what lets it live under files/pi/ and still reach them.
+# Each manifest entry is a directory containing index.ts and its documentation. Pi follows
+# the directory link and auto-discovers index.ts; the manifest keeps the disabled claude-ui
+# experiment in the source tree without loading it.
 - name: Symlink pi extensions
   ansible.builtin.file:
-    src: "{{ role_path }}/files/pi/extensions/{{ item | basename }}"
-    dest: "{{ HOME }}/.pi/agent/extensions/{{ item | basename }}"
+    src: "{{ role_path }}/files/pi/extensions/{{ item }}"
+    dest: "{{ HOME }}/.pi/agent/extensions/{{ item }}"
     state: link
     force: true
-  with_fileglob:
-    - "{{ role_path }}/files/pi/extensions/*.ts"
+  loop: "{{ PI_EXTENSIONS }}"
 
 
 # rtk ignores XDG_CONFIG_HOME and only reads the macOS Application Support path.

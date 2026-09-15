@@ -10,7 +10,7 @@ description: >-
   DebugView, template tests), and returns a structured completion report. Not the analytics seat
   (no GA4 data modeling or metric definitions), not the cloud or platform seats (never provisions
   or deploys the tagging server), and it never publishes a container version.
-model: opus
+model: openai-codex/gpt-5.6-sol
 effort: xhigh
 thinking: xhigh
 memory: project

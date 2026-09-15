@@ -1,5 +1,5 @@
 /**
- * velocity.ts - how much this session has changed, in pi's footer.
+ * velocity - how much this session has changed, in pi's footer.
  *
  * The pi half of the `⚡ +120/-30` segment Claude Code's statusline.sh prints, and the only
  * segment of that status line worth porting. Pi's own footer already shows the model, the
@@ -42,12 +42,13 @@ import {
 const STATUS_KEY = "dotfiles-velocity";
 
 // The one glyph this segment shares with Claude Code's statusline.sh, from the file both read.
-// Inlined rather than imported from a module beside it: pi loads this file through the symlink
+// Inlined rather than imported from a module beside it: pi loads this file through a directory link
 // the ai role puts in ~/.pi/agent/extensions, and jiti resolves a relative import from that
-// symlink rather than from its realpath, so a shared `.ts` two directories up is looked for
+// symlink rather than from its realpath, so a shared `.ts` three directories up is looked for
 // inside the pi agent directory and never found. statusline.ts carries the full reasoning.
 const VOCABULARY_PATH = join(
   dirname(realpathSync(fileURLToPath(import.meta.url))),
+  "..",
   "..",
   "..",
   "statusline.json",

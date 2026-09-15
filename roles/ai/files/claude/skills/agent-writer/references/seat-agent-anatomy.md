@@ -20,7 +20,7 @@ description: >-
   Detects the stack, routes to installed skills and to its <seat>-failure-modes checklists,
   implements within strict boundaries, self-verifies, and returns a structured completion report.
   Not the <sibling> seat (<what>), and <the identity never, e.g. "never deploys">.
-model: opus
+model: openai-codex/gpt-5.6-sol
 effort: xhigh
 thinking: xhigh
 memory: project
@@ -28,7 +28,9 @@ memory: project
 ```
 
 Always `description: >-`: plain multiline scalars silently break on ": " in continuation lines.
-Implementer seats use `model: opus`; advisor seats may differ (`tools:` allowlist) and those lines must survive edits.
+Choose the seat's model from the approved routing in `docs/internals/seat-plugins.md`: existing seats use Sol except frontend, which uses Terra.
+Provider-qualified pins are Pi-first, not portable Claude Code model selections.
+Advisor seats may differ (`tools:` allowlist), and those lines must survive edits.
 
 `effort` and `memory` are part of the seat identity too.
 An implementer seat does multi-file work against an unfamiliar stack, which is what `xhigh` is for; a read-only advisor seat takes `high`, since review accuracy holds at lower effort and the seat reads far more than it writes.

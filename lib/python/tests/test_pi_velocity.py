@@ -32,7 +32,7 @@ from pathlib import Path
 import pytest
 from dotkit.testing import PI_EXTENSIONS, REPO
 
-EXTENSION = PI_EXTENSIONS / "velocity.ts"
+EXTENSION = PI_EXTENSIONS / "velocity" / "index.ts"
 TASKS = REPO / "roles/ai/tasks/main.yml"
 
 PACKAGE = "@earendil-works/pi-coding-agent"
@@ -266,7 +266,5 @@ def test_no_diff_is_computed_here(source):
 
 
 def test_the_role_installs_the_extension():
-    """The glob covers any `.ts` dropped in the directory, so this file needs no task of its own.
-    Asserted anyway, because that is exactly the kind of thing a later refactor narrows to a named
-    list, and a dropped extension is silent at both ends."""
-    assert "files/pi/extensions/*.ts" in TASKS.read_text()
+    """The role installs the extension directories named in its manifest."""
+    assert 'loop: "{{ PI_EXTENSIONS }}"' in TASKS.read_text()

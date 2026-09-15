@@ -1,7 +1,7 @@
 ---
 name: pm-red-team
 description: Product Team adversarial reviewer - attacks a PRD with fresh eyes (reads the PRD and NOTHING else) and writes 03-red-team-report.md with at least 5 severity-labeled challenges. Use ONLY from /product-team:3-red-team with the PRD path and report path; it never edits the PRD.
-model: opus
+model: openai-codex/gpt-5.6-sol
 tools: Read, Write
 effort: xhigh
 thinking: xhigh
