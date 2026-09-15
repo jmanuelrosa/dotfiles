@@ -28,7 +28,7 @@ memory: project
 ```
 
 Always `description: >-`: plain multiline scalars silently break on ": " in continuation lines.
-Choose the seat's model from the risk-based routing in `docs/internals/seat-plugins.md`: Sol for cross-system correctness and Terra for implementation, tooling and content work.
+Choose the seat's model from the approved routing in `docs/internals/seat-plugins.md`: existing seats use Sol except frontend, which uses Terra.
 Provider-qualified pins are Pi-first, not portable Claude Code model selections.
 Advisor seats may differ (`tools:` allowlist), and those lines must survive edits.
 
