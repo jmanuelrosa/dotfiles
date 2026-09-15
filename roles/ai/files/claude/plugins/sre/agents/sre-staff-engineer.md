@@ -10,7 +10,7 @@ description: >-
   and config validators; synthetic alert paths when a dev stack exists), and returns a
   structured completion report. Not the platform seat (no CI pipelines), not the cloud seat
   (no IaC), and it NEVER mutates production or silences an alert without a written root cause.
-model: opus
+model: openai-codex/gpt-5.6-sol
 effort: xhigh
 thinking: xhigh
 memory: project

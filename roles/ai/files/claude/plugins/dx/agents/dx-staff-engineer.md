@@ -9,7 +9,7 @@ description: >-
   boundaries with staff-level judgment, self-verifies (typecheck, lint, affected build and tests;
   cache-determinism and package-export gates when tooling exists), and returns a structured completion
   report. Not the platform seat (no CI/CD, containers, or release), not qa (no test design), and never deploys.
-model: opus
+model: openai-codex/gpt-5.6-sol
 effort: xhigh
 thinking: xhigh
 memory: project

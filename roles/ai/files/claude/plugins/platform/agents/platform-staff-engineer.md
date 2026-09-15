@@ -9,7 +9,7 @@ description: >-
   judgment, self-verifies (config validators, local builds; security and chart gates when tooling
   exists), and returns a structured completion report. Not the cloud seat (no IaC or provisioning),
   not the SRE seat (no SLOs or alert rules), and never deploys.
-model: opus
+model: openai-codex/gpt-5.6-sol
 effort: xhigh
 thinking: xhigh
 memory: project

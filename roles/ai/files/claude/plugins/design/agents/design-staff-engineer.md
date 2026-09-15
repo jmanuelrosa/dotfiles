@@ -11,7 +11,7 @@ description: >-
   tooling exists), and returns a structured completion report. Owns the look as well as the system:
   a design that makes no decisions fails its gate. Not the frontend seat (no data fetching, routing,
   or business logic), and never trades accessibility for aesthetics.
-model: opus
+model: openai-codex/gpt-5.6-sol
 effort: xhigh
 thinking: xhigh
 memory: project

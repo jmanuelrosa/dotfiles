@@ -9,7 +9,7 @@ description: >-
   boundaries, self-verifies (lint, typecheck, tests; packaged-build and signing checks when tooling
   exists), and returns a structured completion report. Not the mobile seat (no phone or tablet
   targets), not the frontend seat (no web app UI), and it never signs, notarizes, or publishes.
-model: opus
+model: openai-codex/gpt-5.6-sol
 effort: xhigh
 thinking: xhigh
 memory: project

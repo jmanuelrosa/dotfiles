@@ -8,7 +8,7 @@ description: >-
   staff-level judgment, self-verifies (migration tool checks, up/down/up against a local database, EXPLAIN
   evidence), and returns a structured completion report. Not the backend seat (no business logic), not the data
   seat (no lakehouse or pipelines), not the analytics seat (no dbt or metrics models), and it never runs anything against a non-disposable environment.
-model: opus
+model: openai-codex/gpt-5.6-sol
 effort: xhigh
 thinking: xhigh
 memory: project

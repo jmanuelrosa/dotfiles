@@ -202,3 +202,62 @@ def test_local_skill_pins_use_selected_providers():
             assert model == expected[name]
         if model.startswith("cursor/"):
             assert model == "cursor/composer-2-5"
+
+
+def test_plugin_agents_use_workload_routes():
+    groups = {
+        "openai-codex/gpt-5.6-sol": {
+            "backend-staff-engineer", "database-staff-engineer", "cloud-staff-engineer",
+            "platform-staff-engineer", "sre-staff-engineer", "data-staff-engineer",
+            "security-staff-engineer", "pm-red-team", "strategy-checker",
+        },
+        "openai-codex/gpt-5.6-terra": {
+            "analytics-staff-engineer", "design-staff-engineer", "desktop-staff-engineer",
+            "dx-staff-engineer", "frontend-staff-engineer", "gtm-staff-engineer",
+            "mobile-staff-engineer", "qa-staff-engineer", "seo-staff-engineer",
+            "competitive-researcher", "market-sizer", "user-evidence-researcher",
+        },
+        "cursor/composer-2-5": {"adr-scribe"},
+        "sonnet": {"ac-writer"},
+    }
+    expected = {name: model for model, names in groups.items() for name in names}
+    actual = {}
+    for path in PLUGINS.glob("*/agents/*.md"):
+        frontmatter = yaml.safe_load(path.read_text().split("---", 2)[1])
+        actual[path.stem] = frontmatter["model"]
+    assert actual == expected
+
+
+def test_product_team_skills_use_direct_workload_routes():
+    groups = {
+        "openai-codex/gpt-5.6-sol": {"1-research", "4-tech-shape", "5-decompose"},
+        "anthropic/claude-opus-5": {"2-write-prd"},
+        "anthropic/claude-sonnet-5": {
+            "setup-strategy", "0-refine-idea", "3-red-team", "6-verify", "8-living-spec",
+        },
+        "cursor/composer-2-5": {"product-lead", "7-push-to-board"},
+    }
+    expected = {name: model for model, names in groups.items() for name in names}
+    actual = {}
+    for path in (PLUGINS / "product-team/skills").glob("*/SKILL.md"):
+        frontmatter = yaml.safe_load(path.read_text().split("---", 2)[1])
+        actual[path.parent.name] = frontmatter["model"]
+    assert actual == expected
+
+
+def test_plugin_pins_do_not_depend_on_legacy_redirects():
+    settings = json.loads((PI / "settings.json").read_text())
+    enabled = set(settings["enabledModels"])
+    routing = json.loads((PI / "model-routing.json").read_text())
+    allowed_cursor = {f"cursor/{model}" for model in routing["cursorModels"]}
+    paths = [*PLUGINS.glob("*/agents/*.md"), *PLUGINS.glob("*/skills/*/SKILL.md")]
+    for path in paths:
+        frontmatter = yaml.safe_load(path.read_text().split("---", 2)[1])
+        model = frontmatter.get("model")
+        if model is None:
+            continue
+        resolved = "anthropic/claude-sonnet-5" if model == "sonnet" else model
+        assert resolved in enabled, str(path)
+        assert model not in routing["redirects"], str(path)
+        if model.startswith("cursor/"):
+            assert model in allowed_cursor, str(path)
