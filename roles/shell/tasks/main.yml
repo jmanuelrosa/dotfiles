@@ -63,6 +63,7 @@
 - name: Check if files to backup exists
   ansible.builtin.stat:
     path: "{{ HOME }}/{{ item }}"
+    follow: true
   with_items:
     - .config/ghostty/config
     - .config/fish/config.fish
@@ -97,6 +98,13 @@
     state: link
     force: true
 
+- name: Symlink television config
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/television/config.toml"
+    dest: "{{ HOME }}/.config/television/config.toml"
+    state: link
+    force: true
+
 - name: Sync upstream television channels
   ansible.builtin.command: tv update-channels
   changed_when: false
@@ -116,13 +124,6 @@
   loop_control:
     label: "{{ item.path | basename }}"
   when: (item.path | basename | regex_replace('\.toml$', '')) not in TV_CABLE_ALLOWLIST
-
-- name: Symlink television config
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/television/config.toml"
-    dest: "{{ HOME }}/.config/television/config.toml"
-    state: link
-    force: true
 
 - name: Symlink fish config
   ansible.builtin.file:
