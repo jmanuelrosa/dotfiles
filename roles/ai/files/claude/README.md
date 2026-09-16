@@ -1,6 +1,6 @@
 # Claude
 
-Catalog for Claude Code and Pi skills, Claude agents, and skills-dir plugins. Kura v0.3 manages the skill lifecycle across both harnesses. The AI role provisions standalone agents globally, while project plugin links remain project-owned legacy state until Kura adds agent and plugin management.
+Shared payload for Claude Code and Pi skills, Claude agents, and skills-dir plugins. Kura manages only the skill lifecycle across both harnesses through the dedicated `../kura/catalog` view, which exposes `skills/` and `skill-registry.json` from this directory. The AI role provisions standalone agents globally, while project plugin links remain project-owned legacy state until Kura adds agent and plugin management.
 
 This document covers how to **use them in a project** and how to **add new skills and agents to the dotfiles repo** itself.
 
@@ -8,7 +8,7 @@ For the worked example (a project from zero, product side then engineering side,
 
 ## Commands
 
-`kura` is the CLI. It lives in its own repository now: the `ai` role installs a pinned release at `~/.local/bin/kura` and links `~/.config/kura/catalog` at this directory. It replaced the `claude-skill` / `claude-agent` fish functions, which are gone.
+`kura` is the CLI. It lives in its own repository now: the `ai` role installs a pinned release at `~/.local/bin/kura` and links `~/.config/kura/catalog` to `files/kura/catalog`. It replaced the `claude-skill` / `claude-agent` fish functions, which are gone.
 
 ```
 kura init                                        Initialize the exact cwd and selected harnesses

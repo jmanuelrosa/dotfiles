@@ -5,11 +5,11 @@ released separately now, so what remains is the half this repository can break:
 
   the installer   a pinned release and checksum, machine config, the legacy command and
                   cross-harness link removals, and the commands the role runs
-  the catalog     that every artifact under files/claude/ is loadable, that seat routing
-                  names every implementer seat, and that the `global` tag says what the
-                  registries mean it to say
+  the catalog     that the dedicated Kura view exposes only skills and their registry
+                  metadata, that every shipped artifact is loadable, that seat routing
+                  names every implementer seat, and that `global` means what it should
 
-Kura 0.3 manages skills only. The role projects global skills independently into Claude
+Kura v0.4 manages skills only. The role projects global skills independently into Claude
 Code and Pi, provisions standalone global agents itself, and leaves project-owned plugin
 links untouched. The tool's own behaviour is asserted in its own repository against a
 fixture catalog. Nothing here imports it: the derivations that need its answers ask the
@@ -31,6 +31,7 @@ AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 AI_DEFAULTS = REPO / "roles/ai/defaults/main.yml"
 COREUTILS_DEFAULTS = REPO / "roles/coreutils/defaults/main.yml"
 SETTINGS = CLAUDE / "settings.json"
+KURA_CATALOG = REPO / "roles/ai/files/kura/catalog"
 
 SYNC_TASK = "Converge global skills for Claude Code and Pi"
 CONVERGE_TASK = "Converge initialized project skill views"
@@ -98,7 +99,7 @@ def global_sync_dry_run():
         config_dir = os.path.join(home, ".config", "kura")
         os.makedirs(config_dir)
         catalog_path = os.path.join(config_dir, "catalog")
-        os.symlink(str(CLAUDE), catalog_path)
+        os.symlink(str(KURA_CATALOG), catalog_path)
         config_path = os.path.join(config_dir, "config.json")
         with open(config_path, "w") as stream:
             json.dump(config, stream)
@@ -174,9 +175,24 @@ def test_the_role_provisions_kuras_machine_configuration():
 def test_the_role_links_the_catalog_at_the_fixed_path():
     spec = role_task("ai", CATALOG_TASK)["ansible.builtin.file"]
     assert spec["state"] == "link"
-    assert spec["src"] == "{{ role_path }}/files/claude"
+    assert spec["src"] == "{{ role_path }}/files/kura/catalog"
     assert spec["dest"] == "{{ HOME }}/.config/kura/catalog"
     assert spec["force"] is True, "a link naming an older checkout must be repointed"
+
+
+def test_the_catalog_view_exposes_only_kuras_supported_inputs():
+    assert {entry.name for entry in KURA_CATALOG.iterdir()} == {
+        "skills",
+        "skill-registry.json",
+    }
+    skills = KURA_CATALOG / "skills"
+    assert skills.is_symlink()
+    assert os.readlink(skills) == "../../claude/skills"
+    assert skills.resolve() == SKILLS.resolve()
+    registry = KURA_CATALOG / "skill-registry.json"
+    assert registry.is_symlink()
+    assert os.readlink(registry) == "../../claude/skill-registry.json"
+    assert registry.resolve() == (CLAUDE / "skill-registry.json").resolve()
 
 
 @pytest.mark.parametrize("name", [SYNC_TASK, CONVERGE_TASK])
@@ -220,7 +236,7 @@ def test_the_role_dry_runs_under_check_mode(name):
 
 
 def test_a_session_start_hook_converges_only_an_initialized_exact_cwd():
-    """Kura 0.3 treats cwd as the exact project and refuses when root kura.json is
+    """Kura treats cwd as the exact project and refuses when root kura.json is
     absent. The hook stays silent in an uninitialized directory without hiding a real
     convergence failure in an initialized one."""
     hooks = json.loads(SETTINGS.read_text())["hooks"]["SessionStart"]
@@ -462,7 +478,7 @@ def test_the_global_set_holds_exactly_the_documented_membership():
     """Pinned so a registry retag shows up as a failing test rather than as a silent
     change to what lands in ~/.claude.
 
-    Read from `sync --dry-run` rather than derived here. Kura 0.3 derives only skill
+    Read from `sync --dry-run` rather than derived here. Kura derives only skill
     dependencies, so skills required by role-provisioned global agents carry their own
     global tag instead of relying on the agent registry to pull them in.
     """
