@@ -36,7 +36,6 @@
     state: directory
     mode: "0755"
   loop:
-    - "{{ HOME }}/.gemini"
     - "{{ HOME }}/.claude"
     - "{{ HOME }}/.claude/hooks"
     - "{{ HOME }}/.claude/rules"
@@ -52,13 +51,6 @@
     # unredacted.
     - "{{ HOME }}/.pi/agent/extensions/pi-permission-system"
     - "{{ HOME }}/Library/Application Support/rtk"
-
-- name: Symlink gemini config
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/gemini/settings.json"
-    dest: "{{ HOME }}/.gemini/settings.json"
-    state: link
-    force: true
 
 # Listed rather than globbed: files/claude/ also holds README.md and the two
 # registries, which are repo data and must not appear in ~/.claude.

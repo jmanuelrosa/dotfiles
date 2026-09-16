@@ -9,12 +9,7 @@
 # global and the role links that directory's members itself.
 
 BREW_PACKAGES:
-  taps:
-    - steipete/tap
-  trusted:
-    - steipete/tap
   formulas:
-    - gemini-cli
     - pi-coding-agent
     - rtk
     # Runs the bundled Claude skill validators (e.g. skill-writer's
@@ -26,7 +21,6 @@ BREW_PACKAGES:
     - claude-code@latest
     - cursor
     - ollama-app
-    - steipete/tap/codexbar
 
 # Directories symlinked into Pi's global extension root. Every entry contains the
 # auto-discovered index.ts and a README; claude-ui is deliberately not active.

@@ -1,13 +1,13 @@
 # ai
 
-Installs and configures AI tooling: Claude Code, Gemini CLI, Pi (mariozechner), ChatGPT desktop, Ollama, CodexBar.
+Installs and configures AI tooling: Claude Code, Pi (mariozechner), ChatGPT desktop, and Ollama.
 
 ## What it does
 
-- Installs gemini-cli, pi-coding-agent, and casks for ChatGPT/Claude/Claude Code/Cursor/Ollama/CodexBar via `BREW_PACKAGES`.
+- Installs pi-coding-agent and casks for ChatGPT/Claude/Claude Code/Cursor/Ollama via `BREW_PACKAGES`.
 - Configures Pi to call Ollama Cloud directly through `models.json`, without `pi-ollama-cloud` or a local Ollama server. `nemotron-3-ultra` and `gpt-oss:120b` are enabled as coding models available on the free account. In Pi, run `/login`, choose API key authentication, select `ollama-cloud`, and paste a key from the Ollama account settings.
 - The Ollama app uses its own account session: run `ollama signin` after provisioning when using the CLI or desktop app.
-- Symlinks per-tool configs into `~/.claude/`, `~/.gemini/`, `~/.pi/agent/`.
+- Symlinks per-tool configs into `~/.claude/` and `~/.pi/agent/`.
 - Symlinks custom Pi themes into `~/.pi/agent/themes/`.
 - Pi's Cursor models come from the `npm:pi-cursor-sdk` package in `files/pi/settings.json`, not from a `cursor` block in `models.json`. That file is only for HTTP APIs Pi already speaks. The package registers a live `cursor/` provider; `enabledModels` pins the cycle/picker set to the models on in Cursor (Auto, Grok 4.6, Composer 2.5, Opus 5, GPT-5.6 Sol, Fable 5, Grok 4.5). Auth is a Cursor SDK API key saved once with `/login` (or `CURSOR_API_KEY`), then `/cursor-refresh-models` if you logged in after startup. Desktop/CLI login is not reused. The key stays out of the repo.
 - Cursor-backed tool failures only ever show a canned reason (`missing completion`, `aborted`, `SDK run failed`, `run ended during drain`) in a `"... did not complete"` card, never the underlying message or stack. `pi-cursor-sdk` has a maintainer debug channel that captures both, gated on `PI_CURSOR_SDK_EVENT_DEBUG`, but the package lives under `~/.pi/agent/npm/node_modules/`, installed by pi's own package manager rather than vendored here, so it can only be reached through env vars. `pi_debug` and `pi_last_error`, exported by the shell role's fish functions the same way `CTX7_TELEMETRY_DISABLED` is, wrap that: launch pi through `pi_debug` and `pi_last_error` prints the real error back afterward.
@@ -29,7 +29,7 @@ Installs and configures AI tooling: Claude Code, Gemini CLI, Pi (mariozechner), 
 
 ## Vars
 
-- `BREW_PACKAGES` (defaults/main.yml): taps (`steipete/tap`), formulas (gemini-cli, pi-coding-agent), casks (chatgpt, claude, claude-code, cursor, ollama-app, codexbar).
+- `BREW_PACKAGES` (defaults/main.yml): formulas (pi-coding-agent, rtk, uv), casks (chatgpt, claude, claude-code, cursor, ollama-app).
 - **There is no var for the global skill set, and nothing to maintain by hand.** `kura sync` derives it from the `global` group tag in `skill-registry.json` and expands declared skill dependencies recursively. Tag a skill `global` to add it to both native roots. Standalone agents are different in v0.3: the role globs `files/claude/agents/*.md`, and a test requires every registry agent to remain global.
 
 ## Notes

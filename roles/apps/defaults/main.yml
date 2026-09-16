@@ -98,7 +98,6 @@ BREW_PACKAGES:
     # Browsers
     - google-chrome
     - zen
-    - brave-browser
     - helium-browser
     # Communication
     - slack
@@ -113,7 +112,6 @@ BREW_PACKAGES:
     # Infrastructure
     - gcloud-cli
     # Multimedia
-    - blackhole-16ch
     - spotify
     - vlc
     # System / window management
