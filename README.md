@@ -63,7 +63,7 @@ Roles execute in order. Each role can be run individually using its tag.
 | ssh | `ssh` | Loads SSH keys into `~/.ssh` |
 | user | `user` | Creates user directories (`~/developer`, `~/pictures`, `~/downloads`) and links wallpapers |
 | apps | `apps` | Installs browsers, dev tools, editors, databases, infrastructure, and more |
-| ai | `ai` | Installs and configures AI tools (Claude, Gemini, ChatGPT, Cursor, etc.) |
+| ai | `ai` | Installs and configures AI tools (Claude, ChatGPT, Cursor, etc.) |
 | security | `security` | Installs security tools (NextDNS via Mac App Store) |
 | work | `work` | Work-specific SSH keys, credentials, and utility scripts |
 | cleanup | `cleanup` | Removes unused Homebrew dependencies and clears cache |
@@ -146,7 +146,7 @@ bat, btop, duf, eza, fastfetch, fd, httpie, hyperfine, nnn, ripgrep, scc, televi
 
 ### Browsers
 
-Google Chrome, Zen, Brave, Helium
+Google Chrome, Zen, Helium
 
 ### Development
 
@@ -154,7 +154,7 @@ Git, git-delta, LazyGit, GitHub CLI, GitLab CLI (glab), fnm (Node version manage
 
 ### AI
 
-Gemini CLI, ChatGPT, Claude, Claude Code, Cursor, CodexBar
+ChatGPT, Claude, Claude Code, Cursor
 
 Claude Code and Pi skills are managed with [`kura`](https://github.com/jmanuelrosa/kura), installed by the `ai` role as a pinned release at `~/.local/bin/kura` and pointed at the dedicated catalog view in `roles/ai/files/kura/catalog/`. The catalog exposes the shared `skills/` tree and `skill-registry.json` metadata only. The role provisions standalone agents separately, while existing project plugin links remain project-owned legacy state.
 
@@ -187,7 +187,7 @@ AWS CLI, Colima, Docker, Docker Compose, Docker Buildx, docker-credential-helper
 
 ### Multimedia
 
-mpv, Spotify, VLC, BlackHole (16ch virtual audio)
+mpv, Spotify, VLC
 
 ### System & Window Management
 
