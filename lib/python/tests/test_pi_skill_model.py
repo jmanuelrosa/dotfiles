@@ -260,7 +260,7 @@ def test_default_model_uses_the_codex_subscription():
     settings = json.loads((PI / "settings.json").read_text())
 
     assert settings["defaultProvider"] == "openai-codex"
-    assert settings["defaultModel"] == "gpt-5.6-terra"
+    assert settings["defaultModel"] == "gpt-5.6-sol"
     assert f'{settings["defaultProvider"]}/{settings["defaultModel"]}' in settings["enabledModels"]
 
 
