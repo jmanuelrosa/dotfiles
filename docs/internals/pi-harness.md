@@ -130,7 +130,8 @@ This keeps tracked skills such as `unslop` working without editing content that 
 Project-owned plugin skills now declare their direct targets instead of depending on legacy redirects.
 After redirection, Opus falls back to Codex Sol, Sonnet to Terra, Haiku and Composer to Luna, and Grok 4.6 to Terra.
 If a routed primary is absent or has no configured auth, the skill starts directly on its fallback.
-These account-error fallbacks belong to skill runs, not arbitrary subagent runs; an unpinned Anthropic agent can still stop at its account limit.
+The same account-error routes are armed for unpinned agent runs, and pi-subagents binds this repository-owned extension inside its child sessions, so the built-in Explore agent can retry Haiku failures on Luna without patching the package.
+The selected model and thinking level are restored when the run settles, so the next run starts from its configured primary again.
 
 The local assignments keep the largest Codex model for research, planning and agent audits, Terra for the default session, Luna for handoffs, Composer for commit/PR/Jira/Cloudflare/product-lead workflows, Sonnet for CodeRabbit fixes, acceptance criteria and prose cleanup, and Opus for agent authoring.
 Unpinned skills inherit the session model.
