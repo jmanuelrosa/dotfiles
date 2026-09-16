@@ -53,11 +53,11 @@ PI_EXTENSIONS:
 AI_SCRIPTS:
   - tokencost
 
-# kura installs the artifacts in files/claude/ and is no longer developed here, so it
-# arrives as a released asset rather than as a link into this checkout. The release
-# label is for reading and the checksum is the identity: get_url verifies it, skips the
-# download when the file already matches, and replaces it when it does not, so an
-# upgrade and a rollback are the same two-line edit in opposite directions.
+# kura manages skills through files/kura/catalog and is no longer developed here, so it
+# arrives as a released asset rather than as a link into this checkout. The release label
+# is for reading and the checksum is the identity: get_url verifies it, skips the download
+# when the file already matches, and replaces it when it does not, so an upgrade and a
+# rollback are the same two-line edit in opposite directions.
 KURA:
   repository: https://github.com/jmanuelrosa/kura
   release: v0.4.0

@@ -218,12 +218,13 @@
     checksum: "{{ KURA.checksum }}"
     mode: "0755"
 
-# Kura reads only ~/.config/kura/catalog. Ansible owns the symlink so this checkout
-# remains the catalog without a flag, env var, or saved config path; force: true
-# repoints a link left by an older checkout.
+# Kura reads only ~/.config/kura/catalog. The dedicated source view exposes the
+# skills tree and its optional registry metadata without making Claude settings,
+# hooks, agents, or legacy plugins part of the catalog. Ansible owns the fixed-path
+# link, and force: true repoints one left by an older checkout.
 - name: Link the artifact catalog at the fixed path
   ansible.builtin.file:
-    src: "{{ role_path }}/files/claude"
+    src: "{{ role_path }}/files/kura/catalog"
     dest: "{{ HOME }}/.config/kura/catalog"
     state: link
     force: true
