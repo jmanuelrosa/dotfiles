@@ -224,6 +224,7 @@ def read(skills, name):
     }
 
 
+STARTED = {"event": "before_agent_start", "payload": {"type": "before_agent_start"}}
 SETTLED = {"event": "agent_settled", "payload": {"type": "agent_settled"}}
 
 
@@ -359,6 +360,7 @@ def test_an_account_limit_retries_the_skill_turn_on_its_mapped_model(harness):
         harness,
         [
             invoke("cursor-sonnet"),
+            STARTED,
             assistant_error("Monthly usage limit reached"),
             SETTLED,
         ],
@@ -387,6 +389,119 @@ def test_an_account_limit_retries_the_skill_turn_on_its_mapped_model(harness):
         ["dotfiles-skill-model", None],
     ]
     assert result["retryableReplacements"] == [True]
+
+
+def test_an_unpinned_agent_run_retries_on_its_mapped_model(harness):
+    primary = "anthropic/claude-haiku-4-5"
+    fallback = "openai-codex/gpt-5.6-luna"
+    result = run(
+        harness,
+        [
+            STARTED,
+            assistant_error(
+                "This request would exceed your account's monthly spend limit",
+                model="claude-haiku-4-5",
+                provider="anthropic",
+            ),
+            SETTLED,
+        ],
+        current=primary,
+        thinking="medium",
+        check_retryable=True,
+    )
+
+    assert result["setModel"] == [fallback, primary]
+    assert result["setThinkingLevel"] == ["medium"]
+    assert result["replacements"] == [{
+        "role": "assistant",
+        "content": [],
+        "stopReason": "error",
+        "errorMessage": f"Provider returned error: retrying agent run with {fallback}",
+        "provider": "anthropic",
+        "model": "claude-haiku-4-5",
+    }]
+    assert result["notify"] == [[
+        f"agent run: anthropic account or capacity failure; retrying with {fallback}",
+        "warning",
+    ]]
+    assert result["retryableReplacements"] == [True]
+    assert result["entries"] == []
+    assert result["status"] == []
+    assert result["current"] == primary
+
+
+def test_an_unpinned_agent_redirects_before_its_first_request(harness):
+    source = "cursor/claude-sonnet-5@1m"
+    target = "anthropic/claude-sonnet-5"
+    result = run(harness, [STARTED, SETTLED], current=source)
+
+    assert result["setModel"] == [target, source]
+    assert result["replacements"] == []
+    assert result["notify"] == []
+    assert result["current"] == source
+
+
+def test_an_unpinned_agent_without_a_route_keeps_normal_error_handling(harness):
+    result = run(
+        harness,
+        [
+            STARTED,
+            assistant_error(
+                "Quota exceeded",
+                model="gpt-5.6-terra",
+                provider="openai-codex",
+            ),
+            SETTLED,
+        ],
+    )
+
+    assert result["setModel"] == []
+    assert result["replacements"] == []
+    assert result["notify"] == []
+
+
+def test_an_unpinned_agent_keeps_network_errors_on_the_normal_retry_path(harness):
+    primary = "anthropic/claude-haiku-4-5"
+    result = run(
+        harness,
+        [
+            STARTED,
+            assistant_error(
+                "Network error: connection reset",
+                model="claude-haiku-4-5",
+                provider="anthropic",
+            ),
+            SETTLED,
+        ],
+        current=primary,
+    )
+
+    assert result["setModel"] == []
+    assert result["replacements"] == []
+    assert result["current"] == primary
+
+
+def test_an_unpinned_agent_skips_an_unavailable_fallback(harness):
+    primary = "anthropic/claude-haiku-4-5"
+    fallback = "openai-codex/gpt-5.6-luna"
+    result = run(
+        harness,
+        [
+            STARTED,
+            assistant_error(
+                "HTTP 429: rate limit exceeded",
+                model="claude-haiku-4-5",
+                provider="anthropic",
+            ),
+            SETTLED,
+        ],
+        current=primary,
+        unauthenticated=[fallback],
+    )
+
+    assert result["setModel"] == []
+    assert result["replacements"] == []
+    assert result["current"] == primary
 
 
 @pytest.mark.parametrize(
