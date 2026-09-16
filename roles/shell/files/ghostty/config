@@ -16,15 +16,19 @@ theme = Solarized Dark Patched
 # macos-non-native-fullscreen = true
 clipboard-paste-protection = false
 cursor-style-blink = false
+macos-applescript = false
 macos-non-native-fullscreen = visible-menu
 macos-option-as-alt = left
 macos-window-buttons = hidden
 mouse-hide-while-typing = true
+notify-on-command-finish = unfocused
+notify-on-command-finish-action = no-bell,notify
+notify-on-command-finish-after = 30s
 quick-terminal-animation-duration = 0
 quick-terminal-position = top
 quit-after-last-window-closed = true
 resize-overlay = never
-scrollback-limit = 1000000000
+scrollback-limit = 10000000
 # The default font size specified in the configuration font-size will be used: https://ghostty.org/docs/config/reference#window-inherit-font-size
 window-inherit-font-size = false
 # The default working directory will be used (the working-directory option): https://ghostty.org/docs/config/reference#window-inherit-working-directory
@@ -38,7 +42,14 @@ shell-integration = fish
 shell-integration-features = no-cursor,sudo,title,ssh-env,ssh-terminfo
 
 # Keybindings
+keybind = super+c=copy_to_clipboard:plain
+
 ## Window Management
+keybind = resize/arrow_up=resize_split:up,10
+keybind = resize/arrow_down=resize_split:down,10
+keybind = resize/arrow_left=resize_split:left,10
+keybind = resize/arrow_right=resize_split:right,10
+keybind = resize/escape=deactivate_key_table
 keybind = resize/catch_all=ignore
 
 ### Window Fullscreen
