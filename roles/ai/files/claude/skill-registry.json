@@ -49,7 +49,7 @@
             "workflow",
             "addy:product-03"
           ],
-          "updated_at": "2026-08-12T04:49:15Z"
+          "updated_at": "2026-09-16T16:32:35Z"
         },
         {
           "upstream_path": "skills/spec-driven-development",
@@ -64,7 +64,7 @@
             "test-driven-development",
             "context-engineering"
           ],
-          "updated_at": "2026-08-15T05:58:34Z"
+          "updated_at": "2026-09-16T16:32:35Z"
         },
         {
           "upstream_path": "skills/test-driven-development",
@@ -74,7 +74,7 @@
             "backend",
             "testing"
           ],
-          "updated_at": "2026-08-12T04:49:15Z"
+          "updated_at": "2026-09-16T16:32:35Z"
         },
         {
           "upstream_path": "skills/documentation-and-adrs",
@@ -84,7 +84,7 @@
             "documentation",
             "global"
           ],
-          "updated_at": "2026-07-25T09:44:06Z"
+          "updated_at": "2026-09-16T16:32:35Z"
         },
         {
           "upstream_path": "skills/code-simplification",
@@ -131,7 +131,7 @@
             "prompt engineering",
             "claude"
           ],
-          "updated_at": "2026-07-25T09:44:06Z"
+          "updated_at": "2026-09-16T16:32:35Z"
         }
       ]
     },
@@ -146,7 +146,7 @@
             "workflow",
             "global"
           ],
-          "updated_at": "2026-08-21T11:55:13Z"
+          "updated_at": "2026-09-16T16:32:46Z"
         },
         {
           "upstream_path": "skills/productivity/grill-me",
@@ -160,7 +160,7 @@
           "dependencies": [
             "grilling"
           ],
-          "updated_at": "2026-08-21T11:55:13Z"
+          "updated_at": "2026-09-16T16:32:46Z"
         },
         {
           "upstream_path": "skills/engineering/grill-with-docs",
@@ -175,7 +175,7 @@
             "grilling",
             "domain-modeling"
           ],
-          "updated_at": "2026-08-21T11:55:13Z"
+          "updated_at": "2026-09-16T16:32:46Z"
         },
         {
           "upstream_path": "skills/productivity/grilling",
@@ -210,7 +210,7 @@
             "prompt engineering",
             "refactoring"
           ],
-          "updated_at": "2026-08-25T18:10:41Z"
+          "updated_at": "2026-09-16T16:32:41Z"
         }
       ]
     },
@@ -373,7 +373,7 @@
             "ios",
             "swift"
           ],
-          "updated_at": "2026-07-25T09:44:11Z"
+          "updated_at": "2026-09-16T16:32:38Z"
         }
       ]
     },
@@ -467,7 +467,7 @@
             "marketing",
             "seo"
           ],
-          "updated_at": "2026-08-22T06:26:57Z"
+          "updated_at": "2026-09-16T16:32:39Z"
         }
       ]
     },
@@ -496,7 +496,7 @@
             "frontend",
             "tanstack"
           ],
-          "updated_at": "2026-07-25T09:44:03Z"
+          "updated_at": "2026-09-16T16:32:28Z"
         }
       ]
     },
@@ -511,7 +511,7 @@
             "designer",
             "ui"
           ],
-          "updated_at": "2026-07-25T09:44:14Z"
+          "updated_at": "2026-09-16T16:32:41Z"
         }
       ]
     },
@@ -525,7 +525,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-08-21T11:55:10Z"
+          "updated_at": "2026-09-16T16:32:43Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-brownfield",
@@ -534,7 +534,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-08-04T16:31:47Z"
+          "updated_at": "2026-09-16T16:32:43Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-dev-client",
@@ -552,7 +552,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-09-01T10:27:34Z"
+          "updated_at": "2026-09-16T16:32:43Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-data-fetching",
@@ -561,7 +561,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-08-04T16:31:47Z"
+          "updated_at": "2026-09-16T16:32:43Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-upgrade",
@@ -588,7 +588,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-08-04T16:31:47Z"
+          "updated_at": "2026-09-16T16:32:43Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-web-to-native",
@@ -597,7 +597,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-09-01T10:27:34Z"
+          "updated_at": "2026-09-16T16:32:43Z"
         }
       ]
     },
@@ -612,7 +612,7 @@
             "claude",
             "global"
           ],
-          "updated_at": "2026-08-01T07:46:37Z"
+          "updated_at": "2026-09-16T16:32:44Z"
         }
       ]
     },
@@ -705,7 +705,7 @@
             "backend",
             "hono"
           ],
-          "updated_at": "2026-09-01T10:27:36Z"
+          "updated_at": "2026-09-16T16:32:45Z"
         }
       ]
     },
@@ -746,7 +746,7 @@
             "devops",
             "infrastructure"
           ],
-          "updated_at": "2026-09-01T10:20:42Z"
+          "updated_at": "2026-09-16T16:32:47Z"
         },
         {
           "upstream_path": "pulumi/skills/pulumi-debug-failed-operation",
