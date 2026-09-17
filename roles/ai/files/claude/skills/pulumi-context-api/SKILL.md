@@ -26,27 +26,42 @@ answering "what depends on X" with repeated searches is slow and usually
 incomplete.
 
 Public preview, for organizations on the Enterprise and Business Critical
-editions. Needs Pulumi CLI v3.243.0 or newer, an active `pulumi login`, and a
-role granting `resources:search` (the default Member and Admin roles do).
+editions, and a role granting `resources:search` (the default Member and Admin
+roles do).
+
+## First: is a graph tool already in the session?
+
+If one is — `graph_query` and `get_graph_schema`, under whatever prefix the
+server registers them — call it and skip Steps 1 and 2. Compose the selector
+from the `graph_query` tool's own description, which carries the grammar; the
+tool resolves the organization and credentials itself and drains pagination for
+you. When that description is not enough, `get_graph_schema` returns the live
+field vocabulary and limits, and will serve the full Step 1 primer when asked
+for it. Step 3 still governs what you do with the result.
+
+Steps 1 and 2 are the path for an agent that has a shell and no such tool.
 
 ## Step 1: fetch the primer, always
 
-`pulumi whoami -v` lists every organization the login can reach. Ask which one
-the question is about rather than assuming the default org — that is often an
-individual account with no entitlement.
+Needs Pulumi CLI v3.243.0 or newer and an active `pulumi login`.
 
 ```bash
-pulumi api GetGraphSchema -F orgName=<org>
+pulumi api GetGraphQuerySchema --output=markdown
 ```
 
 This returns a self-contained guide to composing selectors — vocabulary, edge
-types, engine caps, worked examples, pagination, completeness rules, and the
-traps that produce a confident wrong answer instead of an error. It is served
-by the deployment that answers your queries, so it is the contract, and it
-moves between schema versions. This skill bootstraps you to it and stops there;
-everything below defers to it. Fetch it fresh in every session and for every
-org you query — a primer remembered from earlier may describe a schema this
+types, engine caps, worked examples, pagination, completeness rules, the gates
+that deny a query, and the traps that produce a confident wrong answer instead
+of an error. It is served by the deployment that answers your queries, so it is
+the contract, and it moves between schema versions. This skill bootstraps you
+to it and stops there; everything below defers to it. Fetch it fresh in every
+session — a primer remembered from earlier may describe a schema this
 deployment no longer serves.
+
+The operation takes no organization; one schema covers every org the login can
+reach. `--output=json` on it returns the same contract as a machine-readable
+payload, useful for reading `limits` or `fieldValues` programmatically, but
+compose from the markdown.
 
 **Read it in full — never truncate it with `head`, `tail`, or a byte cap.** A
 clipped primer means malformed selectors and rejected queries.
@@ -57,16 +72,15 @@ You have no primer yet, so handle it here rather than looking it up there:
 
 | Response | Meaning |
 |---|---|
-| `402 Payment Required` | the org's edition doesn't include the Context API |
-| `409 Conflict` | a self-hosted install whose license doesn't enable it |
-| `404 Not Found: '<org>' not found` | bad org name, or the caller lacks permission on it |
-| `404 Not Found`, detail-free | a wrong path or method name, or a deployment without the endpoint |
+| `401 Unauthorized` | no active `pulumi login`, or an expired token |
+| `404 Not Found`, detail-free | a wrong path, or a deployment without the endpoint |
 | `503 Service Unavailable` | transient — retry |
 
-Report the gate to the user instead of retrying anything but the 503. If
-`pulumi api` doesn't know `GetGraphSchema` at all, that is not a gate: run
-`pulumi api list --refresh-spec` to refresh the cached spec, then retry the
-fetch.
+Entitlement gates are per-organization, so they cannot appear on this call —
+they surface in Step 2, by which point the primer's "When it denies you" table
+is in hand. If `pulumi api` doesn't know `GetGraphQuerySchema` at all, that is
+not a gate: run `pulumi api list --refresh-spec` to refresh the cached spec,
+then retry the fetch.
 
 ## Step 2: query
 
@@ -76,6 +90,12 @@ pulumi api GraphQuery -F orgName=<org> --input selector.json
 
 The body is a JSON selector, not query text. Compose it from the primer you
 just read, not from memory or from a grammar you recall from another session.
+
+Name the org explicitly. Left off, `-F orgName` resolves from the selected
+stack or the default org, which is often an individual account with no
+entitlement; `pulumi whoami -v` lists every organization the login can reach.
+A denial here names its gate — the primer's "When it denies you" table says
+which are worth retrying and which to report to the user.
 
 ## Step 3: apply the primer's completeness rules before answering
 
