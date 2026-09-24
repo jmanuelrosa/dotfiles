@@ -1,5 +1,5 @@
 http://clubs.pot.localhost {
-	reverse_proxy 127.0.0.1:29768 [::1]:29768 {
+	reverse_proxy 127.0.0.1:23950 [::1]:23950 {
 		lb_policy first
 		fail_duration 5s
 	}

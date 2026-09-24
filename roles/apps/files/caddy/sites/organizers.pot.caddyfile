@@ -1,5 +1,5 @@
 http://organizers.pot.localhost {
-	reverse_proxy 127.0.0.1:30123 [::1]:30123 {
+	reverse_proxy 127.0.0.1:23951 [::1]:23951 {
 		lb_policy first
 		fail_duration 5s
 	}
