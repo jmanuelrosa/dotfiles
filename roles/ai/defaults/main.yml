@@ -54,5 +54,5 @@ AI_SCRIPTS:
 # rollback are the same two-line edit in opposite directions.
 KURA:
   repository: https://github.com/jmanuelrosa/kura
-  release: v0.4.0
-  checksum: sha256:3906811b8f651a5421d5ae19b9535eb2bb657d141598fd835664d2eefe0fe346
+  release: v0.5.0
+  checksum: sha256:a389c3a1488966032f93071f52b470c90f35359016f7f157ef861621ce41fb99
