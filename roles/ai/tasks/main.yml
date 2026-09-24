@@ -310,163 +310,163 @@
 # roots. Kura expands skill dependencies and links every selected skill independently at
 # ~/.claude/skills and ~/.agents/skills. It prunes only catalog-backed symlinks, so real
 # paths, foreign links and project plugin links remain outside its ownership.
-- name: Converge global skills for Claude Code and Pi
-  ansible.builtin.command:
-    cmd: "{{ HOME }}/.local/bin/kura sync{{ ' --dry-run' if ansible_check_mode else '' }}"
-  environment:
-    HOME: "{{ HOME }}"
-    NO_COLOR: "1"
-  register: kura_sync
-  check_mode: false
-  changed_when: kura_sync.stdout is not search(', 0 changes')
-  # On a fresh --check run the copy task above cannot create machine config. A normal
-  # apply always runs; later checks can dry-run against the file already provisioned.
-  when: not ansible_check_mode or kura_machine_config_before.stat.exists
+# - name: Converge global skills for Claude Code and Pi
+#   ansible.builtin.command:
+#     cmd: "{{ HOME }}/.local/bin/kura sync{{ ' --dry-run' if ansible_check_mode else '' }}"
+#   environment:
+#     HOME: "{{ HOME }}"
+#     NO_COLOR: "1"
+#   register: kura_sync
+#   check_mode: false
+#   changed_when: kura_sync.stdout is not search(', 0 changes')
+#   # On a fresh --check run the copy task above cannot create machine config. A normal
+#   # apply always runs; later checks can dry-run against the file already provisioned.
+#   when: not ansible_check_mode or kura_machine_config_before.stat.exists
 
-- name: Show what the global sync did
-  ansible.builtin.debug:
-    var: kura_sync.stdout_lines
-  when: kura_sync is changed or kura_sync.stderr | default('') | length > 0
+# - name: Show what the global sync did
+#   ansible.builtin.debug:
+#     var: kura_sync.stdout_lines
+#   when: kura_sync is changed or kura_sync.stderr | default('') | length > 0
 
 # Kura 0.3 discovers only root kura.json manifests beneath cwd or explicit --root trees.
 # Name ~/Developer explicitly so Ansible's cwd cannot narrow the sweep to this checkout.
-- name: Converge initialized project skill views
-  ansible.builtin.command:
-    cmd: "{{ HOME }}/.local/bin/kura converge --all --root {{ HOME }}/Developer{{ ' --dry-run' if ansible_check_mode else '' }}"
-  environment:
-    HOME: "{{ HOME }}"
-    NO_COLOR: "1"
-  register: kura_converge
-  check_mode: false
-  changed_when: kura_converge.stdout is not search(', 0 changes')
-  when: not ansible_check_mode or kura_machine_config_before.stat.exists
+# - name: Converge initialized project skill views
+#   ansible.builtin.command:
+#     cmd: "{{ HOME }}/.local/bin/kura converge --all --root {{ HOME }}/Developer{{ ' --dry-run' if ansible_check_mode else '' }}"
+#   environment:
+#     HOME: "{{ HOME }}"
+#     NO_COLOR: "1"
+#   register: kura_converge
+#   check_mode: false
+#   changed_when: kura_converge.stdout is not search(', 0 changes')
+#   when: not ansible_check_mode or kura_machine_config_before.stat.exists
 
-- name: Show what project convergence did
-  ansible.builtin.debug:
-    var: kura_converge.stdout_lines
-  when: kura_converge is changed or kura_converge.stderr | default('') | length > 0
+# - name: Show what project convergence did
+#   ansible.builtin.debug:
+#     var: kura_converge.stdout_lines
+#   when: kura_converge is changed or kura_converge.stderr | default('') | length > 0
 
-- name: Symlink pi agent config
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/{{ item }}"
-    dest: "{{ HOME }}/.pi/agent/{{ item | basename }}"
-    state: link
-    force: true
-  loop:
-    - pi/settings.json
-    - pi/models.json
-    - pi/model-routing.json
-    - pi/subagents.json
-    - pi/mcp.json
-    # pi-sandbox's config: the layer that contains. Derived from the `sandbox` block and
-    # the path half of the `permissions` block in files/claude/settings.json, so one
-    # statement of what may be read, written and reached serves both harnesses;
-    # test_pi_sandbox.py recomputes it and fails on drift. The layer that *decides* is
-    # pi-permission-system, linked separately below because its config is not a
-    # basename away from the others.
-    - pi/sandbox.json
-    # APPEND_SYSTEM.md rather than SYSTEM.md: the latter *replaces* pi's own system
-    # prompt, so shipping one traded every harness instruction pi ships for the 30
-    # lines below it. This one is appended, so the rules add to the defaults.
-    - pi/APPEND_SYSTEM.md
-    # Pi reads the shared instructions directly rather than keeping a second copy.
-    # AGENTS.md is Pi's one global context file, and the basename rule above lands it at
-    # the name Pi expects, so this needs no task of its own.
-    - claude/AGENTS.md
+# - name: Symlink pi agent config
+#   ansible.builtin.file:
+#     src: "{{ role_path }}/files/{{ item }}"
+#     dest: "{{ HOME }}/.pi/agent/{{ item | basename }}"
+#     state: link
+#     force: true
+#   loop:
+#     - pi/settings.json
+#     - pi/models.json
+#     - pi/model-routing.json
+#     - pi/subagents.json
+#     - pi/mcp.json
+#     # pi-sandbox's config: the layer that contains. Derived from the `sandbox` block and
+#     # the path half of the `permissions` block in files/claude/settings.json, so one
+#     # statement of what may be read, written and reached serves both harnesses;
+#     # test_pi_sandbox.py recomputes it and fails on drift. The layer that *decides* is
+#     # pi-permission-system, linked separately below because its config is not a
+#     # basename away from the others.
+#     - pi/sandbox.json
+#     # APPEND_SYSTEM.md rather than SYSTEM.md: the latter *replaces* pi's own system
+#     # prompt, so shipping one traded every harness instruction pi ships for the 30
+#     # lines below it. This one is appended, so the rules add to the defaults.
+#     - pi/APPEND_SYSTEM.md
+#     # Pi reads the shared instructions directly rather than keeping a second copy.
+#     # AGENTS.md is Pi's one global context file, and the basename rule above lands it at
+#     # the name Pi expects, so this needs no task of its own.
+#     - claude/AGENTS.md
 
-# pi-permission-system's config, the decision layer beside the sandbox: allow/ask/deny
-# over bash command shape, tool names, MCP servers and file paths, which is the half of
-# Claude's `permissions` block pi-sandbox cannot match on. Derived from the same
-# files/claude/settings.json; test_pi_permissions.py recomputes it and fails on drift.
-# Its own task because the package expects `config.json` inside a directory named after
-# it, which the basename loop above cannot express.
-- name: Symlink pi permission-system config
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/pi/permission-system/config.json"
-    dest: "{{ HOME }}/.pi/agent/extensions/pi-permission-system/config.json"
-    state: link
-    force: true
+# # pi-permission-system's config, the decision layer beside the sandbox: allow/ask/deny
+# # over bash command shape, tool names, MCP servers and file paths, which is the half of
+# # Claude's `permissions` block pi-sandbox cannot match on. Derived from the same
+# # files/claude/settings.json; test_pi_permissions.py recomputes it and fails on drift.
+# # Its own task because the package expects `config.json` inside a directory named after
+# # it, which the basename loop above cannot express.
+# - name: Symlink pi permission-system config
+#   ansible.builtin.file:
+#     src: "{{ role_path }}/files/pi/permission-system/config.json"
+#     dest: "{{ HOME }}/.pi/agent/extensions/pi-permission-system/config.json"
+#     state: link
+#     force: true
 
-# pi-subagents reads global agents only from ~/.pi/agent/agents. Kura 0.3 has no agent
-# lifecycle, so the role-owned Claude directory above remains the one source and this
-# agent-only bridge keeps the two harnesses on that same set.
-- name: Point pi at the global claude agents
-  ansible.builtin.file:
-    src: "{{ HOME }}/.claude/agents"
-    dest: "{{ HOME }}/.pi/agent/agents"
-    state: link
-    force: true
+# # pi-subagents reads global agents only from ~/.pi/agent/agents. Kura 0.3 has no agent
+# # lifecycle, so the role-owned Claude directory above remains the one source and this
+# # agent-only bridge keeps the two harnesses on that same set.
+# - name: Point pi at the global claude agents
+#   ansible.builtin.file:
+#     src: "{{ HOME }}/.claude/agents"
+#     dest: "{{ HOME }}/.pi/agent/agents"
+#     state: link
+#     force: true
 
-# The link the task above used to write. Left behind it is not inert: pi reads
-# ~/.pi/agent/SYSTEM.md as a replacement system prompt, and a dangling one is a
-# machine whose prompt depends on which run last touched it. Only a symlink is
-# removed, so a SYSTEM.md someone wrote by hand is theirs to keep.
-- name: Check for the superseded pi SYSTEM.md link
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.pi/agent/SYSTEM.md"
-    follow: false
-  register: pi_system_prompt
+# # The link the task above used to write. Left behind it is not inert: pi reads
+# # ~/.pi/agent/SYSTEM.md as a replacement system prompt, and a dangling one is a
+# # machine whose prompt depends on which run last touched it. Only a symlink is
+# # removed, so a SYSTEM.md someone wrote by hand is theirs to keep.
+# - name: Check for the superseded pi SYSTEM.md link
+#   ansible.builtin.stat:
+#     path: "{{ HOME }}/.pi/agent/SYSTEM.md"
+#     follow: false
+#   register: pi_system_prompt
 
-- name: Remove the superseded pi SYSTEM.md link
-  ansible.builtin.file:
-    path: "{{ HOME }}/.pi/agent/SYSTEM.md"
-    state: absent
-  when: pi_system_prompt.stat.islnk | default(false)
+# - name: Remove the superseded pi SYSTEM.md link
+#   ansible.builtin.file:
+#     path: "{{ HOME }}/.pi/agent/SYSTEM.md"
+#     state: absent
+#   when: pi_system_prompt.stat.islnk | default(false)
 
-- name: Symlink pi themes
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/pi/themes/{{ item | basename }}"
-    dest: "{{ HOME }}/.pi/agent/themes/{{ item | basename }}"
-    state: link
-    force: true
-  with_fileglob:
-    - "{{ role_path }}/files/pi/themes/*.json"
+# - name: Symlink pi themes
+#   ansible.builtin.file:
+#     src: "{{ role_path }}/files/pi/themes/{{ item | basename }}"
+#     dest: "{{ HOME }}/.pi/agent/themes/{{ item | basename }}"
+#     state: link
+#     force: true
+#   with_fileglob:
+#     - "{{ role_path }}/files/pi/themes/*.json"
 
-# Renaming an auto-discovered extension leaves the old role-owned link dangling. Remove only
-# links so a file written by hand under either superseded name remains the user's to keep.
-- name: Check for superseded pi extension links
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.pi/agent/extensions/{{ item }}"
-    follow: false
-  loop:
-    - activity.ts
-    - claude-ui.ts
-    - context-continuity.ts
-    - cursor-model-policy.ts
-    - footer.ts
-    - guardrails.ts
-    - minion.ts
-    - skill-aliases.ts
-    - skill-model.ts
-    - statusline.ts
-    - velocity.ts
-  register: pi_superseded_extension_links
+# # Renaming an auto-discovered extension leaves the old role-owned link dangling. Remove only
+# # links so a file written by hand under either superseded name remains the user's to keep.
+# - name: Check for superseded pi extension links
+#   ansible.builtin.stat:
+#     path: "{{ HOME }}/.pi/agent/extensions/{{ item }}"
+#     follow: false
+#   loop:
+#     - activity.ts
+#     - claude-ui.ts
+#     - context-continuity.ts
+#     - cursor-model-policy.ts
+#     - footer.ts
+#     - guardrails.ts
+#     - minion.ts
+#     - skill-aliases.ts
+#     - skill-model.ts
+#     - statusline.ts
+#     - velocity.ts
+#   register: pi_superseded_extension_links
 
-- name: Remove superseded pi extension links
-  ansible.builtin.file:
-    path: "{{ HOME }}/.pi/agent/extensions/{{ item.item }}"
-    state: absent
-  loop: "{{ pi_superseded_extension_links.results }}"
-  loop_control:
-    label: "{{ item.item }}"
-  when: item.stat.islnk | default(false)
+# - name: Remove superseded pi extension links
+#   ansible.builtin.file:
+#     path: "{{ HOME }}/.pi/agent/extensions/{{ item.item }}"
+#     state: absent
+#   loop: "{{ pi_superseded_extension_links.results }}"
+#   loop_control:
+#     label: "{{ item.item }}"
+#   when: item.stat.islnk | default(false)
 
-# Each manifest entry is a directory containing index.ts and its documentation. Pi follows
-# the directory link and auto-discovers index.ts; the manifest keeps the disabled claude-ui
-# experiment in the source tree without loading it.
-- name: Symlink pi extensions
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/pi/extensions/{{ item }}"
-    dest: "{{ HOME }}/.pi/agent/extensions/{{ item }}"
-    state: link
-    force: true
-  loop: "{{ PI_EXTENSIONS }}"
+# # Each manifest entry is a directory containing index.ts and its documentation. Pi follows
+# # the directory link and auto-discovers index.ts; the manifest keeps the disabled claude-ui
+# # experiment in the source tree without loading it.
+# - name: Symlink pi extensions
+#   ansible.builtin.file:
+#     src: "{{ role_path }}/files/pi/extensions/{{ item }}"
+#     dest: "{{ HOME }}/.pi/agent/extensions/{{ item }}"
+#     state: link
+#     force: true
+#   loop: "{{ PI_EXTENSIONS }}"
 
 
-# rtk ignores XDG_CONFIG_HOME and only reads the macOS Application Support path.
-- name: Symlink rtk config
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/rtk/config.toml"
-    dest: "{{ HOME }}/Library/Application Support/rtk/config.toml"
-    state: link
-    force: true
+# # rtk ignores XDG_CONFIG_HOME and only reads the macOS Application Support path.
+# - name: Symlink rtk config
+#   ansible.builtin.file:
+#     src: "{{ role_path }}/files/rtk/config.toml"
+#     dest: "{{ HOME }}/Library/Application Support/rtk/config.toml"
+#     state: link
+#     force: true

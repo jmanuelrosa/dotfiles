@@ -1,1 +1,957 @@
-../../claude/skill-registry.json
+{
+  "$schema": "https://raw.githubusercontent.com/jmanuelrosa/kura/main/docs/schemas/skill-registry.schema.json",
+  "version": 3,
+  "upstream": {
+    "anthropics/claude-plugins-official": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "plugins/frontend-design/skills/frontend-design",
+          "groups": [
+            "engineering",
+            "frontend",
+            "designer",
+            "ui"
+          ],
+          "updated_at": "2026-09-23T18:45:18Z"
+        }
+      ]
+    },
+    "addyosmani/agent-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/idea-refine",
+          "groups": [
+            "product",
+            "pm",
+            "planning",
+            "addy:product-01"
+          ],
+          "updated_at": "2026-09-23T18:45:17Z"
+        },
+        {
+          "upstream_path": "skills/planning-and-task-breakdown",
+          "groups": [
+            "product",
+            "pm",
+            "planning",
+            "addy:product-02",
+            "global"
+          ],
+          "updated_at": "2026-09-23T18:45:17Z"
+        },
+        {
+          "upstream_path": "skills/incremental-implementation",
+          "groups": [
+            "engineering",
+            "backend",
+            "frontend",
+            "workflow",
+            "addy:product-03"
+          ],
+          "updated_at": "2026-09-23T18:45:17Z"
+        },
+        {
+          "upstream_path": "skills/spec-driven-development",
+          "groups": [
+            "product",
+            "pm",
+            "planning"
+          ],
+          "dependencies": [
+            "planning-and-task-breakdown",
+            "incremental-implementation",
+            "test-driven-development",
+            "context-engineering"
+          ],
+          "updated_at": "2026-09-23T18:45:17Z"
+        },
+        {
+          "upstream_path": "skills/test-driven-development",
+          "groups": [
+            "engineering",
+            "frontend",
+            "backend",
+            "testing"
+          ],
+          "updated_at": "2026-09-23T18:45:17Z"
+        },
+        {
+          "upstream_path": "skills/documentation-and-adrs",
+          "groups": [
+            "product",
+            "pm",
+            "documentation",
+            "global"
+          ],
+          "updated_at": "2026-09-23T18:45:17Z"
+        },
+        {
+          "upstream_path": "skills/code-simplification",
+          "groups": [
+            "refactoring",
+            "backend",
+            "frontend",
+            "review"
+          ],
+          "updated_at": "2026-09-23T18:45:17Z"
+        },
+        {
+          "upstream_path": "skills/code-review-and-quality",
+          "groups": [
+            "refactoring",
+            "backend",
+            "frontend"
+          ],
+          "updated_at": "2026-09-23T18:45:17Z"
+        },
+        {
+          "upstream_path": "skills/performance-optimization",
+          "groups": [
+            "refactoring",
+            "backend",
+            "frontend",
+            "review"
+          ],
+          "updated_at": "2026-09-23T18:45:17Z"
+        },
+        {
+          "upstream_path": "skills/ci-cd-and-automation",
+          "groups": [
+            "engineering",
+            "devops",
+            "ci"
+          ],
+          "updated_at": "2026-09-23T18:45:17Z"
+        },
+        {
+          "upstream_path": "skills/context-engineering",
+          "groups": [
+            "ai",
+            "prompt engineering",
+            "claude"
+          ],
+          "updated_at": "2026-09-23T18:45:17Z"
+        }
+      ]
+    },
+    "mattpocock/skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/productivity/handoff",
+          "groups": [
+            "product",
+            "pm",
+            "workflow",
+            "global"
+          ],
+          "updated_at": "2026-09-23T18:45:32Z"
+        },
+        {
+          "upstream_path": "skills/productivity/grill-me",
+          "groups": [
+            "product",
+            "pm",
+            "idea-refinement",
+            "planning",
+            "global"
+          ],
+          "dependencies": [
+            "grilling"
+          ],
+          "updated_at": "2026-09-23T18:45:32Z"
+        },
+        {
+          "upstream_path": "skills/engineering/grill-with-docs",
+          "groups": [
+            "product",
+            "pm",
+            "idea-refinement",
+            "planning",
+            "global"
+          ],
+          "dependencies": [
+            "grilling",
+            "domain-modeling"
+          ],
+          "updated_at": "2026-09-23T18:45:32Z"
+        },
+        {
+          "upstream_path": "skills/productivity/grilling",
+          "groups": [
+            "product",
+            "pm",
+            "idea-refinement",
+            "planning"
+          ],
+          "dependency_only": true,
+          "updated_at": "2026-09-23T18:45:32Z"
+        },
+        {
+          "upstream_path": "skills/engineering/domain-modeling",
+          "groups": [
+            "engineering",
+            "architecture",
+            "documentation"
+          ],
+          "dependency_only": true,
+          "updated_at": "2026-09-23T18:45:32Z"
+        }
+      ]
+    },
+    "cursor/plugins/": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "pstack/skills/unslop",
+          "groups": [
+            "engineering",
+            "prompt engineering",
+            "refactoring"
+          ],
+          "updated_at": "2026-09-23T18:45:27Z"
+        }
+      ]
+    },
+    "mcollina/skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/fastify",
+          "name": "fastify-best-practices",
+          "groups": [
+            "engineering",
+            "backend",
+            "fastify"
+          ],
+          "updated_at": "2026-09-23T18:45:33Z"
+        },
+        {
+          "upstream_path": "skills/node",
+          "groups": [
+            "engineering",
+            "backend",
+            "node"
+          ],
+          "updated_at": "2026-09-23T18:45:33Z"
+        },
+        {
+          "upstream_path": "skills/typescript-magician",
+          "groups": [
+            "engineering",
+            "frontend",
+            "backend",
+            "typescript"
+          ],
+          "updated_at": "2026-09-23T18:45:33Z"
+        }
+      ]
+    },
+    "vercel-labs/agent-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/react-native-skills",
+          "name": "vercel-react-native-skills",
+          "groups": [
+            "engineering",
+            "mobile",
+            "expo"
+          ],
+          "updated_at": "2026-09-23T18:46:12Z"
+        },
+        {
+          "upstream_path": "skills/react-best-practices",
+          "name": "vercel-react-best-practices",
+          "groups": [
+            "engineering",
+            "frontend",
+            "react"
+          ],
+          "updated_at": "2026-09-23T18:46:12Z"
+        },
+        {
+          "upstream_path": "skills/composition-patterns",
+          "name": "vercel-composition-patterns",
+          "groups": [
+            "engineering",
+            "frontend",
+            "react"
+          ],
+          "updated_at": "2026-09-23T18:46:12Z"
+        }
+      ]
+    },
+    "DietrichGebert/ponytail/": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/ponytail",
+          "groups": [
+            "engineering",
+            "prompt engineering",
+            "refactoring"
+          ],
+          "updated_at": "2026-09-23T18:34:53Z"
+        }
+      ]
+    },
+    "wshobson/agents": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "plugins/frontend-mobile-development/skills/tailwind-design-system",
+          "groups": [
+            "engineering",
+            "frontend",
+            "tailwind"
+          ],
+          "updated_at": "2026-09-23T18:46:14Z"
+        },
+        {
+          "upstream_path": "plugins/javascript-typescript/skills/nodejs-backend-patterns",
+          "groups": [
+            "engineering",
+            "backend",
+            "node"
+          ],
+          "updated_at": "2026-09-23T18:46:14Z"
+        },
+        {
+          "upstream_path": "plugins/cloud-infrastructure/skills/terraform-module-library",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-09-23T18:46:14Z"
+        }
+      ]
+    },
+    "apollographql/skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/apollo-client",
+          "groups": [
+            "engineering",
+            "frontend",
+            "graphql"
+          ],
+          "updated_at": "2026-09-23T18:45:19Z"
+        },
+        {
+          "upstream_path": "skills/graphql-operations",
+          "groups": [
+            "engineering",
+            "backend",
+            "graphql"
+          ],
+          "updated_at": "2026-09-23T18:45:19Z"
+        }
+      ]
+    },
+    "astrolicious/agent-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/astro",
+          "groups": [
+            "engineering",
+            "frontend",
+            "astro"
+          ],
+          "updated_at": "2026-09-23T18:45:20Z"
+        }
+      ]
+    },
+    "avdlee/swiftui-agent-skill": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "swiftui-expert-skill",
+          "groups": [
+            "engineering",
+            "mobile",
+            "ios",
+            "swift"
+          ],
+          "updated_at": "2026-09-23T18:45:23Z"
+        }
+      ]
+    },
+    "avdlee/swift-concurrency-agent-skill": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "swift-concurrency",
+          "groups": [
+            "engineering",
+            "mobile",
+            "ios",
+            "swift"
+          ],
+          "updated_at": "2026-09-23T18:45:21Z"
+        }
+      ]
+    },
+    "avdlee/swift-testing-agent-skill": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "swift-testing-expert",
+          "groups": [
+            "engineering",
+            "mobile",
+            "ios",
+            "swift",
+            "testing"
+          ],
+          "updated_at": "2026-09-23T18:45:22Z"
+        }
+      ]
+    },
+    "brianlovin/agent-config": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/knip",
+          "groups": [
+            "engineering",
+            "backend",
+            "frontend",
+            "review"
+          ],
+          "updated_at": "2026-09-23T18:45:23Z"
+        },
+        {
+          "upstream_path": "skills/fix-sentry-issues",
+          "groups": [
+            "engineering",
+            "backend",
+            "frontend",
+            "observability",
+            "sentry"
+          ],
+          "updated_at": "2026-09-23T18:45:23Z"
+        }
+      ]
+    },
+    "coreyhaines31/marketingskills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/copywriting",
+          "groups": [
+            "marketing",
+            "seo"
+          ],
+          "updated_at": "2026-09-23T18:45:24Z"
+        },
+        {
+          "upstream_path": "skills/cro",
+          "groups": [
+            "marketing",
+            "seo"
+          ],
+          "updated_at": "2026-09-23T18:45:24Z"
+        },
+        {
+          "upstream_path": "skills/seo-audit",
+          "groups": [
+            "marketing",
+            "seo"
+          ],
+          "updated_at": "2026-09-23T18:45:24Z"
+        },
+        {
+          "upstream_path": "skills/ai-seo",
+          "groups": [
+            "marketing",
+            "seo"
+          ],
+          "updated_at": "2026-09-23T18:45:24Z"
+        }
+      ]
+    },
+    "currents-dev/playwright-best-practices-skill": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "playwright-best-practices",
+          "groups": [
+            "engineering",
+            "frontend",
+            "testing",
+            "playwright"
+          ],
+          "updated_at": "2026-09-23T18:45:25Z"
+        }
+      ]
+    },
+    "DeckardGer/tanstack-agent-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/tanstack-router",
+          "name": "tanstack-router-best-practices",
+          "groups": [
+            "engineering",
+            "frontend",
+            "tanstack"
+          ],
+          "updated_at": "2026-09-23T18:45:10Z"
+        }
+      ]
+    },
+    "emilkowalski/skill": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/emil-design-eng",
+          "groups": [
+            "engineering",
+            "frontend",
+            "designer",
+            "ui"
+          ],
+          "updated_at": "2026-09-23T18:45:28Z"
+        }
+      ]
+    },
+    "expo/skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "plugins/expo/skills/expo-native-ui",
+          "groups": [
+            "engineering",
+            "mobile",
+            "expo"
+          ],
+          "updated_at": "2026-09-23T18:45:29Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/expo-brownfield",
+          "groups": [
+            "engineering",
+            "mobile",
+            "expo"
+          ],
+          "updated_at": "2026-09-23T18:45:29Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/expo-dev-client",
+          "groups": [
+            "engineering",
+            "mobile",
+            "expo"
+          ],
+          "updated_at": "2026-09-23T18:45:29Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/expo-design-system",
+          "groups": [
+            "engineering",
+            "mobile",
+            "expo"
+          ],
+          "updated_at": "2026-09-23T18:45:29Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/expo-data-fetching",
+          "groups": [
+            "engineering",
+            "mobile",
+            "expo"
+          ],
+          "updated_at": "2026-09-23T18:45:29Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/expo-upgrade",
+          "groups": [
+            "engineering",
+            "mobile",
+            "expo"
+          ],
+          "updated_at": "2026-09-23T18:45:29Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/expo-dom",
+          "groups": [
+            "engineering",
+            "mobile",
+            "expo"
+          ],
+          "updated_at": "2026-09-23T18:45:29Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/expo-router",
+          "groups": [
+            "engineering",
+            "mobile",
+            "expo"
+          ],
+          "updated_at": "2026-09-23T18:45:29Z"
+        },
+        {
+          "upstream_path": "plugins/expo/skills/expo-web-to-native",
+          "groups": [
+            "engineering",
+            "mobile",
+            "expo"
+          ],
+          "updated_at": "2026-09-23T18:45:29Z"
+        }
+      ]
+    },
+    "getsentry/skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/skill-writer",
+          "groups": [
+            "ai",
+            "prompt engineering",
+            "claude",
+            "global"
+          ],
+          "updated_at": "2026-09-23T18:45:30Z"
+        }
+      ]
+    },
+    "hashicorp/agent-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "plugins/terraform/skills/terraform-style-guide",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-09-23T18:45:30Z"
+        },
+        {
+          "upstream_path": "plugins/terraform/skills/terraform-stacks",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-09-23T18:45:30Z"
+        }
+      ]
+    },
+    "kadajett/agent-nestjs-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/nestjs-best-practices",
+          "groups": [
+            "engineering",
+            "backend",
+            "nestjs"
+          ],
+          "updated_at": "2026-09-23T18:45:32Z"
+        }
+      ]
+    },
+    "Microck/ordinary-claude-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills_all/claude-code-analyzer",
+          "groups": [
+            "ai",
+            "prompt engineering",
+            "claude"
+          ],
+          "updated_at": "2026-09-23T18:45:16Z"
+        }
+      ]
+    },
+    "remix-run/agent-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/react-router-data-mode",
+          "groups": [
+            "engineering",
+            "frontend",
+            "react-router"
+          ],
+          "updated_at": "2026-09-23T18:45:35Z"
+        }
+      ]
+    },
+    "sickn33/antigravity-awesome-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/prisma-expert",
+          "groups": [
+            "engineering",
+            "backend",
+            "database"
+          ],
+          "updated_at": "2026-09-23T18:46:11Z"
+        }
+      ]
+    },
+    "honojs/skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "skills/hono",
+          "groups": [
+            "engineering",
+            "backend",
+            "hono"
+          ],
+          "updated_at": "2026-09-23T18:45:31Z"
+        }
+      ]
+    },
+    "pulumi/agent-skills": {
+      "branch": "main",
+      "skills": [
+        {
+          "upstream_path": "pulumi/skills/pulumi-best-practices",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-09-23T18:45:34Z"
+        },
+        {
+          "upstream_path": "pulumi/skills/provider-upgrade",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-09-23T18:45:34Z"
+        },
+        {
+          "upstream_path": "pulumi/skills/pulumi-component",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-09-23T18:45:34Z"
+        },
+        {
+          "upstream_path": "pulumi/skills/pulumi-context-api",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-09-23T18:45:34Z"
+        },
+        {
+          "upstream_path": "pulumi/skills/pulumi-debug-failed-operation",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-09-23T18:45:34Z"
+        },
+        {
+          "upstream_path": "pulumi/skills/pulumi-esc",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-09-23T18:45:34Z"
+        },
+        {
+          "upstream_path": "pulumi/skills/pulumi-overview",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure"
+          ],
+          "updated_at": "2026-09-23T18:45:34Z"
+        }
+      ]
+    }
+  },
+  "local": [
+    {
+      "name": "agent-writer",
+      "groups": [
+        "ai",
+        "prompt engineering",
+        "claude",
+        "global"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "humanizer",
+      "groups": [
+        "ai",
+        "prompt engineering",
+        "claude",
+        "global"
+      ],
+      "note": "No external source"
+    },
+    {
+      "name": "commit",
+      "groups": [
+        "productivity",
+        "workflow",
+        "git",
+        "global"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "pr",
+      "groups": [
+        "productivity",
+        "workflow",
+        "git",
+        "global"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "coderabbit",
+      "groups": [
+        "productivity",
+        "workflow",
+        "review"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "jira",
+      "groups": [
+        "productivity",
+        "workflow",
+        "tasks"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "to-plan",
+      "groups": [
+        "product",
+        "workflow",
+        "research",
+        "global"
+      ],
+      "note": "Locally authored; global signpost to the product-team plugin"
+    },
+    {
+      "name": "ac",
+      "groups": [
+        "productivity",
+        "workflow",
+        "global"
+      ],
+      "dependencies": [
+        "jira"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "research",
+      "groups": [
+        "engineering",
+        "research",
+        "documentation",
+        "architecture",
+        "workflow",
+        "global"
+      ],
+      "dependencies": [
+        "jira"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "review-mechanics",
+      "groups": [
+        "review",
+        "quality",
+        "workflow",
+        "global"
+      ],
+      "note": "Locally authored, the deferred half of ~/.claude/rules/code-review.md"
+    },
+    {
+      "name": "setup-review",
+      "groups": [
+        "quality",
+        "review",
+        "ai",
+        "global"
+      ],
+      "dependencies": [
+        "skill-writer"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "setup-review-mechanics",
+      "groups": [
+        "quality",
+        "review",
+        "ai",
+        "global"
+      ],
+      "note": "Locally authored; shared method for harness-specific setup reviewers"
+    },
+    {
+      "name": "agent-audit",
+      "groups": [
+        "ai",
+        "prompt engineering",
+        "claude",
+        "global"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "feature-team",
+      "groups": [
+        "engineering",
+        "workflow",
+        "ai",
+        "global"
+      ],
+      "note": "Locally authored"
+    },
+    {
+      "name": "cloudflare",
+      "groups": [
+        "engineering",
+        "devops",
+        "deployment",
+        "global"
+      ],
+      "note": "Locally authored; drives cf and wrangler instead of an MCP server"
+    },
+    {
+      "name": "product-lead",
+      "groups": [
+        "product",
+        "pm",
+        "workflow",
+        "global"
+      ],
+      "note": "Locally authored; global signpost to the product-team plugin"
+    }
+  ]
+}
