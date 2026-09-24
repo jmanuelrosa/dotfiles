@@ -169,7 +169,7 @@ A separate delegation system for building what Product Team specs out. Each seat
 | `qa-staff-engineer` | Unit/integration/e2e tests, test infra, fixtures, flake diagnosis | Modifies application source; reports product bugs back to the caller |
 | `security-staff-engineer` | Read-only assessment: STRIDE threat models, dependency audits, secrets hygiene, authn/authz review | Edits files; auto-delegation during coding (diff review is `/security-review`) |
 
-Each seat is a skills-dir plugin under `roles/ai/files/claude/plugins/<discipline>/` that bundles the agent with its `<discipline>-failure-modes` skill (`frontend-failure-modes`, `backend-failure-modes`, and so on): an audited checklist of that domain's common defects the seat consults before it implements. Because the skill lives inside the plugin folder, `kura add <seat> --type plugin` links the whole plugin into the project and the skill travels with it (invoked as `<discipline>:<discipline>-failure-modes`); the seat loads once the workspace is trusted.
+Each seat is a skills-dir plugin under `roles/ai/files/harness/plugins/<discipline>/` that bundles the agent with its `<discipline>-failure-modes` skill (`frontend-failure-modes`, `backend-failure-modes`, and so on): an audited checklist of that domain's common defects the seat consults before it implements. Because the skill lives inside the plugin folder, `kura add <seat> --type plugin` links the whole plugin into the project and the skill travels with it (invoked as `<discipline>:<discipline>-failure-modes`); the seat loads once the workspace is trusted.
 
 Product Team hands off a backlog; then `/feature-team "<brief>"` runs the build side: `architect` writes the spec, you approve the plan, the available project-owned seats implement in parallel, and the skill verifies and returns an integration report. A seat's **plugin name is the bare discipline** (`backend`); the namespaced `backend:backend-staff-engineer` is how the agent inside is dispatched. Kura v0.3 does not add or remove these plugin links.
 
@@ -236,7 +236,7 @@ Authoring guidance for all three lives with the generators, and they are the fil
 1. Create the directory with a `SKILL.md`:
 
    ```
-   roles/ai/files/claude/skills/my-skill/
+   roles/ai/files/harness/kura/catalog/skills/my-skill/
      SKILL.md
    ```
 
@@ -271,7 +271,7 @@ Authoring guidance for all three lives with the generators, and they are the fil
 1. Create the file directly:
 
    ```
-   roles/ai/files/claude/agents/my-agent.md
+   roles/ai/files/harness/agents/my-agent.md
    ```
 
 2. Declare it in `local_agents` in [agent-registry.json](agent-registry.json) with its groups and a note:
@@ -358,7 +358,7 @@ Authoring guidance for all three lives with the generators, and they are the fil
 ## Directory Structure
 
 ```
-roles/ai/files/claude/
+roles/ai/files/harness/adapters/claude/
   skills/                 # Individual skills (directories with SKILL.md)
   agents/                 # Agent .md files
   rules/                  # User-scope rules, linked into ~/.claude/rules/

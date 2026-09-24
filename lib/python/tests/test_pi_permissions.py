@@ -63,9 +63,8 @@ names it, so `git commit` still works and `cat ~/.gitconfig` does not.
 import json
 import re
 
-from dotkit.testing import CLAUDE, PI, REPO
+from dotkit.testing import CLAUDE_SETTINGS, PI, REPO
 
-CLAUDE_SETTINGS = CLAUDE / "settings.json"
 PI_PERMISSIONS = PI / "permission-system/config.json"
 PI_SETTINGS = PI / "settings.json"
 AI_TASKS = REPO / "roles/ai/tasks/main.yml"

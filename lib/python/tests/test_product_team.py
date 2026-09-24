@@ -17,10 +17,9 @@ come back in one file while the others have moved on.
 import re
 
 import pytest
-from dotkit.testing import REPO
+from dotkit.testing import CLAUDE, PLUGINS, REPO
 
-CLAUDE = REPO / "roles/ai/files/claude"
-PLUGIN = CLAUDE / "plugins/product-team"
+PLUGIN = PLUGINS / "product-team"
 SKILLS = PLUGIN / "skills"
 TEMPLATES = SKILLS / "product-lead/references/templates"
 CONVENTIONS = SKILLS / "product-lead/references/conventions.md"

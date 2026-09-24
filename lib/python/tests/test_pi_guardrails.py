@@ -29,14 +29,14 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from dotkit.testing import CLAUDE, HOOKS, PI, PI_EXTENSIONS, REPO
+from dotkit.testing import CLAUDE, CLAUDE_SETTINGS, HOOKS, PI, PI_EXTENSIONS, REPO, STATUSLINE_VOCABULARY
 
 EXTENSION = PI_EXTENSIONS / "guardrails" / "index.ts"
 TASKS = REPO / "roles/ai/tasks/main.yml"
 # The glyphs and wording the rtk toggle and the cursor badge share with statusline.sh.
-VOCABULARY = REPO / "roles/ai/files/statusline.json"
+VOCABULARY = STATUSLINE_VOCABULARY
 VOCAB = json.loads(VOCABULARY.read_text())
-SETTINGS = CLAUDE / "settings.json"
+SETTINGS = CLAUDE_SETTINGS
 STATUSLINE = CLAUDE / "statusline.sh"
 APPEND_SYSTEM = PI / "APPEND_SYSTEM.md"
 FISH_CONFIG = REPO / "roles/shell/files/fish/config.fish"
@@ -98,7 +98,7 @@ def test_the_extension_ships():
 
 
 def test_the_hop_to_the_hooks_resolves(source):
-    """The extension walks out of files/pi/ to reach files/claude/hooks/, and it is reached
+    """The extension walks out of adapters/pi/ to reach the shared hooks/, and it is reached
     through a symlink, so the walk starts at the resolved file. A wrong hop is not an error at
     load time: `existsSync` is false, every hook is skipped, and every call is allowed."""
     line = next(line for line in source.splitlines() if line.startswith("const HOOKS_DIR"))
@@ -325,12 +325,12 @@ def runner(tmp_path_factory):
     scope = root / "node_modules" / "@earendil-works"
     scope.mkdir(parents=True)
     (scope / "pi-coding-agent").symlink_to(package)
-    # The layout mirrors the repo, because the extension reads `../../../statusline.json` relative
+    # The layout mirrors the repo, because the extension reads `../../../../statusline.json` relative
     # to its own realpath: a copy in a flat directory would find no vocabulary and every glyph
     # assertion below would pass against an empty string. Linked rather than copied, so no test
     # can pin a stale duplicate of the file it exists to pin.
     (root / "statusline.json").symlink_to(VOCABULARY)
-    extension = root / "pi" / "extensions" / "guardrails" / "index.ts"
+    extension = root / "adapters" / "pi" / "extensions" / "guardrails" / "index.ts"
     extension.parent.mkdir(parents=True)
     # Re-exported into the copy rather than exported from the extension, so pi's own surface
     # stays the single default export it loads.

@@ -8,7 +8,7 @@ Adding a second context display would duplicate and potentially contradict the b
 ## What it does
 
 `index.ts` installs a two-row footer that renders context usage, model and provider, thinking level, tokens, cache use, cost, branch, package manager, and the statuses published by other extensions.
-It reads shared labels, glyphs, package-manager rules, and the handoff threshold from `roles/ai/files/statusline.json`.
+It reads shared labels, glyphs, package-manager rules, and the handoff threshold from `roles/ai/files/harness/statusline.json`.
 
 The footer cannot reproduce Pi's private auto-compaction and subscription markers.
 A missing optional value removes only its segment.

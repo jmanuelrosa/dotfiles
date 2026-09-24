@@ -3,17 +3,17 @@
 **Status:** Implemented
 **Author:** José Manuel Rosa Moncayo
 **Date:** 2026-09-04
-**Scope:** `roles/ai/files/pi/settings.json`, `roles/ai/files/pi/permission-system/config.json` (new), `roles/ai/tasks/main.yml`, `lib/python/tests/test_pi_permissions.py` (new), `lib/python/tests/test_pi_sandbox.py`, `docs/internals/pi-harness.md`, `roles/ai/README.md`
+**Scope:** `roles/ai/files/harness/adapters/pi/settings.json`, `roles/ai/files/harness/adapters/pi/permission-system/config.json` (new), `roles/ai/tasks/main.yml`, `lib/python/tests/test_pi_permissions.py` (new), `lib/python/tests/test_pi_sandbox.py`, `docs/internals/pi-harness.md`, `roles/ai/README.md`
 
 ## Summary
 
-Pi confines what a command may touch but has no view of what a command *is*. `@gotgenes/pi-permission-system` adds that second layer: allow / ask / deny rules over bash command shape, tool names, MCP servers and file paths. It is installed beside `pi-sandbox`, not instead of it, and its config is derived from the same `roles/ai/files/claude/settings.json` that already produces `sandbox.json`, so one hand-edited statement of policy continues to serve both harnesses, and 98 Claude rules that reached pi as nothing start being enforced.
+Pi confines what a command may touch but has no view of what a command *is*. `@gotgenes/pi-permission-system` adds that second layer: allow / ask / deny rules over bash command shape, tool names, MCP servers and file paths. It is installed beside `pi-sandbox`, not instead of it, and its config is derived from the same `roles/ai/files/harness/adapters/claude/settings.json` that already produces `sandbox.json`, so one hand-edited statement of policy continues to serve both harnesses, and 98 Claude rules that reached pi as nothing start being enforced.
 
 ## Motivation
 
 Claude Code is hard to talk out of a destructive command because it runs two independent layers. Its `sandbox` block decides which paths and domains a subprocess can reach at the OS level, and its `permissions` block decides whether a particular action is permitted at all: 29 allow rules and 153 deny rules covering command shape, tool names and MCP servers. Neither layer subsumes the other, since the sandbox would happily let `git push --force` through, because force-pushing touches only paths the agent already owns.
 
-Pi today has the first layer and not the second. `roles/ai/files/pi/sandbox.json` is derived by `derive()` at `lib/python/tests/test_pi_sandbox.py:112`, and that derivation carries only the *path* half of Claude's permissions: `Read(...)` patterns become `denyRead`, `Edit(...)` patterns become `denyWrite`, and everything else is dropped. Counting the deny list as it stands, that is 42 `Edit` rules and 38 `Read` rules translated, and 64 `Bash(...)` patterns plus 9 bare tool and MCP names silently discarded. Add the 25 `Bash(...)` entries and 2 bare web tools in the allow list and 100 of 182 rules have no representation in pi at all. This design carries 98 of them; the two web tools are dropped because pi registers neither.
+Pi today has the first layer and not the second. `roles/ai/files/harness/adapters/pi/sandbox.json` is derived by `derive()` at `lib/python/tests/test_pi_sandbox.py:112`, and that derivation carries only the *path* half of Claude's permissions: `Read(...)` patterns become `denyRead`, `Edit(...)` patterns become `denyWrite`, and everything else is dropped. Counting the deny list as it stands, that is 42 `Edit` rules and 38 `Read` rules translated, and 64 `Bash(...)` patterns plus 9 bare tool and MCP names silently discarded. Add the 25 `Bash(...)` entries and 2 bare web tools in the allow list and 100 of 182 rules have no representation in pi at all. This design carries 98 of them; the two web tools are dropped because pi registers neither.
 
 The consequences are concrete and already written down. `lib/python/tests/test_pi_sandbox.py:36-38` records the gap verbatim, naming a permission package as the thing that would carry those rules "if that ever earns its keep". `docs/internals/pi-harness.md:33` repeats it. Meanwhile the deny list contains the rules that matter most when an agent is wrong rather than malicious: `git push --force *`, `git reset --hard *`, `rm -rf *`, `sudo *`, `diskutil eraseDisk`, `gh pr merge *`. In Claude those are refusals. In pi they are ordinary commands that happen to stay inside the sandbox.
 
@@ -32,7 +32,7 @@ A second, smaller motivation: pi-permission-system withholds a tool from the mod
 
 ### What pi enforces today
 
-`roles/ai/files/pi/settings.json:41` declares `npm:pi-sandbox`, and `roles/ai/tasks/main.yml:256` symlinks the derived `pi/sandbox.json` into `~/.pi/agent/`. The extension hooks `tool_call` (`src/extension.ts:278-343`) and applies filesystem and network policy: a `write`/`edit` outside `allowWrite` prompts, one inside `denyWrite` is refused, a `read` outside `allowRead` prompts, and bash runs inside an OS sandbox.
+`roles/ai/files/harness/adapters/pi/settings.json:41` declares `npm:pi-sandbox`, and `roles/ai/tasks/main.yml:256` symlinks the derived `pi/sandbox.json` into `~/.pi/agent/`. The extension hooks `tool_call` (`src/extension.ts:278-343`) and applies filesystem and network policy: a `write`/`edit` outside `allowWrite` prompts, one inside `denyWrite` is refused, a `read` outside `allowRead` prompts, and bash runs inside an OS sandbox.
 
 What it does not do is look at the command. Every one of the 64 `Bash(...)` deny patterns describes command shape, and shape is not something a path-confinement layer can match on.
 
@@ -55,7 +55,7 @@ Two semantics differ from Claude's and drive the design below. Within a surface 
 
 ### Claude's rules, by shape
 
-Verified against the current `roles/ai/files/claude/settings.json`:
+Verified against the current `roles/ai/files/harness/adapters/claude/settings.json`:
 
 | Rule form | Count | Example |
 |---|---|---|
@@ -75,7 +75,7 @@ A concern worth closing early: `shellTools` exists for extensions that replace `
 
 ## Design rules
 
-- **One hand-edited policy file.** `roles/ai/files/claude/settings.json` stays the only place a rule is written. Both pi configs are derived, both are committed, both fail a test on drift.
+- **One hand-edited policy file.** `roles/ai/files/harness/adapters/claude/settings.json` stays the only place a rule is written. Both pi configs are derived, both are committed, both fail a test on drift.
 - **Two layers, two files, two jobs.** `sandbox.json` says which paths and domains are in scope. `permission-system/config.json` says whether a particular action on an in-scope path may proceed. Neither absorbs the other's rules.
 - **Order is load-bearing in the generated file.** Because last-match-wins replaces deny-beats-allow, each surface map is emitted as fallback first, then allows, then denies. `Bash(pgcli:*)` is allowed and `Bash(pgcli)` is denied in the same Claude file; only the ordering makes that come out right.
 - **A doubled star is not a globstar here.** `to_sandbox_pattern` prepends a slash to `**/` patterns because pi-sandbox resolves relative patterns against cwd. This package has no such behaviour and treats `*` as already recursive, so it needs its own translator rather than a reuse.
@@ -89,7 +89,7 @@ A concern worth closing early: `shellTools` exists for extensions that replace `
 
 ### 1. Package registration
 
-`roles/ai/files/pi/settings.json`, in the existing `packages` array beside `npm:pi-sandbox`:
+`roles/ai/files/harness/adapters/pi/settings.json`, in the existing `packages` array beside `npm:pi-sandbox`:
 
 ```json
 "packages": [
@@ -109,14 +109,14 @@ A versioned spec is pinned and skipped by `pi update --extensions` / `--all` (pi
 ```bash
 npx --yes ajv-cli@5 validate --spec=draft2020 --strict=false \
   -s node_modules/@gotgenes/pi-permission-system/schemas/permissions.schema.json \
-  -d roles/ai/files/pi/permission-system/config.json
+  -d roles/ai/files/harness/adapters/pi/permission-system/config.json
 ```
 
 The package also advertises native `@gotgenes/pi-subagents` integration. This repo runs `@tintinweb/pi-subagents`, so per-agent policy forwarding is not assumed to work; nothing in this design depends on it.
 
 ### 2. The derived config
 
-New file at `roles/ai/files/pi/permission-system/config.json`. A directory rather than a bare `permission-system.json`, because the package expects `config.json` inside a directory named after itself, and because the package writes its logs into that same directory at runtime. The repo contributes only the one file.
+New file at `roles/ai/files/harness/adapters/pi/permission-system/config.json`. A directory rather than a bare `permission-system.json`, because the package expects `config.json` inside a directory named after itself, and because the package writes its logs into that same directory at runtime. The repo contributes only the one file.
 
 Shape as generated, elided at every `...`. The real file is 672 lines because each deny carries its originating rule as a reason:
 
@@ -298,7 +298,7 @@ Two questions from the draft are now settled and recorded in Design rules: the b
 
 **Modified**
 
-- `roles/ai/files/pi/settings.json`, pinned package spec added to `packages`
+- `roles/ai/files/harness/adapters/pi/settings.json`, pinned package spec added to `packages`
 - `roles/ai/tasks/main.yml`, the review-log directory in the `state: directory` loop, a rewritten comment on the `pi/sandbox.json` entry, and a new `Symlink pi permission-system config` task
 - `lib/python/tests/test_pi_sandbox.py`, two docstring paragraphs this work falsified
 - `docs/internals/pi-harness.md`, the permissions section, rewritten as two layers
@@ -306,12 +306,12 @@ Two questions from the draft are now settled and recorded in Design rules: the b
 
 **Created**
 
-- `roles/ai/files/pi/permission-system/config.json`, 672 lines, derived, committed, drift-tested
+- `roles/ai/files/harness/adapters/pi/permission-system/config.json`, 672 lines, derived, committed, drift-tested
 - `lib/python/tests/test_pi_permissions.py`, the derivation and its specification, 24 tests
 
 **Deferred**
 
-- `roles/ai/files/claude/settings.json`, one `Read(...)` deny for the review-log directory, pending the first open question
+- `roles/ai/files/harness/adapters/claude/settings.json`, one `Read(...)` deny for the review-log directory, pending the first open question
 
 **Read only**
 

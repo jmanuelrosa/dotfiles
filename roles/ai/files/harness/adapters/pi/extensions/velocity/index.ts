@@ -51,6 +51,7 @@ const VOCABULARY_PATH = join(
   "..",
   "..",
   "..",
+  "..",
   "statusline.json",
 );
 

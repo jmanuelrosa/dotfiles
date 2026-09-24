@@ -75,6 +75,7 @@ const VOCABULARY_PATH = join(
   "..",
   "..",
   "..",
+  "..",
   "statusline.json",
 );
 
@@ -152,7 +153,7 @@ function formatTokens(count: number): string {
 }
 
 /** The theme colour a percentage reads at. Named colours rather than the truecolor gradient
- * statusline.sh uses, because pi themes are user-authored (roles/ai/files/pi/themes) and a hard
+ * statusline.sh uses, because pi themes are user-authored (roles/ai/files/harness/adapters/pi/themes) and a hard
  * RGB ramp would be the one part of the footer that ignored the theme it sits in. */
 function tier(percent: number): "success" | "warning" | "error" {
   if (percent >= CRITICAL_PCT) return "error";

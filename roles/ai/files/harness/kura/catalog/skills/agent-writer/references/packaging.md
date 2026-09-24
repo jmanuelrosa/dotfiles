@@ -8,7 +8,7 @@ Two packaging paths, decided in mode selection: a seat (it has a paired failure-
 A seat and its skill live in one plugin folder, so the coupling cannot drift:
 
 ```
-roles/ai/files/claude/plugins/<discipline>/
+roles/ai/files/harness/plugins/<discipline>/
 ├── .claude-plugin/plugin.json
 ├── agents/<seat>.md
 └── skills/<seat>-failure-modes/        (SKILL.md + references/)
@@ -47,7 +47,7 @@ A project-scope plugin loads only in a trusted workspace and only when Claude Co
 
 A utility agent (no paired skill) stays a flat file with a registry entry, unchanged:
 
-`roles/ai/files/claude/agents/<name>.md` plus a `local_agents` entry:
+`roles/ai/files/harness/agents/<name>.md` plus a `local_agents` entry:
 
 ```json
 {

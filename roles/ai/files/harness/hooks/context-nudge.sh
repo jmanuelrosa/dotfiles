@@ -51,7 +51,7 @@ def state_dir():
 def handoff_pct():
     """The wrap-up threshold, from the file statusline.sh and pi's statusline.ts read too.
 
-    One number in roles/ai/files/statusline.json rather than a literal in each of the
+    One number in roles/ai/files/harness/statusline.json rather than a literal in each of the
     three, since a nudge that fires at a different percentage from the gauge the user
     is looking at is worse than no nudge. Located through realpath because this hook
     runs as ~/.claude/hooks/context-nudge.sh, a symlink into the checkout. Unreadable
@@ -59,7 +59,7 @@ def handoff_pct():
     missing input.
     """
     here = os.path.dirname(os.path.realpath(__file__))
-    found = read_json(os.path.join(here, "..", "..", "statusline.json")).get("handoffPct")
+    found = read_json(os.path.join(here, "..", "statusline.json")).get("handoffPct")
     return found if isinstance(found, int) else None
 
 

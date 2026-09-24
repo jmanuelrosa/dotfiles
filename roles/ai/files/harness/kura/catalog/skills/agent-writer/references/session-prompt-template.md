@@ -7,9 +7,9 @@ Fill every <PLACEHOLDER>; ground each one in the actual seat file and current st
 Upgrade the <SEAT> subagent to the failure-modes architecture already shipped for backend-staff-engineer, frontend-staff-engineer, and platform-staff-engineer. The shipped pairs are the source of truth for structure; read them first and do not re-derive or reinvent the pattern.
 
 Templates to read before anything else:
-- roles/ai/files/claude/plugins/backend/ (agents/backend-staff-engineer.md + skills/backend-failure-modes/, the plugin exemplar)
-- roles/ai/files/claude/plugins/platform/ (second exemplar)
-- roles/ai/files/claude/agents/<SEAT>.md (the seat under upgrade)
+- roles/ai/files/harness/plugins/backend/ (agents/backend-staff-engineer.md + skills/backend-failure-modes/, the plugin exemplar)
+- roles/ai/files/harness/plugins/platform/ (second exemplar)
+- roles/ai/files/harness/agents/<SEAT>.md (the seat under upgrade)
 - <THE ADJACENT SIBLING FILES THAT DEFINE THE DEMARCATION RISK>
 
 Seat scope (respect it everywhere, including researcher briefs): <OWNED SURFACES>. EXCLUDED surfaces owned by siblings: <SURFACE (OWNING SEAT)> pairs. The seat's identity invariants must survive the rewrite intact, in the intro, the never tier, the red flags, and the rationalizations: <THE NEVER-TIER INVARIANTS, VERBATIM FROM THE CURRENT FILE>.
@@ -28,7 +28,7 @@ Coherence rules, apply from the start:
 
 Locked decisions, do not re-ask:
 - New skill `<SEAT-SHORT>-failure-modes`: thin-router SKILL.md + ~8 references (~40-55 lines each) with the exact section template ("When to read", "Failure modes to rule out" with the two intro sentences, bold name + `Check:` pairs, "Escalation triggers (`needs-decision`)", "What good looks like").
-- Package as a skills-dir plugin: `git mv` the agent and skill into `roles/ai/files/claude/plugins/<DISCIPLINE>/agents/` and `.../skills/`, and write `.claude-plugin/plugin.json` (name <DISCIPLINE>, description, version 0.1.0, author, groups ["<DISCIPLINE>", "<PERSONA>"]). No registry rows, no `dependency_only`. <TAG-COINING CLAUSE IF THE PERSONA TAG IS NEW, INCLUDING THE CLAUDE.MD VOCABULARY UPDATE>.
+- Package as a skills-dir plugin: `git mv` the agent and skill into `roles/ai/files/harness/plugins/<DISCIPLINE>/agents/` and `.../skills/`, and write `.claude-plugin/plugin.json` (name <DISCIPLINE>, description, version 0.1.0, author, groups ["<DISCIPLINE>", "<PERSONA>"]). No registry rows, no `dependency_only`. <TAG-COINING CLAUSE IF THE PERSONA TAG IS NEW, INCLUDING THE CLAUDE.MD VOCABULARY UPDATE>.
 - Agent edits: insert Step 3 "Open the failure-mode checklists" with the trigger table; renumber the loop and add the blast-radius clause to step 1 (<WHAT THE BLAST RADIUS ENUMERATES FOR THIS SEAT>); self-check gains a first item gating on the opened references; the "Skills used" report line mentions failure-mode references read; the rationalizations intro carries the letter-vs-spirit clause. Hard cap ~200-205 lines; pay for additions by consolidating.
 - Demarcation with the sibling skills: <THE SHARPEST OVERLAP AND THE VERB THAT SPLITS IT>. <INSTALLED ADJACENT SKILLS THAT STAY AUTHORITATIVE>; <SKILLS NAMED IN STEP 2 THAT ARE NOT REGISTERED: name them as gaps, not coverage>.
 - Keep `model: opus` and per-project scope. Commit nothing (I drive /commit). No research doc is committed.
@@ -45,7 +45,7 @@ Process:
     - zero em/en dashes in every touched file (grep -rnP '[\x{2013}\x{2014}]')
     - frontmatter of the agent and SKILL.md uses `description: >-` and parses under strict YAML (awk-extract the frontmatter block, pipe to ruby -ryaml)
     - ANSIBLE_LOCAL_TEMP="$TMPDIR/ansible-tmp" ansible-lint exits 0
-    - plugin.json parses and `claude plugin validate roles/ai/files/claude/plugins/<DISCIPLINE>` passes (benign groups warning)
+    - plugin.json parses and `claude plugin validate roles/ai/files/harness/plugins/<DISCIPLINE>` passes (benign groups warning)
     - plugin.json names `<DISCIPLINE>` with its groups; Kura v0.3 does not list or provision plugins
 6. Final message: what shipped with paths and line counts, research evidence adopted vs rejected, audit findings and fixes, verification results, git status. Remind me nothing was committed.
 

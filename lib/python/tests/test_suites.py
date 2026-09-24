@@ -26,8 +26,8 @@ PYTEST_INI = REPO / "pytest.ini"
 # tool or a newly tested skill is discovered and then checked against pytest.ini.
 SUITE_GLOBS = (
     "roles/*/files/scripts/*/tests",
-    "roles/*/files/claude/hooks/tests",
-    "roles/*/files/claude/plugins/*/skills/*/scripts/tests",
+    "roles/*/files/harness/hooks/tests",
+    "roles/*/files/harness/plugins/*/skills/*/scripts/tests",
     "lib/python/tests",
     "tests",
 )
@@ -50,7 +50,7 @@ def local_skill_names():
     and would read as permanently `behind` until then.
     """
     registry = json.loads(SKILL_REGISTRY.read_text())
-    return sorted(entry["name"] for entry in registry.get("local_skills", []))
+    return sorted(entry["name"] for entry in registry.get("local", []))
 
 
 def discovered_suites():
@@ -179,7 +179,7 @@ def dotkit_links():
     """Every `dotkit` entry in the repo that is a symlink rather than the real thing."""
     return sorted(
         path
-        for pattern in ("roles/*/files/scripts/**/dotkit", "roles/*/files/claude/plugins/**/dotkit")
+        for pattern in ("roles/*/files/scripts/**/dotkit", "roles/*/files/harness/plugins/**/dotkit")
         for path in REPO.glob(pattern)
         if path.is_symlink()
     )

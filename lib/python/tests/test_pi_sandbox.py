@@ -60,9 +60,8 @@ Four things the translation cannot carry, verified against pi-sandbox 0.6.5 and 
 import json
 import re
 
-from dotkit.testing import CLAUDE, PI, REPO
+from dotkit.testing import CLAUDE_SETTINGS, PI, REPO
 
-CLAUDE_SETTINGS = CLAUDE / "settings.json"
 PI_SANDBOX = PI / "sandbox.json"
 AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 

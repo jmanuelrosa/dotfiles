@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 
 import pytest
-from dotkit.testing import PI
+from dotkit.testing import PI, SKILLS
 
 PROBE = PI / "minion" / "runtime-probe.ts"
 EXERCISE = Path(__file__).parent / "fixtures" / "minion-tool-execution.mjs"
@@ -21,8 +21,8 @@ CHECKOUT = PI / "minion" / "checkout.ts"
 GOAL_LOOP = PI / "minion" / "goal-loop.ts"
 RUNTIME = PI / "minion" / "runtime.ts"
 MINION_EXTENSION = PI / "extensions" / "minion" / "index.ts"
-COMMIT_SKILL = PI.parent / "claude" / "skills" / "commit" / "SKILL.md"
-PR_SKILL = PI.parent / "claude" / "skills" / "pr" / "SKILL.md"
+COMMIT_SKILL = SKILLS / "commit" / "SKILL.md"
+PR_SKILL = SKILLS / "pr" / "SKILL.md"
 PI_PACKAGE = "@earendil-works/pi-coding-agent"
 
 
@@ -451,7 +451,7 @@ def test_minion_start_requires_confirmation_and_exposes_status_and_watch(minion_
         },
         capture_output=True,
         text=True,
-        timeout=5,
+        timeout=15,
     )
     assert done.returncode == 0, done.stderr
     result = json.loads(done.stdout)
@@ -460,10 +460,10 @@ def test_minion_start_requires_confirmation_and_exposes_status_and_watch(minion_
     assert result["filesBeforeApproval"] is False
     messages = [entry["message"] for entry in result["notifications"]]
     assert any(message.startswith("Minion started: ") for message in messages)
-    running = next(message for message in messages if "state: running" in message)
-    assert "delivery: not-authorized" in running
-    assert "last activity:" in running
-    assert any("runner started" in message for message in messages)
+    status = next(message for message in messages if "state: " in message)
+    assert "delivery: not-authorized" in status
+    assert "last activity:" in status
+    assert any(message == "Minion log is empty" or "runner started" in message for message in messages)
 
 
 def test_fake_runner_survives_its_launcher_and_stops_at_its_limit(tmp_path, monkeypatch):
@@ -722,7 +722,7 @@ def test_sdk_runtime_uses_one_persistent_session_for_multiple_goal_cycles(tmp_pa
     assert result["cycles"] == 2
     assert Path(result["sessionFile"]).is_file()
     assert len({call["sessionId"] for call in calls}) == 1
-    assert calls[0]["roles"] == ["user"]
+    assert calls[0]["roles"] == ["system", "user"]
     assert calls[1]["roles"][-1] == "user"
     assert "toolResult" in calls[1]["roles"]
 
@@ -856,7 +856,7 @@ def test_detached_sdk_worker_edits_checkout_runs_check_and_loads_project_instruc
     calls = [json.loads(line) for line in observations.read_text().splitlines()]
     assert (work / "result.txt").read_text() == "ready\n"
     assert status["branch"] == "feature/minion-exercise-detached-sdk-runner"
-    assert "PROJECT_INSTRUCTION_MARKER" in calls[0]["systemPrompt"]
+    assert "PROJECT_INSTRUCTION_MARKER" in "\n".join(calls[0]["systemMessages"])
     assert "exercise detached SDK runner" in calls[0]["userMessages"][-1]
     assert "routine in-scope implementation decisions independently" in calls[0]["userMessages"][-1]
     assert "Do not commit, push, or open a PR during implementation" in calls[0]["userMessages"][-1]

@@ -11,7 +11,7 @@ Pi will keep the current Solarized conversation styling while replacing always-e
 
 ## Motivation
 
-The current hierarchy successfully aligns built-in tool calls on `●` and nests results under `└`, but it forces both native call and result renderers into `expanded: true` (`roles/ai/files/pi/extensions/claude-ui/index.ts`). Large reads, writes, diffs, and command results therefore dominate the conversation and make assistant narration difficult to scan.
+The current hierarchy successfully aligns built-in tool calls on `●` and nests results under `└`, but it forces both native call and result renderers into `expanded: true` (`roles/ai/files/harness/adapters/pi/extensions/claude-ui/index.ts`). Large reads, writes, diffs, and command results therefore dominate the conversation and make assistant narration difficult to scan.
 
 Claude Code uses a different information hierarchy: a semantic tool label, a short result summary, a bounded excerpt, and an explicit expansion path. Pi exposes only a boolean expanded state, but its public renderer API permits custom default previews and complete expanded output. Pi's own built-in-renderer example already uses bounded 15-, 20-, and 30-line excerpts (`/opt/homebrew/Cellar/pi-coding-agent/0.84.4/libexec/lib/node_modules/@earendil-works/pi-coding-agent/examples/extensions/built-in-tool-renderer.ts:32-249`).
 
@@ -31,13 +31,13 @@ Thinking has a separate limitation. Pi emits exact `thinking_start` and `thinkin
 
 ### Built-in tool rendering today
 
-`claude-ui/index.ts` re-registers Pi's built-in tool definitions and wraps their native components with `HierarchyComponent`. The wrapper provides the desired sibling and child indentation, but both renderer calls override Pi's state with `expanded: true`. The existing semantic summary helpers in `roles/ai/files/pi/extensions/claude-ui/index.ts` are used only when a native renderer returns no lines.
+`claude-ui/index.ts` re-registers Pi's built-in tool definitions and wraps their native components with `HierarchyComponent`. The wrapper provides the desired sibling and child indentation, but both renderer calls override Pi's state with `expanded: true`. The existing semantic summary helpers in `roles/ai/files/harness/adapters/pi/extensions/claude-ui/index.ts` are used only when a native renderer returns no lines.
 
 Pi permits a same-name tool registration to replace rendering while preserving the original execution definition. Renderer context includes component reuse, errors, partial state, and a boolean `expanded` value (`/opt/homebrew/Cellar/pi-coding-agent/0.84.4/libexec/lib/node_modules/@earendil-works/pi-coding-agent/dist/core/extensions/types.d.ts:307-377`). There is no third native display state, so the extension must define its own bounded default policy.
 
 ### Thinking rendering today
 
-`hideThinkingBlock` is true (`roles/ai/files/pi/settings.json:34`), so native thinking is hidden by default. Pi's assistant component merges adjacent thinking blocks and uses one static label when thinking is hidden (`/opt/homebrew/Cellar/pi-coding-agent/0.84.4/libexec/lib/node_modules/@earendil-works/pi-coding-agent/dist/modes/interactive/components/assistant-message.js:67-119`). `setHiddenThinkingLabel()` applies globally to existing and streaming assistant components (`/opt/homebrew/Cellar/pi-coding-agent/0.84.4/libexec/lib/node_modules/@earendil-works/pi-coding-agent/dist/modes/interactive/interactive-mode.js:1694-1703`).
+`hideThinkingBlock` is true (`roles/ai/files/harness/adapters/pi/settings.json:34`), so native thinking is hidden by default. Pi's assistant component merges adjacent thinking blocks and uses one static label when thinking is hidden (`/opt/homebrew/Cellar/pi-coding-agent/0.84.4/libexec/lib/node_modules/@earendil-works/pi-coding-agent/dist/modes/interactive/components/assistant-message.js:67-119`). `setHiddenThinkingLabel()` applies globally to existing and streaming assistant components (`/opt/homebrew/Cellar/pi-coding-agent/0.84.4/libexec/lib/node_modules/@earendil-works/pi-coding-agent/dist/modes/interactive/interactive-mode.js:1694-1703`).
 
 Pi's public API can append custom entries that do not participate in model context and can register a durable renderer for them (`/opt/homebrew/Cellar/pi-coding-agent/0.84.4/libexec/lib/node_modules/@earendil-works/pi-coding-agent/dist/core/extensions/types.d.ts:860-875,947-969`). This is the supported persistence and rendering surface for duration rows.
 
@@ -197,9 +197,9 @@ The existing Node-driven extension fixture in `lib/python/tests/test_pi_claude_u
 
 ## Appendix - affected files
 
-- `roles/ai/files/pi/extensions/claude-ui/index.ts`
-- `roles/ai/files/pi/extensions/claude-ui/README.md`
-- `roles/ai/files/pi/settings.json`
+- `roles/ai/files/harness/adapters/pi/extensions/claude-ui/index.ts`
+- `roles/ai/files/harness/adapters/pi/extensions/claude-ui/README.md`
+- `roles/ai/files/harness/adapters/pi/settings.json`
 - `lib/python/tests/test_pi_claude_ui.py`
 - `docs/internals/pi-harness.md`
 - `roles/ai/README.md`

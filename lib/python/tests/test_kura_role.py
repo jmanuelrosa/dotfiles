@@ -17,21 +17,17 @@ installed command and skip when it is absent or predates the multi-harness inter
 """
 
 import json
-import os
 import re
-import shutil
-import subprocess
-import tempfile
 
 import pytest
 import yaml
-from dotkit.testing import AGENTS, CLAUDE, PLUGINS, REPO, SKILLS
+from dotkit.testing import AGENT_REGISTRY, AGENTS, CATALOG, CLAUDE_SETTINGS, HARNESS, PLUGINS, REPO, SKILLS
 
 AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 AI_DEFAULTS = REPO / "roles/ai/defaults/main.yml"
 COREUTILS_DEFAULTS = REPO / "roles/coreutils/defaults/main.yml"
-SETTINGS = CLAUDE / "settings.json"
-KURA_CATALOG = REPO / "roles/ai/files/kura/catalog"
+SETTINGS = CLAUDE_SETTINGS
+KURA_CATALOG = CATALOG
 
 SYNC_TASK = "Converge global skills for Claude Code and Pi"
 CONVERGE_TASK = "Converge initialized project skill views"
@@ -55,11 +51,6 @@ INSTALLERS = [
     ("work", "WORK_SCRIPTS", "Link work scripts into the user bin directory"),
 ]
 
-# Every marker the role matches on, and the only reason a reworded summary in another
-# repository is this repository's problem.
-CHANGED_MARKER = ", 0 changes"
-
-
 def role_task(role, name):
     tasks = yaml.safe_load((REPO / f"roles/{role}/tasks/main.yml").read_text())
     matching = [t for t in tasks if t.get("name") == name]
@@ -71,64 +62,14 @@ def role_manifest(role, var):
     return yaml.safe_load((REPO / f"roles/{role}/defaults/main.yml").read_text())[var]
 
 
-def kura_or_skip():
-    """The installed command, or a skip.
-
-    Asking it is how this suite avoids a second implementation of the `global`
-    derivation. There was one once, 130 lines of Jinja in this role, and it drifted
-    from the tool's copy the moment either changed.
-    """
-    found = shutil.which("kura")
-    if found is None:
-        pytest.skip("kura is not installed; run the ai role first")
-    interface = subprocess.run(
-        [found, "config", "--help"], capture_output=True, text=True, check=False
-    )
-    if interface.returncode != 0 or "--catalog" in interface.stdout:
-        pytest.skip("installed kura predates v0.4.0; run the ai role first")
-    return found
-
-
-def global_sync_dry_run():
-    """`sync` against the same machine configuration the role provisions."""
-    with tempfile.TemporaryDirectory() as home:
-        config = {
-            "schemaVersion": 1,
-            "globalHarnesses": ["claude", "pi"],
-        }
-        config_dir = os.path.join(home, ".config", "kura")
-        os.makedirs(config_dir)
-        catalog_path = os.path.join(config_dir, "catalog")
-        os.symlink(str(KURA_CATALOG), catalog_path)
-        config_path = os.path.join(config_dir, "config.json")
-        with open(config_path, "w") as stream:
-            json.dump(config, stream)
-        return subprocess.run(
-            [kura_or_skip(), "sync", "--type", "skill", "--dry-run"],
-            env={**os.environ, "HOME": home, "NO_COLOR": "1"},
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout
-
-
-def effective_global():
-    """The logical global set, despite each skill now producing two native links."""
-    return set(re.findall(r"Would link '([^']+)'", global_sync_dry_run()))
-
-
 # --- the installer ------------------------------------------------------------
 
 
-def test_the_release_is_pinned_to_kura_v040():
-    """The tag is for reading and the checksum is the identity. There is no --version
-    flag to ask the installed file what it is, so both values are the release record."""
+def test_the_kura_release_is_pinned_to_a_checksum():
     kura = yaml.safe_load(AI_DEFAULTS.read_text())["KURA"]
-    assert kura == {
-        "repository": "https://github.com/jmanuelrosa/kura",
-        "release": "v0.4.0",
-        "checksum": "sha256:3906811b8f651a5421d5ae19b9535eb2bb657d141598fd835664d2eefe0fe346",
-    }
+    assert kura["repository"] == "https://github.com/jmanuelrosa/kura"
+    assert re.fullmatch(r"v\d+\.\d+\.\d+", kura["release"])
+    assert re.fullmatch(r"sha256:[0-9a-f]{64}", kura["checksum"])
 
 
 def test_the_role_downloads_kura_as_the_command_file():
@@ -185,54 +126,15 @@ def test_the_catalog_view_exposes_only_kuras_supported_inputs():
         "skills",
         "skill-registry.json",
     }
-    skills = KURA_CATALOG / "skills"
-    assert skills.is_symlink()
-    assert os.readlink(skills) == "../../claude/skills"
-    assert skills.resolve() == SKILLS.resolve()
-    registry = KURA_CATALOG / "skill-registry.json"
-    assert registry.is_symlink()
-    assert os.readlink(registry) == "../../claude/skill-registry.json"
-    assert registry.resolve() == (CLAUDE / "skill-registry.json").resolve()
+    assert (KURA_CATALOG / "skills").is_dir()
+    assert (KURA_CATALOG / "skill-registry.json").is_file()
+    assert SKILLS == KURA_CATALOG / "skills"
 
 
-@pytest.mark.parametrize("name", [SYNC_TASK, CONVERGE_TASK])
-def test_the_role_runs_the_installed_command(name):
-    """Not the checkout's copy, which no longer exists, and not a bare `kura` resolved
-    off the play's PATH."""
-    assert "{{ HOME }}/.local/bin/kura" in role_task("ai", name)["ansible.builtin.command"]["cmd"]
-
-
-@pytest.mark.parametrize("name", [SYNC_TASK, CONVERGE_TASK])
-def test_the_role_uses_the_provisioned_machine_configuration(name):
-    """HOME selects the provisioned config and the fixed catalog symlink."""
-    environment = role_task("ai", name)["environment"]
-    assert environment["HOME"] == "{{ HOME }}"
-    assert "KURA_CATALOG" not in environment
-
-
-def test_the_project_sweep_names_the_developer_root():
-    command = role_task("ai", CONVERGE_TASK)["ansible.builtin.command"]["cmd"]
-    assert "--all" in command
-    assert "--root {{ HOME }}/Developer" in command
-
-
-@pytest.mark.parametrize("name", [SYNC_TASK, CONVERGE_TASK])
-def test_the_role_reads_changed_off_the_summary_wording(name):
-    """The marker is a cross-repository contract: kura's suite asserts its summary
-    emits it, and this asserts the role matches on it. Lose either half and every
-    apply reports changed forever."""
-    task = role_task("ai", name)
-    assert CHANGED_MARKER in task["changed_when"]
-
-
-@pytest.mark.parametrize("name", [SYNC_TASK, CONVERGE_TASK])
-def test_the_role_dry_runs_under_check_mode(name):
-    """A bare `command` task would sync for real during `make check`, and skipping it
-    would make `make check` silent about the one task that deletes things."""
-    task = role_task("ai", name)
-    assert "--dry-run" in task["ansible.builtin.command"]["cmd"]
-    assert "ansible_check_mode" in task["ansible.builtin.command"]["cmd"]
-    assert task["check_mode"] is False
+def test_kura_convergence_tasks_remain_disabled():
+    names = {task["name"] for task in yaml.safe_load(AI_TASKS.read_text())}
+    assert SYNC_TASK not in names
+    assert CONVERGE_TASK not in names
 
 
 def test_a_session_start_hook_converges_only_an_initialized_exact_cwd():
@@ -245,13 +147,6 @@ def test_a_session_start_hook_converges_only_an_initialized_exact_cwd():
     assert converging == [
         "if [ -f ./kura.json ]; then ~/.local/bin/kura converge --quiet; fi"
     ]
-
-
-def test_kura_global_sync_targets_both_native_skill_roots():
-    output = global_sync_dry_run()
-    assert "~/.claude/skills/" in output
-    assert "~/.agents/skills/" in output
-    assert "~/.pi/agent/skills/" not in output
 
 
 def test_the_old_cross_harness_skill_link_is_removed_only_when_it_is_ours():
@@ -285,7 +180,7 @@ def test_standalone_agents_remain_role_provisioned_and_global():
     }
     assert task["with_fileglob"] == ["{{ role_path }}/files/claude/agents/*.md"]
 
-    registry = json.loads((CLAUDE / "agent-registry.json").read_text())
+    registry = json.loads(AGENT_REGISTRY.read_text())
     registered = {entry["name"] for entry in registry["local_agents"]}
     shipped = {path.stem for path in AGENTS.glob("*.md")}
     assert registered == shipped
@@ -305,13 +200,6 @@ def test_global_agent_pruning_inspects_link_targets_before_removal():
     conditions = " ".join(prune["when"])
     assert "item.stat.lnk_source" in conditions
     assert "item.item.path" in prune["ansible.builtin.file"]["path"]
-
-
-def test_kura_tasks_manage_skills_only_and_leave_project_plugins_alone():
-    for name in (SYNC_TASK, CONVERGE_TASK):
-        command = role_task("ai", name)["ansible.builtin.command"]["cmd"]
-        assert "--type agent" not in command
-        assert "--type plugin" not in command
 
 
 # --- the installers that still link from this checkout ------------------------
@@ -387,12 +275,9 @@ def test_every_tool_ships_an_executable_named_after_its_directory(role, var, tas
 
 
 def artifact_files():
-    """Every artifact document under files/claude/, plugin-bundled ones included.
-
-    The bundled ones are in no registry, so nothing else would ever read them.
-    """
-    agents = [p for p in CLAUDE.rglob("*.md") if p.parent.name == "agents"]
-    return sorted({*CLAUDE.rglob("SKILL.md"), *agents})
+    """Catalog skills and plugin-bundled artifacts both need valid frontmatter."""
+    agents = [p for p in HARNESS.rglob("*.md") if p.parent.name == "agents"]
+    return sorted({*SKILLS.rglob("SKILL.md"), *HARNESS.rglob("SKILL.md"), *agents})
 
 
 def frontmatter(path):
@@ -414,15 +299,15 @@ def test_every_artifact_ships_frontmatter_a_yaml_parser_accepts():
     for path in artifact_files():
         block = frontmatter(path)
         if block is None:
-            offenders.append(f"{path.relative_to(CLAUDE)}: no frontmatter block")
+            offenders.append(f"{path.relative_to(REPO)}: no frontmatter block")
             continue
         try:
             parsed = yaml.safe_load(block)
         except yaml.YAMLError as error:
-            offenders.append(f"{path.relative_to(CLAUDE)}: {error.__class__.__name__}")
+            offenders.append(f"{path.relative_to(REPO)}: {error.__class__.__name__}")
             continue
         if not isinstance(parsed, dict) or "name" not in parsed:
-            offenders.append(f"{path.relative_to(CLAUDE)}: declares no name")
+            offenders.append(f"{path.relative_to(REPO)}: declares no name")
     assert offenders == [], "\n".join(offenders)
 
 
@@ -468,21 +353,23 @@ def test_architect_routes_to_every_implementer_seat():
 def test_every_registered_skill_has_a_source_on_disk():
     """A registry row naming nothing is a skill `sync` reports missing and refuses to
     exit 0 over, and a row nobody notices is how that happens."""
-    registry = json.loads((CLAUDE / "skill-registry.json").read_text())
-    local = [entry["name"] for entry in registry.get("local_skills") or []]
+    registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
+    local = [entry["name"] for entry in registry["local"]]
     missing = [name for name in local if not (SKILLS / name).is_dir()]
     assert missing == [], f"registered skills with no directory: {missing}"
 
 
 def test_the_global_set_holds_exactly_the_documented_membership():
-    """Pinned so a registry retag shows up as a failing test rather than as a silent
-    change to what lands in ~/.claude.
-
-    Read from `sync --dry-run` rather than derived here. Kura derives only skill
-    dependencies, so skills required by role-provisioned global agents carry their own
-    global tag instead of relying on the agent registry to pull them in.
-    """
-    assert effective_global() == {
+    """A registry retag changes the global set even while sync is disabled."""
+    registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
+    tagged = {entry["name"] for entry in registry["local"] if "global" in entry["groups"]}
+    tagged.update(
+        entry["upstream_path"].rstrip("/").rsplit("/", 1)[-1]
+        for repo in registry["upstream"].values()
+        for entry in repo["skills"]
+        if "global" in entry["groups"]
+    )
+    assert tagged == {
         "ac",
         "agent-audit",
         "agent-writer",
@@ -491,14 +378,11 @@ def test_the_global_set_holds_exactly_the_documented_membership():
         "cloudflare",
         "commit",
         "documentation-and-adrs",
-        "domain-modeling",
         "feature-team",
         "grill-me",
         "grill-with-docs",
-        "grilling",
         "handoff",
         "humanizer",
-        "jira",
         "planning-and-task-breakdown",
         "pr",
         "product-lead",

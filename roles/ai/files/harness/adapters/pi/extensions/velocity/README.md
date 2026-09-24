@@ -10,7 +10,7 @@ The shared status line should show the scale of changes made during the current 
 Writes count as additions because the replaced content is no longer available after the event.
 The result is a glanceable activity measure, not an audit substitute for `git diff --stat`.
 
-The glyph comes from `roles/ai/files/statusline.json` so Claude Code and Pi use the same vocabulary.
+The glyph comes from `roles/ai/files/harness/statusline.json` so Claude Code and Pi use the same vocabulary.
 
 ## Verification
 

@@ -13,7 +13,6 @@
       "auth.atlassian.com",
       "as.atlassian.com",
       "api.atlassian.com",
-      "app.fossa.com",
       "developers.notion.com",
       "api.notion.com",
       "context7.com",
@@ -39,11 +38,11 @@
       "~/.ssh/known_hosts",
       "/etc/ssl/cert.pem",
       "~/.config/acli",
-      "~/Developer/dotfiles/roles/ai/files/claude/skills",
-      "~/Developer/dotfiles/roles/ai/files/claude/hooks",
-      "~/Developer/dotfiles/roles/ai/files/claude/agents",
-      "~/Developer/dotfiles/roles/ai/files/claude/plugins",
-      "~/Developer/dotfiles/roles/ai/files/claude/settings.json"
+      "~/Developer/dotfiles/roles/ai/files/harness/kura/catalog/skills",
+      "~/Developer/dotfiles/roles/ai/files/harness/hooks",
+      "~/Developer/dotfiles/roles/ai/files/harness/agents",
+      "~/Developer/dotfiles/roles/ai/files/harness/plugins",
+      "~/Developer/dotfiles/roles/ai/files/harness/adapters/claude/settings.json"
     ],
     "denyRead": [
       "~/.ssh",

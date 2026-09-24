@@ -48,14 +48,12 @@ import re
 
 import pytest
 import yaml
-from dotkit.testing import CLAUDE, PLUGINS, REPO, SKILLS
+from dotkit.testing import CLAUDE, PLUGINS, REPO, RULES, SKILLS, SKILL_REGISTRY
 
 AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 
-RULES = CLAUDE / "rules"
 POLICY = RULES / "code-review.md"
 MECHANICS = SKILLS / "review-mechanics" / "SKILL.md"
-SKILL_REGISTRY = CLAUDE / "skill-registry.json"
 
 DIRS_TASK = "Ensure AI config directories exist"
 RULES_TASK = "Symlink claude rules"
@@ -258,7 +256,7 @@ def test_the_mechanics_skill_is_tagged_global():
     """
     entries = [
         skill
-        for skill in json.loads(SKILL_REGISTRY.read_text())["local_skills"]
+        for skill in json.loads(SKILL_REGISTRY.read_text())["local"]
         if skill["name"] == "review-mechanics"
     ]
     assert len(entries) == 1, f"expected one local entry, found {len(entries)}"
@@ -336,7 +334,7 @@ def test_the_superseded_reviewer_is_named_and_untagged():
 
     entries = [
         skill
-        for repo in json.loads(SKILL_REGISTRY.read_text())["repos"].values()
+        for repo in json.loads(SKILL_REGISTRY.read_text())["upstream"].values()
         for skill in repo["skills"]
         if skill["upstream_path"].rsplit("/", 1)[-1] == SUPERSEDED
     ]

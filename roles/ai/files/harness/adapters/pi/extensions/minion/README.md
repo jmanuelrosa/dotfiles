@@ -6,7 +6,7 @@ Minion provides an explicit way to hand a coding goal to a trusted Pi session an
 
 ## What it does
 
-`index.ts` registers `/minion` and delegates start, status, watch, and cancellation operations to the implementation under `roles/ai/files/pi/minion/`.
+`index.ts` registers `/minion` and delegates start, status, watch, and cancellation operations to the implementation under `roles/ai/files/harness/adapters/pi/minion/`.
 The extension is the interactive command boundary; lifecycle state, execution, checkout handling, and delivery remain in the Minion modules.
 Loading the extension never starts work by itself.
 

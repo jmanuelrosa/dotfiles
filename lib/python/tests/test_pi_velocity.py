@@ -30,7 +30,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from dotkit.testing import PI_EXTENSIONS, REPO
+from dotkit.testing import PI_EXTENSIONS, REPO, STATUSLINE_VOCABULARY
 
 EXTENSION = PI_EXTENSIONS / "velocity" / "index.ts"
 TASKS = REPO / "roles/ai/tasks/main.yml"
@@ -134,7 +134,7 @@ def test_the_theme_colours_exist(source, declarations):
 def test_the_glyph_is_read_rather_than_typed(source):
     """`⚡` is Claude's statusline.sh glyph too, so it lives in statusline.json and both read it.
     A copy here renders correctly today and stops matching the first time one is changed."""
-    vocabulary = json.loads((REPO / "roles/ai/files/statusline.json").read_text())
+    vocabulary = json.loads(STATUSLINE_VOCABULARY.read_text())
     assert 'glyph("velocity")' in source
     # Past the file's header comment, which names the segment it renders and is prose.
     code = source.split("*/", 1)[1]

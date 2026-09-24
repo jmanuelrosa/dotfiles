@@ -156,7 +156,7 @@ Git, git-delta, LazyGit, GitHub CLI, GitLab CLI (glab), fnm (Node version manage
 
 ChatGPT, Claude, Claude Code, Cursor
 
-Claude Code and Pi skills are managed with [`kura`](https://github.com/jmanuelrosa/kura), installed by the `ai` role as a pinned release at `~/.local/bin/kura` and pointed at the dedicated catalog view in `roles/ai/files/kura/catalog/`. The catalog exposes the shared `skills/` tree and `skill-registry.json` metadata only. The role provisions standalone agents separately, while existing project plugin links remain project-owned legacy state.
+Claude Code and Pi skills are managed with [`kura`](https://github.com/jmanuelrosa/kura), installed by the `ai` role as a pinned release at `~/.local/bin/kura` and pointed at the dedicated catalog view in `roles/ai/files/harness/kura/catalog/`. The catalog exposes the shared `skills/` tree and `skill-registry.json` metadata only. The role provisions standalone agents separately, while existing project plugin links remain project-owned legacy state.
 
 ```bash
 kura list --type skill                               # Show available skills
@@ -165,7 +165,7 @@ kura remove vercel-react-best-practices --type skill # Remove it
 kura scout                                           # What this project's stack suggests
 ```
 
-Two larger systems ship here. **Product Team** is a gated pipeline that takes a raw idea to an engineering-ready GitHub backlog through numbered stages (`/0-refine-idea` to `/7-push-to-board`), and a **staff-engineer bench** of implementation agents (`architect` plus frontend, mobile, design, backend, platform, cloud, sre, data, analytics, gtm, database, qa, and security seats) builds what the pipeline specs out. See [`roles/ai/files/claude/README.md`](roles/ai/files/claude/README.md) for the full guide.
+Two larger systems ship here. **Product Team** is a gated pipeline that takes a raw idea to an engineering-ready GitHub backlog through numbered stages (`/0-refine-idea` to `/7-push-to-board`), and a **staff-engineer bench** of implementation agents (`architect` plus frontend, mobile, design, backend, platform, cloud, sre, data, analytics, gtm, database, qa, and security seats) builds what the pipeline specs out. See [`roles/ai/files/harness/adapters/claude/README.md`](roles/ai/files/harness/adapters/claude/README.md) for the full guide.
 
 ### Television (interactive fuzzy picker)
 

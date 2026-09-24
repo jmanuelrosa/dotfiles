@@ -60,7 +60,7 @@ Open the one you are working in, and only that one.
 | [Skill registry & dependencies](docs/internals/skill-registry.md) | Adding or retagging a skill or agent, touching `skill-registry.json` / `agent-registry.json`, the `groups` vocabulary, or the `global` scope tag |
 | [Seat plugins](docs/internals/seat-plugins.md) | Authoring or upgrading a staff-engineer seat, its failure-mode references, or the design-versus-frontend boundary |
 | [The product-team plugin](docs/internals/product-team.md) | Working on the two-gate product pipeline, its stages, `pt.py`, or `docs/initiatives/` artifacts |
-| [Code review policy](docs/internals/code-review-policy.md) | Changing the review bar, its severities or axes, or anything under `roles/ai/files/claude/rules/` |
+| [Code review policy](docs/internals/code-review-policy.md) | Changing the review bar, its severities or axes, or anything under `roles/ai/files/harness/rules/` |
 | [Skill precedence](docs/internals/skill-precedence.md) | Resolving a conflict between an installed skill and an agent's own checklist |
 | [Script output style](docs/internals/script-output-style.md) | Writing or changing any script that prints, in fish or python |
 | [Where a test lives](docs/internals/testing-layout.md) | Adding a test suite, or changing `pytest.ini` roots |

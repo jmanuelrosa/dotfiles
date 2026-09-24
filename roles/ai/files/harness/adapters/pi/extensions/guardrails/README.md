@@ -6,7 +6,7 @@ Claude Code and Pi should enforce the same repository gates without maintaining 
 
 ## What it does
 
-`index.ts` adapts Pi `tool_call` events to the JSON input expected by the Python hooks under `roles/ai/files/claude/hooks/`.
+`index.ts` adapts Pi `tool_call` events to the JSON input expected by the Python hooks under `roles/ai/files/harness/hooks/`.
 It bridges edit payloads, active skill detection, Pi-specific refusal guidance, and the cloud read-only decision shape.
 It also exposes the shared rtk and Cursor footer statuses.
 

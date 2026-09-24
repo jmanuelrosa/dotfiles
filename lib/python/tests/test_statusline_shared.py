@@ -1,6 +1,6 @@
 """One status line vocabulary, five readers, and nothing pinning them but this file.
 
-`roles/ai/files/statusline.json` holds the values Claude Code's status line and pi's footer both
+`roles/ai/files/harness/statusline.json` holds the values Claude Code's status line and pi's footer both
 render: the wrap-up threshold, the gauge cells, the lockfile table and the glyphs. Before it, each
 value was typed into both harnesses and the threshold into three files, which is how a nudge that
 fires at one percentage and a gauge that marks another get shipped together.
@@ -29,21 +29,21 @@ import subprocess
 import sys
 
 import pytest
-from dotkit.testing import CLAUDE, PI_EXTENSIONS, REPO
+from dotkit.testing import CLAUDE, HOOKS, PI_EXTENSIONS, REPO, STATUSLINE_VOCABULARY
 
-VOCABULARY = REPO / "roles/ai/files/statusline.json"
+VOCABULARY = STATUSLINE_VOCABULARY
 STATUSLINE = CLAUDE / "statusline.sh"
-NUDGE = CLAUDE / "hooks/context-nudge.sh"
+NUDGE = HOOKS / "context-nudge.sh"
 
 # Every file that reads the vocabulary, and the relative hop each one makes to reach it. The hop
 # is part of the contract: all five are reached through a symlink into this checkout, so each
 # resolves its own realpath first and a wrong number of `..` is a file that silently is not there.
 READERS = {
-    STATUSLINE: 1,
-    NUDGE: 2,
-    PI_EXTENSIONS / "statusline" / "index.ts": 3,
-    PI_EXTENSIONS / "velocity" / "index.ts": 3,
-    PI_EXTENSIONS / "guardrails" / "index.ts": 3,
+    STATUSLINE: 2,
+    NUDGE: 1,
+    PI_EXTENSIONS / "statusline" / "index.ts": 4,
+    PI_EXTENSIONS / "velocity" / "index.ts": 4,
+    PI_EXTENSIONS / "guardrails" / "index.ts": 4,
 }
 
 # What each reader asks the vocabulary for by name. A key dropped from the file is a glyph that

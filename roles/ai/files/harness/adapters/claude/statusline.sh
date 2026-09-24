@@ -29,18 +29,18 @@ def _vocabulary():
 
     The threshold, the gauge, the lockfile table and the glyphs are rendered by two
     harnesses in two languages, and a value typed into both is a value that drifts.
-    roles/ai/files/statusline.json owns them; this file, hooks/context-nudge.sh and
+    roles/ai/files/harness/statusline.json owns them; this file, hooks/context-nudge.sh and
     the three pi extensions read it.
 
     Located through realpath because this script is reached as ~/.claude/statusline.sh,
     a symlink into the checkout, which is the same resolution guardrails.ts does to
-    find the hooks it drives. Nothing is defaulted here on purpose: the file is a
-    sibling of the symlink target, so it can only be missing when the checkout itself
+    find the hooks it drives. Nothing is defaulted here on purpose: the file sits in
+    the same tree as the symlink target, so it can only be missing when the checkout itself
     is, and a copy of every value kept as a fallback would be the duplication this
     exists to remove. An unreadable file drops the fields that need it, which is what
     every other field in this script already does when its data is absent.
     """
-    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "statusline.json")
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "statusline.json")
     try:
         with open(path, encoding="utf-8") as fh:
             loaded = json.load(fh)

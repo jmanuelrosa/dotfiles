@@ -209,13 +209,6 @@
     ]
   },
   "model": "opus",
-  "alwaysThinkingEnabled": true,
-  "effortLevel": "high",
-  "modelSettings": {
-    "claude-opus-5-5": {
-      "effortLevel": "high"
-    }
-  },
   "fallbackModel": [
     "opus",
     "sonnet"
@@ -398,11 +391,11 @@
         "~/.ssh/known_hosts",
         "/etc/ssl/cert.pem",
         "~/.config/acli",
-        "~/Developer/dotfiles/roles/ai/files/claude/skills",
-        "~/Developer/dotfiles/roles/ai/files/claude/hooks",
-        "~/Developer/dotfiles/roles/ai/files/claude/agents",
-        "~/Developer/dotfiles/roles/ai/files/claude/plugins",
-        "~/Developer/dotfiles/roles/ai/files/claude/settings.json"
+        "~/Developer/dotfiles/roles/ai/files/harness/kura/catalog/skills",
+        "~/Developer/dotfiles/roles/ai/files/harness/hooks",
+        "~/Developer/dotfiles/roles/ai/files/harness/agents",
+        "~/Developer/dotfiles/roles/ai/files/harness/plugins",
+        "~/Developer/dotfiles/roles/ai/files/harness/adapters/claude/settings.json"
       ]
     },
     "enableWeakerNetworkIsolation": true,
@@ -424,6 +417,13 @@
     ]
   },
   "feedbackSurveyRate": 0,
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "high",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "high"
+    }
+  },
   "askUserQuestionTimeout": "never",
   "autoUpdatesChannel": "stable",
   "minimumVersion": "2.1.203",

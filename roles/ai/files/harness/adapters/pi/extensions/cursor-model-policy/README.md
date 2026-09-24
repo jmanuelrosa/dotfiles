@@ -9,7 +9,7 @@ Cursor usage must be limited to the subscription-backed models selected in this 
 
 `index.ts` wraps the provider registered by `pi-cursor-sdk`.
 It filters the Cursor catalog and rejects disallowed model IDs before either streaming method reaches the SDK.
-The exact allowlist comes from `roles/ai/files/pi/model-routing.json`.
+The exact allowlist comes from `roles/ai/files/harness/adapters/pi/model-routing.json`.
 
 The policy rechecks the provider at lifecycle boundaries because `/cursor-refresh-models` replaces the Cursor registration.
 A global marker makes the wrapper idempotent when parent and child sessions share one provider registry.

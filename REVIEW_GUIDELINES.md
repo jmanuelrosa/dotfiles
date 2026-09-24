@@ -1,1 +1,1 @@
-roles/ai/files/claude/rules/code-review.md
+roles/ai/files/harness/rules/code-review.md

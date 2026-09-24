@@ -31,20 +31,7 @@ def test_manifest_activates_every_extension_except_the_parked_experiment():
     assert configured.isdisjoint(DISABLED)
 
 
-def test_role_links_documented_extension_directories():
-    link = task("Symlink pi extensions")
-
-    assert link["loop"] == "{{ PI_EXTENSIONS }}"
-    assert link["ansible.builtin.file"] == {
-        "src": "{{ role_path }}/files/pi/extensions/{{ item }}",
-        "dest": "{{ HOME }}/.pi/agent/extensions/{{ item }}",
-        "state": "link",
-        "force": True,
-    }
-
-
-def test_role_removes_the_old_flat_extension_links():
-    superseded = set(task("Check for superseded pi extension links")["loop"])
-    active = set(yaml.safe_load(DEFAULTS.read_text())["PI_EXTENSIONS"])
-
-    assert {f"{name}.ts" for name in active} <= superseded
+def test_role_does_not_provision_pi_extensions():
+    names = {item.get("name") for item in yaml.safe_load(TASKS.read_text())}
+    assert "Symlink pi extensions" not in names
+    assert "Check for superseded pi extension links" not in names

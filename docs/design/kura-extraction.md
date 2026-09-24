@@ -19,7 +19,7 @@ The command is renamed to **`kura`** in the same move. It manages artifacts for 
 
 The coupling that keeps it here is narrower than it looks. Only `paths.repo_root()` and `paths.claude_dir()` know the dotfiles layout (`roles/ai/files/scripts/claude-kit/claude_kit/paths.py:19-49`): they find `dotfiles.yml` by walking up from the executable, or accept a `DOTFILES_DIR` override, then append `roles/ai/files/claude`. Every command consumes the result and nothing else, always through `paths.claude_dir()` (`claude_kit/commands/provision.py:238`, `add.py:298`, `remove.py:230`, `listing.py:184`, `scout.py:345`, `doctor.py:102`, `pull.py:202`, `adopt.py:124`, `restore.py:145`, `pi.py:273`, `pi.py:331`). `repo_root()` has no caller outside its own module. That is a single seam, not a dependency spread through the codebase.
 
-The consumers are also less exposed than the backlog's blocker note suggests. The `ai` role runs `claude-kit sync` and `claude-kit converge --all` from the checkout with `HOME` and `DOTFILES_DIR` pinned (`roles/ai/tasks/main.yml:190-239`), which is a call-site change rather than a redesign. The Claude Code `SessionStart` hook already calls the installed path (`roles/ai/files/claude/settings.json:289`). Fish, Television and `wt` depend on the command name and on `list --json` rows (`roles/shell/files/fish/functions/_tv_claude_list.fish:11-12,54-56`, `_tv_claude_toggle.fish:108-140`, `wt.fish:163-164`, `roles/shell/files/television/cable/claude-skills.toml:42,48`), none of which this design changes.
+The consumers are also less exposed than the backlog's blocker note suggests. The `ai` role runs `claude-kit sync` and `claude-kit converge --all` from the checkout with `HOME` and `DOTFILES_DIR` pinned (`roles/ai/tasks/main.yml:190-239`), which is a call-site change rather than a redesign. The Claude Code `SessionStart` hook already calls the installed path (`roles/ai/files/harness/adapters/claude/settings.json:289`). Fish, Television and `wt` depend on the command name and on `list --json` rows (`roles/shell/files/fish/functions/_tv_claude_list.fish:11-12,54-56`, `_tv_claude_toggle.fish:108-140`, `wt.fish:163-164`, `roles/shell/files/television/cable/claude-skills.toml:42,48`), none of which this design changes.
 
 What genuinely needs deciding is where the catalog comes from once the application no longer walks up to a `dotfiles.yml` marker. That is the substance of this document.
 
@@ -64,7 +64,7 @@ def claude_dir(root=None):
 - Symlinked from a per-tool directory named after its executable, driven by the `AI_SCRIPTS` manifest (`roles/ai/defaults/main.yml:43`, `roles/ai/tasks/main.yml:167-182`).
 - `claude-kit sync` runs with `HOME`, `DOTFILES_DIR` and `NO_COLOR` pinned, `--dry-run` under check mode, and `changed_when` matching the `, 0 changes` marker (`roles/ai/tasks/main.yml:190-215`).
 - `claude-kit converge --all` runs the same way (`roles/ai/tasks/main.yml:217-239`).
-- The `SessionStart` hook calls `~/.local/bin/claude-kit converge --quiet` (`roles/ai/files/claude/settings.json:289`).
+- The `SessionStart` hook calls `~/.local/bin/claude-kit converge --quiet` (`roles/ai/files/harness/adapters/claude/settings.json:289`).
 - `wt add` calls `claude-kit converge --quiet` in a new worktree (`roles/shell/files/fish/functions/wt.fish:163-164`).
 
 ### How the pilot installs a release
@@ -258,7 +258,7 @@ Without the rename every one of these was untouched, since each reads the comman
 | `aliases.fish` `claude:skill`/`:agent`/`:plugin` | The wrapped command name, and the wrapper names themselves are worth revisiting since they read as Claude-only |
 | `clean_claude.fish` | The command name in its restore hint |
 | `lib/python/tests/test_tv_cables.py` | The command name in the strings it asserts the cables contain |
-| `roles/ai/files/claude/**` | Nothing. The catalog does not move and is not renamed: it is Claude Code's payload, and `~/.claude` stays Claude Code's directory |
+| `roles/ai/files/harness/adapters/claude/**` | Nothing. The catalog does not move and is not renamed: it is Claude Code's payload, and `~/.claude` stays Claude Code's directory |
 
 ### 7. Test ownership
 
@@ -352,7 +352,7 @@ The boundary is external behaviour: resolved catalog path, command output, JSON 
 - `pytest.ini` (drop the claude-kit suite entry)
 - `lib/python/dotkit/testing.py` (drop `AI_SCRIPTS_DIR` if unclaimed)
 - `lib/python/tests/test_suites.py` (drop the removed `dotkit` symlink entry)
-- `roles/ai/README.md`, `README.md`, `CLAUDE.md`, `Makefile` comment, `docs/internals/testing-layout.md`, `docs/internals/skill-registry.md`, `docs/internals/pi-harness.md`, `roles/ai/files/claude/GETTING-STARTED.md` (stale references)
+- `roles/ai/README.md`, `README.md`, `CLAUDE.md`, `Makefile` comment, `docs/internals/testing-layout.md`, `docs/internals/skill-registry.md`, `docs/internals/pi-harness.md`, `roles/ai/files/harness/adapters/claude/GETTING-STARTED.md` (stale references)
 - `docs/design/standalone-script-apps-backlog.md` (queue status)
 
 **Removed from dotfiles after approval**
@@ -364,11 +364,11 @@ The boundary is external behaviour: resolved catalog path, command output, JSON 
 - `roles/shell/files/fish/functions/_tv_claude_list.fish`, `_tv_claude_toggle.fish`, `wt.fish`, `clean_claude.fish`
 - `roles/shell/files/fish/conf.d/aliases.fish`
 - `roles/shell/files/television/cable/claude-skills.toml`, `claude-agents.toml`
-- `roles/ai/files/claude/settings.json` (the `SessionStart` hook command)
+- `roles/ai/files/harness/adapters/claude/settings.json` (the `SessionStart` hook command)
 - `lib/python/tests/test_tv_cables.py` (the strings it asserts)
 - `dotfiles/.claude/claude-kit.json`, the one tracked provenance manifest, renamed to `kura.json`
 
 **Deliberately untouched**
 
-- `roles/ai/files/claude/**` (the catalog, which stays Claude Code's payload under its own name)
+- `roles/ai/files/harness/adapters/claude/**` (the catalog, which stays Claude Code's payload under its own name)
 - `~/.claude` and every project's `.claude/` and `.agents/` layout

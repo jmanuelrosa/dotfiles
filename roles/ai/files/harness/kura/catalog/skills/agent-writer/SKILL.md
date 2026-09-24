@@ -49,7 +49,7 @@ The shipped pairs on disk are the living exemplars; references here describe the
 
 1. Read `references/mode-selection.md` and classify the request: new seat, seat upgrade, advisor seat, or utility agent.
 2. Utility agents take the light path in `references/utility-agents.md` and skip Steps 3-4; everything else runs the full pipeline.
-3. Canonical home is this dotfiles repo: a seat is a plugin at `roles/ai/files/claude/plugins/<discipline>/` (agent + skill bundled); a utility agent is flat at `roles/ai/files/claude/agents/`. If invoked elsewhere, ask whether the agent is project-local (a seat plugin under `.claude/skills/`, a utility agent under `.claude/agents/`) before writing anything.
+3. Canonical home is this dotfiles repo: a seat is a plugin at `roles/ai/files/harness/plugins/<discipline>/` (agent + skill bundled); a utility agent is flat at `roles/ai/files/harness/agents/`. If invoked elsewhere, ask whether the agent is project-local (a seat plugin under `.claude/skills/`, a utility agent under `.claude/agents/`) before writing anything.
 4. If the user wants a prompt for a future session rather than the work done now, produce it from `references/session-prompt-template.md` and stop.
 
 ## Step 2: Ground in the canon and the current state

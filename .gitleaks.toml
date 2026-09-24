@@ -4,5 +4,5 @@ useDefault = true
 [allowlist]
 description = "Skill documentation with illustrative (non-real) credentials"
 paths = [
-  '''roles/ai/files/claude/skills/playwright/advanced/authentication-flows\.md''',
+  '''roles/ai/files/harness/kura/catalog/skills/playwright/advanced/authentication-flows\.md''',
 ]

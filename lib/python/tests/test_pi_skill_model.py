@@ -19,23 +19,29 @@ EXTENSION = PI_EXTENSIONS / "skill-model" / "index.ts"
 PI_PACKAGE = "@earendil-works/pi-coding-agent"
 
 CATALOGUE = [
+    "openai-codex/gpt-6-astra",
+    "openai-codex/gpt-6-sol",
+    "openai-codex/gpt-6-luna",
     "openai-codex/gpt-5.6-terra",
     "openai-codex/gpt-5.6-sol",
     "openai-codex/gpt-5.6-luna",
+    "anthropic/claude-fable-5-1",
+    "anthropic/claude-opus-5-5",
     "anthropic/claude-opus-5",
     "anthropic/claude-sonnet-5",
     "anthropic/claude-haiku-4-5",
+    "cursor/composer-2-5",
+    "cursor/grok-4.7@256k",
+    "cursor/grok-4.7@500k",
+    "cursor/grok-4.6",
+    "cursor/claude-fable-5-1@1m",
+    "cursor/claude-fable-5-1@300k",
     "cursor/claude-opus-5@1m",
     "cursor/claude-sonnet-5@1m",
-    "cursor/claude-fable-5@1m",
-    "cursor/composer-2-5",
-    "cursor/grok-4.6",
-    "cursor/gpt-5.6-luna@1m",
-    "cursor/gpt-5.6-terra@1m",
-    "cursor/gpt-5.6-sol@1m",
+    "cursor/kimi-k3",
     "cursor/future-model@1m",
 ]
-DEFAULT = "openai-codex/gpt-5.6-terra"
+DEFAULT = "openai-codex/gpt-6-sol"
 
 DRIVER = """
 const handlers = {};
@@ -141,12 +147,11 @@ def harness(tmp_path_factory):
         "commit": "name: commit\nmodel: opus",
         "cursor-opus": "name: cursor-opus\nmodel: cursor/claude-opus-5@1m",
         "cursor-sonnet": "name: cursor-sonnet\nmodel: cursor/claude-sonnet-5@1m",
-        "cursor-fable": "name: cursor-fable\nmodel: cursor/claude-fable-5@1m",
+        "cursor-fable": "name: cursor-fable\nmodel: cursor/claude-fable-5-1@1m",
         "cursor-composer": "name: cursor-composer\nmodel: cursor/composer-2-5",
         "cursor-grok": "name: cursor-grok\nmodel: cursor/grok-4.6",
-        "cursor-luna": "name: cursor-luna\nmodel: cursor/gpt-5.6-luna@1m",
-        "cursor-terra": "name: cursor-terra\nmodel: cursor/gpt-5.6-terra@1m",
-        "cursor-sol": "name: cursor-sol\nmodel: cursor/gpt-5.6-sol@1m",
+        "cursor-grok-new": "name: cursor-grok-new\nmodel: cursor/grok-4.7@256k",
+        "anthropic-fable": "name: anthropic-fable\nmodel: anthropic/claude-fable-5-1",
         "cursor-future": "name: cursor-future\nmodel: cursor/future-model@1m",
         "pinned-exactly": "name: pinned-exactly\nmodel: anthropic/claude-sonnet-5",
         "anthropic-opus": "name: anthropic-opus\nmodel: anthropic/claude-opus-5",
@@ -248,94 +253,76 @@ def assistant_error(error_message, model="claude-sonnet-5", provider="anthropic"
 def test_enabled_models_limits_cursor_to_the_selected_cursor_models_pool():
     enabled = json.loads((PI / "settings.json").read_text())["enabledModels"]
 
+    routing = json.loads((PI / "model-routing.json").read_text())
     assert {ref for ref in enabled if ref.startswith("cursor/")} == {
-        "cursor/composer-2-5",
-        "cursor/grok-4.6",
+        f"cursor/{model}" for model in routing["cursorModels"]
     }
     for alias in ("opus", "sonnet", "haiku"):
-        selected = next(ref for ref in enabled if alias in ref)
-        assert selected.startswith("anthropic/")
+        assert any(ref.startswith("anthropic/") and alias in ref for ref in enabled)
 
 
 def test_default_model_uses_the_codex_subscription():
     settings = json.loads((PI / "settings.json").read_text())
 
     assert settings["defaultProvider"] == "openai-codex"
-    assert settings["defaultModel"] == "gpt-5.6-sol"
+    assert settings["defaultModel"] == "gpt-6-sol"
     assert f'{settings["defaultProvider"]}/{settings["defaultModel"]}' in settings["enabledModels"]
 
 
 def test_a_bare_alias_resolves_to_the_first_provider_the_catalogue_declares(harness):
     result = run(harness, [invoke("commit")])
 
-    assert result["setModel"] == ["anthropic/claude-opus-5"]
+    assert result["setModel"] == ["anthropic/claude-opus-5-5"]
     assert result["entries"] == [{
         "customType": "skill-model",
         "data": {
             "version": 1,
             "state": "pinned",
             "skill": "commit",
-            "model": "anthropic/claude-opus-5",
+            "model": "anthropic/claude-opus-5-5",
             "previousModel": DEFAULT,
             "previousThinking": "high",
         },
     }]
 
 
-@pytest.mark.parametrize("cursor_available", [True, False])
 @pytest.mark.parametrize(
     ("skill", "target"),
     [
-        ("cursor-opus", "anthropic/claude-opus-5"),
-        ("cursor-sonnet", "anthropic/claude-sonnet-5"),
-        ("cursor-fable", "anthropic/claude-opus-5"),
-        ("cursor-luna", "openai-codex/gpt-5.6-luna"),
-        ("cursor-terra", "openai-codex/gpt-5.6-terra"),
-        ("cursor-sol", "openai-codex/gpt-5.6-sol"),
+        ("cursor-opus", "cursor/claude-opus-5@1m"),
+        ("cursor-sonnet", "cursor/claude-sonnet-5@1m"),
+        ("cursor-fable", "cursor/claude-fable-5-1@1m"),
+        ("cursor-grok-new", "cursor/grok-4.7@256k"),
     ],
 )
-def test_legacy_cursor_pins_redirect_before_any_request(
-    harness, skill, target, cursor_available,
-):
-    catalogue = [
-        ref for ref in CATALOGUE if cursor_available or not ref.startswith("cursor/")
-    ]
-    result = run(harness, [invoke(skill)], current=None, catalogue=catalogue)
+def test_cursor_pins_are_not_redirected(harness, skill, target):
+    result = run(harness, [invoke(skill)], current=None)
 
     assert result["setModel"] == [target]
-    assert not any(ref.startswith("cursor/") for ref in result["setModel"])
     assert result["current"] == target
     assert result["notify"] == []
-    assert result["replacements"] == []
     assert result["entries"][0]["data"]["model"] == target
 
 
-@pytest.mark.parametrize("tier", ["luna", "terra", "sol"])
-def test_redirected_cursor_gpt_has_no_account_error_fallback(harness, tier):
-    model = f"gpt-5.6-{tier}"
-    target = f"openai-codex/{model}"
+def test_an_unmapped_cursor_pin_has_no_fallback(harness):
     result = run(
         harness,
-        [
-            invoke(f"cursor-{tier}"),
-            assistant_error("Quota exceeded", model=model, provider="openai-codex"),
-        ],
+        [invoke("cursor-opus"), assistant_error("Quota exceeded", model="claude-opus-5@1m", provider="cursor")],
         current=None,
     )
-
-    assert result["setModel"] == [target]
+    assert result["setModel"] == ["cursor/claude-opus-5@1m"]
     assert result["replacements"] == []
 
 
 @pytest.mark.parametrize(
     ("skill", "primary", "fallback"),
     [
-        ("cursor-opus", "anthropic/claude-opus-5", "openai-codex/gpt-5.6-sol"),
-        ("cursor-sonnet", "anthropic/claude-sonnet-5", "openai-codex/gpt-5.6-terra"),
-        ("cursor-fable", "anthropic/claude-opus-5", "openai-codex/gpt-5.6-sol"),
-        ("anthropic-opus", "anthropic/claude-opus-5", "openai-codex/gpt-5.6-sol"),
-        ("pinned-exactly", "anthropic/claude-sonnet-5", "openai-codex/gpt-5.6-terra"),
-        ("anthropic-haiku", "anthropic/claude-haiku-4-5", "openai-codex/gpt-5.6-luna"),
+        ("anthropic-fable", "anthropic/claude-fable-5-1", "openai-codex/gpt-6-astra"),
+        ("anthropic-opus", "anthropic/claude-opus-5", "openai-codex/gpt-6-sol"),
+        ("pinned-exactly", "anthropic/claude-sonnet-5", "openai-codex/gpt-6-sol"),
+        ("anthropic-haiku", "anthropic/claude-haiku-4-5", "openai-codex/gpt-6-luna"),
+        ("cursor-composer", "cursor/composer-2-5", "openai-codex/gpt-5.6-luna"),
+        ("cursor-grok", "cursor/grok-4.6", "openai-codex/gpt-6-sol"),
     ],
 )
 def test_an_absent_exact_primary_starts_on_its_fallback(harness, skill, primary, fallback):
@@ -359,7 +346,7 @@ def test_an_account_limit_retries_the_skill_turn_on_its_mapped_model(harness):
     result = run(
         harness,
         [
-            invoke("cursor-sonnet"),
+            invoke("pinned-exactly"),
             STARTED,
             assistant_error("Monthly usage limit reached"),
             SETTLED,
@@ -369,7 +356,7 @@ def test_an_account_limit_retries_the_skill_turn_on_its_mapped_model(harness):
 
     assert result["setModel"] == [
         "anthropic/claude-sonnet-5",
-        "openai-codex/gpt-5.6-terra",
+        "openai-codex/gpt-6-sol",
         DEFAULT,
     ]
     assert result["replacements"] == [{
@@ -377,15 +364,15 @@ def test_an_account_limit_retries_the_skill_turn_on_its_mapped_model(harness):
         "content": [],
         "stopReason": "error",
         "errorMessage": (
-            "Provider returned error: retrying cursor-sonnet with "
-            "openai-codex/gpt-5.6-terra"
+            "Provider returned error: retrying pinned-exactly with "
+            "openai-codex/gpt-6-sol"
         ),
         "provider": "anthropic",
         "model": "claude-sonnet-5",
     }]
     assert result["status"] == [
-        ["dotfiles-skill-model", "cursor-sonnet on claude-sonnet-5"],
-        ["dotfiles-skill-model", "cursor-sonnet on gpt-5.6-terra"],
+        ["dotfiles-skill-model", "pinned-exactly on claude-sonnet-5"],
+        ["dotfiles-skill-model", "pinned-exactly on gpt-6-sol"],
         ["dotfiles-skill-model", None],
     ]
     assert result["retryableReplacements"] == [True]
@@ -393,7 +380,7 @@ def test_an_account_limit_retries_the_skill_turn_on_its_mapped_model(harness):
 
 def test_an_unpinned_agent_run_retries_on_its_mapped_model(harness):
     primary = "anthropic/claude-haiku-4-5"
-    fallback = "openai-codex/gpt-5.6-luna"
+    fallback = "openai-codex/gpt-6-luna"
     result = run(
         harness,
         [
@@ -430,12 +417,11 @@ def test_an_unpinned_agent_run_retries_on_its_mapped_model(harness):
     assert result["current"] == primary
 
 
-def test_an_unpinned_agent_redirects_before_its_first_request(harness):
+def test_an_unpinned_agent_without_a_route_keeps_its_model(harness):
     source = "cursor/claude-sonnet-5@1m"
-    target = "anthropic/claude-sonnet-5"
     result = run(harness, [STARTED, SETTLED], current=source)
 
-    assert result["setModel"] == [target, source]
+    assert result["setModel"] == []
     assert result["replacements"] == []
     assert result["notify"] == []
     assert result["current"] == source
@@ -483,7 +469,7 @@ def test_an_unpinned_agent_keeps_network_errors_on_the_normal_retry_path(harness
 
 def test_an_unpinned_agent_skips_an_unavailable_fallback(harness):
     primary = "anthropic/claude-haiku-4-5"
-    fallback = "openai-codex/gpt-5.6-luna"
+    fallback = "openai-codex/gpt-6-luna"
     result = run(
         harness,
         [
@@ -507,14 +493,13 @@ def test_an_unpinned_agent_skips_an_unavailable_fallback(harness):
 @pytest.mark.parametrize(
     ("skill", "provider", "model", "fallback"),
     [
-        ("cursor-opus", "anthropic", "claude-opus-5", "openai-codex/gpt-5.6-sol"),
-        ("cursor-sonnet", "anthropic", "claude-sonnet-5", "openai-codex/gpt-5.6-terra"),
-        ("cursor-fable", "anthropic", "claude-opus-5", "openai-codex/gpt-5.6-sol"),
-        ("anthropic-opus", "anthropic", "claude-opus-5", "openai-codex/gpt-5.6-sol"),
-        ("pinned-exactly", "anthropic", "claude-sonnet-5", "openai-codex/gpt-5.6-terra"),
+        ("anthropic-fable", "anthropic", "claude-fable-5-1", "openai-codex/gpt-6-astra"),
+        ("anthropic-opus", "anthropic", "claude-opus-5", "openai-codex/gpt-6-sol"),
+        ("pinned-exactly", "anthropic", "claude-sonnet-5", "openai-codex/gpt-6-sol"),
         ("cursor-composer", "cursor", "composer-2-5", "openai-codex/gpt-5.6-luna"),
-        ("cursor-grok", "cursor", "grok-4.6", "openai-codex/gpt-5.6-terra"),
-        ("anthropic-haiku", "anthropic", "claude-haiku-4-5", "openai-codex/gpt-5.6-luna"),
+        ("cursor-grok", "cursor", "grok-4.6", "openai-codex/gpt-6-sol"),
+        ("cursor-grok-new", "cursor", "grok-4.7@256k", "openai-codex/gpt-6-sol"),
+        ("anthropic-haiku", "anthropic", "claude-haiku-4-5", "openai-codex/gpt-6-luna"),
     ],
 )
 def test_each_source_model_retries_on_its_exact_fallback(
@@ -533,13 +518,13 @@ def test_a_bare_alias_uses_the_route_for_the_model_it_resolves_to(harness):
         harness,
         [
             invoke("commit"),
-            assistant_error("Quota exceeded", model="claude-opus-5", provider="anthropic"),
+            assistant_error("Quota exceeded", model="claude-opus-5-5", provider="anthropic"),
         ],
     )
 
     assert result["setModel"] == [
-        "anthropic/claude-opus-5",
-        "openai-codex/gpt-5.6-sol",
+        "anthropic/claude-opus-5-5",
+        "openai-codex/gpt-6-sol",
     ]
 
 
@@ -555,29 +540,29 @@ def test_a_bare_alias_uses_the_route_for_the_model_it_resolves_to(harness):
 def test_account_and_capacity_errors_use_the_exact_fallback(harness, error_message):
     result = run(
         harness,
-        [invoke("cursor-sonnet"), assistant_error(error_message)],
+        [invoke("pinned-exactly"), assistant_error(error_message)],
     )
 
     assert result["setModel"] == [
         "anthropic/claude-sonnet-5",
-        "openai-codex/gpt-5.6-terra",
+        "openai-codex/gpt-6-sol",
     ]
 
 
 def test_a_mapped_pin_without_auth_starts_directly_on_its_fallback(harness):
-    previous = "openai-codex/gpt-5.6-sol"
+    previous = "openai-codex/gpt-5.6-terra"
     result = run(
         harness,
-        [invoke("cursor-sonnet"), SETTLED],
+        [invoke("pinned-exactly"), SETTLED],
         current=previous,
         unauthenticated=["anthropic/claude-sonnet-5"],
     )
 
-    assert result["setModel"] == ["openai-codex/gpt-5.6-terra", previous]
+    assert result["setModel"] == ["openai-codex/gpt-6-sol", previous]
     assert result["notify"] == [[
         (
-            "cursor-sonnet: anthropic/claude-sonnet-5 is unavailable; "
-            "using openai-codex/gpt-5.6-terra"
+            "pinned-exactly: anthropic/claude-sonnet-5 is unavailable; "
+            "using openai-codex/gpt-6-sol"
         ),
         "warning",
     ]]
@@ -621,11 +606,11 @@ def test_fallback_works_when_the_skill_model_is_already_selected(harness):
     primary = "anthropic/claude-sonnet-5"
     result = run(
         harness,
-        [invoke("cursor-sonnet"), assistant_error("Usage limit reached"), SETTLED],
+        [invoke("pinned-exactly"), assistant_error("Usage limit reached"), SETTLED],
         current=primary,
     )
 
-    assert result["setModel"] == ["openai-codex/gpt-5.6-terra", primary]
+    assert result["setModel"] == ["openai-codex/gpt-6-sol", primary]
     assert [entry["data"]["state"] for entry in result["entries"]] == [
         "pinned",
         "released",
@@ -635,12 +620,12 @@ def test_fallback_works_when_the_skill_model_is_already_selected(harness):
 def test_the_run_ending_restores_the_model_before_the_thinking_level(harness):
     result = run(harness, [invoke("commit"), SETTLED], thinking="medium")
 
-    assert result["setModel"] == ["anthropic/claude-opus-5", DEFAULT]
+    assert result["setModel"] == ["anthropic/claude-opus-5-5", DEFAULT]
     assert result["setThinkingLevel"] == ["medium"]
     assert result["current"] == DEFAULT
     assert [entry["data"]["state"] for entry in result["entries"]] == ["pinned", "released"]
     assert result["status"] == [
-        ["dotfiles-skill-model", "commit on claude-opus-5"],
+        ["dotfiles-skill-model", "commit on claude-opus-5-5"],
         ["dotfiles-skill-model", None],
     ]
 
@@ -655,7 +640,7 @@ def test_a_skill_the_model_reads_itself_is_pinned_too(harness):
 
     result = run(harness, [read(skills, "commit")])
 
-    assert result["setModel"] == ["anthropic/claude-opus-5"]
+    assert result["setModel"] == ["anthropic/claude-opus-5-5"]
 
 
 def test_a_model_no_enabled_entry_matches_leaves_the_session_alone(harness):
@@ -693,7 +678,7 @@ def test_the_first_pin_of_a_run_owns_the_restore(harness):
     """A second skill inside the same run must not overwrite what the first snapshotted."""
     result = run(harness, [invoke("commit"), invoke("pinned-exactly"), SETTLED])
 
-    assert result["setModel"] == ["anthropic/claude-opus-5", DEFAULT]
+    assert result["setModel"] == ["anthropic/claude-opus-5-5", DEFAULT]
 
 
 def test_resuming_a_session_pinned_mid_run_is_not_stranded_on_the_pinned_model(harness):

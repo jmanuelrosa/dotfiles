@@ -26,5 +26,5 @@ List three things from the current file, in the final message and in your workin
 
 ## Where the files go
 
-Canonical home is the dotfiles repo. A seat (implementer or advisor) is a plugin: `roles/ai/files/claude/plugins/<discipline>/` bundling `agents/<seat>.md` and `skills/<seat>-failure-modes/`. A utility agent is flat: `roles/ai/files/claude/agents/<name>.md`.
+Canonical home is the dotfiles repo. A seat (implementer or advisor) is a plugin: `roles/ai/files/harness/plugins/<discipline>/` bundling `agents/<seat>.md` and `skills/<seat>-failure-modes/`. A utility agent is flat: `roles/ai/files/harness/agents/<name>.md`.
 Project-local is the exception (a seat plugin under `.claude/skills/<discipline>/`, a utility agent under `.claude/agents/`) and skips the registry entirely; confirm with the user before choosing that path.

@@ -13,7 +13,7 @@ It also arms the selected model's route for ordinary agent runs.
 Because pi-subagents loads this extension into child sessions, built-in and custom agents use the same routing policy without changing the package.
 It restores the previous model and thinking level when the run settles.
 
-Redirects and account-capacity fallbacks come from `roles/ai/files/pi/model-routing.json`.
+Redirects and account-capacity fallbacks come from `roles/ai/files/harness/adapters/pi/model-routing.json`.
 Legacy Cursor models are redirected before lookup, and configured source models can retry on their mapped Codex fallback after authentication, quota, subscription, or spend-limit failures.
 Ordinary-run routing begins in `before_agent_start`, after Pi's no-auth preflight, so it cannot rescue a source provider with no configured credentials; it handles failures returned after a provider request begins.
 Skill pin state is persisted as a custom session entry so reload and resume can restore it.

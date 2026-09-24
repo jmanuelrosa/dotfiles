@@ -30,20 +30,26 @@ from pathlib import Path
 # lib/python/dotkit/testing.py -> lib/python/dotkit -> lib/python -> lib -> checkout
 REPO = Path(__file__).resolve().parents[3]
 
-# Claude Code's payload: artifacts that ship into ~/.claude rather than onto PATH.
-CLAUDE = REPO / "roles/ai/files/claude"
-SKILLS = CLAUDE / "skills"
-AGENTS = CLAUDE / "agents"
-PLUGINS = CLAUDE / "plugins"
-HOOKS = CLAUDE / "hooks"
+# The harness-neutral AI payload. Everything every harness shares sits at the top of this
+# tree; what only one harness reads sits under adapters/<harness>/. This is the one place a
+# test names the location, so lifting the tree into its own repository is one edit here.
+HARNESS = REPO / "roles/ai/files/harness"
+CATALOG = HARNESS / "kura/catalog"
+SKILLS = CATALOG / "skills"
+AGENTS = HARNESS / "agents"
+PLUGINS = HARNESS / "plugins"
+HOOKS = HARNESS / "hooks"
+RULES = HARNESS / "rules"
+INSTRUCTIONS = HARNESS / "AGENTS.md"
+STATUSLINE_VOCABULARY = HARNESS / "statusline.json"
 
-SKILL_REGISTRY = CLAUDE / "skill-registry.json"
-AGENT_REGISTRY = CLAUDE / "agent-registry.json"
+SKILL_REGISTRY = CATALOG / "skill-registry.json"
+AGENT_REGISTRY = HARNESS / "agent-registry.json"
 
-# Pi's payload. Smaller than Claude's because most of what Pi loads is Claude's: the skills
-# and AGENTS.md are shared by symlink, and only settings, models, themes and the extensions
-# are Pi's own.
-PI = REPO / "roles/ai/files/pi"
+# Per-harness adapters: what a single harness reads and nothing else does.
+CLAUDE = HARNESS / "adapters/claude"
+CLAUDE_SETTINGS = CLAUDE / "settings.json"
+PI = HARNESS / "adapters/pi"
 PI_EXTENSIONS = PI / "extensions"
 
 # Authored tooling, one directory per role that owns some.
