@@ -76,3 +76,48 @@ def force_colour(monkeypatch, on):
     else:
         monkeypatch.delenv("FORCE_COLOR", raising=False)
         monkeypatch.setenv("NO_COLOR", "1")
+
+
+AI_DEFAULTS = REPO / "roles/ai/defaults/main.yml"
+AI_TASKS = REPO / "roles/ai/tasks/main.yml"
+
+
+def ai_defaults():
+    import yaml  # the suites run with pyyaml; dotkit itself stays stdlib-only at runtime
+
+    return yaml.safe_load(AI_DEFAULTS.read_text())
+
+
+def harness_links(home="~"):
+    """What the ai role's link table writes, as {dest: src}, the way its tasks expand it.
+
+    `shared` plus every enabled harness; `files` one link each, `globs` one link per
+    regular-file match, which is what Ansible's fileglob lookup keeps. `{{ HOME }}` becomes
+    `home`. Raises on a destination written twice, since the second link would silently
+    replace the first on every run.
+    """
+    defaults = ai_defaults()
+    links = {}
+
+    def put(dest, src):
+        assert dest not in links, f"{dest} is linked from both {links[dest]} and {src}"
+        links[dest] = src
+
+    for name in ["shared", *defaults["HARNESS_ENABLED"]]:
+        entry = defaults["HARNESS_LINKS"][name]
+        for link in entry.get("files", []):
+            put(link["dest"].replace("{{ HOME }}", home), HARNESS / link["src"])
+        for glob in entry.get("globs", []):
+            dest = glob["dest"].replace("{{ HOME }}", home)
+            for match in sorted((HARNESS / glob["src"]).glob(glob["pattern"])):
+                if match.is_file():
+                    put(f"{dest}/{match.name}", match)
+    return links
+
+
+def harness_dirs(home="~"):
+    """Every directory the role creates before linking into it."""
+    defaults = ai_defaults()
+    sets = ["shared", *defaults["HARNESS_ENABLED"]]
+    listed = [d for name in sets for d in defaults["HARNESS_LINKS"][name].get("dirs", [])]
+    return {d.replace("{{ HOME }}", home) for d in listed + defaults["AI_DIRS"]}

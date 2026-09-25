@@ -47,20 +47,20 @@ import json
 import re
 
 import pytest
-import yaml
-from dotkit.testing import CLAUDE, PLUGINS, REPO, RULES, SKILLS, SKILL_REGISTRY
-
-AI_TASKS = REPO / "roles/ai/tasks/main.yml"
+from dotkit.testing import (
+    CLAUDE,
+    PLUGINS,
+    REPO,
+    RULES,
+    SKILLS,
+    SKILL_REGISTRY,
+    ai_defaults,
+    harness_dirs,
+    harness_links,
+)
 
 POLICY = RULES / "code-review.md"
 MECHANICS = SKILLS / "review-mechanics" / "SKILL.md"
-
-DIRS_TASK = "Ensure AI config directories exist"
-RULES_TASK = "Symlink claude rules"
-RULES_FIND_TASK = "Find the links in the claude rules directory"
-RULES_FIND_TASK_REGISTER = "claude_rules_links"
-RULES_PRUNE_TASK = "Remove claude rules links the repo no longer ships"
-CONFIG_TASK = "Symlink claude config files"
 
 # The policy exists partly to collapse the four vocabularies our own artifacts used
 # (Critical/Nit, P0-P2, nitpick/warning, Important/Nit), so a word dropped from it
@@ -107,66 +107,31 @@ def call_sites():
     yield CLAUDE / "README.md"
 
 
-def ai_task(name):
-    tasks = yaml.safe_load(AI_TASKS.read_text())
-    matching = [t for t in tasks if t.get("name") == name]
-    assert len(matching) == 1, f"expected exactly one '{name}' task in the ai role"
-    return matching[0]
-
-
 def test_the_policy_is_linked_into_the_user_rules_directory():
     """The only route a machine-wide review policy has."""
-    task = ai_task(RULES_TASK)
-    spec = task["ansible.builtin.file"]
-    assert spec["state"] == "link"
-    assert "{{ role_path }}" in spec["src"], "src must be absolute or the link dangles"
-    assert spec["dest"] == "{{ HOME }}/.claude/rules/{{ item | basename }}"
-    assert task["with_fileglob"] == ["{{ role_path }}/files/claude/rules/*.md"], (
-        "the glob must be *.md so a future tests/ or README beside a rule stays unlinked"
-    )
+    assert harness_links()["~/.claude/rules/code-review.md"] == POLICY
 
 
 def test_the_rules_directory_is_created_before_anything_links_into_it():
     """`state: link` does not create parents, so a missing entry here fails the play."""
-    task = ai_task(DIRS_TASK)
-    assert "{{ HOME }}/.claude/rules" in task["loop"]
+    assert "~/.claude/rules" in harness_dirs()
+
+
+def test_every_rule_is_linked_and_only_markdown_is():
+    """The glob must be *.md so a future tests/ or README beside a rule stays unlinked."""
+    linked = {dest for dest in harness_links() if dest.startswith("~/.claude/rules/")}
+    shipped = {f"~/.claude/rules/{p.name}" for p in RULES.glob("*.md")}
+    shipped |= {f"~/.claude/rules/{p.name}" for p in (CLAUDE / "rules").glob("*.md")}
+    assert linked == shipped
 
 
 def test_a_rule_the_repo_stops_shipping_is_pruned_from_the_rules_directory():
-    """The glob links what exists and prunes nothing, so a deleted rule leaves a link.
-
-    Every already-provisioned machine keeps it, dangling, in the one directory Claude Code
-    reads at launch, and a dangling rule is indistinguishable from a rule that was never
-    written. The set has to come off disk rather than from a list of filenames, because
-    the rule that moves next will not be one of the ones that moved last.
-    """
-    task = ai_task(RULES_FIND_TASK)
-    assert task["register"] == RULES_FIND_TASK_REGISTER
-    found = task["ansible.builtin.find"]
-    assert found["paths"] == "{{ HOME }}/.claude/rules"
-    assert found["file_type"] == "link", (
-        "a rule someone wrote by hand in ~/.claude/rules/ is not ours to delete"
-    )
-
-    prune = ai_task(RULES_PRUNE_TASK)
-    assert prune["ansible.builtin.file"]["state"] == "absent"
-    loop = prune["loop"]
-    assert RULES_FIND_TASK_REGISTER in loop, "the candidates must be what find saw"
-    assert "reject('in', CLAUDE_RULES_SHIPPED)" in loop, (
-        "the survivors must be exactly what the link task's glob ships"
-    )
-    assert prune["vars"]["CLAUDE_RULES_SHIPPED"] == (
-        "{{ query('fileglob', role_path ~ '/files/claude/rules/*.md')"
-        " | map('basename') | list }}"
-    ), "one glob for both tasks, or a rule can be linked and pruned in the same run"
-
-
-def test_the_prune_runs_over_the_same_glob_the_link_task_uses():
-    """Two globs that drift would delete a link the run above it just made."""
-    linked = ai_task(RULES_TASK)["with_fileglob"][0]
-    shipped = ai_task(RULES_PRUNE_TASK)["vars"]["CLAUDE_RULES_SHIPPED"]
-    assert "files/claude/rules/*.md" in linked
-    assert "files/claude/rules/*.md" in shipped
+    """A deleted rule leaves a link in the one directory Claude Code reads at launch, and a
+    dangling rule is indistinguishable from a rule that was never written. The rules
+    directory is a glob destination, which is what puts it under the generic prune
+    (test_harness_links.py pins that the prune removes only links into this role)."""
+    claude = ai_defaults()["HARNESS_LINKS"]["claude"]
+    assert "{{ HOME }}/.claude/rules" in {glob["dest"] for glob in claude["globs"]}
 
 
 def test_the_policy_exists_and_is_the_only_kind_of_file_in_the_rules_tree():
@@ -227,7 +192,7 @@ def test_no_review_md_reaches_the_home_directory():
     enabled, not staged here against a day that may not come.
     """
     assert not (RULES / "REVIEW.md").exists()
-    assert "REVIEW.md" not in ai_task(CONFIG_TASK)["loop"]
+    assert not any(dest.endswith("REVIEW.md") for dest in harness_links())
 
 
 @pytest.mark.parametrize("severity", SEVERITIES)

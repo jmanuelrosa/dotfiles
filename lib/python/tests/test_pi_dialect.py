@@ -16,13 +16,11 @@ import re
 
 import pytest
 import yaml
-from dotkit.testing import AGENTS, CLAUDE, PI, PLUGINS, REPO, SKILLS
+from dotkit.testing import AGENTS, CLAUDE, PI, PLUGINS, REPO, SKILLS, harness_dirs, harness_links
 
 AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 PI_SETTINGS = PI / "settings.json"
 
-DIRS_TASK = "Ensure AI config directories exist"
-AGENTS_LINK_TASK = "Point pi at the global claude agents"
 
 # Claude's key first, pi's second. One row per fact the two harnesses must agree on.
 DUAL_KEYS = (("effort", "thinking"), ("disallowedTools", "disallowed_tools"))
@@ -166,17 +164,16 @@ def test_architect_bans_the_agent_tool_in_both_dialects():
 # --- the discovery paths ------------------------------------------------------
 
 
-def test_the_ai_role_does_not_provision_pis_global_agents():
-    tasks = yaml.safe_load(AI_TASKS.read_text())
-    assert all(task.get("name") != AGENTS_LINK_TASK for task in tasks)
+def test_the_ai_role_links_pis_global_agents():
+    """pi-subagents reads global agents only from ~/.pi/agent/agents, and the role owns
+    the one set both harnesses load."""
+    assert harness_links()["~/.pi/agent/agents"] == AGENTS
 
 
-def test_the_link_target_is_created_before_the_link():
-    """`state: link` with force writes a dangling link happily, so ~/.claude/agents
-    must be in the directories task or a first run points pi at nothing."""
-    tasks = yaml.safe_load(AI_TASKS.read_text())
-    dirs = next(t for t in tasks if t.get("name") == DIRS_TASK)
-    assert "{{ HOME }}/.claude/agents" in dirs["loop"]
+def test_the_link_parent_is_created_before_the_link():
+    """`state: link` with force writes a link into a missing parent as an error, so
+    ~/.pi/agent must be in the directories the role creates first."""
+    assert "~/.pi/agent" in harness_dirs()
 
 
 def test_pi_subagents_is_declared_in_the_settings_pi_actually_loads():

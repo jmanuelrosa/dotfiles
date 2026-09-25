@@ -21,7 +21,18 @@ import re
 
 import pytest
 import yaml
-from dotkit.testing import AGENT_REGISTRY, AGENTS, CATALOG, CLAUDE_SETTINGS, HARNESS, PLUGINS, REPO, SKILLS
+from dotkit.testing import (
+    AGENT_REGISTRY,
+    AGENTS,
+    CATALOG,
+    CLAUDE_SETTINGS,
+    HARNESS,
+    PLUGINS,
+    REPO,
+    SKILLS,
+    ai_defaults,
+    harness_links,
+)
 
 AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 AI_DEFAULTS = REPO / "roles/ai/defaults/main.yml"
@@ -37,9 +48,6 @@ CATALOG_TASK = "Link the artifact catalog at the fixed path"
 LEGACY_REMOVE_TASK = "Remove the legacy claude-kit symlink"
 LEGACY_PI_SKILLS_CHECK_TASK = "Check for the superseded pi skills link"
 LEGACY_PI_SKILLS_REMOVE_TASK = "Remove the superseded pi skills link"
-GLOBAL_AGENTS_TASK = "Symlink global claude agents"
-GLOBAL_AGENT_LINKS_STAT_TASK = "Inspect links in the global claude agents directory"
-GLOBAL_AGENTS_PRUNE_TASK = "Remove global claude agent links the role no longer ships"
 LINK_TASK = "Link AI scripts into the user bin directory"
 HOSTOF_TASK = "Install the pinned hostof release"
 
@@ -116,7 +124,7 @@ def test_the_role_provisions_kuras_machine_configuration():
 def test_the_role_links_the_catalog_at_the_fixed_path():
     spec = role_task("ai", CATALOG_TASK)["ansible.builtin.file"]
     assert spec["state"] == "link"
-    assert spec["src"] == "{{ role_path }}/files/kura/catalog"
+    assert spec["src"] == "{{ HARNESS_DIR }}/kura/catalog"
     assert spec["dest"] == "{{ HOME }}/.config/kura/catalog"
     assert spec["force"] is True, "a link naming an older checkout must be repointed"
 
@@ -171,14 +179,9 @@ def test_the_old_cross_harness_skill_link_is_removed_only_when_it_is_ours():
 
 
 def test_standalone_agents_remain_role_provisioned_and_global():
-    task = role_task("ai", GLOBAL_AGENTS_TASK)
-    assert task["ansible.builtin.file"] == {
-        "src": "{{ role_path }}/files/claude/agents/{{ item | basename }}",
-        "dest": "{{ HOME }}/.claude/agents/{{ item | basename }}",
-        "state": "link",
-        "force": True,
-    }
-    assert task["with_fileglob"] == ["{{ role_path }}/files/claude/agents/*.md"]
+    """Kura manages skills only, so the link table owns the agents: every one is global."""
+    linked = {dest for dest in harness_links() if dest.startswith("~/.claude/agents/")}
+    assert linked == {f"~/.claude/agents/{path.name}" for path in AGENTS.glob("*.md")}
 
     registry = json.loads(AGENT_REGISTRY.read_text())
     registered = {entry["name"] for entry in registry["local_agents"]}
@@ -187,19 +190,11 @@ def test_standalone_agents_remain_role_provisioned_and_global():
     assert all("global" in entry["groups"] for entry in registry["local_agents"])
 
 
-def test_global_agent_pruning_inspects_link_targets_before_removal():
-    inspect = role_task("ai", GLOBAL_AGENT_LINKS_STAT_TASK)
-    assert inspect["loop"] == "{{ claude_agent_links.files }}"
-    assert inspect["ansible.builtin.stat"] == {
-        "path": "{{ item.path }}",
-        "follow": False,
-    }
-
-    prune = role_task("ai", GLOBAL_AGENTS_PRUNE_TASK)
-    assert prune["loop"] == "{{ claude_agent_link_stats.results }}"
-    conditions = " ".join(prune["when"])
-    assert "item.stat.lnk_source" in conditions
-    assert "item.item.path" in prune["ansible.builtin.file"]["path"]
+def test_an_agent_the_repo_stops_shipping_is_pruned():
+    """The agents directory is a glob destination, which puts it under the generic prune
+    that test_harness_links.py pins to links into this role only."""
+    claude = ai_defaults()["HARNESS_LINKS"]["claude"]
+    assert "{{ HOME }}/.claude/agents" in {glob["dest"] for glob in claude["globs"]}
 
 
 # --- the installers that still link from this checkout ------------------------

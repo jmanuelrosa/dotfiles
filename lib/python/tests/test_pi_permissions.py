@@ -63,11 +63,10 @@ names it, so `git commit` still works and `cat ~/.gitconfig` does not.
 import json
 import re
 
-from dotkit.testing import CLAUDE_SETTINGS, PI, REPO
+from dotkit.testing import CLAUDE_SETTINGS, PI, REPO, harness_links
 
 PI_PERMISSIONS = PI / "permission-system/config.json"
 PI_SETTINGS = PI / "settings.json"
-AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 
 PACKAGE = "npm:@gotgenes/pi-permission-system@27.1.1"
 
@@ -434,7 +433,8 @@ def test_the_sandbox_is_still_installed_beside_it():
 
 def test_the_role_links_the_config_into_place():
     """A config in the repo that no play links is a policy nothing enforces."""
-    assert "pi/permission-system/config.json" in AI_TASKS.read_text()
+    config = "~/.pi/agent/extensions/pi-permission-system/config.json"
+    assert harness_links()[config] == PI / "permission-system" / "config.json"
 
 
 def test_the_config_is_parseable():

@@ -60,10 +60,9 @@ Four things the translation cannot carry, verified against pi-sandbox 0.6.5 and 
 import json
 import re
 
-from dotkit.testing import CLAUDE_SETTINGS, PI, REPO
+from dotkit.testing import CLAUDE_SETTINGS, PI, REPO, harness_links
 
 PI_SANDBOX = PI / "sandbox.json"
-AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 
 
 def to_sandbox_pattern(pattern):
@@ -212,7 +211,7 @@ def test_pi_sandbox_is_declared_in_the_packages_pi_loads():
 
 def test_the_role_links_the_sandbox_config_into_place():
     """A config in the repo that no play links is a policy nothing enforces."""
-    assert "pi/sandbox.json" in AI_TASKS.read_text()
+    assert harness_links()["~/.pi/agent/sandbox.json"] == PI / "sandbox.json"
 
 
 def test_the_config_is_parseable():

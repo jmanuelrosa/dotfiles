@@ -12,7 +12,7 @@
     "anthropic/claude-opus-5": "xhigh",
     "anthropic/claude-sonnet-5": "xhigh",
     "openai-codex/gpt-6-sol": "xhigh",
-    "openai-codex/pt-6-luna": "xhigh",
+    "openai-codex/gpt-6-luna": "xhigh",
     "openai-codex/gpt-5.6-sol": "xhigh",
     "openai-codex/gpt-5.6-terra": "xhigh"
   },
@@ -36,7 +36,7 @@
     "cursor/claude-opus-5@1m",
     "cursor/claude-sonnet-5@1m",
     "cursor/kimi-k3",
-    "claude-fable-5-1",
+    "anthropic/claude-fable-5-1",
     "anthropic/claude-opus-5-5",
     "anthropic/claude-opus-5",
     "anthropic/claude-sonnet-5",
@@ -60,7 +60,6 @@
     "npm:pi-sandbox",
     "npm:@gotgenes/pi-permission-system@27.1.1",
     "npm:pi-ask-user",
-    "npm:pi-mcp-adapter",
     "npm:pi-subagents"
   ],
   "quietStartup": true,
