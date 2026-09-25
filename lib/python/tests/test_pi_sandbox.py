@@ -5,18 +5,14 @@ permission model at all, which is why `pi-sandbox` is installed: it confines bas
 the OS level through a fork of Anthropic's own sandbox-runtime, and it applies
 allow/deny lists to read, write and edit directly.
 
-The two shapes are close but not identical, so `derive` below is the whole of the
-translation and this module is its specification. `files/pi/sandbox.json` is a
+The two shapes are close but not identical, so `harnessgen.emit_pi.sandbox` is the
+whole of the translation and this module is its specification. `files/pi/sandbox.json` is a
 committed real file (symlinked into place like every other config here, so editing it
 takes effect without a play), and the test recomputes what it should contain. Editing
 Claude's rules without regenerating fails here rather than leaving pi quietly running
 last month's policy.
 
-To regenerate after changing Claude's settings:
-
-    PYTHONPATH=lib/python python3 -c "import json,sys; sys.path.insert(0,'lib/python/tests'); \
-from test_pi_sandbox import derive, CLAUDE_SETTINGS, PI_SANDBOX; \
-PI_SANDBOX.write_text(json.dumps(derive(json.loads(CLAUDE_SETTINGS.read_text())), indent=2)+chr(10))"
+`make harness` regenerates it from policy/, and `make harness-check` names the drift.
 
 Four things the translation cannot carry, verified against pi-sandbox 0.6.5 and the
 @carderne/sandbox-runtime it forks, recorded here because each is silent if forgotten:
@@ -61,32 +57,10 @@ import json
 import re
 
 from dotkit.testing import CLAUDE_SETTINGS, PI, REPO, harness_links
+from harnessgen import emit_pi, manifest
+from harnessgen.emit_pi import SANDBOX, to_sandbox_pattern
 
-PI_SANDBOX = PI / "sandbox.json"
-
-
-def to_sandbox_pattern(pattern):
-    """Claude's "anywhere" prefix, made absolute.
-
-    pi-sandbox runs any pattern containing `*` through `resolve()`, which anchors a
-    relative one to the current directory. So `**/.env` would stop meaning "any .env"
-    and start meaning "an .env under this project", which is a narrowing no reader of
-    the Claude rule would expect. A leading slash restores the original reach.
-    """
-    if pattern.startswith("**/"):
-        return "/" + pattern
-    return pattern
-
-
-def unique(patterns):
-    """In order, without repeats.
-
-    Claude's two layers overlap by design (`~/.npmrc` is both a sandbox denyRead and a
-    `Read` deny), and concatenating them is what makes a duplicate. pi matches with
-    `.some()`, so a repeat changes no verdict; it is dropped because a derived file
-    nobody hand-edits should not carry noise that reads like an oversight.
-    """
-    return list(dict.fromkeys(patterns))
+PI_SANDBOX = manifest.find_root(PI) / SANDBOX
 
 
 def covers(pattern, path):
@@ -101,37 +75,6 @@ def covers(pattern, path):
     return path == pattern or path.startswith(pattern.rstrip("/") + "/")
 
 
-def paths_denied(deny, tool):
-    """The path patterns from one tool's deny rules, in order."""
-    out = []
-    for rule in deny:
-        match = re.fullmatch(rf"{tool}\((.*)\)", rule)
-        if match:
-            out.append(to_sandbox_pattern(match.group(1)))
-    return out
-
-
-def derive(settings):
-    """Claude's sandbox block plus the path half of its permissions, as pi reads them."""
-    sandbox = settings["sandbox"]
-    filesystem = sandbox["filesystem"]
-    deny = settings["permissions"]["deny"]
-    allow_write = [p for p in filesystem["allowWrite"] if not p.startswith("$")]
-    return {
-        "enabled": True,
-        "network": {
-            "allowedDomains": list(sandbox["network"]["allowedDomains"]),
-            "allowLocalBinding": bool(sandbox["network"].get("allowLocalBinding", False)),
-        },
-        "filesystem": {
-            "allowWrite": allow_write + ["/var/folders"],
-            "allowRead": list(filesystem["allowRead"]),
-            "denyRead": unique(list(filesystem["denyRead"]) + paths_denied(deny, "Read")),
-            "denyWrite": unique(paths_denied(deny, "Edit")),
-        },
-    }
-
-
 def claude_settings():
     return json.loads(CLAUDE_SETTINGS.read_text())
 
@@ -144,8 +87,8 @@ def pi_sandbox():
 
 
 def test_the_committed_config_is_what_the_derivation_produces():
-    """One statement of the policy. Editing Claude's rules alone fails here."""
-    assert pi_sandbox() == derive(claude_settings())
+    """One statement of the policy, in policy/. A hand edit to the rendered file fails here."""
+    assert pi_sandbox() == emit_pi.sandbox(manifest.load())
 
 
 def test_every_network_domain_claude_allows_pi_allows():

@@ -1,0 +1,2 @@
+# The root of the harness payload. harnessgen walks up to this file, so the tree can move.
+schema = 1

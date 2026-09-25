@@ -27,6 +27,7 @@ PYTEST_INI = REPO / "pytest.ini"
 SUITE_GLOBS = (
     "roles/*/files/scripts/*/tests",
     "roles/*/files/harness/hooks/tests",
+    "roles/*/files/harness/tests",
     "roles/*/files/harness/plugins/*/skills/*/scripts/tests",
     "lib/python/tests",
     "tests",

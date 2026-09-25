@@ -1,0 +1,28 @@
+# Claude Code knobs with no counterpart in the neutral policy.
+# harness-build owns `permissions`, `sandbox` and `pluginConfigs.agents-md@builtin` in settings.json;
+# every other key there stays hand-edited.
+
+[sandbox]
+enabled = true
+autoAllowBashIfSandboxed = true
+allowUnsandboxedCommands = false
+enableWeakerNetworkIsolation = true
+excludedCommands = [
+  "pgcli",
+  "git",
+  "gh",
+  "glab",
+  "acli",
+  "sentry",
+  "bru-cli",
+  "ntn",
+  "bunx ctx7 *",
+  "npx -y ctx7 *",
+  "aws *",
+  "gcloud *",
+  "gsutil *",
+  "bq *",
+]
+
+[plugin_configs."agents-md@builtin".options]
+instructionFiles = "claude-md-and-agents-md"

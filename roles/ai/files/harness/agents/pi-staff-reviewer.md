@@ -62,7 +62,7 @@ Judge agents only at existence, primitive, scope, reachability, and redundancy l
 
 ### Sandbox and guardrails
 
-- `sandbox.json` is derived from Claude settings and pinned by `test_pi_sandbox.py`. Report drift or hand edits; fix the source and regenerate instead of editing the derived file.
+- `sandbox.json` and `permission-system/config.json` are rendered from `policy/*.toml` by `make harness` and pinned by `test_harnessgen_drift.py`. Report drift or hand edits; fix the policy and regenerate instead of editing the rendered file.
 - Do not propose unsupported per-command exclusions, command-shape deny rules, or unexpanded `$TMPDIR` patterns as if pi-sandbox understood them.
 - Under the Cursor provider, missing `PI_CURSOR_EXPOSE_BUILTIN_TOOLS` means pi's tool-call guardrails cannot see Cursor host tools. Treat that state as P0 and distinguish it from an actual guardrail refusal.
 - pi's gate API has allow or block, not Claude's ask tier. State the limitation instead of inventing a prompt response.

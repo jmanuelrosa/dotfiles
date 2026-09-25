@@ -146,8 +146,8 @@ HARNESS_LINKS:
         dest: "{{ HOME }}/.pi/agent/model-routing.json"
       - src: adapters/pi/subagents.json
         dest: "{{ HOME }}/.pi/agent/subagents.json"
-      # pi-sandbox's config, the layer that contains. Derived from the Claude settings;
-      # test_pi_sandbox.py recomputes it and fails on drift.
+      # pi-sandbox's config, the layer that contains. Rendered from policy/ by
+      # `make harness`; test_harnessgen_drift.py fails on a hand edit.
       - src: adapters/pi/sandbox.json
         dest: "{{ HOME }}/.pi/agent/sandbox.json"
       # pi-permission-system's config, the layer that decides. It expects config.json
