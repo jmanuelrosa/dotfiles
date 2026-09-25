@@ -297,3 +297,20 @@
     force: true
   loop: "{{ PI_EXTENSIONS }}"
   when: "'pi' in HARNESS_ENABLED"
+
+# --- codex ------------------------------------------------------------------------
+#
+# Codex writes its own config.toml, so the policy is merged into it rather than linked
+# over it: only the keys adapters/codex/adapter.toml names are replaced. The rules file
+# is copied beside Codex's own, since its loader skips a symlink. uv supplies the
+# Python 3.11 the generator needs, as it does for `make harness`.
+- name: Merge the harness policy into Codex's config
+  ansible.builtin.command:
+    argv: "{{ ['uv', 'run', '--no-project', 'python', HARNESS_DIR ~ '/bin/harness-build', 'apply', 'codex'] + (['--check'] if ansible_check_mode else []) }}"
+  environment:
+    PYTHONDONTWRITEBYTECODE: "1"
+  register: codex_apply
+  check_mode: false
+  changed_when: "'up to date' not in codex_apply.stdout"
+  failed_when: codex_apply.rc not in ([0, 1] if ansible_check_mode else [0])
+  when: "'codex' in HARNESS_ENABLED"

@@ -11,16 +11,17 @@ import subprocess
 import sys
 
 import pytest
-from harnessgen import cli, emit_claude, emit_pi, manifest
+from harnessgen import cli, emit_claude, emit_codex, emit_pi, manifest
 
 ROOT = manifest.find_root()
-RENDERED = [emit_claude.SETTINGS, *emit_pi.files(manifest.load(ROOT))]
+RENDERED = [emit_claude.SETTINGS, *cli.whole_files(manifest.load(ROOT))]
+ADAPTERS = [str(p.relative_to(ROOT)) for p in ROOT.glob("adapters/*/adapter.toml")]
 
 
 @pytest.fixture
 def harness(tmp_path):
     """The inputs and outputs of one build, copied somewhere a test may write."""
-    for relative in ["harness.toml", "policy", "adapters/claude/adapter.toml", *RENDERED]:
+    for relative in ["harness.toml", "policy", *ADAPTERS, *RENDERED]:
         source, target = ROOT / relative, tmp_path / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         (shutil.copytree if source.is_dir() else shutil.copy)(source, target)
@@ -93,3 +94,11 @@ def test_a_hook_herdr_appends_survives_a_build(harness):
     assert cli.check(harness) == []
     cli.build(harness)
     assert appended in json.loads(path.read_text())["hooks"]["SessionStart"]
+
+
+def test_a_hand_edit_to_a_rendered_text_file_is_named(harness):
+    """The rules file is Starlark, not JSON, so it is compared as text."""
+    cli.build(harness)
+    path = harness / emit_codex.RULES
+    path.write_text(path.read_text().replace('"forbidden"', '"prompt"', 1))
+    assert cli.check(harness) == [emit_codex.RULES]

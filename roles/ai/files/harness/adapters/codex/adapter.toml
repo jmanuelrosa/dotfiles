@@ -1,0 +1,23 @@
+# Codex CLI knobs with no counterpart in the neutral policy.
+# `harness-build apply codex` owns these keys in ~/.codex/config.toml, plus
+# `sandbox_workspace_write` rendered from policy/sandbox.toml; every other key there is
+# Codex's own, written by the app and the CLI, and is left alone.
+
+# Seeded from what Codex had picked, so the first apply changes no model. Never
+# translated from another harness's model: the ids share no namespace.
+[config]
+model = "gpt-5.6-sol"
+model_reasoning_effort = "xhigh"
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+
+# Where `apply` writes. The rules file is a copy, not a link: Codex's loader skips a
+# symlinked .rules file, and it appends its own approvals to ~/.codex/rules/, which a
+# linked directory would land in this checkout.
+[install]
+config = "~/.codex/config.toml"
+rules = "~/.codex/rules/dotfiles.rules"
+
+# Where the role links hooks/, so a manifest `script` is spelled as Codex runs it.
+[hooks]
+dir = "~/.codex/hooks"

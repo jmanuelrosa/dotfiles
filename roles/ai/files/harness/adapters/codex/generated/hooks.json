@@ -1,0 +1,20 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.codex/hooks/cloud-readonly-gate.sh"
+          },
+          {
+            "type": "command",
+            "command": "~/.codex/hooks/pre-commit-verify.sh",
+            "timeout": 180
+          }
+        ]
+      }
+    ]
+  }
+}

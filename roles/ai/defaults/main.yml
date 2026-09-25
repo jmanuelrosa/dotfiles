@@ -19,6 +19,7 @@ BREW_PACKAGES:
     - chatgpt
     - claude
     - claude-code@latest
+    - codex
     - cursor
     - ollama-app
 
@@ -72,6 +73,7 @@ AI_DIRS:
 HARNESS_ENABLED:
   - claude
   - pi
+  - codex
 
 # Every link the role writes into a harness's home, as data. Four generic tasks install
 # the table: create `dirs`, link each `files` entry, expand each glob, prune.
@@ -168,3 +170,21 @@ HARNESS_LINKS:
       - src: adapters/pi/themes
         pattern: "*.json"
         dest: "{{ HOME }}/.pi/agent/themes"
+
+  codex:
+    dirs:
+      - "{{ HOME }}/.codex"
+      - "{{ HOME }}/.codex/hooks"
+    files:
+      - src: AGENTS.md
+        dest: "{{ HOME }}/.codex/AGENTS.md"
+      # Rendered from policy/hooks.toml. Codex skips a hook until it is trusted in
+      # /hooks, and the trust is keyed by the hook's place in this file.
+      - src: adapters/codex/generated/hooks.json
+        dest: "{{ HOME }}/.codex/hooks.json"
+    # config.toml and rules/ are not links: Codex writes both, so `harness-build apply
+    # codex` merges into one and copies into the other.
+    globs:
+      - src: hooks
+        pattern: "*"
+        dest: "{{ HOME }}/.codex/hooks"

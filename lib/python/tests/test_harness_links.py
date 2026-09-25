@@ -18,6 +18,7 @@ from dotkit.testing import (
     AGENTS,
     AI_TASKS,
     CLAUDE,
+    CODEX,
     HARNESS,
     INSTRUCTIONS,
     PI,
@@ -34,6 +35,7 @@ FIND_TASK = "Find the links in the harness glob directories"
 INSPECT_TASK = "Inspect the links in the harness glob directories"
 PRUNE_TASK = "Remove harness links the repo no longer ships"
 DIRS_TASK = "Ensure AI config directories exist"
+CODEX_APPLY_TASK = "Merge the harness policy into Codex's config"
 
 
 def ai_task(name):
@@ -81,6 +83,7 @@ def test_every_destination_directory_is_created_first(links):
 def test_each_harness_reads_the_one_neutral_instructions_file(links):
     assert links["~/.claude/CLAUDE.md"] == INSTRUCTIONS
     assert links["~/.pi/agent/AGENTS.md"] == INSTRUCTIONS
+    assert links["~/.codex/AGENTS.md"] == INSTRUCTIONS
 
 
 def test_claude_never_gets_a_user_level_agents_md(links):
@@ -133,6 +136,29 @@ def test_the_permission_system_directory_is_real_not_a_link(links):
     directory = "~/.pi/agent/extensions/pi-permission-system"
     assert directory in harness_dirs()
     assert directory not in links
+
+
+def test_codex_gets_its_rendered_hooks_and_the_scripts_they_name(links):
+    assert links["~/.codex/hooks.json"] == CODEX / "generated" / "hooks.json"
+    hooks = {dest for dest in links if dest.startswith("~/.codex/hooks/")}
+    assert hooks == {f"~/.codex/hooks/{p.name}" for p in (HARNESS / "hooks").iterdir() if p.is_file()}
+
+
+def test_codex_config_and_rules_are_never_links(links):
+    """Codex writes both: its settings into config.toml and its own approvals into rules/.
+    A link would land those writes in this checkout, and its rules loader skips a symlink."""
+    assert "~/.codex/config.toml" not in links
+    assert not any(dest.startswith("~/.codex/rules") for dest in links)
+
+
+def test_codex_config_is_merged_by_the_generator_on_every_run():
+    task = ai_task(CODEX_APPLY_TASK)
+    argv = task["ansible.builtin.command"]["argv"]
+    assert "'harness-build'" in argv or "/bin/harness-build" in argv
+    assert "'apply', 'codex'" in argv and "ansible_check_mode" in argv
+    assert task["check_mode"] is False, "the --check form is how a dry run sees pending changes"
+    assert task["changed_when"] == "'up to date' not in codex_apply.stdout"
+    assert task["when"] == "'codex' in HARNESS_ENABLED"
 
 
 def test_rtk_reads_its_config_from_application_support(links):

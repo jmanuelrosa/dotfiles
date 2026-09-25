@@ -51,6 +51,7 @@ CLAUDE = HARNESS / "adapters/claude"
 CLAUDE_SETTINGS = CLAUDE / "settings.json"
 PI = HARNESS / "adapters/pi"
 PI_EXTENSIONS = PI / "extensions"
+CODEX = HARNESS / "adapters/codex"
 
 # Authored tooling, one directory per role that owns some.
 AI_SCRIPTS_DIR = REPO / "roles/ai/files/scripts"

@@ -11,6 +11,11 @@
 # A `rewrite` hook changes the command instead of refusing it: `exec` is what runs, and
 # `requires_env` is the opt-in that must be non-empty for it to run at all.
 
+# Codex is left off the gates that read what it cannot give them: git-skill-gate looks for
+# the skill that authorised a commit in a transcript field Codex never writes, so it would
+# refuse every commit, and em-dash-gate reads a Write/Edit payload where Codex sends an
+# apply_patch one. The rtk rewrite speaks Claude's rewrite output, which Codex has not been
+# checked against.
 [[hook]]
 id = "git-skill-gate"
 event = "pre_tool"
@@ -19,12 +24,14 @@ script = "git-skill-gate.sh"
 claude_if = ["Bash(git *)", "Bash(gh *)", "Bash(glab *)"]
 harnesses = ["claude", "pi"]
 
+# Codex refuses this gate's `ask` answer and runs the command anyway, so there only its
+# blocks hold. Codex's sandbox has no network, which makes a cloud call ask to leave it.
 [[hook]]
 id = "cloud-readonly-gate"
 event = "pre_tool"
 tools = ["bash"]
 script = "cloud-readonly-gate.sh"
-harnesses = ["claude", "pi"]
+harnesses = ["claude", "pi", "codex"]
 
 [[hook]]
 id = "pre-commit-verify"
@@ -33,7 +40,7 @@ tools = ["bash"]
 script = "pre-commit-verify.sh"
 claude_if = ["Bash(git *)"]
 timeout = 180
-harnesses = ["claude", "pi"]
+harnesses = ["claude", "pi", "codex"]
 
 [[hook]]
 id = "rtk"
