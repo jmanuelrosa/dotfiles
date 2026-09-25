@@ -43,7 +43,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install fish jq
+          brew install fish jq fd
           curl -LsSf https://astral.sh/uv/install.sh | sh
 
       # No vault password needed: these tests read registries and drive the fish
