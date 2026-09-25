@@ -16,23 +16,40 @@ theme = Solarized Dark Patched
 # macos-non-native-fullscreen = true
 clipboard-paste-protection = false
 cursor-style-blink = false
+
+# macos
 macos-applescript = false
 macos-non-native-fullscreen = visible-menu
 macos-option-as-alt = left
 macos-window-buttons = hidden
+
+# Mouse
 mouse-hide-while-typing = true
+mouse-scroll-multiplier = precision:1,discrete:1
+
+# Notify
 notify-on-command-finish = unfocused
 notify-on-command-finish-action = no-bell,notify
 notify-on-command-finish-after = 30s
+
 quick-terminal-animation-duration = 0
 quick-terminal-position = top
 quit-after-last-window-closed = true
+
+fullscreen = non-native-visible-menu
+maximize = true
 resize-overlay = never
 scrollback-limit = 10000000
+
 # The default font size specified in the configuration font-size will be used: https://ghostty.org/docs/config/reference#window-inherit-font-size
 window-inherit-font-size = false
+
 # The default working directory will be used (the working-directory option): https://ghostty.org/docs/config/reference#window-inherit-working-directory
+working-directory = home
 window-inherit-working-directory = true
+tab-inherit-working-directory = true
+split-inherit-working-directory = true
+
 window-save-state = always
 # set height/width to a ridiculous size so it would always start in max window
 window-height = 200
