@@ -44,9 +44,13 @@ class Manifest:
     root: Path
     permissions: dict
     sandbox: dict
+    hooks: list
 
     def adapter(self, name):
         return read(self.root / "adapters" / name / "adapter.toml", self.root)
+
+    def hooks_for(self, harness):
+        return [hook for hook in self.hooks if harness in hook["harnesses"]]
 
 
 def load(root=None):
@@ -56,4 +60,5 @@ def load(root=None):
         root=root,
         permissions=read(policy / "permissions.toml", root),
         sandbox=read(policy / "sandbox.toml", root),
+        hooks=read(policy / "hooks.toml", root)["hook"],
     )

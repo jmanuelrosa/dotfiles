@@ -1,8 +1,11 @@
-"""pi's two permission layers, from the neutral policy.
+"""pi's two permission layers and its hook table, from the neutral policy.
 
 `pi-sandbox` contains (sandbox.json) and `@gotgenes/pi-permission-system` decides
 (permission-system/config.json). What each translation cannot carry, and why, is
 specified in lib/python/tests/test_pi_sandbox.py and test_pi_permissions.py.
+
+The guardrails extension reads generated/hooks.json at load, in place of a list of its
+own; test_pi_guardrails.py pins what it does with each entry.
 """
 
 from harnessgen import emit_claude
@@ -10,6 +13,11 @@ from harnessgen import emit_claude
 NAME = "pi"
 SANDBOX = "adapters/pi/sandbox.json"
 PERMISSIONS = "adapters/pi/permission-system/config.json"
+HOOKS = "adapters/pi/generated/hooks.json"
+
+# What guardrails needs from an entry. Timeouts stay in the extension, which states why
+# a gate and a rewrite get different ones.
+HOOK_FIELDS = ("id", "tools", "kind", "script", "exec", "requires_env", "env")
 
 # Reads the harness itself makes of its own installed trees, which are outside any
 # project and would otherwise meet `external_directory: ask` on every session. This is
@@ -166,6 +174,15 @@ def permissions(manifest):
     }
 
 
+def hooks(manifest):
+    """pi's hooks by neutral event, each entry carrying only what guardrails reads."""
+    out = {}
+    for hook in manifest.hooks_for(NAME):
+        entry = {"kind": "gate", **hook}
+        out.setdefault(hook["event"], []).append({k: entry[k] for k in HOOK_FIELDS if k in entry})
+    return out
+
+
 def files(manifest):
     """Relative path to the whole document, for every file this generator owns outright."""
-    return {SANDBOX: sandbox(manifest), PERMISSIONS: permissions(manifest)}
+    return {SANDBOX: sandbox(manifest), PERMISSIONS: permissions(manifest), HOOKS: hooks(manifest)}

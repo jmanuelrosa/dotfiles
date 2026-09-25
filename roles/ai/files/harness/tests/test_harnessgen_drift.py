@@ -72,3 +72,24 @@ def test_keys_the_generator_does_not_own_are_left_alone(harness):
     assert cli.check(harness) == []
     cli.build(harness)
     assert json.loads(path.read_text())["model"] == "a-model-picked-at-runtime"
+
+
+def test_a_hand_edited_managed_hook_is_named(harness):
+    cli.build(harness)
+    path = harness / emit_claude.SETTINGS
+    settings = json.loads(path.read_text())
+    settings["hooks"]["PreToolUse"][0]["hooks"].pop(0)
+    path.write_text(json.dumps(settings))
+    assert cli.check(harness) == [f"{emit_claude.SETTINGS}: hooks"]
+
+
+def test_a_hook_herdr_appends_survives_a_build(harness):
+    cli.build(harness)
+    path = harness / emit_claude.SETTINGS
+    settings = json.loads(path.read_text())
+    appended = {"matcher": "^startup$", "hooks": [{"type": "command", "command": "bash '/x/herdr.sh' session"}]}
+    settings["hooks"]["SessionStart"].append(appended)
+    path.write_text(json.dumps(settings, indent=2) + "\n")
+    assert cli.check(harness) == []
+    cli.build(harness)
+    assert appended in json.loads(path.read_text())["hooks"]["SessionStart"]

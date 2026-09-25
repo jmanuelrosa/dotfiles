@@ -22,18 +22,23 @@
  * - Claude has three answers to a PreToolUse hook and Pi has two. cloud-readonly-gate's `ask`
  *   tier becomes a refusal, for the reasons at `askedForPermission`.
  *
- * All four of those hooks are bridged here. The three that are not are on events this file does
- * not listen to: plan-date-stamp.sh is PostToolUse on ExitPlanMode and Pi has no plan mode at
- * all, while skill-recap.sh (Stop) and context-nudge.sh (UserPromptSubmit) would map onto Pi's
- * `turn_end` and `turn_start` and are deliberately left for their own pass.
+ * Which hooks run, on which tools and in what order, is not decided here. It is read from
+ * generated/hooks.json, which harness-build renders from policy/hooks.toml, the same table
+ * Claude's `settings.hooks` is rendered from. So a hook added there reaches both harnesses, and
+ * what stays in this file is keyed by tool or by id: the payload shape per tool, the transcript
+ * for git-skill-gate, the ask tier for whichever gate prints one. The hooks the table gives only
+ * to Claude are on events this file does not listen to: plan-date-stamp.sh is PostToolUse on
+ * ExitPlanMode and Pi has no plan mode at all, while skill-recap.sh (Stop) and context-nudge.sh
+ * (UserPromptSubmit) would map onto Pi's `turn_end` and `turn_start` and are deliberately left
+ * for their own pass.
  *
- * The fifth PreToolUse entry in settings.json is bridged here too, and it is the odd one out: rtk
- * rewrites a command rather than refusing one, so it is a gate in position only. It lives in this
- * file rather than in an extension of its own purely for that position. Pi loads extensions in
- * readdir order and runs every `tool_call` handler in that order, so a separate file's rewrite
- * could land before the gates above ever read the command, and git-skill-gate handed
- * `rtk git commit` is a gate that has quietly stopped matching. Inside one handler the ordering
- * settings.json states is a property of the code instead of of the filesystem. One exposure is
+ * One entry in the table is the odd one out: rtk rewrites a command rather than refusing one, so
+ * it is a gate in position only. It lives in this file rather than in an extension of its own
+ * purely for that position. Pi loads extensions in readdir order and runs every `tool_call`
+ * handler in that order, so a separate file's rewrite could land before the gates above ever read
+ * the command, and git-skill-gate handed `rtk git commit` is a gate that has quietly stopped
+ * matching. Inside one handler every rewrite runs after every gate, whatever order the table
+ * lists them in, as a property of the code instead of of the filesystem. One exposure is
  * left standing, and it is the one Claude has as well: another extension's handler running after
  * this one sees the rewritten command, exactly as anything ordered after Claude's hook array
  * does. The extension also renders the rtk opt-in in the footer, mirroring statusline.sh, because
@@ -114,14 +119,56 @@ function word(name: string): string {
   return typeof found === "string" ? found : "";
 }
 
+// Rendered by harness-build beside this extension's adapter, and reached the same way.
+const HOOK_TABLE_PATH = join(dirname(realpathSync(fileURLToPath(import.meta.url))), "..", "..", "generated", "hooks.json");
+
+interface HookEntry {
+  id: string;
+  tools: string[];
+  kind: "gate" | "rewrite";
+  script?: string;
+  exec?: string[];
+  requires_env?: string;
+  env?: Record<string, string>;
+}
+
+function isEntry(candidate: unknown): candidate is HookEntry {
+  const entry = candidate as Partial<HookEntry> | null;
+  if (!entry || typeof entry.id !== "string" || !Array.isArray(entry.tools)) return false;
+  if (entry.kind === "gate") return typeof entry.script === "string";
+  if (entry.kind === "rewrite") return Array.isArray(entry.exec) && entry.exec.length > 0;
+  return false;
+}
+
+/**
+ * The PreToolUse half of the table, in its order.
+ *
+ * A table that is missing or will not parse is an empty one, so every call is allowed: the same
+ * fail-open reading a missing hook script gets, for the reason the header gives. An entry of a
+ * shape this file does not know is skipped rather than guessed at.
+ */
+function hookTable(): HookEntry[] {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(HOOK_TABLE_PATH, "utf8"))?.pre_tool;
+    return Array.isArray(parsed) ? parsed.filter(isEntry) : [];
+  } catch {
+    return [];
+  }
+}
+
+const PRE_TOOL = hookTable();
+
+// The one gate that reads a transcript, which pi has none of in the shape it parses.
+const TRANSCRIPT_GATE = "git-skill-gate";
+
 // Above pre-commit-verify's own 150s ceiling, so its report of a slow lint reaches the caller
 // instead of being replaced by this timeout.
 const HOOK_TIMEOUT_MS = 180_000;
 
-// Far below the hook ceiling, because rtk is answering a different kind of question: a rewrite is
-// a parse and a table lookup, so a limit generous enough for a project's full lint would buy an
-// rtk that hangs three minutes of stalled session before every single command.
-const RTK_TIMEOUT_MS = 5_000;
+// Far below the hook ceiling, because a rewriter is answering a different kind of question: a
+// rewrite is a parse and a table lookup, so a limit generous enough for a project's full lint
+// would buy an rtk that hangs three minutes of stalled session before every single command.
+const REWRITE_TIMEOUT_MS = 5_000;
 
 // User messages, where Claude counts stamped assistant events. The unit has to differ because
 // the signals do: Claude re-stamps `attributionSkill` on every assistant turn for as long as the
@@ -161,8 +208,9 @@ interface SpawnResult {
 
 interface SpawnOptions {
   timeoutMs: number;
-  // Left unset to inherit, which is what every gate wants. Only rtk passes one, because Claude
-  // hands it a variable through a settings `env` block that pi's settings have no counterpart for.
+  // Left unset to inherit, which is what every gate wants. Only a rewrite passes one, because
+  // Claude hands rtk a variable through a settings `env` block that pi's settings have no
+  // counterpart for, so the table carries it instead.
   env?: NodeJS.ProcessEnv;
 }
 
@@ -226,32 +274,34 @@ async function runHook(name: string, payload: HookPayload): Promise<HookVerdict>
 }
 
 /**
- * The command rtk would rather run, or nothing.
+ * The command a rewrite entry would rather run, or nothing.
  *
- * The one thing bridged here that rewrites a call instead of refusing one, which is also why its
+ * The one kind of entry that rewrites a call instead of refusing one, which is also why its
  * answer cannot be returned: `ToolCallEventResult` carries a block and a reason and nothing else,
  * and pi's own note on that field says to mutate `event.input` in place instead. The caller does
- * that, last, once every gate above has read the original.
+ * that, last, once every gate has read the original.
  *
- * `hook claude` rather than `hook check`, even though `check` prints the bare rewritten command
- * and would be less code here: `check` is a dry run, so rtk's own audit and tee side effects do
- * not fire and RTK_HOOK_AUDIT would be dead weight. Going through the target Claude Code goes
- * through keeps one code path inside rtk for both harnesses.
+ * rtk's entry runs `hook claude` rather than `hook check`, even though `check` prints the bare
+ * rewritten command and would be less code here: `check` is a dry run, so rtk's own audit and tee
+ * side effects do not fire and RTK_HOOK_AUDIT would be dead weight. Going through the target
+ * Claude Code goes through keeps one code path inside rtk for both harnesses.
  *
  * Exit status carries nothing, unlike the hooks: rtk exits 0 whether or not it rewrote anything,
  * and an empty stdout is the whole of the signal for "no rewrite".
  */
-async function rtkRewrite(command: string, cwd: string): Promise<string | undefined> {
+async function rewriteCommand(entry: HookEntry, command: string, cwd: string): Promise<string | undefined> {
   // The opt-in, read the way settings.json and statusline.sh both read it: any non-empty value is
   // on. Checked before the spawn, so a shell that did not opt in pays nothing.
-  if (!process.env.RTK_ENABLE) return undefined;
+  if (entry.requires_env && !process.env[entry.requires_env]) return undefined;
   if (!command.trim()) return undefined;
 
+  const [exec, ...args] = entry.exec ?? [];
+  if (!exec) return undefined;
   const { stdout } = await spawnJson(
-    "rtk",
-    ["hook", "claude"],
+    exec,
+    args,
     { tool_name: "Bash", tool_input: { command }, cwd },
-    { timeoutMs: RTK_TIMEOUT_MS, env: { ...process.env, RTK_HOOK_AUDIT: "1" } },
+    { timeoutMs: REWRITE_TIMEOUT_MS, env: { ...process.env, ...entry.env } },
   );
 
   const raw = stdout.trim();
@@ -379,75 +429,81 @@ function blockResult(verdict: HookVerdict): ToolCallEventResult | undefined {
   return { block: true, reason: translated };
 }
 
-async function guard(event: ToolCallEvent, ctx: ExtensionContext): Promise<ToolCallEventResult | undefined> {
+/**
+ * A Claude PreToolUse payload for pi's call, or nothing for a tool no hook here reads.
+ *
+ * Pi's `edit` carries an array of edits where Claude's carries one pair, so the halves are joined
+ * for the reason the header gives. The command is copied rather than referenced, so the gates
+ * still judge what the caller asked for after a rewrite has changed what runs.
+ */
+function payloadFor(event: ToolCallEvent, ctx: ExtensionContext): HookPayload | undefined {
   if (isToolCallEventType("write", event)) {
-    return blockResult(
-      await runHook("em-dash-gate.sh", {
-        tool_name: "Write",
-        tool_input: { file_path: event.input.path, content: event.input.content },
-        cwd: ctx.cwd,
-      }),
-    );
+    return {
+      tool_name: "Write",
+      tool_input: { file_path: event.input.path, content: event.input.content },
+      cwd: ctx.cwd,
+    };
   }
-
   if (isToolCallEventType("edit", event)) {
     const edits = event.input.edits ?? [];
-    return blockResult(
-      await runHook("em-dash-gate.sh", {
-        tool_name: "Edit",
-        tool_input: {
-          old_string: edits.map((edit) => edit.oldText).join("\n"),
-          new_string: edits.map((edit) => edit.newText).join("\n"),
-        },
-        cwd: ctx.cwd,
-      }),
-    );
+    return {
+      tool_name: "Edit",
+      tool_input: {
+        old_string: edits.map((edit) => edit.oldText).join("\n"),
+        new_string: edits.map((edit) => edit.newText).join("\n"),
+      },
+      cwd: ctx.cwd,
+    };
   }
-
   if (isToolCallEventType("bash", event)) {
-    const tool_input = { command: event.input.command };
+    return { tool_name: "Bash", tool_input: { command: event.input.command }, cwd: ctx.cwd };
+  }
+  return undefined;
+}
 
-    // Order follows settings.json: the cheap gate refuses first, so a command that was never
-    // allowed cannot also spend a project's full lint budget proving itself clean.
-    const transcript = await writeTranscript(activeSkills(ctx));
-    let gate: HookVerdict;
-    try {
-      gate = await runHook("git-skill-gate.sh", {
-        tool_name: "Bash",
-        tool_input,
-        cwd: ctx.cwd,
-        transcript_path: transcript,
-      });
-    } finally {
-      if (transcript) await unlink(transcript).catch(() => {});
-    }
-    if (gate.blocked) return blockResult(gate);
+async function runGate(entry: HookEntry, payload: HookPayload, ctx: ExtensionContext): Promise<ToolCallEventResult | undefined> {
+  const transcript = entry.id === TRANSCRIPT_GATE ? await writeTranscript(activeSkills(ctx)) : undefined;
+  let verdict: HookVerdict;
+  try {
+    verdict = await runHook(entry.script ?? "", transcript ? { ...payload, transcript_path: transcript } : payload);
+  } finally {
+    if (transcript) await unlink(transcript).catch(() => {});
+  }
+  if (verdict.blocked) return blockResult(verdict);
 
-    // Before pre-commit-verify for the same reason git-skill-gate is: this one is a
-    // parse and a table lookup, and a cloud command it refuses should not first spend
-    // a project's full lint budget. Claude lists it after, but nothing there depends
-    // on the order and the hooks do not observe each other.
-    const cloud = await runHook("cloud-readonly-gate.sh", { tool_name: "Bash", tool_input, cwd: ctx.cwd });
-    if (cloud.blocked) return blockResult(cloud);
-    const asked = askedForPermission(cloud);
-    if (asked) {
-      return {
-        block: true,
-        reason: `${asked}\n\nPi has no confirmation prompt, so this is refused rather than asked. Run it in a real terminal if you meant it.`,
-      };
-    }
+  const asked = askedForPermission(verdict);
+  if (asked) {
+    return {
+      block: true,
+      reason: `${asked}\n\nPi has no confirmation prompt, so this is refused rather than asked. Run it in a real terminal if you meant it.`,
+    };
+  }
+  return undefined;
+}
 
-    const verify = await runHook("pre-commit-verify.sh", { tool_name: "Bash", tool_input, cwd: ctx.cwd });
-    if (verify.blocked) return blockResult(verify);
+async function guard(event: ToolCallEvent, ctx: ExtensionContext): Promise<ToolCallEventResult | undefined> {
+  const payload = payloadFor(event, ctx);
+  if (!payload) return undefined;
+  const entries = PRE_TOOL.filter((entry) => entry.tools.includes(event.toolName));
 
-    // Last, as it is last in settings.json, and that ordering is the whole reason rtk lives in
-    // this file. `tool_input` above still holds what the caller asked for, so all three gates
-    // judged the real command and only what runs is rewritten.
-    const rewritten = await rtkRewrite(event.input.command, ctx.cwd);
-    if (rewritten) event.input.command = rewritten;
-    return undefined;
+  // In table order, stopping at the first refusal: the cheap gates come first there, so a command
+  // that was never allowed cannot also spend a project's full lint budget proving itself clean.
+  for (const entry of entries) {
+    if (entry.kind !== "gate") continue;
+    const refusal = await runGate(entry, payload, ctx);
+    if (refusal) return refusal;
   }
 
+  // After every gate, and that ordering is the whole reason rewrites live in this file. `payload`
+  // still holds what the caller asked for, so every gate judged the real command and only what
+  // runs is rewritten.
+  if (isToolCallEventType("bash", event)) {
+    for (const entry of entries) {
+      if (entry.kind !== "rewrite") continue;
+      const rewritten = await rewriteCommand(entry, event.input.command, ctx.cwd);
+      if (rewritten) event.input.command = rewritten;
+    }
+  }
   return undefined;
 }
 

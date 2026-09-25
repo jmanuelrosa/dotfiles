@@ -1,0 +1,53 @@
+{
+  "pre_tool": [
+    {
+      "id": "git-skill-gate",
+      "tools": [
+        "bash"
+      ],
+      "kind": "gate",
+      "script": "git-skill-gate.sh"
+    },
+    {
+      "id": "cloud-readonly-gate",
+      "tools": [
+        "bash"
+      ],
+      "kind": "gate",
+      "script": "cloud-readonly-gate.sh"
+    },
+    {
+      "id": "pre-commit-verify",
+      "tools": [
+        "bash"
+      ],
+      "kind": "gate",
+      "script": "pre-commit-verify.sh"
+    },
+    {
+      "id": "rtk",
+      "tools": [
+        "bash"
+      ],
+      "kind": "rewrite",
+      "exec": [
+        "rtk",
+        "hook",
+        "claude"
+      ],
+      "requires_env": "RTK_ENABLE",
+      "env": {
+        "RTK_HOOK_AUDIT": "1"
+      }
+    },
+    {
+      "id": "em-dash-gate",
+      "tools": [
+        "write",
+        "edit"
+      ],
+      "kind": "gate",
+      "script": "em-dash-gate.sh"
+    }
+  ]
+}

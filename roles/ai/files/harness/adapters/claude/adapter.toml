@@ -1,5 +1,6 @@
 # Claude Code knobs with no counterpart in the neutral policy.
-# harness-build owns `permissions`, `sandbox` and `pluginConfigs.agents-md@builtin` in settings.json;
+# harness-build owns `permissions`, `sandbox` and `pluginConfigs.agents-md@builtin` in settings.json,
+# plus every entry of `hooks` whose command policy/hooks.toml renders (herdr's own entries are kept);
 # every other key there stays hand-edited.
 
 [sandbox]
@@ -26,3 +27,7 @@ excludedCommands = [
 
 [plugin_configs."agents-md@builtin".options]
 instructionFiles = "claude-md-and-agents-md"
+
+# Where the role links hooks/, so a manifest `script` is spelled as Claude runs it.
+[hooks]
+dir = "~/.claude/hooks"

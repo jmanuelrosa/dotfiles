@@ -252,13 +252,13 @@
           },
           {
             "type": "command",
-            "command": "~/.claude/hooks/pre-commit-verify.sh",
-            "if": "Bash(git *)",
-            "timeout": 180
+            "command": "~/.claude/hooks/cloud-readonly-gate.sh"
           },
           {
             "type": "command",
-            "command": "~/.claude/hooks/cloud-readonly-gate.sh"
+            "command": "~/.claude/hooks/pre-commit-verify.sh",
+            "if": "Bash(git *)",
+            "timeout": 180
           },
           {
             "type": "command",
@@ -282,12 +282,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/herdr-agent-state.sh session",
+            "command": "if [ -f ./kura.json ]; then ~/.local/bin/kura converge --quiet; fi",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "if [ -f ./kura.json ]; then ~/.local/bin/kura converge --quiet; fi",
+            "command": "~/.claude/hooks/herdr-agent-state.sh session",
             "timeout": 10
           }
         ]

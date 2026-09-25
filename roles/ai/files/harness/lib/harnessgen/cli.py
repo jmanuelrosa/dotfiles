@@ -3,7 +3,7 @@
 import argparse
 import json
 
-from harnessgen import emit_claude, emit_pi, manifest, merge
+from harnessgen import emit_claude, emit_pi, manifest
 
 
 def whole_file_text(document):
@@ -22,9 +22,7 @@ def drift(policy):
         if not path.is_file() or json.loads(path.read_text()) != document:
             found.append(relative)
     settings = json.loads((policy.root / emit_claude.SETTINGS).read_text())
-    for key, value in emit_claude.owned(policy).items():
-        if merge.get(settings, key) != value:
-            found.append(f"{emit_claude.SETTINGS}: {key}")
+    found += [f"{emit_claude.SETTINGS}: {key}" for key in emit_claude.drifted(settings, policy)]
     return found
 
 
@@ -50,9 +48,7 @@ def build(root=None):
 
     path = policy.root / emit_claude.SETTINGS
     current = path.read_text()
-    settings = json.loads(current)
-    for key, value in emit_claude.owned(policy).items():
-        merge.put(settings, key, value)
+    settings = emit_claude.apply(json.loads(current), policy)
     if settings_text(settings) != current:
         path.write_text(settings_text(settings))
         written.append(emit_claude.SETTINGS)

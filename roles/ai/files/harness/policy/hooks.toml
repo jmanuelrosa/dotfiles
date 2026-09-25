@@ -1,0 +1,83 @@
+# Every hook this payload wires, in the order each harness runs them.
+#
+# The order is Pi's: guardrails runs its gates one after another and stops at the first
+# refusal, so the cheap parses come before pre-commit-verify spends a project's lint budget,
+# and the rtk rewrite comes after every gate has read the command it was actually given.
+# Claude runs the hooks of one event in parallel, so the same order costs it nothing.
+#
+# `tools` and `event` are neutral names; each emitter spells them for its harness.
+# `script` names a file in hooks/, `command` is a shell line run as written.
+# `claude_if` is Claude's per-hook permission-rule filter, one entry per rule.
+# A `rewrite` hook changes the command instead of refusing it: `exec` is what runs, and
+# `requires_env` is the opt-in that must be non-empty for it to run at all.
+
+[[hook]]
+id = "git-skill-gate"
+event = "pre_tool"
+tools = ["bash"]
+script = "git-skill-gate.sh"
+claude_if = ["Bash(git *)", "Bash(gh *)", "Bash(glab *)"]
+harnesses = ["claude", "pi"]
+
+[[hook]]
+id = "cloud-readonly-gate"
+event = "pre_tool"
+tools = ["bash"]
+script = "cloud-readonly-gate.sh"
+harnesses = ["claude", "pi"]
+
+[[hook]]
+id = "pre-commit-verify"
+event = "pre_tool"
+tools = ["bash"]
+script = "pre-commit-verify.sh"
+claude_if = ["Bash(git *)"]
+timeout = 180
+harnesses = ["claude", "pi"]
+
+[[hook]]
+id = "rtk"
+event = "pre_tool"
+tools = ["bash"]
+kind = "rewrite"
+exec = ["rtk", "hook", "claude"]
+requires_env = "RTK_ENABLE"
+env = { RTK_HOOK_AUDIT = "1" }
+harnesses = ["claude", "pi"]
+
+[[hook]]
+id = "em-dash-gate"
+event = "pre_tool"
+tools = ["write", "edit"]
+script = "em-dash-gate.sh"
+harnesses = ["claude", "pi"]
+
+# Pi has no plan mode, so there is nothing to stamp.
+[[hook]]
+id = "plan-date-stamp"
+event = "post_tool"
+tools = ["exit_plan_mode"]
+script = "plan-date-stamp.sh"
+harnesses = ["claude"]
+
+[[hook]]
+id = "kura-converge"
+event = "session_start"
+command = "if [ -f ./kura.json ]; then ~/.local/bin/kura converge --quiet; fi"
+timeout = 10
+harnesses = ["claude"]
+
+# Stop and UserPromptSubmit map onto Pi's turn_end and turn_start, which guardrails does
+# not listen to yet.
+[[hook]]
+id = "skill-recap"
+event = "stop"
+script = "skill-recap.sh"
+harnesses = ["claude"]
+
+[[hook]]
+id = "context-nudge"
+event = "prompt_submit"
+script = "context-nudge.sh"
+timeout = 10
+harnesses = ["claude"]
