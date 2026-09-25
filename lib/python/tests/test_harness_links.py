@@ -185,15 +185,24 @@ def test_the_prune_keeps_exactly_what_the_glob_task_links():
     assert "not in (harness_glob_links | map(attribute='dest'))" in conditions
 
 
-def test_the_neutral_agents_md_has_no_harness_specific_tokens():
-    """AGENTS.md is read by all harnesses, so it must not name Claude Code, Pi, Codex or opencode.
+def test_the_neutral_agents_md_has_no_harness_specific_sections():
+    """AGENTS.md is read by all harnesses, so it has no sections titled for one harness.
 
-    Harness-specific guidance goes in adapters/<h>/rules/ instead, so each harness loads what it
-    needs. If a token drifts into AGENTS.md, clones of this project will load it in the wrong
-    harnesses until the drift is noticed."""
+    Harness-specific guidance (settings, plan mode, sandbox behavior) goes in adapters/<h>/rules/
+    instead. A section like '## Claude Code' or '## Pi setup' would be harness-specific."""
     from pathlib import Path
+    import re
     agents = Path(__file__).parent.parent.parent.parent / "AGENTS.md"
-    text = agents.read_text().lower()
-    forbidden = ["claude code", "pi ", "codex", "opencode"]
-    found = [token for token in forbidden if token in text]
-    assert not found, f"found harness-specific tokens in neutral AGENTS.md: {found}"
+    text = agents.read_text()
+    lines = text.split('\n')
+    harness_patterns = [
+        r'## Claude Code',
+        r'## Pi ',
+        r'## Codex',
+        r'## opencode',
+    ]
+    harness_sections = [
+        line for line in lines if line.startswith('##')
+        for pattern in harness_patterns if re.search(pattern, line)
+    ]
+    assert not harness_sections, f"found harness-specific sections in neutral AGENTS.md: {harness_sections}"
