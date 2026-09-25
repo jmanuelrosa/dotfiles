@@ -13,7 +13,7 @@ command = [
 output = "{split: :0}"
 
 [preview]
-command = "bat --color=always --plain --language=markdown $DOTFILES_DIR/roles/ai/files/claude/skills/{split: :0}/SKILL.md 2>/dev/null; or echo 'Not downloaded: press Enter to install via kura add --type skill'"
+command = "bat --color=always --plain --language=markdown $DOTFILES_DIR/roles/ai/files/harness/kura/catalog/skills/{split: :0}/SKILL.md 2>/dev/null; or echo 'Not downloaded: press Enter to install via kura add --type skill'"
 
 [ui]
 layout = "portrait"
@@ -51,6 +51,6 @@ separator = "\n"
 
 [actions.edit]
 description = "Open SKILL.md in $EDITOR"
-command = "$EDITOR {split:\\n:..|map:{split: :0|prepend:$DOTFILES_DIR/roles/ai/files/claude/skills/|append:/SKILL.md}|join: }"
+command = "$EDITOR {split:\\n:..|map:{split: :0|prepend:$DOTFILES_DIR/roles/ai/files/harness/kura/catalog/skills/|append:/SKILL.md}|join: }"
 mode = "execute"
 separator = "\n"

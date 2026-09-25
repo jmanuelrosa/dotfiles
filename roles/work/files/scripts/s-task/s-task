@@ -11,7 +11,7 @@
 # Cap branch length to commitlint's header-max-length (default 72 in @commitlint/config-conventional)
 set -g MAX_BRANCH_LENGTH 50
 
-# Allowed branch type set — must match the regex in roles/ai/files/claude/skills/commit/SKILL.md step 2
+# Allowed branch type set — must match the regex in roles/ai/files/harness/kura/catalog/skills/commit/SKILL.md step 2
 set -g ALLOWED_BRANCH_TYPES feature fix chore docs refactor test perf ci build style revert
 
 # Configuration - authentication handled by acli (`acli auth login`) and gh (`gh auth login`)

@@ -27,13 +27,13 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from dotkit.testing import CLAUDE, PI_EXTENSIONS, REPO
+from dotkit.testing import CLAUDE, PI_EXTENSIONS, REPO, STATUSLINE_VOCABULARY
 
 EXTENSION = PI_EXTENSIONS / "statusline" / "index.ts"
 STATUSLINE = CLAUDE / "statusline.sh"
 # The one file the glyphs, the gauge, the lockfile table and the handoff threshold come from,
 # for this harness and for Claude's. Nothing below asserts a literal that lives in it.
-VOCABULARY = REPO / "roles/ai/files/statusline.json"
+VOCABULARY = STATUSLINE_VOCABULARY
 TASKS = REPO / "roles/ai/tasks/main.yml"
 
 PI_PACKAGE = "@earendil-works/pi-coding-agent"
@@ -193,7 +193,7 @@ def test_the_theme_colours_exist(source, declarations):
 
 def test_no_optional_theme_colour_is_painted_with(source, declarations):
     """`thinkingMax` and `searchMatchText` are optional in pi's theme schema, so a user-authored
-    theme in roles/ai/files/pi/themes may define neither. Painting the max thinking level with
+    theme in roles/ai/files/harness/adapters/pi/themes may define neither. Painting the max thinking level with
     one would leave that level as the only unstyled word in the segment."""
     optional = re.search(r"type OptionalThemeColor = ([^;]+);", declarations)
     assert optional, "pi no longer declares which theme colours are optional"
@@ -245,10 +245,10 @@ def runner(package, tmp_path_factory):
     resolvable.
 
     The layout mirrors the repo rather than being flat: the extension reads
-    `../../../statusline.json` relative to its own realpath, so a copy dropped in a bare temp
+    `../../../../statusline.json` relative to its own realpath, so a copy dropped in a bare temp
     directory would find no vocabulary and every glyph assertion below would pass against an
-    empty string. `<root>/pi/extensions/statusline/index.ts` beside `<root>/statusline.json` is
-    the same three levels the checkout has, and the vocabulary is linked rather than copied so a test can
+    empty string. `<root>/adapters/pi/extensions/statusline/index.ts` beside `<root>/statusline.json` is
+    the same four levels the checkout has, and the vocabulary is linked rather than copied so a test can
     never assert against a stale duplicate of the file it is supposed to be pinning.
 
     The extension itself is written rather than linked because node resolves a bare import from
@@ -264,7 +264,7 @@ def runner(package, tmp_path_factory):
     (scope / "pi-coding-agent").symlink_to(package)
     (scope / "pi-tui").symlink_to(package / "node_modules" / TUI_PACKAGE)
     (root / "statusline.json").symlink_to(VOCABULARY)
-    extension = root / "pi" / "extensions" / "statusline" / "index.ts"
+    extension = root / "adapters" / "pi" / "extensions" / "statusline" / "index.ts"
     extension.parent.mkdir(parents=True)
     extension.write_text(f"{EXTENSION.read_text()}\nexport {{ {', '.join(DRIVEN)} }};\n")
     return extension

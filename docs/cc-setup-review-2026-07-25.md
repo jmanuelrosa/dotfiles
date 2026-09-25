@@ -1,7 +1,7 @@
 # Claude Code setup review: task backlog
 
 Date: 2026-07-25.
-Source: `/cc-review` run (cc-staff-reviewer) against user scope `~/.claude/` (real files at `roles/ai/files/claude/`) and project scope `dotfiles/.claude/`, on Claude Code 2.1.220.
+Source: `/cc-review` run (cc-staff-reviewer) against user scope `~/.claude/` (real files at `roles/ai/files/harness/adapters/claude/`) and project scope `dotfiles/.claude/`, on Claude Code 2.1.220.
 Evidence base: 150 `/insights` facet files (`~/.claude/usage-data/facets/`) plus the 2026-07-25 report, covering 538 sessions and ~394 commits since 2026-05-11.
 Status: T1 (applied as a no-op, since its target memory files do not exist on disk) and T3 have landed on `main` and were deleted per the rule below; T2 and T4 were rejected and are recorded under [Not worth doing](#not-worth-doing). T5 onward are open and none of them block each other. Each task is self-contained so it can be picked up in its own session.
 
@@ -16,7 +16,7 @@ Anything under [Not worth doing](#not-worth-doing) was considered and rejected w
 ### T5. Add a scope-control section to the global CLAUDE.md
 
 - [ ] Applied
-- **Files:** `roles/ai/files/claude/CLAUDE.md`
+- **Files:** `roles/ai/files/harness/adapters/claude/CLAUDE.md`
 - **Scope:** user
 - **Effort:** S
 
@@ -36,7 +36,7 @@ This is the only `CLAUDE.md` addition the review recommends. It replaces nothing
 ### T6. Re-check the branch immediately before committing
 
 - [ ] Applied
-- **Files:** `roles/ai/files/claude/skills/commit/scripts/apply.py` (around lines 82-92), `roles/ai/files/claude/skills/commit/SKILL.md` (steps at lines 33-42) if the plan JSON needs a new field
+- **Files:** `roles/ai/files/harness/kura/catalog/skills/commit/scripts/apply.py` (around lines 82-92), `roles/ai/files/harness/kura/catalog/skills/commit/SKILL.md` (steps at lines 33-42) if the plan JSON needs a new field
 - **Scope:** user
 - **Effort:** S
 
@@ -52,7 +52,7 @@ The companion friction (a first commit sweeping in pre-staged files) needs no ch
 ### T7. Close the registry drift
 
 - [ ] Applied
-- **Files:** `roles/ai/files/claude/skill-registry.json`, `roles/ai/files/claude/skills/agent-nestjs-skills/`, `roles/ai/files/claude/skills/playwright-best-practices-skill/`
+- **Files:** `roles/ai/files/harness/kura/catalog/skill-registry.json`, `roles/ai/files/harness/kura/catalog/skills/agent-nestjs-skills/`, `roles/ai/files/harness/kura/catalog/skills/playwright-best-practices-skill/`
 - **Scope:** user
 - **Effort:** S
 
@@ -65,7 +65,7 @@ Change: register `playwright-best-practices-skill` with `groups: ["quality","qa"
 ### T8. Replace Write(path) permission rules in /commit
 
 - [ ] Applied
-- **Files:** `roles/ai/files/claude/skills/commit/SKILL.md` (allowed-tools), and the memory `project_permission_rule_anchoring`
+- **Files:** `roles/ai/files/harness/kura/catalog/skills/commit/SKILL.md` (allowed-tools), and the memory `project_permission_rule_anchoring`
 - **Scope:** user
 - **Effort:** S
 
@@ -77,7 +77,7 @@ Also update the example line in the `project_permission_rule_anchoring` memory, 
 ### T9. settings.json hygiene
 
 - [ ] Applied
-- **Files:** `roles/ai/files/claude/settings.json` (line 344, and the `mcp__supabase` / `mcp__Supabase` deny entries near lines 179-182)
+- **Files:** `roles/ai/files/harness/adapters/claude/settings.json` (line 344, and the `mcp__supabase` / `mcp__Supabase` deny entries near lines 179-182)
 - **Scope:** user
 - **Effort:** S
 
@@ -101,7 +101,7 @@ Change: remove the server config. Keep the deny entries as the tripwire.
 ### T11. Fix the em dash in skill-recap.sh
 
 - [ ] Applied
-- **Files:** `roles/ai/files/claude/hooks/skill-recap.sh:7`
+- **Files:** `roles/ai/files/harness/hooks/skill-recap.sh:7`
 - **Scope:** user
 - **Effort:** S
 
@@ -114,12 +114,12 @@ These are separate from the fixes above: features shipped in the last six weeks 
 ### T12. Try sandbox.filesystem.disabled
 
 - [ ] Applied
-- **Files:** `roles/ai/files/claude/settings.json` (`sandbox` block)
+- **Files:** `roles/ai/files/harness/adapters/claude/settings.json` (`sandbox` block)
 - **Scope:** user
 - **Effort:** S
 
 Shipped in 2.1.216: skips filesystem isolation while keeping network egress control.
-The worst single friction event in the period was a write-deny on `settings.json` breaking a git checkout mid-branch-switch, leaving a half-rewound tree. That is structural rather than bad luck: the dotfiles repo (230 sessions, the top project) contains `roles/ai/files/claude/settings.json`, which the sandbox filesystem layer protects from writes, so any branch switch touching it can corrupt the working tree. The same layer produced the blocked unlink during a fast-forward, the lockfile-write denials, and the `.env` read blocks, roughly 40 events in total.
+The worst single friction event in the period was a write-deny on `settings.json` breaking a git checkout mid-branch-switch, leaving a half-rewound tree. That is structural rather than bad luck: the dotfiles repo (230 sessions, the top project) contains `roles/ai/files/harness/adapters/claude/settings.json`, which the sandbox filesystem layer protects from writes, so any branch switch touching it can corrupt the working tree. The same layer produced the blocked unlink during a fast-forward, the lockfile-write denials, and the `.env` read blocks, roughly 40 events in total.
 The blunt version has already been reached for once: `work/addingwell/front-sentry/.claude/settings.local.json` sets `sandbox.enabled: false`. This is the surgical version.
 
 Change: add `"filesystem": { "disabled": true }` inside the `sandbox` block, retaining `network`.

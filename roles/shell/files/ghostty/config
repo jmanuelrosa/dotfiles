@@ -37,6 +37,7 @@ window-save-state = always
 # set height/width to a ridiculous size so it would always start in max window
 window-height = 200
 window-width = 500
+window-titlebar-background=#bbbbbb
 
 shell-integration = fish
 shell-integration-features = no-cursor,sudo,title,ssh-env,ssh-terminfo

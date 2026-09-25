@@ -43,7 +43,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install fish jq
+          brew install fish jq fd
           curl -LsSf https://astral.sh/uv/install.sh | sh
 
       # No vault password needed: these tests read registries and drive the fish
@@ -55,6 +55,8 @@ jobs:
       - name: Run tests
         env:
           PYTHONDONTWRITEBYTECODE: "1"
+          # The committed harness renders name the checkout they are linked from, not this clone.
+          HARNESS_RENDER_ROOT: ~/Developer/dotfiles/roles/ai/files/harness
         run: make test
 
   lint:

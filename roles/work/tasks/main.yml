@@ -21,12 +21,6 @@
     state: present
   when: BREW_PACKAGES.formulas | default([]) | length > 0
 
-- name: Install work casks
-  community.general.homebrew_cask:
-    name: "{{ BREW_PACKAGES.casks | default([]) }}"
-    state: present
-  when: BREW_PACKAGES.casks | default([]) | length > 0
-
 - name: Symlink Jira television cable
   ansible.builtin.file:
     src: "{{ role_path }}/files/television/cable/jira.toml"

@@ -1,7 +1,7 @@
 # Acceptance criteria live on the branch, then in one comment
 
 
-The [ac](../../roles/ai/files/claude/skills/ac/SKILL.md) skill keeps a Jira-tracked branch's acceptance criteria in `<toplevel>/.claude/state/ac/<KEY>.md` while the work happens, and `/ac push` publishes them to the ticket as a single comment. The point of the local copy is ordering: criteria written from a finished diff always pass, so they measure nothing, and a file that exists before the first commit is the only cheap way to get them written first.
+The [ac](../../roles/ai/files/harness/kura/catalog/skills/ac/SKILL.md) skill keeps a Jira-tracked branch's acceptance criteria in `<toplevel>/.claude/state/ac/<KEY>.md` while the work happens, and `/ac push` publishes them to the ticket as a single comment. The point of the local copy is ordering: criteria written from a finished diff always pass, so they measure nothing, and a file that exists before the first commit is the only cheap way to get them written first.
 
 **AC are authored in four places in this repo and only one of them is this skill.** The `product-team` plugin's `ac-writer` owns PRD-traced story ACs, `planning-and-task-breakdown` owns per-task ACs, and `architect` owns spec-level criteria. None of the three overlaps here: `ac-writer` in particular cannot be reused, since it has no Bash and so can never reach acli, its contract is traceability to `R#` ids indexed from `02-prd.md`, and it reports and does nothing when those ids are absent, which is every bare Jira ticket. The one thing this skill does share is the grammar, which lives in `adf.py`.
 

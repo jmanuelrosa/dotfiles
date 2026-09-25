@@ -3,7 +3,7 @@
 **Status:** Implemented
 **Author:** José Manuel Rosa Moncayo
 **Date:** 2026-09-03
-**Scope:** `roles/ai/files/claude/skills/cc-review/` (renamed), `roles/ai/files/claude/skills/setup-review-mechanics/` (new), `roles/ai/files/claude/agents/cc-staff-reviewer.md`, `roles/ai/files/claude/agents/pi-staff-reviewer.md` (new), `skill-registry.json`, `agent-registry.json`, and the call sites and frozen test sets that name `cc-review`
+**Scope:** `roles/ai/files/harness/kura/catalog/skills/cc-review/` (renamed), `roles/ai/files/harness/kura/catalog/skills/setup-review-mechanics/` (new), `roles/ai/files/harness/agents/cc-staff-reviewer.md`, `roles/ai/files/harness/agents/pi-staff-reviewer.md` (new), `skill-registry.json`, `agent-registry.json`, and the call sites and frozen test sets that name `cc-review`
 
 ## Summary
 
@@ -13,7 +13,7 @@ One skill invocation then reviews whichever harness the session is running in, u
 
 ## Motivation
 
-`cc-review` is a locally authored skill that spawns a read-only advisor over `~/.claude` and the current project's `.claude/`, and applies whatever the user accepts (`roles/ai/files/claude/skills/cc-review/SKILL.md`).
+`cc-review` is a locally authored skill that spawns a read-only advisor over `~/.claude` and the current project's `.claude/`, and applies whatever the user accepts (`roles/ai/files/harness/kura/catalog/skills/cc-review/SKILL.md`).
 It is the only artifact in this repo that reviews the agent setup itself rather than application code, and it has no pi counterpart.
 
 The absence is not the usual kind, where a feature simply has not been built for the second harness.
@@ -42,7 +42,7 @@ Every structural trap recorded in [the pi harness](../internals/pi-harness.md) i
 
 ### The existing pair
 
-`cc-review` is a skill, not a command file: this repo has no `roles/ai/files/claude/commands/` tree, and `disable-model-invocation: true` is what makes Claude Code expose the skill as `/cc-review` (`cc-review/SKILL.md:5`).
+`cc-review` is a skill, not a command file: this repo has no `roles/ai/files/harness/adapters/claude/commands/` tree, and `disable-model-invocation: true` is what makes Claude Code expose the skill as `/cc-review` (`cc-review/SKILL.md:5`).
 Its body is 22 lines of orchestration.
 The substance lives in the agent it spawns.
 
@@ -109,7 +109,7 @@ So `PI_SESSION_ID` is the detection hook: present means pi, absent means Claude 
 
 ### 1. `setup-review`, the entry point
 
-Replaces `roles/ai/files/claude/skills/cc-review/SKILL.md` at `roles/ai/files/claude/skills/setup-review/SKILL.md`.
+Replaces `roles/ai/files/harness/kura/catalog/skills/cc-review/SKILL.md` at `roles/ai/files/harness/kura/catalog/skills/setup-review/SKILL.md`.
 
 ```markdown
 ---
@@ -150,14 +150,14 @@ The agent already handles a missing evidence store (`cc-staff-reviewer.md:76`), 
 What the orchestrator asks for instead is that the seat states what evidence it had, which is the part the reader actually needs.
 
 Step 4 names the concept rather than `AskUserQuestion`.
-Claude Code spells it `AskUserQuestion`; pi spells it `ask_user`, already installed as the `pi-ask-user` package (`roles/ai/files/pi/settings.json`).
+Claude Code spells it `AskUserQuestion`; pi spells it `ask_user`, already installed as the `pi-ask-user` package (`roles/ai/files/harness/adapters/pi/settings.json`).
 
 Step 5 drops the reference to the non-existent `update-config` skill.
 Settings and hook changes are ordinary edits to files in this repo, which is what the rest of the step already says.
 
 ### 2. `setup-review-mechanics`, the shared method
 
-New, at `roles/ai/files/claude/skills/setup-review-mechanics/SKILL.md`.
+New, at `roles/ai/files/harness/kura/catalog/skills/setup-review-mechanics/SKILL.md`.
 Model-invocable, because the seats load it; no `disable-model-invocation`.
 Both seats open with a line instructing them to load it before reasoning, the same way a seat agent routes into its failure-modes skill.
 
@@ -188,7 +188,7 @@ The file lands somewhere near 145 lines from 214.
 
 ### 4. `pi-staff-reviewer`, new
 
-At `roles/ai/files/claude/agents/pi-staff-reviewer.md`, which is where agents live in this repo regardless of harness, since `~/.pi/agent/agents` is a link to the directory `sync` converges.
+At `roles/ai/files/harness/agents/pi-staff-reviewer.md`, which is where agents live in this repo regardless of harness, since `~/.pi/agent/agents` is a link to the directory `sync` converges.
 
 Frontmatter mirrors its counterpart, dual-keyed so `test_pi_dialect.py` accepts it: `model: opus`, `effort: high`, `thinking: high`.
 It deliberately carries **no** `tools:` allowlist.
@@ -270,9 +270,9 @@ A historical artifact describing what `/cc-review` printed in July is not made w
 
 | Session | Invocation | Reviewer | Evidence | Apply target |
 |---|---|---|---|---|
-| Claude Code | `/setup-review` | `cc-staff-reviewer` | `/insights` facets, auto-memory | `roles/ai/files/claude/...` |
+| Claude Code | `/setup-review` | `cc-staff-reviewer` | `/insights` facets, auto-memory | `roles/ai/files/harness/adapters/claude/...` |
 | Claude Code, no `/insights` run yet | `/setup-review` | `cc-staff-reviewer` | none; reviewer says so and proceeds config-only | same |
-| pi | `/skill:setup-review` | `pi-staff-reviewer` | `~/.pi/agent/sessions/` | `roles/ai/files/pi/...`, plus the shell role for env vars |
+| pi | `/skill:setup-review` | `pi-staff-reviewer` | `~/.pi/agent/sessions/` | `roles/ai/files/harness/adapters/pi/...`, plus the shell role for env vars |
 | pi, cursor provider, exposure unset | `/skill:setup-review` | `pi-staff-reviewer` | same | same, and the gates-off state is itself a P0 finding |
 | Either | `/setup-review pi` | `pi-staff-reviewer` | pi's | pi's |
 | Cursor bridge, `PI_SESSION_ID` present | `/skill:setup-review` | `pi-staff-reviewer` | pi's | pi's |
@@ -320,21 +320,21 @@ None. Implementation retained P0-P2 for harness setup findings, resolves pi's in
 ## Appendix - affected files
 
 Created:
-- `roles/ai/files/claude/skills/setup-review/SKILL.md`
-- `roles/ai/files/claude/skills/setup-review-mechanics/SKILL.md`
-- `roles/ai/files/claude/agents/pi-staff-reviewer.md`
+- `roles/ai/files/harness/kura/catalog/skills/setup-review/SKILL.md`
+- `roles/ai/files/harness/kura/catalog/skills/setup-review-mechanics/SKILL.md`
+- `roles/ai/files/harness/agents/pi-staff-reviewer.md`
 
 Deleted:
-- `roles/ai/files/claude/skills/cc-review/SKILL.md`
+- `roles/ai/files/harness/kura/catalog/skills/cc-review/SKILL.md`
 
 Modified:
-- `roles/ai/files/claude/agents/cc-staff-reviewer.md`
-- `roles/ai/files/claude/skill-registry.json`
-- `roles/ai/files/claude/agent-registry.json`
-- `roles/ai/files/claude/skills/agent-audit/SKILL.md`
-- `roles/ai/files/claude/skills/review-mechanics/SKILL.md`
-- `roles/ai/files/claude/README.md`
-- `roles/ai/files/claude/GETTING-STARTED.md`
+- `roles/ai/files/harness/agents/cc-staff-reviewer.md`
+- `roles/ai/files/harness/kura/catalog/skill-registry.json`
+- `roles/ai/files/harness/agent-registry.json`
+- `roles/ai/files/harness/kura/catalog/skills/agent-audit/SKILL.md`
+- `roles/ai/files/harness/kura/catalog/skills/review-mechanics/SKILL.md`
+- `roles/ai/files/harness/adapters/claude/README.md`
+- `roles/ai/files/harness/adapters/claude/GETTING-STARTED.md`
 - `roles/ai/files/scripts/claude-kit/README.md`
 - `roles/ai/files/scripts/claude-kit/claude_kit/commands/listing.py`
 - `roles/ai/files/scripts/claude-kit/tests/test_catalog.py`
@@ -344,9 +344,9 @@ Modified:
 
 Read:
 - `roles/ai/tasks/main.yml`
-- `roles/ai/files/pi/settings.json`
-- `roles/ai/files/pi/APPEND_SYSTEM.md`
-- `roles/ai/files/pi/extensions/*/index.ts`
+- `roles/ai/files/harness/adapters/pi/settings.json`
+- `roles/ai/files/harness/adapters/pi/APPEND_SYSTEM.md`
+- `roles/ai/files/harness/adapters/pi/extensions/*/index.ts`
 - `roles/shell/files/fish/conf.d/exports.fish`
 
 Left alone:

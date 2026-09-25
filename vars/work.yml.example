@@ -46,7 +46,7 @@ GLAB_WORK_USER: "your-work-gitlab-username"
 # here. Only the work profile renders the export below, so the skill treats it as
 # optional and falls back to asking.
 # Consumed by: roles/work/templates/exports.fish.j2 (exported as JIRA_PROJECT)
-#              roles/ai/files/claude/skills/jira/SKILL.md (read at runtime as
+#              roles/ai/files/harness/kura/catalog/skills/jira/SKILL.md (read at runtime as
 #              $JIRA_PROJECT, the second step of its project-resolution chain)
 JIRA_PROJECT: "your-jira-project-key"
 
@@ -56,9 +56,5 @@ JIRA_PROJECT: "your-jira-project-key"
 # Consumed by: roles/work/templates/exports.fish.j2 (exported as DID_NPM_TOKEN)
 #              roles/apps/files/.npmrc (expanded into the @didomi: registry lines)
 DID_NPM_TOKEN: "your-npm-token-here"
-
-# FOSSA API key for license/security scanning.
-# Consumed by: roles/work/templates/exports.fish.j2
-FOSSA_API_KEY: "your-fossa-api-key-here"
 
 

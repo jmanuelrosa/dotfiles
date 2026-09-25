@@ -27,117 +27,103 @@
     state: present
   when: BREW_PACKAGES.casks | default([]) | length > 0
 
-# Every destination directory up front, because `state: link` does not create
-# parents the way `state: directory` does. ~/.claude in particular was only
-# ever created as a side effect of making ~/.claude/hooks, one task too late.
+# --- the harness link table -------------------------------------------------------
+#
+# HARNESS_LINKS in defaults is the whole inventory of what lands in each harness's home.
+# These tasks install it and know nothing about any one harness, so adding a harness is
+# a table entry, not a task.
+
+- name: Select the enabled harness link sets
+  ansible.builtin.set_fact:
+    harness_sets: "{{ (['shared'] + HARNESS_ENABLED) | map('extract', HARNESS_LINKS) | list }}"
+
+# One link per glob match, computed here so the link and prune tasks below read the same
+# list. fileglob keeps regular files only, which is what keeps hooks/tests/ unlinked.
+- name: Expand the harness link globs
+  ansible.builtin.set_fact:
+    harness_glob_links: >-
+      {%- set out = [] -%}
+      {%- for glob in harness_sets | map(attribute='globs') | flatten -%}
+      {%- for match in query('fileglob', HARNESS_DIR ~ '/' ~ glob.src ~ '/' ~ glob.pattern) -%}
+      {%- set _ = out.append({'src': match, 'dest': glob.dest ~ '/' ~ (match | basename)}) -%}
+      {%- endfor -%}
+      {%- endfor -%}
+      {{ out }}
+    harness_glob_dirs: "{{ harness_sets | map(attribute='globs') | flatten | map(attribute='dest') | unique | list }}"
+
+# Every destination directory up front, because `state: link` does not create parents
+# the way `state: directory` does.
 - name: Ensure AI config directories exist
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     mode: "0755"
-  loop:
-    - "{{ HOME }}/.claude"
-    - "{{ HOME }}/.claude/hooks"
-    - "{{ HOME }}/.claude/rules"
-    - "{{ HOME }}/.claude/skills"
-    - "{{ HOME }}/.claude/agents"
-    - "{{ HOME }}/.config/kura"
-    - "{{ HOME }}/.local/bin"
-    - "{{ HOME }}/.pi/agent"
-    - "{{ HOME }}/.pi/agent/themes"
-    - "{{ HOME }}/.pi/agent/extensions"
-    # A real directory, never a link into the repo: pi-permission-system writes its
-    # review log beside its config, and those entries carry bash command strings
-    # unredacted.
-    - "{{ HOME }}/.pi/agent/extensions/pi-permission-system"
-    - "{{ HOME }}/Library/Application Support/rtk"
+  loop: "{{ (harness_sets | map(attribute='dirs') | flatten) + AI_DIRS }}"
 
-# Listed rather than globbed: files/claude/ also holds README.md and the two
-# registries, which are repo data and must not appear in ~/.claude.
-- name: Symlink claude config files
+- name: Link harness files
   ansible.builtin.file:
-    src: "{{ role_path }}/files/claude/{{ item }}"
-    dest: "{{ HOME }}/.claude/{{ item }}"
+    src: "{{ HARNESS_DIR }}/{{ item.src }}"
+    dest: "{{ item.dest }}"
     state: link
     force: true
-  loop:
-    - settings.json
-    - statusline.sh
+  loop: "{{ harness_sets | map(attribute='files') | flatten }}"
+  loop_control:
+    label: "{{ item.dest }}"
 
-# AGENTS.md is the one agent-neutral instructions file, and each agent reads it under the
-# name it expects: Claude Code only ever loads ~/.claude/CLAUDE.md, Pi only ever loads
-# ~/.pi/agent/AGENTS.md. Its own task rather than an entry in the loop above, because that
-# loop derives the destination from the source name and here the two differ. The
-# Claude-only mechanics moved to rules/claude.md, which the rules glob below links and
-# which loads at launch with the same priority.
-- name: Symlink the shared global instructions as claude's CLAUDE.md
+- name: Link harness globs
   ansible.builtin.file:
-    src: "{{ role_path }}/files/claude/AGENTS.md"
-    dest: "{{ HOME }}/.claude/CLAUDE.md"
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
     state: link
     force: true
+  loop: "{{ harness_glob_links }}"
+  loop_control:
+    label: "{{ item.dest }}"
 
-# Globbed for the same reason as the hooks, and linked file by file rather than as a
-# directory: the documented symlink support in .claude/rules/ covers links placed
-# *inside* the directory, so replacing ~/.claude/rules wholesale is the undocumented
-# shape. Every .md here is a user-scope rule, loaded at launch with the same priority as
-# CLAUDE.md, so a file added to files/claude/rules/ is machine-wide on the next run.
-- name: Symlink claude rules
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/claude/rules/{{ item | basename }}"
-    dest: "{{ HOME }}/.claude/rules/{{ item | basename }}"
-    state: link
-    force: true
-  with_fileglob:
-    - "{{ role_path }}/files/claude/rules/*.md"
-
-# The glob above links what the repo ships and prunes nothing, so a rule deleted here (or
-# folded into AGENTS.md) leaves its link behind on every machine already provisioned, in a
-# directory Claude Code reads at launch. A dangling rule looks exactly like a rule that
-# was never written, which is the same failure the superseded pi SYSTEM.md link has, so it
-# gets the same treatment: derive the stale set from disk rather than naming filenames,
-# because the next rule to move will not be one of these two. Only symlinks are
-# candidates, so a rule someone wrote by hand in ~/.claude/rules/ is theirs to keep, and
-# the removal loop is empty on a steady-state run.
-- name: Find the links in the claude rules directory
+# The globs link what the repo ships and prune nothing, so a rule, hook, agent or theme
+# deleted here would leave a dangling link on every machine already provisioned. The
+# stale set comes off disk rather than from a list of names. Only symlinks pointing into
+# this role's files/ are candidates, which also sweeps links left by the layout before
+# harness/ and leaves herdr's real hook file, hand-written rules and kura's links alone.
+- name: Find the links in the harness glob directories
   ansible.builtin.find:
-    paths: "{{ HOME }}/.claude/rules"
+    paths: "{{ harness_glob_dirs }}"
     file_type: link
-  register: claude_rules_links
+  register: harness_dir_links
 
-- name: Remove claude rules links the repo no longer ships
+# find reports no link target, so a stat per link supplies lnk_source.
+- name: Inspect the links in the harness glob directories
+  ansible.builtin.stat:
+    path: "{{ item.path }}"
+    follow: false
+  loop: "{{ harness_dir_links.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+  register: harness_dir_link_stats
+
+- name: Remove harness links the repo no longer ships
   ansible.builtin.file:
-    path: "{{ HOME }}/.claude/rules/{{ item }}"
+    path: "{{ item.item.path }}"
     state: absent
-  loop: "{{ claude_rules_links.files | map(attribute='path') | map('basename') | reject('in', CLAUDE_RULES_SHIPPED) | list }}"
-  vars:
-    CLAUDE_RULES_SHIPPED: "{{ query('fileglob', role_path ~ '/files/claude/rules/*.md') | map('basename') | list }}"
+  loop: "{{ harness_dir_link_stats.results }}"
+  loop_control:
+    label: "{{ item.item.path }}"
+  when:
+    - item.item.path not in (harness_glob_links | map(attribute='dest'))
+    - item.stat.islnk | default(false)
+    - item.stat.lnk_source is match('^' ~ role_path ~ '/files/')
 
-# Globbed because every hook in the directory is meant to be active, so adding
-# one should not also mean editing this file.
-- name: Symlink claude hooks
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/claude/hooks/{{ item | basename }}"
-    dest: "{{ HOME }}/.claude/hooks/{{ item | basename }}"
-    state: link
-    force: true
-  with_fileglob:
-    - "{{ role_path }}/files/claude/hooks/*"
+# --- herdr --------------------------------------------------------------------------
 
 # herdr owns both halves of this integration: it writes its own
-# hooks/herdr-agent-state.sh (a real file, not a repo symlink, so it is the one
-# thing in ~/.claude/hooks/ this role does not manage) and registers the
-# SessionStart entry that reports agent state back to the workspace manager. The
-# CLI is the only supported installer, so drive it rather than reimplementing it.
-# `integration status` is the gate: it prints `claude: current (v<n>)` only when
-# the installed hook matches the version herdr ships, so a herdr upgrade
-# reinstalls on the next run. It is read-only, hence check_mode: false, which
-# also keeps the install task's condition resolvable under `make check`.
+# hooks/herdr-agent-state.sh (a real file, not a repo symlink, so the prune above never
+# touches it) and registers the SessionStart entry that reports agent state back to the
+# workspace manager. `integration status` is the gate: it prints `claude: current (v<n>)`
+# only when the installed hook matches the version herdr ships, so a herdr upgrade
+# reinstalls on the next run. It is read-only, hence check_mode: false.
 #
-# herdr ships a pi integration too, an extension at ~/.pi/agent/extensions/ rather
-# than a hook, and it is installed on the same terms from the same status output. Without
-# this task a fresh machine reports claude state and not pi state, and the only sign is
-# a line in `herdr integration status` nobody reads. One status call serves both.
+# The pi integration is an extension at ~/.pi/agent/extensions/ rather than a hook, and
+# is installed on the same terms from the same status output.
 - name: Check the herdr claude integration status
   ansible.builtin.command: herdr integration status
   register: herdr_integration
@@ -149,13 +135,12 @@
   when: "'claude: current' not in herdr_integration.stdout"
   changed_when: true
 
-# The extension lands beside the two this role symlinks. Safe, because that task
-# links per file from a fileglob and prunes nothing, so a real file herdr writes
-# there is never a candidate for removal.
 - name: Install the herdr pi integration
   ansible.builtin.command: herdr integration install pi
   when: "'pi: current' not in herdr_integration.stdout"
   changed_when: true
+
+# --- scripts and kura ---------------------------------------------------------------
 
 - name: Link AI scripts into the user bin directory
   ansible.builtin.file:
@@ -168,25 +153,18 @@
   # it through the role search path the way copy and template do, and a relative one
   # would be read against ~/.local/bin and written as a dangling link that still
   # reports changed.
-  #
-  # A manifest rather than a glob because every entry is now a directory, and fileglob
-  # filters through os.path.isfile. It also means a README beside its tool needs no
-  # `when` guard to stay off PATH.
   loop: "{{ AI_SCRIPTS }}"
 
 # kura is installed rather than linked, so this block runs after the link loop above:
 # were the order reversed, the loop would relink over the downloaded asset on the same
-# apply. Dropping it from AI_SCRIPTS is what actually prevents that; the ordering is
-# the second guard.
+# apply.
 - name: Inspect the command left by the old claude-kit link
   ansible.builtin.stat:
     path: "{{ HOME }}/.local/bin/claude-kit"
     follow: false
   register: claude_kit_command
 
-# Only the link this role wrote is ours to remove. Anything else at that name was put
-# there by hand, and replacing it silently is how a machine loses a command nobody
-# remembers installing.
+# Only the link this role wrote is ours to remove.
 - name: Refuse to remove an unexpected claude-kit symlink
   ansible.builtin.assert:
     that:
@@ -194,9 +172,6 @@
     fail_msg: "Refusing to remove {{ claude_kit_command.stat.lnk_source }} as claude-kit"
   when: claude_kit_command.stat.islnk | default(false)
 
-# Removed rather than replaced: the command is named kura now, and the download below
-# writes a different path. Leaving the old link would leave a claude-kit on PATH
-# pointing into a directory this commit deletes.
 - name: Remove the legacy claude-kit symlink
   ansible.builtin.file:
     path: "{{ HOME }}/.local/bin/claude-kit"
@@ -210,24 +185,17 @@
     checksum: "{{ KURA.checksum }}"
     mode: "0755"
 
-# Kura reads only ~/.config/kura/catalog. The dedicated source view exposes the
-# skills tree and its optional registry metadata without making Claude settings,
-# hooks, agents, or legacy plugins part of the catalog. Ansible owns the fixed-path
-# link, and force: true repoints one left by an older checkout.
+# Kura reads only ~/.config/kura/catalog. The catalog view exposes the skills tree and
+# its registry and nothing else of the harness payload.
 - name: Link the artifact catalog at the fixed path
   ansible.builtin.file:
-    src: "{{ role_path }}/files/kura/catalog"
+    src: "{{ HARNESS_DIR }}/kura/catalog"
     dest: "{{ HOME }}/.config/kura/catalog"
     state: link
     force: true
 
-# Kura requires machine configuration before sync or convergence. Ansible owns the
-# global harness set; the catalog path is fixed and is not stored here.
-- name: Check for an existing kura machine config
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.config/kura/config.json"
-  register: kura_machine_config_before
-
+# Kura requires machine configuration before sync or convergence. Codex and opencode
+# are not kura harnesses: they read ~/.agents/skills, which the pi harness writes.
 - name: Provision kura machine config
   ansible.builtin.copy:
     dest: "{{ HOME }}/.config/kura/config.json"
@@ -238,10 +206,13 @@
         "globalHarnesses": ["claude", "pi"]
       }
 
-# Kura 0.2 and earlier exposed Pi's global skills through Claude's root. Pi 0.85 reads
-# ~/.agents/skills natively, and Kura 0.3 writes independent links there. Keeping this
-# bridge would make every global skill load twice. Refuse an unexpected occupant rather
-# than deleting user-owned content at a path this role no longer manages.
+# `kura sync` and `kura converge` are run by hand, not by this role.
+
+# --- pi -----------------------------------------------------------------------------
+
+# Kura 0.2 and earlier exposed Pi's global skills through Claude's root. Pi reads
+# ~/.agents/skills natively now, and keeping this bridge would load every global skill
+# twice. Refuse an unexpected occupant rather than deleting user-owned content.
 - name: Check for the superseded pi skills link
   ansible.builtin.stat:
     path: "{{ HOME }}/.pi/agent/skills"
@@ -263,210 +234,83 @@
     state: absent
   when: pi_superseded_skills_link.stat.islnk | default(false)
 
-# Kura 0.3 intentionally manages skills only. Standalone agents in this catalog are all
-# global, so Ansible now owns their Claude Code links. Pi keeps the agent-only bridge
-# below because pi-subagents has no neutral global agent root corresponding to Kura's
-# native skill root. Project plugins and their bundled agents remain project-owned and
-# are not touched by this role.
-- name: Symlink global claude agents
+# Links earlier layouts wrote that nothing ships any more. Left behind they are not
+# inert: pi reads ~/.pi/agent/SYSTEM.md as a replacement system prompt, and mcp.json
+# configured pi-mcp-adapter, which is no longer installed. Only a symlink is removed, so
+# a file someone wrote by hand is theirs to keep.
+- name: Check for superseded pi config links
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.pi/agent/{{ item }}"
+    follow: false
+  loop:
+    - SYSTEM.md
+    - mcp.json
+  register: pi_superseded_config_links
+
+- name: Remove superseded pi config links
   ansible.builtin.file:
-    src: "{{ role_path }}/files/claude/agents/{{ item | basename }}"
-    dest: "{{ HOME }}/.claude/agents/{{ item | basename }}"
+    path: "{{ HOME }}/.pi/agent/{{ item.item }}"
+    state: absent
+  loop: "{{ pi_superseded_config_links.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.stat.islnk | default(false)
+
+# Renaming an auto-discovered extension leaves the old role-owned link dangling. Remove
+# only links so a file written by hand under a superseded name remains the user's.
+- name: Check for superseded pi extension links
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.pi/agent/extensions/{{ item }}"
+    follow: false
+  loop:
+    - activity.ts
+    - claude-ui.ts
+    - context-continuity.ts
+    - cursor-model-policy.ts
+    - footer.ts
+    - guardrails.ts
+    - minion.ts
+    - skill-aliases.ts
+    - skill-model.ts
+    - statusline.ts
+    - velocity.ts
+  register: pi_superseded_extension_links
+
+- name: Remove superseded pi extension links
+  ansible.builtin.file:
+    path: "{{ HOME }}/.pi/agent/extensions/{{ item.item }}"
+    state: absent
+  loop: "{{ pi_superseded_extension_links.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.stat.islnk | default(false)
+
+# Each manifest entry is a directory containing index.ts and its documentation. Pi
+# follows the directory link and auto-discovers index.ts; the manifest keeps the
+# disabled claude-ui experiment in the source tree without loading it. A manifest rather
+# than a HARNESS_LINKS glob, because fileglob matches files and these are directories.
+- name: Symlink pi extensions
+  ansible.builtin.file:
+    src: "{{ HARNESS_DIR }}/adapters/pi/extensions/{{ item }}"
+    dest: "{{ HOME }}/.pi/agent/extensions/{{ item }}"
     state: link
     force: true
-  with_fileglob:
-    - "{{ role_path }}/files/claude/agents/*.md"
+  loop: "{{ PI_EXTENSIONS }}"
+  when: "'pi' in HARNESS_ENABLED"
 
-- name: Find links in the global claude agents directory
-  ansible.builtin.find:
-    paths: "{{ HOME }}/.claude/agents"
-    file_type: link
-  register: claude_agent_links
-
-- name: Inspect links in the global claude agents directory
-  ansible.builtin.stat:
-    path: "{{ item.path }}"
-    follow: false
-  loop: "{{ claude_agent_links.files }}"
-  loop_control:
-    label: "{{ item.path | basename }}"
-  register: claude_agent_link_stats
-
-- name: Remove global claude agent links the role no longer ships
-  ansible.builtin.file:
-    path: "{{ item.item.path }}"
-    state: absent
-  loop: "{{ claude_agent_link_stats.results }}"
-  loop_control:
-    label: "{{ item.item.path | basename }}"
-  vars:
-    CLAUDE_AGENTS_SHIPPED: "{{ query('fileglob', role_path ~ '/files/claude/agents/*.md') | map('basename') | list }}"
-  when:
-    - item.item.path | basename not in CLAUDE_AGENTS_SHIPPED
-    - item.stat.islnk | default(false)
-    - item.stat.lnk_source is match('^' ~ role_path ~ '/files/claude/agents/')
-
-# The `global` tag in skill-registry.json is the source of truth for both native global
-# roots. Kura expands skill dependencies and links every selected skill independently at
-# ~/.claude/skills and ~/.agents/skills. It prunes only catalog-backed symlinks, so real
-# paths, foreign links and project plugin links remain outside its ownership.
-# - name: Converge global skills for Claude Code and Pi
-#   ansible.builtin.command:
-#     cmd: "{{ HOME }}/.local/bin/kura sync{{ ' --dry-run' if ansible_check_mode else '' }}"
-#   environment:
-#     HOME: "{{ HOME }}"
-#     NO_COLOR: "1"
-#   register: kura_sync
-#   check_mode: false
-#   changed_when: kura_sync.stdout is not search(', 0 changes')
-#   # On a fresh --check run the copy task above cannot create machine config. A normal
-#   # apply always runs; later checks can dry-run against the file already provisioned.
-#   when: not ansible_check_mode or kura_machine_config_before.stat.exists
-
-# - name: Show what the global sync did
-#   ansible.builtin.debug:
-#     var: kura_sync.stdout_lines
-#   when: kura_sync is changed or kura_sync.stderr | default('') | length > 0
-
-# Kura 0.3 discovers only root kura.json manifests beneath cwd or explicit --root trees.
-# Name ~/Developer explicitly so Ansible's cwd cannot narrow the sweep to this checkout.
-# - name: Converge initialized project skill views
-#   ansible.builtin.command:
-#     cmd: "{{ HOME }}/.local/bin/kura converge --all --root {{ HOME }}/Developer{{ ' --dry-run' if ansible_check_mode else '' }}"
-#   environment:
-#     HOME: "{{ HOME }}"
-#     NO_COLOR: "1"
-#   register: kura_converge
-#   check_mode: false
-#   changed_when: kura_converge.stdout is not search(', 0 changes')
-#   when: not ansible_check_mode or kura_machine_config_before.stat.exists
-
-# - name: Show what project convergence did
-#   ansible.builtin.debug:
-#     var: kura_converge.stdout_lines
-#   when: kura_converge is changed or kura_converge.stderr | default('') | length > 0
-
-# - name: Symlink pi agent config
-#   ansible.builtin.file:
-#     src: "{{ role_path }}/files/{{ item }}"
-#     dest: "{{ HOME }}/.pi/agent/{{ item | basename }}"
-#     state: link
-#     force: true
-#   loop:
-#     - pi/settings.json
-#     - pi/models.json
-#     - pi/model-routing.json
-#     - pi/subagents.json
-#     - pi/mcp.json
-#     # pi-sandbox's config: the layer that contains. Derived from the `sandbox` block and
-#     # the path half of the `permissions` block in files/claude/settings.json, so one
-#     # statement of what may be read, written and reached serves both harnesses;
-#     # test_pi_sandbox.py recomputes it and fails on drift. The layer that *decides* is
-#     # pi-permission-system, linked separately below because its config is not a
-#     # basename away from the others.
-#     - pi/sandbox.json
-#     # APPEND_SYSTEM.md rather than SYSTEM.md: the latter *replaces* pi's own system
-#     # prompt, so shipping one traded every harness instruction pi ships for the 30
-#     # lines below it. This one is appended, so the rules add to the defaults.
-#     - pi/APPEND_SYSTEM.md
-#     # Pi reads the shared instructions directly rather than keeping a second copy.
-#     # AGENTS.md is Pi's one global context file, and the basename rule above lands it at
-#     # the name Pi expects, so this needs no task of its own.
-#     - claude/AGENTS.md
-
-# # pi-permission-system's config, the decision layer beside the sandbox: allow/ask/deny
-# # over bash command shape, tool names, MCP servers and file paths, which is the half of
-# # Claude's `permissions` block pi-sandbox cannot match on. Derived from the same
-# # files/claude/settings.json; test_pi_permissions.py recomputes it and fails on drift.
-# # Its own task because the package expects `config.json` inside a directory named after
-# # it, which the basename loop above cannot express.
-# - name: Symlink pi permission-system config
-#   ansible.builtin.file:
-#     src: "{{ role_path }}/files/pi/permission-system/config.json"
-#     dest: "{{ HOME }}/.pi/agent/extensions/pi-permission-system/config.json"
-#     state: link
-#     force: true
-
-# # pi-subagents reads global agents only from ~/.pi/agent/agents. Kura 0.3 has no agent
-# # lifecycle, so the role-owned Claude directory above remains the one source and this
-# # agent-only bridge keeps the two harnesses on that same set.
-# - name: Point pi at the global claude agents
-#   ansible.builtin.file:
-#     src: "{{ HOME }}/.claude/agents"
-#     dest: "{{ HOME }}/.pi/agent/agents"
-#     state: link
-#     force: true
-
-# # The link the task above used to write. Left behind it is not inert: pi reads
-# # ~/.pi/agent/SYSTEM.md as a replacement system prompt, and a dangling one is a
-# # machine whose prompt depends on which run last touched it. Only a symlink is
-# # removed, so a SYSTEM.md someone wrote by hand is theirs to keep.
-# - name: Check for the superseded pi SYSTEM.md link
-#   ansible.builtin.stat:
-#     path: "{{ HOME }}/.pi/agent/SYSTEM.md"
-#     follow: false
-#   register: pi_system_prompt
-
-# - name: Remove the superseded pi SYSTEM.md link
-#   ansible.builtin.file:
-#     path: "{{ HOME }}/.pi/agent/SYSTEM.md"
-#     state: absent
-#   when: pi_system_prompt.stat.islnk | default(false)
-
-# - name: Symlink pi themes
-#   ansible.builtin.file:
-#     src: "{{ role_path }}/files/pi/themes/{{ item | basename }}"
-#     dest: "{{ HOME }}/.pi/agent/themes/{{ item | basename }}"
-#     state: link
-#     force: true
-#   with_fileglob:
-#     - "{{ role_path }}/files/pi/themes/*.json"
-
-# # Renaming an auto-discovered extension leaves the old role-owned link dangling. Remove only
-# # links so a file written by hand under either superseded name remains the user's to keep.
-# - name: Check for superseded pi extension links
-#   ansible.builtin.stat:
-#     path: "{{ HOME }}/.pi/agent/extensions/{{ item }}"
-#     follow: false
-#   loop:
-#     - activity.ts
-#     - claude-ui.ts
-#     - context-continuity.ts
-#     - cursor-model-policy.ts
-#     - footer.ts
-#     - guardrails.ts
-#     - minion.ts
-#     - skill-aliases.ts
-#     - skill-model.ts
-#     - statusline.ts
-#     - velocity.ts
-#   register: pi_superseded_extension_links
-
-# - name: Remove superseded pi extension links
-#   ansible.builtin.file:
-#     path: "{{ HOME }}/.pi/agent/extensions/{{ item.item }}"
-#     state: absent
-#   loop: "{{ pi_superseded_extension_links.results }}"
-#   loop_control:
-#     label: "{{ item.item }}"
-#   when: item.stat.islnk | default(false)
-
-# # Each manifest entry is a directory containing index.ts and its documentation. Pi follows
-# # the directory link and auto-discovers index.ts; the manifest keeps the disabled claude-ui
-# # experiment in the source tree without loading it.
-# - name: Symlink pi extensions
-#   ansible.builtin.file:
-#     src: "{{ role_path }}/files/pi/extensions/{{ item }}"
-#     dest: "{{ HOME }}/.pi/agent/extensions/{{ item }}"
-#     state: link
-#     force: true
-#   loop: "{{ PI_EXTENSIONS }}"
-
-
-# # rtk ignores XDG_CONFIG_HOME and only reads the macOS Application Support path.
-# - name: Symlink rtk config
-#   ansible.builtin.file:
-#     src: "{{ role_path }}/files/rtk/config.toml"
-#     dest: "{{ HOME }}/Library/Application Support/rtk/config.toml"
-#     state: link
-#     force: true
+# --- codex ------------------------------------------------------------------------
+#
+# Codex writes its own config.toml, so the policy is merged into it rather than linked
+# over it: only the keys adapters/codex/adapter.toml names are replaced. The rules file
+# is copied beside Codex's own, since its loader skips a symlink. uv supplies the
+# Python 3.11 the generator needs, as it does for `make harness`.
+- name: Merge the harness policy into Codex's config
+  ansible.builtin.command:
+    argv: "{{ ['uv', 'run', '--no-project', 'python', HARNESS_DIR ~ '/bin/harness-build', 'apply', 'codex'] + (['--check'] if ansible_check_mode else []) }}"
+  environment:
+    PYTHONDONTWRITEBYTECODE: "1"
+  register: codex_apply
+  check_mode: false
+  changed_when: "'up to date' not in codex_apply.stdout"
+  failed_when: codex_apply.rc not in ([0, 1] if ansible_check_mode else [0])
+  when: "'codex' in HARNESS_ENABLED"

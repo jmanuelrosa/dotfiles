@@ -1,0 +1,57 @@
+# What a sandboxed command may reach. `{harness}` is this directory, wherever it is checked out.
+# `make harness` renders it into each harness's own files; edit here, never there.
+
+[network]
+allow_domains = [
+  "registry.npmjs.org",
+  "registry.yarnpkg.com",
+  "sentry.io",
+  "*.sentry.io",
+  "github.com",
+  "api.github.com",
+  "gitlab.com",
+  "*.githubusercontent.com",
+  "auth.atlassian.com",
+  "as.atlassian.com",
+  "api.atlassian.com",
+  "developers.notion.com",
+  "api.notion.com",
+  "context7.com",
+  "*.context7.com",
+  "api.anthropic.com",
+]
+allow_local_binding = true
+
+[filesystem]
+allow_write = [
+  ".",
+  "/tmp",
+  "$TMPDIR",
+  "~/.bun/install/cache",
+  "~/.npm/_cacache",
+  "~/.npm/_npx",
+  "~/.cache/uv",
+]
+allow_read = [
+  "~/.config/gh",
+  "~/.lima",
+  "~/.gitconfig",
+  "~/.ssh/known_hosts",
+  "/etc/ssl/cert.pem",
+  "~/.config/acli",
+  "{harness}/kura/catalog/skills",
+  "{harness}/hooks",
+  "{harness}/agents",
+  "{harness}/plugins",
+  "{harness}/adapters/claude/settings.json",
+]
+deny_read = [
+  "~/.ssh",
+  "~/.gnupg",
+  "~/.aws",
+  "~/.npmrc",
+  "~/.netrc",
+  "~/.config/gcloud",
+  "~/.terraform.d/credentials.tfrc.json",
+  "~/Library/Preferences/.wrangler",
+]

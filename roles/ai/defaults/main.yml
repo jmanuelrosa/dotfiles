@@ -2,11 +2,11 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-# There is no var for the global skill set. Kura v0.3 derives it from the `global`
-# group tag in skill-registry.json, expands declared skill dependencies, and projects
-# independent links into Claude Code and Pi's native global roots. Standalone agents
-# are skills-only Kura's deliberate exception: every file in files/claude/agents is
-# global and the role links that directory's members itself.
+# There is no var for the global skill set. Kura derives it from the `global` group tag
+# in skill-registry.json, expands declared skill dependencies, and projects independent
+# links into Claude Code and Pi's native global roots. Standalone agents are skills-only
+# Kura's deliberate exception: every file in harness/agents is global and HARNESS_LINKS
+# links them.
 
 BREW_PACKAGES:
   formulas:
@@ -19,6 +19,7 @@ BREW_PACKAGES:
     - chatgpt
     - claude
     - claude-code@latest
+    - codex
     - cursor
     - ollama-app
 
@@ -47,12 +48,143 @@ PI_EXTENSIONS:
 AI_SCRIPTS:
   - tokencost
 
-# kura manages skills through files/kura/catalog and is no longer developed here, so it
+# kura manages skills through harness/kura/catalog and is no longer developed here, so it
 # arrives as a released asset rather than as a link into this checkout. The release label
 # is for reading and the checksum is the identity: get_url verifies it, skips the download
 # when the file already matches, and replaces it when it does not, so an upgrade and a
 # rollback are the same two-line edit in opposite directions.
 KURA:
   repository: https://github.com/jmanuelrosa/kura
-  release: v0.5.0
-  checksum: sha256:a389c3a1488966032f93071f52b470c90f35359016f7f157ef861621ce41fb99
+  release: v0.6.1
+  checksum: sha256:cf163043f337e23f1762a4b70dd8658df39228a2e18ab7633e06a38d22e0ae8c
+
+# The harness-neutral payload. Everything every harness shares sits at the top of this
+# tree; what only one harness reads sits under adapters/<harness>/. Lifting the tree
+# into its own repository is this one edit.
+HARNESS_DIR: "{{ role_path }}/files/harness"
+
+# Directories the role writes into that belong to no harness: kura's config and the
+# bin directory the scripts and the kura release land in.
+AI_DIRS:
+  - "{{ HOME }}/.config/kura"
+  - "{{ HOME }}/.local/bin"
+
+# Which entries of HARNESS_LINKS this machine installs. `shared` is always installed.
+HARNESS_ENABLED:
+  - claude
+  - pi
+  - codex
+
+# Every link the role writes into a harness's home, as data. Four generic tasks install
+# the table: create `dirs`, link each `files` entry, expand each glob, prune.
+#
+# - files: one link each. `src` is relative to HARNESS_DIR and may be a directory.
+# - globs: every match of `pattern` in `src` is linked into `dest` under its own name.
+#   Matches go through the fileglob lookup, which keeps regular files only, so a
+#   tests/ directory beside the hooks is never linked.
+#
+# A glob `dest` is also pruned: a symlink there that points into this role's files/
+# and that no glob ships any more is removed. Anything else in the directory (a real
+# file herdr writes, a rule written by hand, a kura link) is left alone.
+HARNESS_LINKS:
+  shared:
+    dirs:
+      - "{{ HOME }}/Library/Application Support/rtk"
+    files:
+      # rtk ignores XDG_CONFIG_HOME and only reads the macOS Application Support path.
+      - src: rtk/config.toml
+        dest: "{{ HOME }}/Library/Application Support/rtk/config.toml"
+    globs: []
+
+  claude:
+    dirs:
+      - "{{ HOME }}/.claude"
+      - "{{ HOME }}/.claude/hooks"
+      - "{{ HOME }}/.claude/rules"
+      - "{{ HOME }}/.claude/skills"
+      - "{{ HOME }}/.claude/agents"
+    files:
+      - src: adapters/claude/settings.json
+        dest: "{{ HOME }}/.claude/settings.json"
+      - src: adapters/claude/statusline.sh
+        dest: "{{ HOME }}/.claude/statusline.sh"
+      # Claude Code has no user-level AGENTS.md, so the neutral file is its CLAUDE.md.
+      # Never also link ~/.claude/AGENTS.md: Claude would read it as an ancestor
+      # .claude/AGENTS.md and load the same text twice.
+      - src: AGENTS.md
+        dest: "{{ HOME }}/.claude/CLAUDE.md"
+    globs:
+      # File by file rather than the directory: Claude's documented symlink support in
+      # .claude/rules/ covers links placed inside it. Neutral rules and Claude-only
+      # rules land side by side.
+      - src: rules
+        pattern: "*.md"
+        dest: "{{ HOME }}/.claude/rules"
+      - src: adapters/claude/rules
+        pattern: "*.md"
+        dest: "{{ HOME }}/.claude/rules"
+      - src: hooks
+        pattern: "*"
+        dest: "{{ HOME }}/.claude/hooks"
+      - src: agents
+        pattern: "*.md"
+        dest: "{{ HOME }}/.claude/agents"
+
+  pi:
+    dirs:
+      - "{{ HOME }}/.pi/agent"
+      - "{{ HOME }}/.pi/agent/themes"
+      - "{{ HOME }}/.pi/agent/extensions"
+      # A real directory, never a link into the repo: pi-permission-system writes its
+      # review log beside its config, and those entries carry bash command strings
+      # unredacted.
+      - "{{ HOME }}/.pi/agent/extensions/pi-permission-system"
+    files:
+      - src: adapters/pi/settings.json
+        dest: "{{ HOME }}/.pi/agent/settings.json"
+      - src: adapters/pi/models.json
+        dest: "{{ HOME }}/.pi/agent/models.json"
+      - src: adapters/pi/model-routing.json
+        dest: "{{ HOME }}/.pi/agent/model-routing.json"
+      - src: adapters/pi/subagents.json
+        dest: "{{ HOME }}/.pi/agent/subagents.json"
+      # pi-sandbox's config, the layer that contains. Rendered from policy/ by
+      # `make harness`; test_harnessgen_drift.py fails on a hand edit.
+      - src: adapters/pi/sandbox.json
+        dest: "{{ HOME }}/.pi/agent/sandbox.json"
+      # pi-permission-system's config, the layer that decides. It expects config.json
+      # inside a directory named after the package.
+      - src: adapters/pi/permission-system/config.json
+        dest: "{{ HOME }}/.pi/agent/extensions/pi-permission-system/config.json"
+      # APPEND_SYSTEM.md rather than SYSTEM.md: the latter replaces pi's own system
+      # prompt, this one is appended to it.
+      - src: adapters/pi/APPEND_SYSTEM.md
+        dest: "{{ HOME }}/.pi/agent/APPEND_SYSTEM.md"
+      - src: AGENTS.md
+        dest: "{{ HOME }}/.pi/agent/AGENTS.md"
+      # pi-subagents reads global agents only from ~/.pi/agent/agents and has no
+      # neutral root, so the whole directory is linked.
+      - src: agents
+        dest: "{{ HOME }}/.pi/agent/agents"
+    globs:
+      - src: adapters/pi/themes
+        pattern: "*.json"
+        dest: "{{ HOME }}/.pi/agent/themes"
+
+  codex:
+    dirs:
+      - "{{ HOME }}/.codex"
+      - "{{ HOME }}/.codex/hooks"
+    files:
+      - src: AGENTS.md
+        dest: "{{ HOME }}/.codex/AGENTS.md"
+      # Rendered from policy/hooks.toml. Codex skips a hook until it is trusted in
+      # /hooks, and the trust is keyed by the hook's place in this file.
+      - src: adapters/codex/generated/hooks.json
+        dest: "{{ HOME }}/.codex/hooks.json"
+    # config.toml and rules/ are not links: Codex writes both, so `harness-build apply
+    # codex` merges into one and copies into the other.
+    globs:
+      - src: hooks
+        pattern: "*"
+        dest: "{{ HOME }}/.codex/hooks"

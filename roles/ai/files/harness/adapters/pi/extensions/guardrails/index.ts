@@ -1,0 +1,596 @@
+/**
+ * guardrails - Claude Code's PreToolUse hooks, running in Pi.
+ *
+ * An adapter and nothing else. Every decision is made by the python scripts under
+ * roles/ai/files/harness/hooks/, which Claude Code runs as PreToolUse hooks and which carry their
+ * own pytest suite. This file maps Pi's `tool_call` event onto the JSON they read on stdin and
+ * maps their exit 2 back onto Pi's block result. Nothing here parses a command, counts a dash, or
+ * knows which lint a project runs: a second copy of any of that is a copy that drifts, and the
+ * python half is the tested one.
+ *
+ * Four differences between the harnesses are handled here, and each is why this file exists:
+ *
+ * - Pi's `edit` carries an array of edits where Claude's carries one pair. The oldText and newText
+ *   halves are joined before the hook sees them, which preserves its delta rule: a call is blocked
+ *   when it adds dashes overall, never when one edit adds what another removes.
+ * - Pi has no `attributionSkill`, the per-turn stamp git-skill-gate reads to tell whether the
+ *   session is inside the commit or pr skill. `activeSkills` answers that question from Pi's own
+ *   session and writes the answer in the shape the hook already parses, so the hook stays the only
+ *   thing deciding what a gated command is.
+ * - The hook's refusal names Claude's /commit skill and ~/.claude/settings.json. Pi exposes
+ *   /commit as an alias, so the actionable message gets the explicit /skill spelling appended.
+ * - Claude has three answers to a PreToolUse hook and Pi has two. cloud-readonly-gate's `ask`
+ *   tier becomes a refusal, for the reasons at `askedForPermission`.
+ *
+ * Which hooks run, on which tools and in what order, is not decided here. It is read from
+ * generated/hooks.json, which harness-build renders from policy/hooks.toml, the same table
+ * Claude's `settings.hooks` is rendered from. So a hook added there reaches both harnesses, and
+ * what stays in this file is keyed by tool or by id: the payload shape per tool, the transcript
+ * for git-skill-gate, the ask tier for whichever gate prints one. The hooks the table gives only
+ * to Claude are on events this file does not listen to: plan-date-stamp.sh is PostToolUse on
+ * ExitPlanMode and Pi has no plan mode at all, while skill-recap.sh (Stop) and context-nudge.sh
+ * (UserPromptSubmit) would map onto Pi's `turn_end` and `turn_start` and are deliberately left
+ * for their own pass.
+ *
+ * One entry in the table is the odd one out: rtk rewrites a command rather than refusing one, so
+ * it is a gate in position only. It lives in this file rather than in an extension of its own
+ * purely for that position. Pi loads extensions in readdir order and runs every `tool_call`
+ * handler in that order, so a separate file's rewrite could land before the gates above ever read
+ * the command, and git-skill-gate handed `rtk git commit` is a gate that has quietly stopped
+ * matching. Inside one handler every rewrite runs after every gate, whatever order the table
+ * lists them in, as a property of the code instead of of the filesystem. One exposure is
+ * left standing, and it is the one Claude has as well: another extension's handler running after
+ * this one sees the rewritten command, exactly as anything ordered after Claude's hook array
+ * does. The extension also renders the rtk opt-in in the footer, mirroring statusline.sh, because
+ * a rewrite the caller cannot see is worse than no rewrite.
+ *
+ * One thing this file cannot reach, and it is the reason for the footer segment below. Every gate
+ * here hangs off pi's own `bash`, `write` and `edit`. Under the cursor provider those builtins are
+ * hidden from the bridge by default and Cursor's host tools do the work instead, which emits no
+ * `tool_call` at all, so the gates go unrun and the session reads exactly like one where every
+ * command passed. `PI_CURSOR_EXPOSE_BUILTIN_TOOLS` puts the builtins back on the bridge, but it
+ * only offers them beside Cursor's native tools rather than replacing them, and pi's own
+ * `--no-tools` / `--exclude-tools` do not reach Cursor's registry. Under that provider these are
+ * therefore best-effort even by the standard of the paragraph below.
+ *
+ * Everything fails open: a missing hook, a moved checkout, a spawn error or a timeout allows the
+ * call, exactly as the hooks themselves do on malformed input. These are intent friction, not a
+ * security boundary. That takes deliberate care here, because Pi and Claude disagree about what a
+ * broken guardrail means: a `tool_call` handler that throws blocks the call, so an unwritable
+ * temp directory would turn a gate nobody can run into a gate nobody can pass. Nothing below is
+ * allowed to throw. For rtk the same rule reads the other way round, since its failure mode is
+ * not a refusal: an rtk that is missing, slow or unparseable leaves the command exactly as the
+ * caller wrote it.
+ */
+
+import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { unlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import {
+  type ExtensionAPI,
+  type ExtensionContext,
+  isToolCallEventType,
+  type ToolCallEvent,
+  type ToolCallEventResult,
+} from "@earendil-works/pi-coding-agent";
+
+// realpath rather than dirname alone: this file is reached through the directory link the ai role
+// puts in ~/.pi/agent/extensions/, so the hooks are relative to the link's target, not the link.
+const HOOKS_DIR = join(dirname(realpathSync(fileURLToPath(import.meta.url))), "..", "..", "..", "..", "hooks");
+
+// The glyphs and wording these two segments share with Claude Code's statusline.sh, from the
+// file both harnesses read. Reached the same way HOOKS_DIR is, and for the same reason: this
+// file is loaded through a symlink, and only the realpath leads back into the checkout.
+// statusline.ts carries the full reasoning, including why this is read rather than imported.
+const VOCABULARY_PATH = join(
+  dirname(realpathSync(fileURLToPath(import.meta.url))),
+  "..",
+  "..",
+  "..",
+  "..",
+  "statusline.json",
+);
+
+function vocabulary(): { glyphs?: Record<string, string>; labels?: Record<string, string> } {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(VOCABULARY_PATH, "utf8"));
+    return typeof parsed === "object" && parsed !== null ? parsed : {};
+  } catch {
+    // No vocabulary renders no badge text, never a broken gate: nothing below this line can
+    // decide whether a tool call is allowed.
+    return {};
+  }
+}
+
+const VOCAB = vocabulary();
+
+function glyph(name: string): string {
+  const mark = VOCAB.glyphs?.[name];
+  return typeof mark === "string" && mark !== "" ? `${mark} ` : "";
+}
+
+function word(name: string): string {
+  const found = VOCAB.labels?.[name];
+  return typeof found === "string" ? found : "";
+}
+
+// Rendered by harness-build beside this extension's adapter, and reached the same way.
+const HOOK_TABLE_PATH = join(dirname(realpathSync(fileURLToPath(import.meta.url))), "..", "..", "generated", "hooks.json");
+
+interface HookEntry {
+  id: string;
+  tools: string[];
+  kind: "gate" | "rewrite";
+  script?: string;
+  exec?: string[];
+  requires_env?: string;
+  env?: Record<string, string>;
+}
+
+function isEntry(candidate: unknown): candidate is HookEntry {
+  const entry = candidate as Partial<HookEntry> | null;
+  if (!entry || typeof entry.id !== "string" || !Array.isArray(entry.tools)) return false;
+  if (entry.kind === "gate") return typeof entry.script === "string";
+  if (entry.kind === "rewrite") return Array.isArray(entry.exec) && entry.exec.length > 0;
+  return false;
+}
+
+/**
+ * The PreToolUse half of the table, in its order.
+ *
+ * A table that is missing or will not parse is an empty one, so every call is allowed: the same
+ * fail-open reading a missing hook script gets, for the reason the header gives. An entry of a
+ * shape this file does not know is skipped rather than guessed at.
+ */
+function hookTable(): HookEntry[] {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(HOOK_TABLE_PATH, "utf8"))?.pre_tool;
+    return Array.isArray(parsed) ? parsed.filter(isEntry) : [];
+  } catch {
+    return [];
+  }
+}
+
+const PRE_TOOL = hookTable();
+
+// The one gate that reads a transcript, which pi has none of in the shape it parses.
+const TRANSCRIPT_GATE = "git-skill-gate";
+
+// Above pre-commit-verify's own 150s ceiling, so its report of a slow lint reaches the caller
+// instead of being replaced by this timeout.
+const HOOK_TIMEOUT_MS = 180_000;
+
+// Far below the hook ceiling, because a rewriter is answering a different kind of question: a
+// rewrite is a parse and a table lookup, so a limit generous enough for a project's full lint
+// would buy an rtk that hangs three minutes of stalled session before every single command.
+const REWRITE_TIMEOUT_MS = 5_000;
+
+// User messages, where Claude counts stamped assistant events. The unit has to differ because
+// the signals do: Claude re-stamps `attributionSkill` on every assistant turn for as long as the
+// flow is running, while pi writes its `<skill name="...">` tag exactly once, into the user
+// message that invoked it. Counting entries would therefore expire the invocation partway through
+// the very flow it opened, since reading a diff and staging spends far more than 30 entries. A
+// count of user messages cannot expire mid-flow (a commit flow is one message) and still bounds
+// staleness, so an invocation the user has plainly moved on from stops holding the gate open.
+const SKILL_WINDOW_USER_MESSAGES = 30;
+
+// The skills git-skill-gate gates on, by name only: which command needs which one stays the hook's
+// business, and this list exists solely to be looked for in the session.
+const GATED_SKILLS = ["commit", "pr"] as const;
+
+interface HookPayload {
+  tool_name: string;
+  tool_input: Record<string, unknown>;
+  cwd: string;
+  transcript_path?: string;
+}
+
+interface HookVerdict {
+  blocked: boolean;
+  message: string;
+  // Only cloud-readonly-gate writes anything here: its middle tier is an `ask`
+  // decision on stdout with exit 0, which `blocked` alone cannot represent.
+  stdout?: string;
+}
+
+const ALLOW: HookVerdict = { blocked: false, message: "" };
+
+interface SpawnResult {
+  code: number | null;
+  stdout: string;
+  stderr: string;
+}
+
+interface SpawnOptions {
+  timeoutMs: number;
+  // Left unset to inherit, which is what every gate wants. Only a rewrite passes one, because
+  // Claude hands rtk a variable through a settings `env` block that pi's settings have no
+  // counterpart for, so the table carries it instead.
+  env?: NodeJS.ProcessEnv;
+}
+
+// A process that did not run, in the only vocabulary shared by every caller. Both readings of it
+// are the permissive one: exit 0 is not the 2 a gate refuses with, and an empty stdout is not the
+// JSON a rewrite arrives in.
+const DID_NOT_RUN: SpawnResult = { code: 0, stdout: "", stderr: "" };
+
+/**
+ * Every fail-open guarantee in this file, in one place.
+ *
+ * A settled flag so a timeout and a close cannot both answer, a SIGKILL ceiling, a spawn error
+ * that reads as "did not run" rather than a throw, and a swallowed EPIPE from a child that exits
+ * before reading its input. Callers translate the result into their own vocabulary; none of them
+ * decides what a failure means, because for all of them the answer is the same one.
+ */
+function spawnJson(exec: string, args: string[], payload: unknown, options: SpawnOptions): Promise<SpawnResult> {
+  return new Promise((resolve) => {
+    const child = spawn(exec, args, { stdio: ["pipe", "pipe", "pipe"], env: options.env });
+    let stderr = "";
+    let stdout = "";
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const finish = (result: SpawnResult) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(result);
+    };
+
+    timer = setTimeout(() => {
+      child.kill("SIGKILL");
+      finish(DID_NOT_RUN);
+    }, options.timeoutMs);
+
+    child.stderr.on("data", (chunk) => {
+      stderr += String(chunk);
+    });
+    child.stdout.on("data", (chunk) => {
+      stdout += String(chunk);
+    });
+    // A process that cannot be spawned at all, and a broken pipe from one that exits before
+    // reading its input, both mean the work did not happen. Neither is the caller's fault.
+    child.on("error", () => finish(DID_NOT_RUN));
+    child.stdin.on("error", () => {});
+    child.on("close", (code) => finish({ code, stdout, stderr }));
+
+    child.stdin.end(JSON.stringify(payload));
+  });
+}
+
+async function runHook(name: string, payload: HookPayload): Promise<HookVerdict> {
+  const script = join(HOOKS_DIR, name);
+  if (!existsSync(script)) {
+    return ALLOW;
+  }
+
+  const { code, stdout, stderr } = await spawnJson(script, [], payload, { timeoutMs: HOOK_TIMEOUT_MS });
+  return { blocked: code === 2, message: stderr.trim(), stdout };
+}
+
+/**
+ * The command a rewrite entry would rather run, or nothing.
+ *
+ * The one kind of entry that rewrites a call instead of refusing one, which is also why its
+ * answer cannot be returned: `ToolCallEventResult` carries a block and a reason and nothing else,
+ * and pi's own note on that field says to mutate `event.input` in place instead. The caller does
+ * that, last, once every gate has read the original.
+ *
+ * rtk's entry runs `hook claude` rather than `hook check`, even though `check` prints the bare
+ * rewritten command and would be less code here: `check` is a dry run, so rtk's own audit and tee
+ * side effects do not fire and RTK_HOOK_AUDIT would be dead weight. Going through the target
+ * Claude Code goes through keeps one code path inside rtk for both harnesses.
+ *
+ * Exit status carries nothing, unlike the hooks: rtk exits 0 whether or not it rewrote anything,
+ * and an empty stdout is the whole of the signal for "no rewrite".
+ */
+async function rewriteCommand(entry: HookEntry, command: string, cwd: string): Promise<string | undefined> {
+  // The opt-in, read the way settings.json and statusline.sh both read it: any non-empty value is
+  // on. Checked before the spawn, so a shell that did not opt in pays nothing.
+  if (entry.requires_env && !process.env[entry.requires_env]) return undefined;
+  if (!command.trim()) return undefined;
+
+  const [exec, ...args] = entry.exec ?? [];
+  if (!exec) return undefined;
+  const { stdout } = await spawnJson(
+    exec,
+    args,
+    { tool_name: "Bash", tool_input: { command }, cwd },
+    { timeoutMs: REWRITE_TIMEOUT_MS, env: { ...process.env, ...entry.env } },
+  );
+
+  const raw = stdout.trim();
+  if (!raw) return undefined;
+  try {
+    const rewritten = JSON.parse(raw)?.hookSpecificOutput?.updatedInput?.command;
+    if (typeof rewritten !== "string" || !rewritten.trim()) return undefined;
+    return rewritten === command ? undefined : rewritten;
+  } catch {
+    // As in askedForPermission: output that will not parse has proposed nothing.
+    return undefined;
+  }
+}
+
+/**
+ * A hook's `ask` decision, which in Pi can only become a refusal.
+ *
+ * Claude Code has three answers to a PreToolUse hook and Pi has two: a `tool_call`
+ * handler returns `{ block }` or nothing, and Pi ships no permission prompt at all. So
+ * cloud-readonly-gate's middle tier, the one covering every non-read-only cloud command,
+ * has no counterpart and has to fall to one side.
+ *
+ * It falls to blocked, and the direction is deliberate. Those four CLIs are the ones
+ * Claude excludes from its sandbox so they can reach their own credential stores, which
+ * makes this gate their only guardrail there; in Pi there is no prompt to fall back on,
+ * so allowing would mean running them unasked. The reason still comes from the hook, so
+ * the caller is told which command to run in a real terminal instead.
+ *
+ * The decision is read rather than inferred: the hook prints it as JSON and exits 0, so
+ * exit status alone reports the same thing for `ask` and for `allow`.
+ */
+function askedForPermission(verdict: HookVerdict): string | undefined {
+  const raw = verdict.stdout?.trim();
+  if (!raw) return undefined;
+  try {
+    const output = JSON.parse(raw)?.hookSpecificOutput;
+    if (output?.permissionDecision !== "ask") return undefined;
+    return String(output.permissionDecisionReason || "").trim() || "asked for confirmation";
+  } catch {
+    // Not every hook prints JSON, and one that prints anything else has not asked.
+    return undefined;
+  }
+}
+
+function textOf(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  return content
+    .filter((block): block is { type: string; text: string } => {
+      const candidate = block as { type?: unknown; text?: unknown } | null;
+      return !!candidate && candidate.type === "text" && typeof candidate.text === "string";
+    })
+    .map((block) => block.text)
+    .join("\n");
+}
+
+/**
+ * The skills this session is inside, read from user messages alone.
+ *
+ * Pi expands `/skill:commit` in place, into a `<skill name="commit" location="...">` block on the
+ * user message, so that tag is the invocation. The model reading SKILL.md on its own does not
+ * count, which mirrors Claude: `attributionSkill` marks a slash-command flow too. It also keeps
+ * the fuzzier signal out, since a session that merely read a skill file, or a tool result quoting
+ * one, would otherwise open the gate in the repo where those files live.
+ *
+ * Only user messages are counted, for the reason at SKILL_WINDOW_USER_MESSAGES: the tag is a
+ * one-time invocation marker here, not a per-turn stamp, so windowing over every entry would drop
+ * it while the flow it belongs to is still running.
+ */
+function activeSkills(ctx: ExtensionContext): Set<string> {
+  const found = new Set<string>();
+  let entries: unknown[];
+  try {
+    entries = ctx.sessionManager.getBranch();
+  } catch {
+    return found;
+  }
+
+  const asked: string[] = [];
+  for (const entry of entries) {
+    const message = (entry as { message?: { role?: string; content?: unknown } }).message;
+    if (message?.role !== "user") continue;
+    asked.push(textOf(message.content));
+  }
+
+  for (const text of asked.slice(-SKILL_WINDOW_USER_MESSAGES)) {
+    for (const skill of GATED_SKILLS) {
+      if (text.includes(`<skill name="${skill}"`)) found.add(skill);
+    }
+  }
+  return found;
+}
+
+/**
+ * The active skills, as the JSONL git-skill-gate reads.
+ *
+ * Written even when the set is empty, and that is the load-bearing part: the hook treats a
+ * transcript it cannot open as a parse failure and allows the command, so a missing file would
+ * turn the gate off rather than closing it. Which is also why a write that fails is answered with
+ * no path at all rather than a throw: the skill window then goes unchecked, as it does in Claude
+ * when a transcript will not parse, while the hard blocks the hook applies first still stand.
+ *
+ * The name is generated here rather than taken from the tool call. `toolCallId` is whatever the
+ * model provider returned, so it crosses a trust boundary before reaching a path: real ids already
+ * carry a `|`, one carrying a `/` would make the write fail and silently leave the window
+ * unchecked, and one beginning with `../` would write and then unlink a file outside tmpdir.
+ */
+async function writeTranscript(skills: Set<string>): Promise<string | undefined> {
+  const path = join(tmpdir(), `pi-guardrails-${randomUUID()}.jsonl`);
+  const lines = [...skills].map((skill) => `${JSON.stringify({ attributionSkill: skill })}\n`);
+  try {
+    await writeFile(path, lines.join(""), "utf8");
+    return path;
+  } catch {
+    return undefined;
+  }
+}
+
+function blockResult(verdict: HookVerdict): ToolCallEventResult | undefined {
+  if (!verdict.blocked) return undefined;
+  const message = verdict.message || "Blocked by a guardrails hook.";
+  const translated = message.includes("is blocked outside")
+    ? `${message}\n\nIn pi, /commit and /pr load /skill:commit and /skill:pr. Load the right one, then retry.`
+    : message;
+  return { block: true, reason: translated };
+}
+
+/**
+ * A Claude PreToolUse payload for pi's call, or nothing for a tool no hook here reads.
+ *
+ * Pi's `edit` carries an array of edits where Claude's carries one pair, so the halves are joined
+ * for the reason the header gives. The command is copied rather than referenced, so the gates
+ * still judge what the caller asked for after a rewrite has changed what runs.
+ */
+function payloadFor(event: ToolCallEvent, ctx: ExtensionContext): HookPayload | undefined {
+  if (isToolCallEventType("write", event)) {
+    return {
+      tool_name: "Write",
+      tool_input: { file_path: event.input.path, content: event.input.content },
+      cwd: ctx.cwd,
+    };
+  }
+  if (isToolCallEventType("edit", event)) {
+    const edits = event.input.edits ?? [];
+    return {
+      tool_name: "Edit",
+      tool_input: {
+        old_string: edits.map((edit) => edit.oldText).join("\n"),
+        new_string: edits.map((edit) => edit.newText).join("\n"),
+      },
+      cwd: ctx.cwd,
+    };
+  }
+  if (isToolCallEventType("bash", event)) {
+    return { tool_name: "Bash", tool_input: { command: event.input.command }, cwd: ctx.cwd };
+  }
+  return undefined;
+}
+
+async function runGate(entry: HookEntry, payload: HookPayload, ctx: ExtensionContext): Promise<ToolCallEventResult | undefined> {
+  const transcript = entry.id === TRANSCRIPT_GATE ? await writeTranscript(activeSkills(ctx)) : undefined;
+  let verdict: HookVerdict;
+  try {
+    verdict = await runHook(entry.script ?? "", transcript ? { ...payload, transcript_path: transcript } : payload);
+  } finally {
+    if (transcript) await unlink(transcript).catch(() => {});
+  }
+  if (verdict.blocked) return blockResult(verdict);
+
+  const asked = askedForPermission(verdict);
+  if (asked) {
+    return {
+      block: true,
+      reason: `${asked}\n\nPi has no confirmation prompt, so this is refused rather than asked. Run it in a real terminal if you meant it.`,
+    };
+  }
+  return undefined;
+}
+
+async function guard(event: ToolCallEvent, ctx: ExtensionContext): Promise<ToolCallEventResult | undefined> {
+  const payload = payloadFor(event, ctx);
+  if (!payload) return undefined;
+  const entries = PRE_TOOL.filter((entry) => entry.tools.includes(event.toolName));
+
+  // In table order, stopping at the first refusal: the cheap gates come first there, so a command
+  // that was never allowed cannot also spend a project's full lint budget proving itself clean.
+  for (const entry of entries) {
+    if (entry.kind !== "gate") continue;
+    const refusal = await runGate(entry, payload, ctx);
+    if (refusal) return refusal;
+  }
+
+  // After every gate, and that ordering is the whole reason rewrites live in this file. `payload`
+  // still holds what the caller asked for, so every gate judged the real command and only what
+  // runs is rewritten.
+  if (isToolCallEventType("bash", event)) {
+    for (const entry of entries) {
+      if (entry.kind !== "rewrite") continue;
+      const rewritten = await rewriteCommand(entry, event.input.command, ctx.cwd);
+      if (rewritten) event.input.command = rewritten;
+    }
+  }
+  return undefined;
+}
+
+// Namespaces the footer slot, for the reason velocity.ts records at its own key: pi keys statuses
+// by string and last writer wins, and this extension directory holds herdr's extension too.
+const RTK_STATUS_KEY = "dotfiles-rtk";
+const CURSOR_STATUS_KEY = "dotfiles-cursor";
+
+// The provider whose own host tools do the work, so pi never emits the tool_call every gate above
+// is hooked to. Matched on the model rather than on settings.json, because /model switches it
+// mid-session and a footer read from a file would then be describing the previous model.
+const HOST_TOOL_PROVIDER = "cursor";
+
+// PATH walked rather than a process spawned. This answers a display question, and `rtk --version`
+// would spend a child at every session start on something existsSync already knows.
+function onPath(name: string): boolean {
+  return (process.env.PATH ?? "").split(":").some((dir) => dir !== "" && existsSync(join(dir, name)));
+}
+
+/**
+ * The rtk opt-in, as statusline.sh shows it in Claude.
+ *
+ * The same three states and the same three glyphs, deliberately. The segment exists so a session
+ * whose commands are being rewritten cannot be mistaken for one whose commands are not, and a
+ * second vocabulary for that would cost the recognition the segment is for. Nothing at all when
+ * rtk is not installed, since the toggle then describes something that cannot happen either way.
+ */
+function rtkStatus(ctx: ExtensionContext): string | undefined {
+  if (!onPath("rtk")) return undefined;
+  const theme = ctx.ui.theme;
+  if (process.env.RTK_ENABLE) return `${glyph("rtk")}${theme.fg("success", word("rtkOn"))}`;
+  return theme.fg("dim", `${glyph("rtk")}${word("rtkOff")}`);
+}
+
+/**
+ * That the session is on Cursor, and whether the gates above can see anything while it is.
+ *
+ * Under the cursor provider, Cursor's own host tools handle shell, files and edits, and pi's
+ * builtins are hidden from the bridge unless PI_CURSOR_EXPOSE_BUILTIN_TOOLS is set. A hidden
+ * builtin never produces a `tool_call`, so every hook in this file goes unrun and nothing says so:
+ * the session looks exactly like one where each command was checked and allowed. That is the
+ * failure the warning half exists to make visible.
+ *
+ * The quiet half is a badge rather than nothing, which is a deliberate reversal of what this
+ * segment used to do. Cursor is this machine's default provider and the one whose tool calls take
+ * a different path through the harness entirely, so which side of that line a session is on is
+ * worth a word even when the answer is the good one: a badge that only ever appears when
+ * something is wrong cannot be told apart from a badge that failed to render.
+ *
+ * The exposure only offers pi__bash beside Cursor's native shell rather than replacing it, so even
+ * the quiet state is a statement about what is reachable, not a guarantee about what was used.
+ */
+function cursorStatus(ctx: ExtensionContext): string | undefined {
+  if (ctx.model?.provider !== HOST_TOOL_PROVIDER) return undefined;
+  const badge = ctx.ui.theme.fg("accent", `${glyph("cursor")}${word("cursor")}`);
+  if (process.env.PI_CURSOR_EXPOSE_BUILTIN_TOOLS) return badge;
+  return `${badge} ${ctx.ui.theme.fg("warning", `${glyph("warning")}${word("gatesOff")}`)}`;
+}
+
+export default function (pi: ExtensionAPI) {
+  const paint = (ctx: ExtensionContext) => {
+    try {
+      // Both segments together, because both are pure reads of state pi already holds. Neither
+      // carries a running total, so a repaint is always safe and there is nothing to hand over.
+      ctx.ui.setStatus(RTK_STATUS_KEY, rtkStatus(ctx));
+      ctx.ui.setStatus(CURSOR_STATUS_KEY, cursorStatus(ctx));
+    } catch {
+      // A footer segment is never worth interrupting a session for.
+    }
+  };
+
+  pi.on("session_start", async (_event, ctx) => paint(ctx));
+
+  // Repainted on a model switch as well, because cursorStatus reads the provider: session_start
+  // alone would leave a session that started on a pi-native model showing nothing after /model
+  // moved it onto cursor, which is the exact case the segment is for. `ctx` rather than
+  // `event.model`, since agent-session assigns the new model before it emits this event.
+  pi.on("model_select", async (_event, ctx) => paint(ctx));
+
+  pi.on("tool_call", async (event, ctx) => {
+    try {
+      return await guard(event, ctx);
+    } catch {
+      // The whole of the fail-open promise, in one place. Pi reads a throw here as a block, so
+      // without this an unreadable session or an unwritable temp file would refuse every write,
+      // edit and command in the session, and the refusal would carry no reason anyone could act on.
+      return undefined;
+    }
+  });
+}

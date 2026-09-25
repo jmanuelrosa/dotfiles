@@ -13,10 +13,15 @@ hook must print. Plus the rule that keeps the agreement small, which is that the
 python. The moment this file has to know how a dash is counted, the extension has stopped being
 an adapter.
 
+Which hooks run, and in what order, is no longer the extension's to say: it reads
+generated/hooks.json, rendered from policy/hooks.toml like Claude's settings.hooks. So the
+lists below are derived from that table rather than typed, and what is asserted of the source
+is only what it does with an entry.
+
 The extension also carries rtk, whose failure is quieter still. rtk rewrites a command rather
 than refusing one, so a broken bridge there does not leave a gate that never blocks: it leaves a
 session where nothing is proxied and nothing says so. Its assertions are the same kind, read off
-settings.json and statusline.sh rather than off a hook, plus the one that is really about
+the hook table, settings.json and statusline.sh rather than off a hook, plus the one that is really about
 guardrails.ts as a whole: the rewrite has to happen after every gate has read the command.
 """
 
@@ -29,26 +34,30 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from dotkit.testing import CLAUDE, HOOKS, PI, PI_EXTENSIONS, REPO
+from dotkit.testing import CLAUDE, CLAUDE_SETTINGS, HOOKS, PI, PI_EXTENSIONS, REPO, STATUSLINE_VOCABULARY
+from harnessgen import emit_pi, manifest
 
 EXTENSION = PI_EXTENSIONS / "guardrails" / "index.ts"
 TASKS = REPO / "roles/ai/tasks/main.yml"
 # The glyphs and wording the rtk toggle and the cursor badge share with statusline.sh.
-VOCABULARY = REPO / "roles/ai/files/statusline.json"
+VOCABULARY = STATUSLINE_VOCABULARY
 VOCAB = json.loads(VOCABULARY.read_text())
-SETTINGS = CLAUDE / "settings.json"
+SETTINGS = CLAUDE_SETTINGS
 STATUSLINE = CLAUDE / "statusline.sh"
 APPEND_SYSTEM = PI / "APPEND_SYSTEM.md"
 FISH_CONFIG = REPO / "roles/shell/files/fish/config.fish"
+HOOK_TABLE = manifest.find_root(PI) / emit_pi.HOOKS
+PRE_TOOL = json.loads(HOOK_TABLE.read_text())["pre_tool"]
+REWRITE = next(entry for entry in PRE_TOOL if entry["kind"] == "rewrite")
 
 # The variable that decides whether any of this runs at all under the cursor provider. Cursor's
 # host tools do the work by default and pi's builtins are hidden from its bridge, so no gate here
 # sees a `tool_call`. Named once, and read off the three files that have to agree about it.
 EXPOSE = "PI_CURSOR_EXPOSE_BUILTIN_TOOLS"
 
-# The gates the rewrite has to come after, in the order guard() runs them. rtk is a gate in
+# The bash gates the rewrite has to come after, in the order guard() runs them. rtk is a gate in
 # position only, so this list is what that position means.
-GATES = ("git-skill-gate.sh", "cloud-readonly-gate.sh", "pre-commit-verify.sh")
+GATES = tuple(e["script"] for e in PRE_TOOL if e["kind"] == "gate" and "bash" in e["tools"])
 
 # Every hook the extension drives, and what each one reads out of the event it is handed. The
 # direction is what matters: a key a hook reads and the extension never sends is a field the
@@ -98,7 +107,7 @@ def test_the_extension_ships():
 
 
 def test_the_hop_to_the_hooks_resolves(source):
-    """The extension walks out of files/pi/ to reach files/claude/hooks/, and it is reached
+    """The extension walks out of adapters/pi/ to reach the shared hooks/, and it is reached
     through a symlink, so the walk starts at the resolved file. A wrong hop is not an error at
     load time: `existsSync` is false, every hook is skipped, and every call is allowed."""
     line = next(line for line in source.splitlines() if line.startswith("const HOOKS_DIR"))
@@ -107,10 +116,40 @@ def test_the_hop_to_the_hooks_resolves(source):
     assert EXTENSION.parent.joinpath(*hop).resolve() == HOOKS.resolve()
 
 
+def test_the_hop_to_the_hook_table_resolves(source):
+    """The same walk as the hooks', to the table harness-build renders. A wrong one reads as an
+    empty table, which allows every call."""
+    line = next(line for line in source.splitlines() if line.startswith("const HOOK_TABLE_PATH"))
+    hop = re.findall(r'"([^"]+)"', line)
+    assert EXTENSION.parent.joinpath(*hop).resolve() == HOOK_TABLE.resolve()
+
+
 @pytest.mark.parametrize("name", sorted(CONTRACTS))
-def test_each_driven_hook_exists(name, source):
-    assert name in source, f"{name} is no longer driven from the extension"
+def test_each_driven_hook_exists(name):
+    scripts = {entry.get("script") for entry in PRE_TOOL}
+    assert name in scripts, f"{name} is no longer in the table the extension runs"
     assert (HOOKS / name).is_file(), f"the extension spawns {name}, which is not in {HOOKS.name}/"
+
+
+def test_every_gate_in_the_table_has_a_contract():
+    """A hook added to policy/hooks.toml for pi is spawned with the payload above whether or not
+    anyone checked it reads those keys, so it has to be listed in CONTRACTS to land."""
+    gates = {entry["script"] for entry in PRE_TOOL if entry["kind"] == "gate"}
+    assert gates == set(CONTRACTS)
+
+
+def test_the_lint_gate_runs_last():
+    """The table is pi's run order and a refusal stops it, so the cheap parses come first and
+    pre-commit-verify does not spend a project's full lint on a command another gate refuses."""
+    assert GATES[-1] == "pre-commit-verify.sh"
+
+
+def test_the_transcript_goes_to_the_gate_that_reads_it(source):
+    """The one per-id shim. Keyed by id, so a renamed id in the table leaves git-skill-gate with
+    no transcript, which it reads as a parse failure and allows."""
+    gate = re.search(r'TRANSCRIPT_GATE = "([^"]+)"', source).group(1)
+    entry = next(e for e in PRE_TOOL if e["id"] == gate)
+    assert entry["script"] == "git-skill-gate.sh"
 
 
 @pytest.mark.parametrize(
@@ -189,17 +228,17 @@ def test_the_rtk_opt_in_is_read_before_anything_is_spawned(source):
     """RTK_ENABLE is a per-shell opt-in and nothing in the repo exports it, so a session that did
     not opt in must not be rewritten. Read before the spawn rather than after, because the check
     is also what keeps an unset variable from costing a child process on every command."""
-    call = re.search(r"async function rtkRewrite\(.*?\n\}", source, re.S).group(0)
-    assert "process.env.RTK_ENABLE" in call, "the opt-in is not read at all"
-    assert call.index("RTK_ENABLE") < call.index("spawnJson"), "the opt-in is read after the spawn"
+    assert REWRITE["requires_env"] == "RTK_ENABLE"
+    call = re.search(r"async function rewriteCommand\(.*?\n\}", source, re.S).group(0)
+    assert "process.env[entry.requires_env]" in call, "the opt-in is not read at all"
+    assert call.index("requires_env") < call.index("spawnJson"), "the opt-in is read after the spawn"
 
 
 def test_rtk_is_reached_through_the_target_claude_uses(source):
     """`hook check` prints the bare rewritten command and would be less code here, but it is a dry
     run: rtk's own audit and tee side effects do not fire, which would quietly make RTK_HOOK_AUDIT
     dead weight in pi while it still means something in claude."""
-    assert '"hook", "claude"' in source
-    assert '"check"' not in source
+    assert REWRITE["exec"] == ["rtk", "hook", "claude"]
 
 
 def test_the_audit_variable_matches_the_one_claude_sets(source):
@@ -207,7 +246,8 @@ def test_the_audit_variable_matches_the_one_claude_sets(source):
     variable has to reach rtk through the child env, and a value that drifts from claude's would
     mean the same tool auditing one harness and not the other."""
     value = json.loads(SETTINGS.read_text())["env"]["RTK_HOOK_AUDIT"]
-    assert f'RTK_HOOK_AUDIT: "{value}"' in source
+    assert REWRITE["env"]["RTK_HOOK_AUDIT"] == value
+    assert "...entry.env" in source, "the table's env never reaches the spawn"
 
 
 def test_the_rewrite_is_applied_by_mutation(source):
@@ -218,8 +258,7 @@ def test_the_rewrite_is_applied_by_mutation(source):
     assert "event.input.command = " in source, "the rewrite is not applied"
 
 
-@pytest.mark.parametrize("gate", GATES)
-def test_the_rewrite_runs_after_every_gate(gate, source):
+def test_the_rewrite_runs_after_every_gate(source):
     """The reason rtk lives in this file rather than in an extension of its own.
 
     Pi loads extensions in readdir order and runs every tool_call handler in that order, so a
@@ -228,9 +267,9 @@ def test_the_rewrite_runs_after_every_gate(gate, source):
     it looks broken from the outside: the extension loads, the hook runs, the command is allowed.
     Inside one handler the ordering settings.json states is a property of this file.
     """
-    rewrite = source.index("await rtkRewrite(event.input.command")
-    assert source.index(f'runHook("{gate}"') < rewrite, (
-        f"the rtk rewrite is applied before {gate} reads the command, which disarms it"
+    guard = re.search(r"async function guard\(.*?\n\}", source, re.S).group(0)
+    assert guard.index("await runGate(") < guard.index("await rewriteCommand("), (
+        "a rewrite is applied before the gates read the command, which disarms them"
     )
 
 
@@ -293,7 +332,7 @@ def test_the_role_installs_the_extension():
 PI_PACKAGE = "@earendil-works/pi-coding-agent"
 
 # The private functions the executed half drives, re-exported into a copy of the extension.
-DRIVEN = ("activeSkills", "writeTranscript", "rtkRewrite", "rtkStatus", "cursorStatus")
+DRIVEN = ("activeSkills", "writeTranscript", "rewriteCommand", "rtkStatus", "cursorStatus", "PRE_TOOL")
 
 
 def pi_package():
@@ -325,12 +364,15 @@ def runner(tmp_path_factory):
     scope = root / "node_modules" / "@earendil-works"
     scope.mkdir(parents=True)
     (scope / "pi-coding-agent").symlink_to(package)
-    # The layout mirrors the repo, because the extension reads `../../../statusline.json` relative
+    # The layout mirrors the repo, because the extension reads `../../../../statusline.json` relative
     # to its own realpath: a copy in a flat directory would find no vocabulary and every glyph
     # assertion below would pass against an empty string. Linked rather than copied, so no test
     # can pin a stale duplicate of the file it exists to pin.
     (root / "statusline.json").symlink_to(VOCABULARY)
-    extension = root / "pi" / "extensions" / "guardrails" / "index.ts"
+    table = root / emit_pi.HOOKS
+    table.parent.mkdir(parents=True)
+    table.symlink_to(HOOK_TABLE)
+    extension = root / "adapters" / "pi" / "extensions" / "guardrails" / "index.ts"
     extension.parent.mkdir(parents=True)
     # Re-exported into the copy rather than exported from the extension, so pi's own surface
     # stays the single default export it loads.
@@ -444,7 +486,8 @@ def rewrite_of(runner, command, enabled=True):
     if shutil.which("rtk") is None:
         pytest.skip("rtk is needed to drive the rewrite")
     body = f"""
-    const rewritten = await rtkRewrite({json.dumps(command)}, process.cwd());
+    const rtk = PRE_TOOL.find((entry) => entry.kind === "rewrite");
+    const rewritten = await rewriteCommand(rtk, {json.dumps(command)}, process.cwd());
     process.stdout.write(JSON.stringify(rewritten ?? null));
     """
     return run_in_node(runner, body, env={"RTK_ENABLE": "1" if enabled else ""})
@@ -474,7 +517,8 @@ def test_a_missing_rtk_leaves_the_command_alone(runner):
     allowed call, and here the same error has to leave the command exactly as written. PATH is
     emptied rather than rtk moved, so the test does not depend on where brew put it."""
     body = """
-    const rewritten = await rtkRewrite("ls -la", process.cwd());
+    const rtk = PRE_TOOL.find((entry) => entry.kind === "rewrite");
+    const rewritten = await rewriteCommand(rtk, "ls -la", process.cwd());
     process.stdout.write(JSON.stringify(rewritten ?? null));
     """
     assert run_in_node(runner, body, env={"RTK_ENABLE": "1", "PATH": ""}) is None
@@ -549,3 +593,10 @@ def test_another_provider_shows_no_badge(runner):
     host tools bypass the gates, and footer width is the scarce thing."""
     assert cursor_status_for(runner, "xai", {EXPOSE: ""}) is None
     assert cursor_status_for(runner, None, {EXPOSE: ""}) is None
+
+
+def test_the_extension_loads_the_whole_table(runner):
+    """An entry isEntry rejects is skipped silently, so a table shape the extension no longer
+    understands would leave every gate unrun. The loaded table has to be the rendered one."""
+    loaded = run_in_node(runner, "process.stdout.write(JSON.stringify(PRE_TOOL));")
+    assert loaded == PRE_TOOL

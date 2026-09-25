@@ -11,12 +11,8 @@ records; the sandbox contains. Both are installed, and both read a committed fil
 derived from `files/claude/settings.json`, so policy is still written in exactly one
 place.
 
-`derive_permissions` below is the whole of the translation and this module is its
-specification. To regenerate after changing Claude's settings:
-
-    PYTHONPATH=lib/python python3 -c "import json,sys; sys.path.insert(0,'lib/python/tests'); \
-from test_pi_permissions import derive_permissions, CLAUDE_SETTINGS, PI_PERMISSIONS; \
-PI_PERMISSIONS.write_text(json.dumps(derive_permissions(json.loads(CLAUDE_SETTINGS.read_text())), indent=2)+chr(10))"
+`harnessgen.emit_pi.permissions` is the whole of the translation and this module is its
+specification. `make harness` regenerates it from policy/, and `make harness-check` names the drift.
 
 Five things about the translation that are silent if forgotten:
 
@@ -63,64 +59,18 @@ names it, so `git commit` still works and `cat ~/.gitconfig` does not.
 import json
 import re
 
-from dotkit.testing import CLAUDE, PI, REPO
+from dotkit.testing import CLAUDE_SETTINGS, PI, REPO, harness_links
+from harnessgen import emit_pi, manifest
+from harnessgen.emit_pi import PERMISSIONS
 
-CLAUDE_SETTINGS = CLAUDE / "settings.json"
-PI_PERMISSIONS = PI / "permission-system/config.json"
+PI_PERMISSIONS = manifest.find_root(PI) / PERMISSIONS
 PI_SETTINGS = PI / "settings.json"
-AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 
 PACKAGE = "npm:@gotgenes/pi-permission-system@27.1.1"
 
-# Reads the harness itself makes of its own installed trees, which are outside any
-# project and would otherwise meet `external_directory: ask` on every session. This is
-# the knob the package documents for exactly that, and none of it is user data: pi's
-# own docs and examples, and the two agent payload directories this repo owns and
-# symlinks into place. A project path never belongs here.
-INFRASTRUCTURE_READ_PATHS = [
-    "/opt/homebrew/*/@earendil-works/pi-coding-agent/*",
-    "~/.pi/agent/*",
-    "~/.claude/*",
-]
-
-SHARED_SKILL_PATHS = [
-    "~/.claude/skills/*",
-    "~/.agents/skills/*",
-]
-
-# Tool surfaces pi gates that Claude never prompts for, listed so the universal
-# fallback does not have to decide them. Claude auto-allows its read-only and
-# orchestration tools in the same way.
-SILENT_TOOLS = ("read", "grep", "find", "ls", "write", "edit")
-
-
-def to_path_pattern(pattern):
-    """Claude's globstar, in a dialect where one star already recurses.
-
-    `*` matches any run of characters including a separator and `**` is documented as
-    equivalent, so the doubled form is not a second, wider token: it is the same token
-    spelled twice. Collapsing it keeps `**/.env` matching `/project/.env` while still
-    refusing to match `/project/settings.env`, which a naive `*.env` would have caught.
-    """
-    return pattern.replace("**", "*")
-
-
-def to_bash_pattern(pattern):
-    """Claude's two `Bash(...)` spellings, as one command pattern.
-
-    The allow list writes `Bash(rg:*)`, meaning `rg` with any arguments. The deny list
-    is already written the way this package matches, space-separated, so it passes
-    through untouched. A pattern ending in ` *` also matches the bare command, which is
-    why `Bash(rg:*)` needs no second entry for a bare `rg`.
-    """
-    colon = re.fullmatch(r"([^:]+):\*", pattern)
-    if colon:
-        return f"{colon.group(1)} *"
-    return pattern
-
 
 def rules_for(entries, tool):
-    """The inner patterns of one tool's rules, in Claude's order."""
+    """The inner patterns of one tool's Claude rules, in order."""
     out = []
     for rule in entries:
         match = re.fullmatch(rf"{tool}\((.*)\)", rule)
@@ -130,88 +80,13 @@ def rules_for(entries, tool):
 
 
 def bare_names(entries):
-    """Rules that name a tool with no argument list, split from the `mcp__` ones."""
+    """Claude rules that name a tool with no argument list, split from the `mcp__` ones."""
     tools, mcp = [], []
     for rule in entries:
         if "(" in rule:
             continue
         (mcp if rule.startswith("mcp__") else tools).append(rule)
     return tools, mcp
-
-
-def denial(rule):
-    """A refusal that says where it came from.
-
-    A block whose reason is empty reads to the agent as an unexplained failure and it
-    retries. Naming the Claude rule turns it into something it can report back.
-    """
-    return {"action": "deny", "reason": f"denied by Claude Code policy: {rule}"}
-
-
-def surface(fallback, allows, denies, trailing_allows=()):
-    """One surface map, in the four bands that recover deny-beats-allow.
-
-    Fallback first so every later pattern can override it, then the allows, then the
-    denies that have to beat them. `trailing_allows` is the inversion: a Claude allow
-    that exists to carve an exception out of a deny, which under last-match-wins can
-    only work after it.
-    """
-    out = {"*": fallback}
-    denied = {pattern for pattern, _ in denies}
-    for pattern in allows:
-        if pattern not in denied:
-            out[pattern] = "allow"
-    for pattern, rule in denies:
-        out[pattern] = denial(rule)
-    for pattern in trailing_allows:
-        out[pattern] = "allow"
-    return out
-
-
-def derive_permissions(settings):
-    """Claude's `permissions` block, as this package reads it."""
-    allow = settings["permissions"]["allow"]
-    deny = settings["permissions"]["deny"]
-    denied_tools, denied_mcp = bare_names(deny)
-
-    policy = {
-        "*": "allow",
-        **{tool: "allow" for tool in SILENT_TOOLS},
-        "bash": surface(
-            "allow",
-            [to_bash_pattern(p) for p in rules_for(allow, "Bash")],
-            [(p, f"Bash({p})") for p in rules_for(deny, "Bash")],
-        ),
-        "path_read": surface(
-            "allow",
-            [],
-            [(to_path_pattern(p), f"Read({p})") for p in rules_for(deny, "Read")],
-        ),
-        "path_write": surface(
-            "allow",
-            [],
-            [(to_path_pattern(p), f"Edit({p})") for p in rules_for(deny, "Edit")],
-            [to_path_pattern(p) for p in rules_for(allow, "Edit")],
-        ),
-        "external_directory": surface("ask", SHARED_SKILL_PATHS, []),
-        "mcp": surface(
-            "allow",
-            [],
-            [(f"{name.removeprefix('mcp__')}*", name) for name in denied_mcp],
-        ),
-    }
-    for name in denied_tools:
-        policy[name] = {"*": denial(name)}
-
-    return {
-        "debugLog": False,
-        "permissionReviewLog": True,
-        "yoloMode": False,
-        "shellTools": {},
-        "authorizerChain": [],
-        "piInfrastructureReadPaths": list(INFRASTRUCTURE_READ_PATHS),
-        "permission": policy,
-    }
 
 
 def claude_settings():
@@ -245,8 +120,8 @@ def resolve(surface_map, value):
 
 
 def test_the_committed_config_is_what_the_derivation_produces():
-    """One statement of the policy. Editing Claude's rules alone fails here."""
-    assert pi_permissions() == derive_permissions(claude_settings())
+    """One statement of the policy, in policy/. A hand edit to the rendered file fails here."""
+    assert pi_permissions() == emit_pi.permissions(manifest.load())
 
 
 def test_every_bash_rule_claude_denies_pi_denies():
@@ -435,7 +310,8 @@ def test_the_sandbox_is_still_installed_beside_it():
 
 def test_the_role_links_the_config_into_place():
     """A config in the repo that no play links is a policy nothing enforces."""
-    assert "pi/permission-system/config.json" in AI_TASKS.read_text()
+    config = "~/.pi/agent/extensions/pi-permission-system/config.json"
+    assert harness_links()[config] == PI / "permission-system" / "config.json"
 
 
 def test_the_config_is_parseable():

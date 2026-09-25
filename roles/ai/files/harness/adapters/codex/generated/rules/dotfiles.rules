@@ -1,0 +1,344 @@
+# Rendered by harness-build from policy/permissions.toml. Edit there, never here.
+# Each rule is a token prefix: anything after it matches too.
+
+prefix_rule(
+    pattern = ["dd"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: dd *",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "apfs", "changePassphrase"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil apfs changePassphrase",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "apfs", "decryptVolume"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil apfs decryptVolume",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "apfs", "deleteContainer"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil apfs deleteContainer",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "apfs", "deleteSnapshot"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil apfs deleteSnapshot",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "apfs", "deleteVolume"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil apfs deleteVolume",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "apfs", "deleteVolumeGroup"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil apfs deleteVolumeGroup",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "apfs", "eraseVolume"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil apfs eraseVolume",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "appleRAID"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil appleRAID",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "coreStorage"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil coreStorage",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "cs"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil cs",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "disableJournal"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil disableJournal",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "disableOwnership"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil disableOwnership",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "eraseDisk"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil eraseDisk",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "eraseVolume"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil eraseVolume",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "partitionDisk"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil partitionDisk",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "randomDisk"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil randomDisk",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "reformat"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil reformat",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "resetFusion"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil resetFusion",
+)
+
+prefix_rule(
+    pattern = ["diskutil", "zeroDisk"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: diskutil zeroDisk",
+)
+
+prefix_rule(
+    pattern = ["gh", "pr", "merge"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: gh pr merge *",
+)
+
+prefix_rule(
+    pattern = ["git", "branch", "-D"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git branch -D *",
+)
+
+prefix_rule(
+    pattern = ["git", "checkout", "."],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git checkout .",
+)
+
+prefix_rule(
+    pattern = ["git", "checkout", "--"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git checkout -- *",
+)
+
+prefix_rule(
+    pattern = ["git", "clean", "-f"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git clean -f *",
+)
+
+prefix_rule(
+    pattern = ["git", "clean", "-fd"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git clean -fd *",
+)
+
+prefix_rule(
+    pattern = ["git", "filter-branch"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git filter-branch *",
+)
+
+prefix_rule(
+    pattern = ["git", "filter-repo"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git filter-repo *",
+)
+
+prefix_rule(
+    pattern = ["git", "push", "--delete"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git push --delete *",
+)
+
+prefix_rule(
+    pattern = ["git", "push", "--force"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git push --force *",
+)
+
+prefix_rule(
+    pattern = ["git", "push", "--force-with-lease"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git push --force-with-lease *",
+)
+
+prefix_rule(
+    pattern = ["git", "push", "-f"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git push -f *",
+)
+
+prefix_rule(
+    pattern = ["git", "push", "origin", "main"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git push origin main",
+)
+
+prefix_rule(
+    pattern = ["git", "push", "origin", "master"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git push origin master",
+)
+
+prefix_rule(
+    pattern = ["git", "reflog", "expire"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git reflog expire *",
+)
+
+prefix_rule(
+    pattern = ["git", "reset", "--hard"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git reset --hard *",
+)
+
+prefix_rule(
+    pattern = ["git", "restore", "."],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git restore .",
+)
+
+prefix_rule(
+    pattern = ["git", "restore", "--worktree"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git restore --worktree *",
+)
+
+prefix_rule(
+    pattern = ["git", "stash", "clear"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git stash clear",
+)
+
+prefix_rule(
+    pattern = ["git", "stash", "drop"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git stash drop *",
+)
+
+prefix_rule(
+    pattern = ["git", "switch", "--discard-changes"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git switch --discard-changes *",
+)
+
+prefix_rule(
+    pattern = ["git", "update-ref", "-d"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git update-ref -d *",
+)
+
+prefix_rule(
+    pattern = ["git", "worktree", "remove", "--force"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git worktree remove --force *",
+)
+
+prefix_rule(
+    pattern = ["git", "worktree", "remove", "-f"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git worktree remove -f *",
+)
+
+prefix_rule(
+    pattern = ["mkfs"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: mkfs *",
+)
+
+prefix_rule(
+    pattern = ["rm", "-rf"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: rm -rf *",
+)
+
+prefix_rule(
+    pattern = ["shred"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: shred *",
+)
+
+prefix_rule(
+    pattern = ["sudo"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: sudo *",
+)
+
+prefix_rule(
+    pattern = ["find", "/"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: find / *",
+)
+
+prefix_rule(
+    pattern = ["find", "~"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: find ~ *",
+)
+
+prefix_rule(
+    pattern = ["find", ".."],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: find ..",
+)
+
+prefix_rule(
+    pattern = ["lazygit"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: lazygit",
+)
+
+prefix_rule(
+    pattern = ["btop"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: btop",
+)
+
+prefix_rule(
+    pattern = ["dive"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: dive",
+)
+
+prefix_rule(
+    pattern = ["nnn"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: nnn",
+)
+
+prefix_rule(
+    pattern = ["pgcli"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: pgcli",
+)
+
+prefix_rule(
+    pattern = ["lazydocker"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: lazydocker",
+)

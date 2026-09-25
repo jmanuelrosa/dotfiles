@@ -36,7 +36,7 @@ def test_role_links_documented_extension_directories():
 
     assert link["loop"] == "{{ PI_EXTENSIONS }}"
     assert link["ansible.builtin.file"] == {
-        "src": "{{ role_path }}/files/pi/extensions/{{ item }}",
+        "src": "{{ HARNESS_DIR }}/adapters/pi/extensions/{{ item }}",
         "dest": "{{ HOME }}/.pi/agent/extensions/{{ item }}",
         "state": "link",
         "force": True,

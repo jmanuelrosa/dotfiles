@@ -15,7 +15,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from dotkit.testing import CLAUDE
+from dotkit.testing import SKILLS
 
 SKILL = "coderabbit"
 
@@ -55,7 +55,7 @@ def project(tmp_path):
     project = tmp_path / "proj"
     leaf = project / ".agents" / "skills"
     leaf.mkdir(parents=True)
-    (leaf / SKILL).symlink_to(CLAUDE / "skills" / SKILL)
+    (leaf / SKILL).symlink_to(SKILLS / SKILL)
     return project
 
 
@@ -93,7 +93,7 @@ def test_the_scan_is_clean(loader, project):
 def test_a_broken_link_is_skipped_rather_than_fatal(loader, project):
     """A renamed catalog skill can leave one dangling link without hiding its peers."""
     (project / ".agents" / "skills" / "gone").symlink_to(
-        CLAUDE / "skills" / "not-a-skill"
+        SKILLS / "not-a-skill"
     )
     found = discover(loader, project / ".agents" / "skills")
     assert SKILL in found["names"]

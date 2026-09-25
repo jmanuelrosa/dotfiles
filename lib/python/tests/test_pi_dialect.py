@@ -16,14 +16,11 @@ import re
 
 import pytest
 import yaml
-from dotkit.testing import AGENTS, CLAUDE, PI, PLUGINS, REPO, SKILLS
+from dotkit.testing import AGENTS, CLAUDE, PI, PLUGINS, REPO, SKILLS, harness_dirs, harness_links
 
 AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 PI_SETTINGS = PI / "settings.json"
-PI_MCP_SETTINGS = PI / "mcp.json"
 
-DIRS_TASK = "Ensure AI config directories exist"
-AGENTS_LINK_TASK = "Point pi at the global claude agents"
 
 # Claude's key first, pi's second. One row per fact the two harnesses must agree on.
 DUAL_KEYS = (("effort", "thinking"), ("disallowedTools", "disallowed_tools"))
@@ -167,65 +164,23 @@ def test_architect_bans_the_agent_tool_in_both_dialects():
 # --- the discovery paths ------------------------------------------------------
 
 
-def test_the_ai_role_links_pis_global_agents_at_claudes():
-    """pi-subagents reads this global location, while Ansible owns the source set."""
-    tasks = yaml.safe_load(AI_TASKS.read_text())
-    matching = [t for t in tasks if t.get("name") == AGENTS_LINK_TASK]
-    assert len(matching) == 1, f"expected exactly one '{AGENTS_LINK_TASK}' task in the ai role"
-    spec = matching[0]["ansible.builtin.file"]
-    assert spec["state"] == "link"
-    assert spec["src"] == "{{ HOME }}/.claude/agents"
-    assert spec["dest"] == "{{ HOME }}/.pi/agent/agents"
-    assert spec["force"] is True, "without force a pre-existing entry fails the play"
+def test_the_ai_role_links_pis_global_agents():
+    """pi-subagents reads global agents only from ~/.pi/agent/agents, and the role owns
+    the one set both harnesses load."""
+    assert harness_links()["~/.pi/agent/agents"] == AGENTS
 
 
-def test_the_link_target_is_created_before_the_link():
-    """`state: link` with force writes a dangling link happily, so ~/.claude/agents
-    must be in the directories task or a first run points pi at nothing."""
-    tasks = yaml.safe_load(AI_TASKS.read_text())
-    dirs = next(t for t in tasks if t.get("name") == DIRS_TASK)
-    assert "{{ HOME }}/.claude/agents" in dirs["loop"]
+def test_the_link_parent_is_created_before_the_link():
+    """`state: link` with force writes a link into a missing parent as an error, so
+    ~/.pi/agent must be in the directories the role creates first."""
+    assert "~/.pi/agent" in harness_dirs()
 
 
 def test_pi_subagents_is_declared_in_the_settings_pi_actually_loads():
     """The extension is the reason any of the above matters: without the package
     entry, pi ships no Agent tool and every path here is a directory nothing reads."""
     packages = json.loads(PI_SETTINGS.read_text())["packages"]
-    assert "npm:@tintinweb/pi-subagents" in packages
-
-
-def test_pi_mcp_adapter_loads_role_owned_servers_from_a_linked_config():
-    """The package and its MCP server config survive a fresh role apply together."""
-    packages = json.loads(PI_SETTINGS.read_text())["packages"]
-    assert "npm:pi-mcp-adapter" in packages
-
-    config = json.loads(PI_MCP_SETTINGS.read_text())
-    assert config["imports"] == []
-    assert config["mcpServers"] == {
-        "notion": {
-            "url": "https://mcp.notion.com/mcp",
-            "auth": "oauth",
-        },
-        "slack": {
-            "url": "https://mcp.slack.com/mcp",
-            "auth": "oauth",
-            "exposeResources": False,
-            "oauth": {
-                "clientId": "185316078694.12036247391600",
-                "redirectUri": "http://localhost:19876/callback",
-                "scope": (
-                    "search:read.public channels:read channels:history users:read "
-                    "search:read.users search:read.private search:read.im search:read.mpim "
-                    "groups:read groups:history im:read im:history mpim:read mpim:history "
-                    "chat:write reactions:write"
-                ),
-            },
-        },
-    }
-
-    tasks = yaml.safe_load(AI_TASKS.read_text())
-    link_task = next(task for task in tasks if task.get("name") == "Symlink pi agent config")
-    assert "pi/mcp.json" in link_task["loop"]
+    assert "npm:pi-subagents" in packages
 
 
 def test_the_role_installs_herdr_for_pi_as_well_as_claude():
@@ -262,23 +217,19 @@ def test_the_settings_pi_loads_are_parseable():
 
 
 def test_the_repo_root_agents_md_is_the_claude_md_pi_would_otherwise_miss():
-    """pi prefers AGENTS.md over CLAUDE.md per directory, so two files means drift.
+    """pi and Claude Code both read the root AGENTS.md as their harness-specific fallback.
 
-    Context files are discovered per directory as `AGENTS.md` *or* `CLAUDE.md`, so a
-    repo shipping both hands pi the former and Claude Code the latter. A parallel
-    summary is what that produced here: the root AGENTS.md kept describing a layout
-    two restructures out of date while CLAUDE.md moved on. One file, reached under
-    both names, is the only arrangement that cannot drift.
-
-    Relative on purpose, as the dotkit links are: an absolute target would bake this
-    checkout's path into every clone.
+    Harnesses discover context files per directory as `AGENTS.md` (pi, Codex, opencode)
+    or `AGENTS.md` then `CLAUDE.md` (Claude Code), preferring the first if both exist.
+    One real file, read by all harnesses under the same name, is the arrangement that
+    cannot drift.
     """
-    link = REPO / "AGENTS.md"
-    assert link.is_symlink(), "root AGENTS.md must be a link, or it drifts from CLAUDE.md"
-    target = link.readlink()
-    assert not target.is_absolute(), f"AGENTS.md points at {target}, which breaks other clones"
-    assert target.name == "CLAUDE.md"
-    assert link.resolve() == (REPO / "CLAUDE.md").resolve()
+    agents = REPO / "AGENTS.md"
+    assert agents.is_file() and not agents.is_symlink(), "root AGENTS.md must be a real file"
+    assert not (REPO / "CLAUDE.md").exists(), "no root CLAUDE.md; it was replaced by AGENTS.md"
+    assert not (REPO / ".claude" / "CLAUDE.md").exists() or \
+           (REPO / ".claude" / "CLAUDE.md").is_symlink(), \
+           ".claude/CLAUDE.md must be a link (to ~/.claude/CLAUDE.md), not a file"
 
 
 # --- the keys pi ignores on a skill -------------------------------------------

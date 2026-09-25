@@ -1,7 +1,12 @@
-.PHONY: deps lint syntax check check-role run run-role test verify vm-create vm-start vm-ssh vm-destroy
+.PHONY: deps lint syntax check check-role run run-role test verify harness harness-check harness-apply harness-report vm-create vm-start vm-ssh vm-destroy
 
 # Active profile. Override at the CLI: `make run PROFILE=work`.
 PROFILE ?= personal
+
+# The harness payload, and its generator. uv supplies a Python with tomllib whatever
+# python3 is on PATH.
+HARNESS ?= roles/ai/files/harness
+HARNESS_BUILD = uv run --no-project python $(HARNESS)/bin/harness-build
 
 # Test deps are resolved per-run by uv, so there is no venv to create or refresh.
 PYTEST = uv run --with pytest --with pyyaml pytest
@@ -24,6 +29,24 @@ lint:
 # inside a skill directory, which is symlinked whole into ~/.claude.
 test:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTEST) -q
+
+# Render every harness's permission and sandbox files from $(HARNESS)/policy. Writes
+# Claude's settings.json only when an owned key changed, so close Claude sessions first.
+harness:
+	PYTHONDONTWRITEBYTECODE=1 $(HARNESS_BUILD) build
+
+# Write nothing; name each file or owned key that no longer matches the policy.
+harness-check:
+	PYTHONDONTWRITEBYTECODE=1 $(HARNESS_BUILD) build --check
+
+# Merge the policy's owned keys into ~/.codex/config.toml and install its rules file,
+# which the ai role also does on every run. CHECK=1 writes nothing.
+harness-apply:
+	PYTHONDONTWRITEBYTECODE=1 $(HARNESS_BUILD) apply codex $(if $(CHECK),--check)
+
+# Every policy rule a harness receives no counterpart for.
+harness-report:
+	PYTHONDONTWRITEBYTECODE=1 $(HARNESS_BUILD) report
 
 syntax:
 	ansible-playbook --syntax-check --inventory inventory.yml --ask-vault-password --extra-vars "profile=$(PROFILE)" dotfiles.yml

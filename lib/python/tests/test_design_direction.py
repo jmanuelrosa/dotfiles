@@ -35,7 +35,7 @@ import json
 import re
 
 import pytest
-from dotkit.testing import AGENT_REGISTRY, CLAUDE, PLUGINS, SKILL_REGISTRY
+from dotkit.testing import AGENT_REGISTRY, INSTRUCTIONS, PLUGINS, SKILL_REGISTRY
 
 DESIGN = PLUGINS / "design"
 DESIGN_AGENT = DESIGN / "agents/design-staff-engineer.md"
@@ -210,9 +210,9 @@ def test_the_craft_skills_arrive_with_the_plugin():
     registry = json.loads(SKILL_REGISTRY.read_text())
     tracked = {
         skill["upstream_path"].rstrip("/").rsplit("/", 1)[-1]
-        for repo in registry["repos"].values()
+        for repo in registry["upstream"].values()
         for skill in repo["skills"]
-    } | {skill["name"] for skill in registry.get("local_skills", ())}
+    } | {skill["name"] for skill in registry.get("local", ())}
     assert declared <= tracked, f"{sorted(declared - tracked)} is in no registry"
 
 
@@ -221,11 +221,11 @@ def test_the_dead_topic_tag_stays_dead():
     silently returned an incomplete set while `designer` returned the whole family."""
     offenders = []
     registry = json.loads(SKILL_REGISTRY.read_text())
-    for repo, body in registry["repos"].items():
+    for repo, body in registry["upstream"].items():
         for skill in body["skills"]:
             if "design" in skill.get("groups", ()):
                 offenders.append(f"{repo}:{skill['upstream_path']}")
-    for skill in registry.get("local_skills", ()):
+    for skill in registry.get("local", ()):
         if "design" in skill.get("groups", ()):
             offenders.append(skill["name"])
     agents = json.loads(AGENT_REGISTRY.read_text())
@@ -245,7 +245,7 @@ def test_precedence_is_stated_once_and_pointed_at():
     harness-neutral, so it moved into the shared AGENTS.md rather than being copied
     into a second file for pi.
     """
-    text = (CLAUDE / "AGENTS.md").read_text()
+    text = INSTRUCTIONS.read_text()
     assert "## Skill precedence" in text
     assert "no skill grants permission" in text.lower()
     for seat in ("design", *CONSUMERS):
@@ -259,13 +259,13 @@ def test_precedence_is_stated_once_and_pointed_at():
 
 def test_the_voided_mandate_still_belongs_to_a_skill_that_ships():
     """The rule names emil by file, so a rename upstream must not leave the ban dangling."""
-    rule = (CLAUDE / "AGENTS.md").read_text()
+    rule = INSTRUCTIONS.read_text()
     named = re.findall(r"`([a-z0-9-]+)` carries both", rule)
     assert named, "the rule names no skill whose format mandates it voids"
     registry = json.loads(SKILL_REGISTRY.read_text())
     tracked = {
         skill["upstream_path"].rstrip("/").rsplit("/", 1)[-1]
-        for repo in registry["repos"].values()
+        for repo in registry["upstream"].values()
         for skill in repo["skills"]
     }
     assert set(named) <= tracked, f"{sorted(set(named) - tracked)} is named but not tracked"

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 import yaml
-from dotkit.testing import PI, PLUGINS, SKILLS
+from dotkit.testing import PI, PLUGINS, SKILLS, SKILL_REGISTRY
 
 
 @pytest.fixture(scope="module")
@@ -35,6 +35,7 @@ def policy_harness(tmp_path_factory):
 
 def test_cursor_policy_with_real_registry_and_transport(policy_harness):
     node, package, root, extension = policy_harness
+    allowed = json.loads((PI / "model-routing.json").read_text())["cursorModels"]
     script = f"""
 import assert from 'node:assert/strict';
 import {{ ModelRuntime, ModelRegistry }} from {json.dumps(str(package / 'dist/index.js'))};
@@ -56,8 +57,9 @@ const model = (id) => ({{
   cost: {{ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }},
   contextWindow: 1000, maxTokens: 100,
 }});
-const ids = ['composer-2-5', 'grok-4.6', 'opus', 'claude-opus-5@1m',
-  'gpt-5.6-sol@1m', 'auto', 'grok-4.5', 'future-model', 'composer-2-5:fast'];
+const allowed = {json.dumps(allowed)};
+const ids = [...allowed, 'opus', 'gpt-5.6-sol@1m', 'auto', 'grok-4.5',
+  'future-model', 'composer-2-5:fast'];
 const catalog = ids.map(model);
 const registerCursor = () => registry.registerProvider('cursor', {{
   baseUrl: 'https://cursor.invalid', apiKey: 'test-placeholder', api: 'cursor-sdk',
@@ -86,28 +88,28 @@ const pi = {{
 register(pi);
 await handlers.session_start({{}}, ctx);
 assert.deepEqual(registry.getAll().filter(m => m.provider === 'cursor').map(m => m.id).sort(),
-  ['composer-2-5', 'grok-4.6']);
+  [...allowed].sort());
 const restricted = registry.getProvider('cursor');
 const context = {{ messages: [] }};
 const options = {{ apiKey: 'test-placeholder' }};
-for (const id of ids.slice(0, 2)) {{
+for (const id of allowed) {{
   for (const method of ['stream', 'streamSimple']) {{
     const result = await restricted[method](model(id), context, options).result();
     assert.equal(result.content[0].text, 'transport result');
   }}
 }}
-assert.equal(calls.length, 4);
+assert.equal(calls.length, allowed.length * 2);
 assert.equal(calls[0][1], context);
 assert.equal(calls[0][2].apiKey, options.apiKey);
-for (const id of ids.slice(2)) {{
+for (const id of ids.slice(allowed.length)) {{
   for (const method of ['stream', 'streamSimple']) {{
     assert.throws(() => restricted[method](model(id), context, options), /disabled by model-routing/);
   }}
 }}
-assert.equal(calls.length, 4);
-assert.deepEqual(restricted.filterModels(catalog).map(m => m.id), ids.slice(0, 2));
+assert.equal(calls.length, allowed.length * 2);
+assert.deepEqual(restricted.filterModels(catalog).map(m => m.id), allowed);
 await runtime.refresh({{ allowNetwork: false }});
-assert.deepEqual((await runtime.getAvailable('cursor')).map(m => m.id).sort(), ids.slice(0, 2));
+assert.deepEqual((await runtime.getAvailable('cursor')).map(m => m.id).sort(), [...allowed].sort());
 const auth = await runtime.getAuth('cursor');
 assert.equal(auth.auth.apiKey, 'test-placeholder');
 assert.equal(registrations, 1);
@@ -123,7 +125,7 @@ for (const event of ['before_agent_start', 'turn_start', 'model_select',
   assert.equal(registry.find('cursor', 'opus'), undefined);
   assert.throws(() => registry.getProvider('cursor').streamSimple(model('opus'), context), /disabled/);
 }}
-assert.equal(calls.length, 4);
+assert.equal(calls.length, allowed.length * 2);
 const childHandlers = {{}};
 register({{
   on: (event, handler) => {{ childHandlers[event] = handler; }},
@@ -184,9 +186,8 @@ def test_every_cursor_skill_pin_is_allowed_or_redirected():
 
 
 def test_local_skill_pins_use_selected_providers():
-    claude = PI.parent / "claude"
-    registry = json.loads((claude / "skill-registry.json").read_text())
-    local_skills = registry["local_skills"]
+    registry = json.loads(SKILL_REGISTRY.read_text())
+    local_skills = registry["local"]
     expected = {
         "humanizer": "sonnet",
         "ac": "sonnet",
@@ -195,7 +196,7 @@ def test_local_skill_pins_use_selected_providers():
     }
     for entry in local_skills:
         name = entry["name"]
-        path = claude / "skills" / name / "SKILL.md"
+        path = SKILLS / name / "SKILL.md"
         frontmatter = yaml.safe_load(path.read_text().split("---", 2)[1])
         model = frontmatter.get("model", "inherit")
         if name in expected:
