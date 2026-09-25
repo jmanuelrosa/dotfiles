@@ -16,7 +16,7 @@ Most plays prompt for the vault password (decrypts `vars/secrets.yml` / `vars/wo
 | Command | Purpose |
 |---|---|
 | `make lint` | `ansible-lint` (config in [.ansible-lint](.ansible-lint)). Needs the vault password, so it can't run unattended |
-| `make test` | pytest over every python suite. Roots live in [pytest.ini](pytest.ini), not the Makefile. No vault, no become password, no network, so this is the only unattended target |
+| `make test` | pytest over every python suite. Roots live in [pytest.ini](pytest.ini), not the Makefile. No vault, no become password, no network, so it runs unattended, as do the `harness-check` and `harness-report` targets |
 | `make syntax` | Playbook syntax check. Vault password only |
 | `make check` | Full dry-run with `--check --diff` |
 | `make check-role ROLE=shell` | Dry-run a single role by tag |
@@ -24,6 +24,10 @@ Most plays prompt for the vault password (decrypts `vars/secrets.yml` / `vars/wo
 | `make run PROFILE=work` | Apply with the work profile |
 | `make run-role ROLE=ai` | Apply a single role by tag |
 | `make verify` | Smoke test: core binaries + config symlinks exist |
+| `make harness` | Render every harness's config from `roles/ai/files/harness/policy/`. Run it with no Claude session open, since it writes Claude's `settings.json` |
+| `make harness-check` | Name the rendered files or owned keys that drifted from the policy |
+| `make harness-apply` | Merge the policy into `~/.codex/config.toml` and install the Codex rules; `CHECK=1` only reports |
+| `make harness-report` | List the policy rules each harness cannot carry |
 | `make deps` | Install pinned collections from [requirements.yml](requirements.yml) |
 
 VM-based fresh-install testing uses [Tart](https://github.com/cirruslabs/tart): `make vm-create`, `make vm-start`, `make vm-ssh`, `make vm-destroy`.
@@ -44,7 +48,7 @@ Roles whose name does not tell you what is inside:
 | Role | Holds |
 |---|---|
 | [coreutils](roles/coreutils/) | Modern Unix replacements (bat, eza, fd, ripgrep, television, btop). **Not** the GNU `coreutils` package. Domain CLIs (awscli, gh, docker, lazygit) live in `apps` beside their configs |
-| [ai](roles/ai/) | Claude Code / Pi tooling. Pi runs over Claude's payload rather than a copy of it, described in [the pi harness](docs/internals/pi-harness.md). `rtk` ships here and is opt-in per shell via `RTK_ENABLE`; pi's guardrails only see pi's own tools, which is why the shell exports `PI_CURSOR_EXPOSE_BUILTIN_TOOLS` |
+| [ai](roles/ai/) | Claude Code, Pi and Codex tooling. All three run over one harness-neutral payload, `files/harness/`, whose `policy/` is rendered into each harness's config, described in [harnesses](docs/internals/harnesses.md). `rtk` ships here and is opt-in per shell via `RTK_ENABLE`; pi's guardrails only see pi's own tools, which is why the shell exports `PI_CURSOR_EXPOSE_BUILTIN_TOOLS` |
 | [shell](roles/shell/) | fish, Ghostty, Starship, Television, plus the custom fish functions and the vendored television cables |
 | [ssh](roles/ssh/) | Drives off `SSH_KEYS + SSH_KEYS_EXTRA`; per-profile keys go in `host_vars/<profile>.yml` |
 | [macos](roles/macos/) | `osx_defaults` plus nvram/pmset firmware tweaks |
@@ -66,10 +70,10 @@ Open the one you are working in, and only that one.
 | [Where a test lives](docs/internals/testing-layout.md) | Adding a test suite, or changing `pytest.ini` roots |
 | [Plan files](docs/internals/plan-files.md) | Touching `plansDirectory`, the plan date-stamp hook, or `docs/plans/` |
 | [Acceptance criteria](docs/internals/acceptance-criteria.md) | Working on the `ac` skill or its Jira publishing path |
-| [The pi harness](docs/internals/pi-harness.md) | Working on Pi: what it shares with Claude Code by symlink, the translated guardrail hooks, the derived `pi-sandbox` permission config, the two trust stores, the footer segment, or `tokencost --pi` |
+| [Harnesses](docs/internals/harnesses.md) | Changing `policy/` or the `harnessgen` generator; working on Pi (the shared payload, the translated guardrail hooks, the derived `pi-sandbox` permission config, the two trust stores, the footer, `tokencost --pi`); or working on Codex (the merged `config.toml`, the rules copy, hook trust) |
 | [Context hygiene](docs/internals/context-hygiene.md) | Investigating token or usage spend, or deciding where a piece of documentation should live |
 
-Two rules that apply without opening anything: a **name must mean one artifact** across `skill-registry.json`, `agent-registry.json` and `plugins/`, and `~/.claude/skills/` and `~/.claude/agents/` are **role-owned and pruned** by `kura sync`, so a link there that is not derived from the `global` tag is deleted on the next run.
+Two rules that apply without opening anything: a **name must mean one artifact** across `skill-registry.json`, `agent-registry.json` and `plugins/`, and the global skill and agent directories are **owned and pruned**: `kura sync` deletes a link under `~/.claude/skills/` or `~/.agents/skills/` that is not derived from the `global` tag, and the ai role deletes a link under `~/.claude/agents/` (or any other harness glob directory) that points into the role but no longer matches a shipped file.
 
 ## Conventions
 

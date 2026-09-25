@@ -17,4 +17,4 @@ Guard execution fails open so an adapter failure does not create a refusal that 
 ## Verification
 
 Adapter behavior and policy-boundary checks are covered by `lib/python/tests/test_pi_guardrails.py`.
-The two-layer Pi permission design is documented in `docs/internals/pi-harness.md`.
+The two-layer Pi permission design is documented in `docs/internals/harnesses.md`.

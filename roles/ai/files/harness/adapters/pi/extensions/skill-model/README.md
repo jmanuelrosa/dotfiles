@@ -21,4 +21,4 @@ Skill pin state is persisted as a custom session entry so reload and resume can 
 ## Verification
 
 Resolution, fallback, retry, persistence, and restoration are covered by `lib/python/tests/test_pi_skill_model.py` and `lib/python/tests/test_pi_model_routing.py`.
-The routing policy is documented in `docs/internals/pi-harness.md`.
+The routing policy is documented in `docs/internals/harnesses.md`.

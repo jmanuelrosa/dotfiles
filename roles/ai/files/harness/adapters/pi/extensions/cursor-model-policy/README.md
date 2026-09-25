@@ -23,4 +23,4 @@ It does not control standalone Cursor clients, Cursor-native delegation inside t
 ## Verification
 
 Registry, transport, refresh, and cross-session wrapping behavior are covered by `lib/python/tests/test_pi_model_routing.py`.
-The routing and billing constraints are documented in `docs/internals/pi-harness.md`.
+The routing and billing constraints are documented in `docs/internals/harnesses.md`.

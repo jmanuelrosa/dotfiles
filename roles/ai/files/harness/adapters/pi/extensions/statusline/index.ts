@@ -342,7 +342,7 @@ const THINKING_COLORS = {
  *
  * The provider is always named, where pi names it only when more than one is configured. This
  * footer is read on a machine whose default provider routes tool calls through Cursor's own host
- * tools (docs/internals/pi-harness.md), and which provider is answering decides whether the
+ * tools (docs/internals/harnesses.md), and which provider is answering decides whether the
  * guardrail gates run at all, so it is never the field to drop for width.
  */
 function modelSegment(ctx: ExtensionContext, theme: Theme): string {

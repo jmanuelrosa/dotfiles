@@ -14,4 +14,4 @@ When an agent is busy, the invocation is queued as a follow-up message.
 ## Verification
 
 Command registration, argument forwarding, and busy-session delivery are covered by `lib/python/tests/test_pi_skill_aliases.py`.
-The cross-harness behavior is documented in `docs/internals/pi-harness.md`.
+The cross-harness behavior is documented in `docs/internals/harnesses.md`.

@@ -21,7 +21,7 @@ Model assignments follow the approved subscription routing rather than a fleet-w
 These are workload-based choices, not comparative benchmark results.
 Provider-qualified model pins are Pi-first, not portable Claude Code model selections; that compatibility trade was accepted when choosing the routes.
 Existing effort/thinking pins, tool allowlists and artifact contracts remain unchanged.
-Direct Anthropic skill pins retain the [skill-model fallbacks](pi-harness.md), but those fallbacks do not protect agent pins, including `ac-writer` and `adr-scribe`.
+Direct Anthropic skill pins retain the [skill-model fallbacks](harnesses.md), but those fallbacks do not protect agent pins, including `ac-writer` and `adr-scribe`.
 Cursor on-demand billing must still be disabled to bound Composer charges.
 
 `product-lead` lives *inside* the bundle because it owns the pipeline's shared library: `references/conventions.md` (gates, gate medium, deferrals, profiles), twelve templates, and `scripts/pt.py`, which every stage reaches via `../product-lead/`.

@@ -1,4 +1,26 @@
-# The pi harness
+# Harnesses
+
+Claude Code, Pi and Codex CLI run over one payload, `roles/ai/files/harness/`.
+Content is shared by link; policy is written once and rendered into each harness's own spelling.
+What each harness cannot carry is recorded rather than approximated, because a rule that silently stops applying reads exactly like a rule that is being obeyed.
+
+## One policy, three renderings
+
+`policy/permissions.toml`, `policy/sandbox.toml` and `policy/hooks.toml` are the source of truth, and `lib/harnessgen` (stdlib only, found by walking up to `harness.toml`) is the only thing that reads them.
+Each harness gets an emitter and an `adapters/<harness>/adapter.toml` for the knobs the neutral policy has no word for, such as a model id, which is never translated between harnesses because the ids share no namespace.
+
+| Target | What it does |
+|---|---|
+| `make harness` | Render every file that differs. Claude's `settings.json` is merged key by key, since a running session writes it too; everything under `generated/` and Pi's derived files are written whole |
+| `make harness-check` | Write nothing and name each drifted file or owned key |
+| `make harness-apply` | Merge the policy into `~/.codex/config.toml` and install the Codex rules file. `CHECK=1` reports what is pending |
+| `make harness-report` | List every policy rule a harness receives no counterpart for |
+
+A hook reaches a harness only if its `harnesses` list in `hooks.toml` names it, and the comments there say why each one is left off where it is.
+`{harness}` in a policy path expands to the checkout at render time, so a clone somewhere else needs one `make harness` before its rendered files are right.
+Claude's `settings.json` cannot be written from inside a Claude session, so policy changes that reach it are rendered by hand with no session open.
+
+## Pi
 
 Pi is a second harness over the **same payload**, not a second copy of its content. It implements the Agent Skills standard these skills are already written to, while Kura v0.3 gives each harness an independent native view made of direct links to that payload. Shared source prevents content drift; separate roots prevent one harness's availability from depending on another harness's directory.
 
@@ -26,13 +48,13 @@ These provider-qualified agent pins trade Claude Code model portability for expl
 
 **Setup review is shared by method, not by inventory.** `/skill:setup-review` detects pi from `PI_SESSION_ID` and delegates to `pi-staff-reviewer`; Claude Code exposes the same skill as `/setup-review` and delegates to `cc-staff-reviewer`. Both reviewers load `setup-review-mechanics` for evidence thresholds, dependency safety, proposal discipline and the P0-P2 report contract, while each owns the paths, precedence rules, current-source lookup and customization vocabulary of its harness. This avoids the old state where pi could invoke `cc-review` successfully and receive a confident audit of `~/.claude`.
 
-## Permissions: two layers, like Claude's
+### Permissions: two layers, like Claude's
 
 Claude Code is hard to talk into a destructive command because it runs two independent layers, and its `settings.json` has a block for each. `sandbox` decides which paths and domains a subprocess can reach at the OS level. `permissions` decides whether an action is permitted at all, across 182 rules. Neither subsumes the other: the sandbox would let `git push --force` through, because force-pushing touches only paths the agent already owns, and a rule list only ever blocks what somebody enumerated.
 
-Pi carries the same pair, from two packages and two derived files, both generated from that one `settings.json`.
+Pi carries the same pair, from two packages and two derived files, both rendered by `harnessgen.emit_pi` from the same `policy/` Claude's blocks come from.
 
-**`pi-sandbox` is the layer that contains.** It confines bash at the OS level through a fork of Anthropic's own `sandbox-runtime`, and applies allow/deny lists to read, write and edit directly. `files/harness/adapters/pi/sandbox.json` is its derivation, from the `sandbox` block plus the path half of `permissions`. [test_pi_sandbox.py](../../lib/python/tests/test_pi_sandbox.py) recomputes it and fails on drift, and carries the regeneration command. Three things it cannot carry, each silent if forgotten:
+**`pi-sandbox` is the layer that contains.** It confines bash at the OS level through a fork of Anthropic's own `sandbox-runtime`, and applies allow/deny lists to read, write and edit directly. `files/harness/adapters/pi/sandbox.json` is its derivation, from `policy/sandbox.toml` plus the path half of `policy/permissions.toml`. [test_pi_sandbox.py](../../lib/python/tests/test_pi_sandbox.py) is its specification, and `make harness-check` names the drift. Three things it cannot carry, each silent if forgotten:
 
 - **`excludedCommands`.** Claude runs fourteen entries outside its sandbox: twelve CLIs so they can reach their own credential stores, plus `bunx ctx7` and `npx -y ctx7`, which are there for network egress instead. pi-sandbox has no per-command exclusion, so those are confined like anything else; a read of a denied path is *prompted* rather than refused, so they still work. ctx7 is the exception, because a blocked request fails outright rather than prompting, which is why a docs question under pi can end up answered from search. Blanket-allowing their credential directories would undo the `denyRead` this repo sets deliberately.
 - **`$TMPDIR`.** Only a leading `~` is expanded, so a literal `$VAR` entry matches nothing. `/var/folders` stands in for it on Darwin.
@@ -42,7 +64,7 @@ Pi carries the same pair, from two packages and two derived files, both generate
 
 One translation subtlety worth knowing: pi-sandbox runs any pattern containing `*` through `resolve()`, which anchors a relative one to the cwd. So Claude's `**/.env` would quietly stop meaning "any .env" and start meaning "an .env under this project". A leading slash restores the reach, and a test asserts no `**/` pattern survives untranslated.
 
-**`@gotgenes/pi-permission-system` is the layer that decides.** It matches on what a command *is*, over surfaces that line up almost one for one with Claude's rule vocabulary: `bash` command patterns, `path_read` and `path_write`, `external_directory`, per-tool names, `mcp` and `skill`. `files/harness/adapters/pi/permission-system/config.json` is its derivation, from the half of `permissions` the sandbox could not read, and [test_pi_permissions.py](../../lib/python/tests/test_pi_permissions.py) is its specification. 98 rules cross that pi-sandbox left on the floor: 64 `Bash(...)` denies, 25 `Bash(...)` allows, the five bare tool names and the four `mcp__*` entries. The two `WebFetch`/`WebSearch` allows are dropped, because pi registers neither.
+**`@gotgenes/pi-permission-system` is the layer that decides.** It matches on what a command *is*, over surfaces that line up almost one for one with Claude's rule vocabulary: `bash` command patterns, `path_read` and `path_write`, `external_directory`, per-tool names, `mcp` and `skill`. `files/harness/adapters/pi/permission-system/config.json` is its derivation, from the half of `policy/permissions.toml` the sandbox could not read, and [test_pi_permissions.py](../../lib/python/tests/test_pi_permissions.py) is its specification. 98 rules cross that pi-sandbox left on the floor: 64 `Bash(...)` denies, 25 `Bash(...)` allows, the five bare tool names and the four `mcp__*` entries. The two `WebFetch`/`WebSearch` allows are dropped, because pi registers neither.
 
 Four things about that translation are load-bearing rather than incidental. **Order is the policy**, because within one surface map the last matching pattern wins where Claude's rules are order-free and deny beats allow, so the file emits a fallback, then allows, then denies, then the two `.env.example` carve-outs that have to come after the denies they except. **A translated allow can collide with a translated deny**: `Bash(pgcli:*)` and `Bash(pgcli *)` both become the key `pgcli *`, which cannot hold two actions, so the allow is dropped and Claude's answer, deny, is what ships. **A doubled star is not a globstar here**, since one `*` already crosses separators, which is the opposite of the `/**/` the other file needs. And **writes stay silent**, because Claude sets `autoAllowBashIfSandboxed`, which is the config saying in its own words that where the sandbox confines an action it should not also ask; pi-sandbox confines `bash`, `write` and `edit` to `allowWrite` and prompts outside it, so those three surfaces are `allow` here and this layer contributes only the deny lists. Flipping `write` and `edit` to `ask` is the one-line change if literal prompt-parity is ever wanted over that reading.
 
@@ -67,7 +89,7 @@ npx --yes ajv-cli@5 validate --spec=draft2020 --strict=false \
 
 **`git-skill-gate.sh` runs on every bash call in pi and behind three matchers in Claude, and that is deliberate.** Its `main()` refuses `--no-verify` before it works out which subcommands are gated, so that refusal applies to any command at all; everything else exits 0 once `gated` is empty, so a non-git command self-guards for free. Claude's `git *`, `gh *` and `glab *` matchers therefore catch `--no-verify` only inside those three, and narrowing pi to match would **remove** protection. The cost is a `python3` spawn per bash tool call, which is a latency item to measure rather than a correctness one.
 
-## The gates only see pi's own tools, and the cursor provider does not use them
+### The gates only see pi's own tools, and the cursor provider does not use them
 
 Every hook in `guardrails.ts` hangs off pi's `bash`, `write` and `edit` tool calls.
 That is the whole reach of the translation, and with the Cursor provider it reaches nothing unless the builtins are exposed.
@@ -85,7 +107,7 @@ That gap is what the `⌁ cursor` footer badge exists to show: it carries `⚠�
 The badge stands on its own in the healthy state too, which is a deliberate reversal of what it used to do.
 Cursor's tool calls take a different path through the harness, so which side of that line a session is on is worth a word even when the answer is the good one, and a badge that only ever appears when something is wrong cannot be told apart from one that failed to render.
 
-## rtk rides along with the gates, because position is the whole contract
+### rtk rides along with the gates, because position is the whole contract
 
 `rtk` is the fifth `PreToolUse` entry in Claude's `settings.json`, and the only one that rewrites a command instead of refusing one.
 That makes it a gate in position only, which is exactly what has to be preserved: it is **last** in Claude's hook array, after the three gates have read the command the caller actually wrote.
@@ -104,7 +126,7 @@ Three smaller differences:
 
 Fail-open reads the other way round here than it does for the gates. Their failure mode is a refusal nobody can pass, so they allow; rtk's is a rewrite nobody asked for, so a missing, slow or unparseable rtk leaves the command exactly as written.
 
-## What a skill's frontmatter loses
+### What a skill's frontmatter loses
 
 pi's skill loader reads exactly three fields from a `SKILL.md`, `name`, `description` and `disable-model-invocation`, and ignores the rest. So `allowed-tools:` and `effort:` are Claude-only, silently, on the 22 skills that carry one.
 
@@ -143,7 +165,7 @@ The consequence worth stating is the first: a skill Claude Code restricts to a h
 
 Agents are the opposite case and are dual-keyed, because `pi-subagents` does read agent frontmatter. The invariant is `effort:` rather than a filename: every agent pinning a depth for Claude pins the same one for pi. That check used to glob `*-staff-engineer.md` and then drop any file carrying `tools:`, which hid eight agents twice over, and the `tools:` half was the subtler error, since a Claude-only tool allowlist says nothing about how deep a seat thinks.
 
-## Trust is two stores, and they cannot be unified
+### Trust is two stores, and they cannot be unified
 
 `kura trust` reads and writes the selected installed harnesses as one preflighted transaction. Pi keeps `~/.pi/agent/trust.json`, a flat `{path: bool}` map guarded by `proper-lockfile`, and three of its derivations differ:
 
@@ -170,3 +192,31 @@ Two rules hold the layout together. Segments are admitted in priority order unti
 One constraint applies to every extension here and was found the hard way in this one: **pi strips types rather than compiling them**, so TypeScript that has to be emitted instead of erased is a load error rather than a type error. A constructor parameter property (`constructor(private readonly ctx: X)`) is ordinary TypeScript, is what an editor suggests, and takes the whole extension down at startup.
 
 `tokencost --pi` prices pi work off `~/.pi/agent/sessions/`, and the reader is separate from the Claude one because **pi records the cost itself**. So the rate table is not consulted at all, which is the whole point: a subscription or local model costs what pi says it cost, where the table would have billed it at its default tier and called every local model the dearest on the machine. Buckets are `provider/model` rather than skills, since the same model id under two providers at two prices is the comparison a multi-model setup exists to make, and folding them by id would hide it. A recorded zero is a price and a missing one is a gap, so the two are distinguished rather than both read as falsey, and an unpriced response is counted and named instead of guessed at. Compactions and branch summaries carry their own usage in pi, unlike Claude's boundary record, so they are real spend under a bucket named for the act.
+
+## Codex
+
+Codex reads the neutral `AGENTS.md` through `~/.codex/AGENTS.md` and global skills from `~/.agents/skills/`.
+It is not a kura harness: that root exists because kura's `pi` harness writes it, so Codex's skills depend on Pi staying enabled in kura's machine config.
+
+**`config.toml` is merged, never linked.** Codex and the ChatGPT app both write `~/.codex/config.toml` (projects, plugins, MCP servers, hook trust), so `harness-build apply codex` replaces only the keys it owns: the adapter's `[config]` table plus `sandbox_workspace_write` rendered from `policy/sandbox.toml`.
+Every other key is read and written back unchanged, the first write keeps the untouched file beside it as `config.toml.harness-bak`, and a new file is created owner-only.
+The stdlib reads TOML but cannot write it, so `harnessgen.tomlw` writes back what `tomllib` read, and comments in the file do not survive a write that changes something.
+The role runs `apply` on every play, and a run with nothing to change writes nothing.
+
+**The rules file is a copy.** Codex's rules loader checks `is_file()` on each directory entry and so skips a symlinked `.rules`, and Codex appends its own approvals to `~/.codex/rules/default.rules`, which a linked directory would land in this checkout.
+`apply` therefore writes `~/.codex/rules/dotfiles.rules` as a real file, and `make harness-apply CHECK=1` reports it once it goes stale.
+
+**Only a token prefix translates.** execpolicy's `prefix_rule` matches exact leading tokens and has no glob, so `git push --force *` becomes a forbidden `["git", "push", "--force"]`, while a deny with a wildcard inside a token has no rule at all.
+A deny without a trailing `*` becomes a prefix too, which only widens the refusal.
+Path rules, MCP and tool denies, the domain allowlist, the read lists and the write roots Codex would misread (`.` resolves against `~/.codex`, and a `$VAR` is taken literally) have no counterpart either; `make harness-report` names every one.
+The command allows are left out on purpose: under `approval_policy = "on-request"` a command that stays inside the `workspace-write` sandbox is never prompted for, so an allow would spare nothing.
+`codex execpolicy check --rules ~/.codex/rules/dotfiles.rules -- git push --force origin x` is the quick proof that the installed file is the one Codex obeys.
+
+**The network is off, and that is what gates the cloud.** Codex's sandbox has no domain allowlist, only `network_access`, so it stays `false` and a command that needs the network asks to leave the sandbox.
+That matters for `cloud-readonly-gate.sh`, because Codex has no `ask` answer for a hook: `permissionDecision: "ask"` is unsupported and fails open, so the gate's broadest tier only refuses in Claude and Pi, and in Codex the escalation prompt is what stands in for it.
+
+**Hooks are linked, rendered, and trusted by hand.** `~/.codex/hooks.json` links `adapters/codex/generated/hooks.json`, which lists the scripts under `~/.codex/hooks/` for `^Bash$` (Codex matches a regex, so a bare `Bash` would match any tool containing it).
+Codex runs a hook only after it is trusted in `/hooks`, once per machine.
+The trust hash covers the event, matcher, command and timeout but not the script, so editing a hook script needs no re-trust and changing its manifest entry does.
+Only `cloud-readonly-gate` and `pre-commit-verify` are listed. `git-skill-gate` looks for the authorising skill in a transcript field Codex never writes, so it would refuse every commit. A Codex edit arrives as an `apply_patch` payload `em-dash-gate` does not parse. rtk answers in Claude's rewrite output, which Codex has not been checked against.
+So under Codex the `/commit` and `/pr` route and the em dash rule are instructions, not gates.

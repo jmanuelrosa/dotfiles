@@ -1,41 +1,65 @@
 # ai
 
-Installs and configures AI tooling: Claude Code, Pi (mariozechner), ChatGPT desktop, and Ollama.
+Installs and configures AI tooling: Claude Code, Pi (`@earendil-works/pi-coding-agent`, brewed as `pi-coding-agent`), Codex CLI, ChatGPT desktop, Cursor and Ollama.
+
+## Layout
+
+Everything the harnesses read lives in `files/harness/`, one self-contained tree that `harness.toml` marks as its root, so nothing in it hops out to the rest of the repo by relative path.
+
+- `AGENTS.md`, `rules/`, `hooks/`, `agents/`, `plugins/`, `statusline.json`, `rtk/`: shared by every harness, by symlink.
+- `kura/catalog/`: the skills and `skill-registry.json` that kura projects into each harness.
+- `policy/`: permissions, sandbox and hooks, written once in neutral TOML.
+- `lib/harnessgen/` and `bin/harness-build`: the stdlib-only generator that renders `policy/` into each harness's spelling. Its suites are in `tests/`.
+- `adapters/<harness>/`: what only that harness reads, an `adapter.toml` for the knobs the policy has no word for, and `generated/` for the files rendered whole.
+
+`HARNESS_LINKS` in `defaults/main.yml` is the one table of what gets linked where, per harness, and `HARNESS_ENABLED` picks which harnesses a machine gets.
+The link tasks read that table generically, and prune any link in a globbed directory that points into this role but no longer matches a shipped file.
+
+## The generator
+
+`make harness` renders every file that differs, `make harness-check` names the drift, `make harness-report` lists what each harness cannot carry, and `make harness-apply` merges the policy into Codex's own config.
+Claude's `settings.json` is merged key by key rather than written whole, because a running session writes it too, and it cannot be written from inside a Claude session: run `make harness` with none open.
+The rules, the per-harness translations and what each one loses are in [harnesses](../../docs/internals/harnesses.md).
 
 ## What it does
 
-- Installs pi-coding-agent and casks for ChatGPT/Claude/Claude Code/Cursor/Ollama via `BREW_PACKAGES`.
+- Installs pi-coding-agent, rtk and uv, plus casks for ChatGPT, Claude, Claude Code, Codex, Cursor and Ollama, via `BREW_PACKAGES`.
+- Links each enabled harness's files from `HARNESS_LINKS`: `~/.claude/` for Claude Code, `~/.pi/agent/` for Pi, `~/.codex/` for Codex. The neutral `AGENTS.md` is Claude's `~/.claude/CLAUDE.md`, Pi's `~/.pi/agent/AGENTS.md` and Codex's `~/.codex/AGENTS.md`.
+- Runs `harness-build apply codex` on every play, which merges the keys it owns into `~/.codex/config.toml` and writes `~/.codex/rules/dotfiles.rules` as a real file. Neither is a link, because Codex writes both locations itself. After a first run, trust the two hooks once in Codex's `/hooks`.
 - Configures Pi to call Ollama Cloud directly through `models.json`, without `pi-ollama-cloud` or a local Ollama server. `nemotron-3-ultra` and `gpt-oss:120b` are enabled as coding models available on the free account. In Pi, run `/login`, choose API key authentication, select `ollama-cloud`, and paste a key from the Ollama account settings.
 - The Ollama app uses its own account session: run `ollama signin` after provisioning when using the CLI or desktop app.
-- Symlinks per-tool configs into `~/.claude/` and `~/.pi/agent/`.
-- Symlinks custom Pi themes into `~/.pi/agent/themes/`.
-- Pi's Cursor models come from the `npm:pi-cursor-sdk` package in `files/pi/settings.json`, not from a `cursor` block in `models.json`. That file is only for HTTP APIs Pi already speaks. The package registers a live `cursor/` provider; `enabledModels` pins the cycle/picker set to the models on in Cursor (Auto, Grok 4.6, Composer 2.5, Opus 5, GPT-5.6 Sol, Fable 5, Grok 4.5). Auth is a Cursor SDK API key saved once with `/login` (or `CURSOR_API_KEY`), then `/cursor-refresh-models` if you logged in after startup. Desktop/CLI login is not reused. The key stays out of the repo.
-- Cursor-backed tool failures only ever show a canned reason (`missing completion`, `aborted`, `SDK run failed`, `run ended during drain`) in a `"... did not complete"` card, never the underlying message or stack. `pi-cursor-sdk` has a maintainer debug channel that captures both, gated on `PI_CURSOR_SDK_EVENT_DEBUG`, but the package lives under `~/.pi/agent/npm/node_modules/`, installed by pi's own package manager rather than vendored here, so it can only be reached through env vars. `pi_debug` and `pi_last_error`, exported by the shell role's fish functions the same way `CTX7_TELEMETRY_DISABLED` is, wrap that: launch pi through `pi_debug` and `pi_last_error` prints the real error back afterward.
-- Provisions Kura's machine config at `~/.config/kura/config.json` with both Claude Code and Pi globally enabled, and links `~/.config/kura/catalog` to the dedicated `files/kura/catalog` view. That view exposes only the shared `skills/` tree and `skill-registry.json` metadata from `files/claude`; hooks, settings, agents, and legacy plugins stay outside Kura's catalog. `kura sync` then creates independent per-skill links in each harness's native global root: `~/.claude/skills/` and `~/.agents/skills/`. Pi no longer points through Claude's directory, so a missing or stale view can be diagnosed and repaired without making one harness depend on the other.
-- Symlinks `files/pi/APPEND_SYSTEM.md` rather than a `SYSTEM.md`, because Pi reads the latter as a *replacement* for its own system prompt: shipping one traded every instruction the harness ships for the 30 lines in that file. The appended form adds to the defaults. A superseded `~/.pi/agent/SYSTEM.md` symlink from an earlier run is removed, since a dangling one leaves the prompt depending on which run last touched it; a real file someone wrote by hand is left alone.
-- `files/statusline.json` holds the values Claude's status line and Pi's footer both render: the wrap-up threshold, the gauge cells, the lockfile table and the segment glyphs. `statusline.sh`, `hooks/context-nudge.sh` and the three Pi extensions read it by resolving their own symlink, so a value is written once and every harness follows.
-- Symlinks the extension directories named by `PI_EXTENSIONS` into `~/.pi/agent/extensions/`, where Pi discovers each `index.ts`. Every directory carries a README explaining why the extension exists, what it owns, and how it is verified. Eight ship: context continuity, Cursor model policy, guardrails, Minion, skill aliases, skill model routing, the status line, and velocity. The `claude-ui` experiment remains documented in the source tree but is omitted from the manifest, so it is not loaded. See [the extension directory](files/pi/extensions/) and [the pi harness](../../docs/internals/pi-harness.md).
-- Gives Pi the same two permission layers Claude has, from two packages and two derived files. `files/pi/sandbox.json` configures `pi-sandbox`, the layer that *contains*: OS-level confinement of bash plus allow/deny lists on read, write and edit, derived from the `sandbox` block and the path half of `permissions` in `files/claude/settings.json`. `files/pi/permission-system/config.json` configures `@gotgenes/pi-permission-system`, the layer that *decides*: allow/ask/deny over bash command shape, tool names, MCP servers and paths, which is the half a path-confinement layer cannot match on. Its external-directory policy allows role-owned scripts through both native global skill roots, `~/.claude/skills/` and `~/.agents/skills/`. 98 rules cross there that the sandbox left on the floor, the 64 `Bash(...)` denies among them. Both files are recomputed by their own suite (`test_pi_sandbox.py`, `test_pi_permissions.py`) and fail on drift. Two things still do not translate, recorded in the first: `excludedCommands` and `$TMPDIR`. The permission package is the one `packages` entry pinned to a version, because its breaking releases are fail-closed corrections and `pi update` must not move them; its config lives in its own directory because the package writes an unredacted review log beside it. See [the pi harness](../../docs/internals/pi-harness.md).
-- Runs `herdr integration install pi` on the same terms as the claude one, gated on the same single `herdr integration status` call. Without it a fresh machine reports claude state and not pi state, and the only sign is a line in that status output nobody reads.
-- Symlinks each tool named in `AI_SCRIPTS` into `~/.local/bin/`, from `files/scripts/<name>/<name>`. One today, `tokencost`, which reads only Claude Code's own trees: `weekly-recap` belongs to the `work` role, whose Jira, GitHub and GitLab accounts it actually queries.
-- Installs `kura` from its own repository rather than linking it out of this checkout: `get_url` fetches the release pinned in `KURA` to `~/.local/bin/kura` and verifies the checksum, so an upgrade and a rollback are the same edit in opposite directions. It also removes a leftover `~/.local/bin/claude-kit` symlink, which would otherwise dangle into a directory this repository no longer holds.
-- Sync and convergence set `HOME` explicitly and read machine config from `~/.config/kura/config.json`.
-- `tokencost` reports what a stretch of Claude Code work cost and how much context it used, read back off the session transcripts under `~/.claude/projects/`. It buckets by the `attributionSkill` on each record, so a skill or a subagent can be priced on its own: `tokencost <project>` for cost per bucket, `--sessions` for one row per session, `--context` for the peak and final context each session and bucket reached, `--json` for all of it at once.
-- `tokencost --pi <project>` does the same for Pi, reading `~/.pi/agent/sessions/`. Two differences follow from Pi recording the price itself: the buckets are `provider/model` rather than skills, which is the comparison a multi-model setup exists to make, and the rate table is not consulted at all, so a subscription or local model costs what Pi says it cost instead of being billed at the table's default tier. A response Pi recorded no cost for is counted and named rather than priced, and a recorded zero is a price rather than a gap.
-- Runs Kura v0.4's skills-only `sync`, which projects every globally tagged skill and its skill dependencies independently into `~/.claude/skills/` and `~/.agents/skills/`, pruning only links into the catalog's `skills/` tree. The role links every standalone catalog agent into `~/.claude/agents/` and keeps Pi's `~/.pi/agent/agents` pointed at that role-owned directory. All standalone agents are global by convention; their required global skills carry their own `global` tags because Kura no longer reads `agent-registry.json`. Project plugin links and their `.agents/agents` companions remain project-owned legacy state and are neither created nor pruned by this role.
+- Pi's Cursor models come from the `npm:pi-cursor-sdk` package in `adapters/pi/settings.json`, not from a `cursor` block in `models.json`, which is only for HTTP APIs Pi already speaks. Auth is a Cursor SDK API key saved once with `/login` (or `CURSOR_API_KEY`), then `/cursor-refresh-models` if you logged in after startup. Desktop/CLI login is not reused, and the key stays out of the repo.
+- Cursor-backed tool failures only ever show a canned reason (`missing completion`, `aborted`, `SDK run failed`, `run ended during drain`). `pi_debug` and `pi_last_error`, from the shell role's fish functions, launch pi with the package's debug capture on and print the real error back afterward.
+- Links `adapters/pi/APPEND_SYSTEM.md` rather than a `SYSTEM.md`, because Pi reads the latter as a *replacement* for its own system prompt. Superseded `SYSTEM.md` and `mcp.json` symlinks from earlier runs are removed; a real file someone wrote by hand is left alone.
+- Links the extension directories named by `PI_EXTENSIONS` into `~/.pi/agent/extensions/`, where Pi discovers each `index.ts`. Every directory carries a README explaining why it exists, what it owns and how it is verified. The `claude-ui` experiment is documented in the source tree but left out of the manifest, so it is not loaded.
+- Gives Pi the same two permission layers Claude has: `adapters/pi/sandbox.json` for `pi-sandbox`, the layer that *contains*, and `adapters/pi/permission-system/config.json` for `@gotgenes/pi-permission-system`, the layer that *decides*. Both are rendered from `policy/`. The permission package is the one `packages` entry pinned to a version, because its breaking releases are fail-closed corrections that `pi update` must not move.
+- `statusline.json` holds the values Claude's status line and Pi's footer both render, so a threshold or glyph is written once.
+- Runs `herdr integration install claude` and `herdr integration install pi`, each only when `herdr integration status` does not report it current, so a herdr upgrade that ships a newer hook reinstalls on the next run.
+- Links each tool named in `AI_SCRIPTS` into `~/.local/bin/`, from `files/scripts/<name>/<name>`. Today that is `tokencost`, which prices a stretch of work from the session transcripts: `tokencost <project>` buckets Claude Code spend by skill, and `tokencost --pi <project>` buckets Pi's by `provider/model`, using the cost Pi recorded rather than a rate table.
+- Installs `kura` from its own repository: `get_url` fetches the release pinned in `KURA` to `~/.local/bin/kura` and verifies the checksum, so an upgrade and a rollback are the same edit in opposite directions.
+- Provisions kura's machine config at `~/.config/kura/config.json` with Claude Code and Pi as global harnesses, and links `~/.config/kura/catalog` to `files/harness/kura/catalog`.
 
-- Runs `kura converge --all --root ~/Developer` so every initialized project below the development root gets both native skill views. Kura v0.4 recognizes only a root `kura.json`; it does not consult Claude's private project registry or migrate a project during convergence. Claude's SessionStart hook therefore runs `kura converge --quiet` only when the exact cwd contains `kura.json`, avoiding a startup refusal in uninitialized directories while preserving real convergence failures.
-- Runs `herdr integration install claude` so Claude Code reports agent state to [herdr](https://herdr.dev). `herdr integration status` gates it: the task only runs when the line for `claude` is not `current (v<n>)`, so a herdr upgrade that ships a newer hook reinstalls on the next run.
+## Kura, by hand
+
+The role provisions kura but never runs it. After a play that changed the catalog or a `global` tag:
+
+```bash
+kura sync                              # project every global skill into ~/.claude/skills and ~/.agents/skills
+kura converge --all --root ~/Developer # repair the skill views of every initialized project below ~/Developer
+```
+
+Codex is not a kura harness. It reads global skills from `~/.agents/skills/`, which exists because kura's `pi` harness writes it, so removing `pi` from `globalHarnesses` would also take Codex's skills away.
+Claude's SessionStart hook runs `kura converge --quiet` when the cwd holds a `kura.json`, so an initialized project is repaired on open.
 
 ## Vars
 
-- `BREW_PACKAGES` (defaults/main.yml): formulas (pi-coding-agent, rtk, uv), casks (chatgpt, claude, claude-code, cursor, ollama-app).
-- **There is no var for the global skill set, and nothing to maintain by hand.** `kura sync` derives it from the `global` group tag in `skill-registry.json` and expands declared skill dependencies recursively. Tag a skill `global` to add it to both native roots. Standalone agents are different in v0.3: the role globs `files/claude/agents/*.md`, and a test requires every registry agent to remain global.
+- `BREW_PACKAGES`: formulas and casks, as above.
+- `HARNESS_DIR`, `HARNESS_ENABLED`, `HARNESS_LINKS`: where the payload is, which harnesses a machine gets, and what each one links.
+- `PI_EXTENSIONS`, `AI_SCRIPTS`, `KURA`: the Pi extension manifest, the linked scripts, and the pinned kura release.
+- **There is no var for the global skill set.** `kura sync` derives it from the `global` tag in `skill-registry.json` and expands declared skill dependencies. Standalone agents are different: every file in `files/harness/agents/` is global, and `HARNESS_LINKS` links them.
 
 ## Notes
 
-Project-scoped skills use the same independent topology as global skills: an initialized project's `kura.json` selects its harnesses, and Kura writes each selected catalog skill directly into `.claude/skills/<name>` and `.agents/skills/<name>`. The role safely removes only its former global `~/.pi/agent/skills -> ~/.claude/skills` link. Kura's `init` owns project migration from the old `.agents/skills -> ../.claude/skills` bridge and refuses when the exposed content cannot be proven catalog-backed and managed.
+The herdr integration is the one thing in `~/.claude/hooks/` this role does not link from the repo: herdr writes `herdr-agent-state.sh` there as a real file and appends its own `SessionStart` entry to `settings.json`, keyed on the absolute hook path. The `herdr` formula comes from the apps role, which runs before this one.
 
-The herdr integration is the one thing in `~/.claude/hooks/` this role does not symlink from the repo: herdr writes `herdr-agent-state.sh` there as a real file and appends its own `SessionStart` entry to `settings.json`, keyed on the absolute hook path. The `herdr` formula comes from the apps role, which runs before this one.
-
-Claude Code fetches up-to-date docs for libraries, frameworks, SDKs, APIs, CLI tools and cloud services with the Context7 CLI, run on demand via `bunx ctx7` (bun is installed by the apps role) on the free anonymous tier — nothing is installed by this role and no API key is configured. The usage rule lives in `files/claude/AGENTS.md`; the `CTX7_TELEMETRY_DISABLED` opt-out is exported by the shell role.
+Library and SDK docs come from the Context7 CLI, run on demand via `bunx ctx7` (bun is installed by the apps role) on the free anonymous tier, so nothing is installed and no API key is configured. The usage rule lives in `files/harness/AGENTS.md`; the `CTX7_TELEMETRY_DISABLED` opt-out is exported by the shell role.
