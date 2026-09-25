@@ -17,13 +17,23 @@ def test_the_policy_never_names_where_the_harness_is_checked_out():
         assert checkout not in path.read_text(), f"{path.name} names {checkout}; use {{harness}}"
 
 
-def test_the_placeholder_expands_to_this_tree():
+def test_the_placeholder_expands_to_the_render_root():
     policy = manifest.load(ROOT)
     reads = policy.sandbox["filesystem"]["allow_read"]
     assert not any(manifest.HARNESS_PLACEHOLDER in p for p in reads)
-    harness_reads = [p for p in reads if p.startswith(manifest.home_relative(ROOT))]
+    rendered = manifest.render_root(ROOT)
+    harness_reads = [p for p in reads if p.startswith(rendered)]
     assert harness_reads, "the sandbox lost its reads of the harness's own trees"
-    assert all(Path(p).expanduser().exists() for p in harness_reads)
+    if rendered == manifest.home_relative(ROOT):
+        assert all(Path(p).expanduser().exists() for p in harness_reads)
+
+
+def test_the_placeholder_is_this_tree_unless_the_environment_names_another(monkeypatch):
+    monkeypatch.delenv(manifest.RENDER_ROOT_ENV, raising=False)
+    assert manifest.render_root(ROOT) == manifest.home_relative(ROOT)
+    monkeypatch.setenv(manifest.RENDER_ROOT_ENV, "~/elsewhere/harness")
+    assert manifest.render_root(ROOT) == "~/elsewhere/harness"
+    assert manifest.expand("{harness}/hooks", ROOT) == "~/elsewhere/harness/hooks"
 
 
 def test_the_root_is_found_from_anywhere_inside_it():

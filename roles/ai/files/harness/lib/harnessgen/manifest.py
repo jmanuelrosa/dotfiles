@@ -1,11 +1,13 @@
 """The neutral policy and each adapter's own knobs, as plain data."""
 
+import os
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
 MARKER = "harness.toml"
 HARNESS_PLACEHOLDER = "{harness}"
+RENDER_ROOT_ENV = "HARNESS_RENDER_ROOT"
 
 
 def find_root(start=None):
@@ -24,9 +26,18 @@ def home_relative(path):
         return str(path)
 
 
+def render_root(root):
+    """What `{harness}` expands to: this tree, unless the environment names the checkout.
+
+    The rendered files are committed for the checkout they are linked from, so a clone
+    elsewhere (CI) names that checkout to hold those files to the policy at all.
+    """
+    return os.environ.get(RENDER_ROOT_ENV) or home_relative(root)
+
+
 def expand(value, root):
     if isinstance(value, str):
-        return value.replace(HARNESS_PLACEHOLDER, home_relative(root))
+        return value.replace(HARNESS_PLACEHOLDER, render_root(root))
     if isinstance(value, list):
         return [expand(item, root) for item in value]
     if isinstance(value, dict):

@@ -18,6 +18,7 @@ Each harness gets an emitter and an `adapters/<harness>/adapter.toml` for the kn
 
 A hook reaches a harness only if its `harnesses` list in `hooks.toml` names it, and the comments there say why each one is left off where it is.
 `{harness}` in a policy path expands to the checkout at render time, so a clone somewhere else needs one `make harness` before its rendered files are right.
+`HARNESS_RENDER_ROOT` overrides it; CI sets it to the checkout the committed renders are for, since its own clone lives elsewhere and every drift test would otherwise fail on the path alone.
 Claude's `settings.json` cannot be written from inside a Claude session, so policy changes that reach it are rendered by hand with no session open.
 
 ## Pi

@@ -14,6 +14,6 @@ What still ties it to the dotfiles repo, and what a move has to take with it:
 - **Pi's derivation specs live outside.** `test_pi_sandbox.py`, `test_pi_permissions.py` and the other `test_pi_*` suites are in `lib/python/tests/` and import `dotkit.testing`. The generator's own suites in `tests/` import only `harnessgen`.
 - **One script imports the repo's library.** `plugins/product-team/skills/product-lead/scripts/pt.py` imports `dotkit.ui` for its output vocabulary.
 - **The Makefile targets and `pytest.ini` roots are the repo's.** `make harness*` wraps `bin/harness-build` through `uv`, and `pytest.ini` puts `lib/` on the import path.
-- **Rendered files name the checkout.** `{harness}` in `policy/sandbox.toml` expands to this tree's absolute path at render time, so a clone elsewhere runs `harness-build build` once before its rendered files are right.
+- **Rendered files name the checkout.** `{harness}` in `policy/sandbox.toml` expands to this tree's absolute path at render time, so a clone elsewhere runs `harness-build build` once before its rendered files are right. CI sets `HARNESS_RENDER_ROOT` to the committed checkout instead, so it can still check the renders against the policy.
 - **Some comments cite repo paths** (`roles/ai/files/harness/...`, `lib/python/tests/...`). They are prose, not lookups, and read wrong rather than break.
 - **Kura is already separate.** It is installed from its own release and pointed at `kura/catalog/`, so only the catalog moves with the tree.
