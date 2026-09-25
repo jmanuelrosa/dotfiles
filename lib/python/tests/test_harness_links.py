@@ -10,6 +10,8 @@ The expansion is dotkit.testing.harness_links, which mirrors the tasks: `files` 
 `globs` one link per regular file the pattern matches.
 """
 
+import re
+
 import pytest
 import yaml
 from dotkit.testing import (
@@ -185,24 +187,18 @@ def test_the_prune_keeps_exactly_what_the_glob_task_links():
     assert "not in (harness_glob_links | map(attribute='dest'))" in conditions
 
 
-def test_the_neutral_agents_md_has_no_harness_specific_sections():
-    """AGENTS.md is read by all harnesses, so it has no sections titled for one harness.
+HARNESS_MECHANICS = {
+    "a settings key": r"excludedCommands|plansDirectory|settings\.json",
+    "a hook script": r"`[\w-]+\.sh`",
+    "a slash command": r"`/[\w:-]+`",
+    "a harness-named agent": r"\bExplore\b",
+    "a harness-qualified aside": r"\b(?:[Ii]n|[Uu]nder) (?:Claude Code|[Pp]i|Codex|opencode)\b",
+}
 
-    Harness-specific guidance (settings, plan mode, sandbox behavior) goes in adapters/<h>/rules/
-    instead. A section like '## Claude Code' or '## Pi setup' would be harness-specific."""
-    from pathlib import Path
-    import re
-    agents = Path(__file__).parent.parent.parent.parent / "AGENTS.md"
-    text = agents.read_text()
-    lines = text.split('\n')
-    harness_patterns = [
-        r'## Claude Code',
-        r'## Pi ',
-        r'## Codex',
-        r'## opencode',
-    ]
-    harness_sections = [
-        line for line in lines if line.startswith('##')
-        for pattern in harness_patterns if re.search(pattern, line)
-    ]
-    assert not harness_sections, f"found harness-specific sections in neutral AGENTS.md: {harness_sections}"
+
+@pytest.mark.parametrize("kind", HARNESS_MECHANICS)
+def test_the_neutral_instructions_name_no_harness_mechanics(kind):
+    """Every harness loads this file, so a mechanic only one of them has reads as an
+    instruction the others cannot follow; it belongs in adapters/<h>/ instead."""
+    found = re.findall(HARNESS_MECHANICS[kind], INSTRUCTIONS.read_text())
+    assert not found, f"{INSTRUCTIONS.name} names {kind}: {found}"
