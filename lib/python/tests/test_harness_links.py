@@ -183,3 +183,17 @@ def test_the_prune_keeps_exactly_what_the_glob_task_links():
     """Two lists that drift would delete a link the task above it just made."""
     conditions = " ".join(ai_task(PRUNE_TASK)["when"])
     assert "not in (harness_glob_links | map(attribute='dest'))" in conditions
+
+
+def test_the_neutral_agents_md_has_no_harness_specific_tokens():
+    """AGENTS.md is read by all harnesses, so it must not name Claude Code, Pi, Codex or opencode.
+
+    Harness-specific guidance goes in adapters/<h>/rules/ instead, so each harness loads what it
+    needs. If a token drifts into AGENTS.md, clones of this project will load it in the wrong
+    harnesses until the drift is noticed."""
+    from pathlib import Path
+    agents = Path(__file__).parent.parent.parent.parent / "AGENTS.md"
+    text = agents.read_text().lower()
+    forbidden = ["claude code", "pi ", "codex", "opencode"]
+    found = [token for token in forbidden if token in text]
+    assert not found, f"found harness-specific tokens in neutral AGENTS.md: {found}"

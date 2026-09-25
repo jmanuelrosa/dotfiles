@@ -41,7 +41,7 @@ It is worth more than every artifact change combined.
 
 Anything loaded at session start is paid for on every turn of that session.
 
-- **`CLAUDE.md` is the expensive one**, because it loads in full on every turn and never gets smaller on its own. Keep it to the commands, the architecture and the conventions, and route deep design rationale to `docs/internals/` files opened only when working there. This repo's went from 91.5 KB to 9.2 KB that way, saving roughly 22k tokens per turn across three checkouts.
+- **Instruction files load on every turn**, so keep them small. `AGENTS.md` is the neutral core loaded by all harnesses; `CLAUDE.md` (when present) adds Claude-specific rules. Route deep design rationale to `docs/internals/` files opened only when working there. This repo's root file went from 91.5 KB to 9.2 KB by moving rationale to routing tables, saving roughly 22k tokens per turn across three checkouts.
 - **A routing table beats an index.** Name the file and the trigger for opening it, so a turn that does not touch a subsystem never pays for its documentation.
 - **Prose that is a design record moves verbatim.** Relocating and shortening are separate decisions; mixing them loses the record while claiming to save tokens.
 

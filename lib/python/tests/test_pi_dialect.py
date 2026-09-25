@@ -217,23 +217,19 @@ def test_the_settings_pi_loads_are_parseable():
 
 
 def test_the_repo_root_agents_md_is_the_claude_md_pi_would_otherwise_miss():
-    """pi prefers AGENTS.md over CLAUDE.md per directory, so two files means drift.
+    """pi and Claude Code both read the root AGENTS.md as their harness-specific fallback.
 
-    Context files are discovered per directory as `AGENTS.md` *or* `CLAUDE.md`, so a
-    repo shipping both hands pi the former and Claude Code the latter. A parallel
-    summary is what that produced here: the root AGENTS.md kept describing a layout
-    two restructures out of date while CLAUDE.md moved on. One file, reached under
-    both names, is the only arrangement that cannot drift.
-
-    Relative on purpose, as the dotkit links are: an absolute target would bake this
-    checkout's path into every clone.
+    Harnesses discover context files per directory as `AGENTS.md` (pi, Codex, opencode)
+    or `AGENTS.md` then `CLAUDE.md` (Claude Code), preferring the first if both exist.
+    One real file, read by all harnesses under the same name, is the arrangement that
+    cannot drift.
     """
-    link = REPO / "AGENTS.md"
-    assert link.is_symlink(), "root AGENTS.md must be a link, or it drifts from CLAUDE.md"
-    target = link.readlink()
-    assert not target.is_absolute(), f"AGENTS.md points at {target}, which breaks other clones"
-    assert target.name == "CLAUDE.md"
-    assert link.resolve() == (REPO / "CLAUDE.md").resolve()
+    agents = REPO / "AGENTS.md"
+    assert agents.is_file() and not agents.is_symlink(), "root AGENTS.md must be a real file"
+    assert not (REPO / "CLAUDE.md").exists(), "no root CLAUDE.md; it was replaced by AGENTS.md"
+    assert not (REPO / ".claude" / "CLAUDE.md").exists() or \
+           (REPO / ".claude" / "CLAUDE.md").is_symlink(), \
+           ".claude/CLAUDE.md must be a link (to ~/.claude/CLAUDE.md), not a file"
 
 
 # --- the keys pi ignores on a skill -------------------------------------------
