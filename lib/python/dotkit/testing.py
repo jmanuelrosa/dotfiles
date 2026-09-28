@@ -89,13 +89,13 @@ def ai_defaults():
     return yaml.safe_load(AI_DEFAULTS.read_text())
 
 
-def harness_links(home="~"):
+def harness_links(home="~", enabled=None):
     """What the ai role's link table writes, as {dest: src}, the way its tasks expand it.
 
-    `shared` plus every enabled harness; `files` one link each, `globs` one link per
-    regular-file match, which is what Ansible's fileglob lookup keeps. `{{ HOME }}` becomes
-    `home`. Raises on a destination written twice, since the second link would silently
-    replace the first on every run.
+    `shared` plus every enabled harness (or an explicit test set); `files` one link each,
+    `globs` one link per regular-file match, which is what Ansible's fileglob lookup keeps.
+    `{{ HOME }}` becomes `home`. Raises on a destination written twice, since the second
+    link would silently replace the first on every run.
     """
     defaults = ai_defaults()
     links = {}
@@ -104,7 +104,7 @@ def harness_links(home="~"):
         assert dest not in links, f"{dest} is linked from both {links[dest]} and {src}"
         links[dest] = src
 
-    for name in ["shared", *defaults["HARNESS_ENABLED"]]:
+    for name in ["shared", *(defaults["HARNESS_ENABLED"] if enabled is None else enabled)]:
         entry = defaults["HARNESS_LINKS"][name]
         for link in entry.get("files", []):
             put(link["dest"].replace("{{ HOME }}", home), HARNESS / link["src"])

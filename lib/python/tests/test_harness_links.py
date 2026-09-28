@@ -83,7 +83,8 @@ def test_every_destination_directory_is_created_first(links):
 def test_each_harness_reads_the_one_neutral_instructions_file(links):
     assert links["~/.claude/CLAUDE.md"] == INSTRUCTIONS
     assert links["~/.pi/agent/AGENTS.md"] == INSTRUCTIONS
-    assert links["~/.codex/AGENTS.md"] == INSTRUCTIONS
+    assert harness_links(enabled=["codex"])["~/.codex/AGENTS.md"] == INSTRUCTIONS
+    assert ("~/.codex/AGENTS.md" in links) == ("codex" in ai_defaults()["HARNESS_ENABLED"])
 
 
 def test_claude_never_gets_a_user_level_agents_md(links):
@@ -137,9 +138,11 @@ def test_the_permission_system_directory_is_real_not_a_link(links):
 
 
 def test_codex_gets_its_rendered_hooks_and_the_scripts_they_name(links):
-    assert links["~/.codex/hooks.json"] == CODEX / "generated" / "hooks.json"
-    hooks = {dest for dest in links if dest.startswith("~/.codex/hooks/")}
+    codex_links = harness_links(enabled=["codex"])
+    assert codex_links["~/.codex/hooks.json"] == CODEX / "generated" / "hooks.json"
+    hooks = {dest for dest in codex_links if dest.startswith("~/.codex/hooks/")}
     assert hooks == {f"~/.codex/hooks/{p.name}" for p in (HARNESS / "hooks").iterdir() if p.is_file()}
+    assert ("~/.codex/hooks.json" in links) == ("codex" in ai_defaults()["HARNESS_ENABLED"])
 
 
 def test_codex_config_and_rules_are_never_links(links):
