@@ -9,7 +9,7 @@ Upgrade the <SEAT> subagent to the failure-modes architecture already shipped fo
 Templates to read before anything else:
 - roles/ai/files/harness/plugins/backend/ (agents/backend-staff-engineer.md + skills/backend-failure-modes/, the plugin exemplar)
 - roles/ai/files/harness/plugins/platform/ (second exemplar)
-- roles/ai/files/harness/agents/<SEAT>.md (the seat under upgrade)
+- roles/ai/files/harness/plugins/<discipline>/agents/<discipline>-staff-engineer.md (the seat under upgrade) (the seat under upgrade)
 - <THE ADJACENT SIBLING FILES THAT DEFINE THE DEMARCATION RISK>
 
 Seat scope (respect it everywhere, including researcher briefs): <OWNED SURFACES>. EXCLUDED surfaces owned by siblings: <SURFACE (OWNING SEAT)> pairs. The seat's identity invariants must survive the rewrite intact, in the intro, the never tier, the red flags, and the rationalizations: <THE NEVER-TIER INVARIANTS, VERBATIM FROM THE CURRENT FILE>.

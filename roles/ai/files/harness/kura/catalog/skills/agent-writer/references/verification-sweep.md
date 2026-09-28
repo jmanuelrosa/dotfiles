@@ -17,9 +17,9 @@ All checks must pass; a red check is fixed or reported honestly, never skipped.
    `ANSIBLE_LOCAL_TEMP="$TMPDIR/ansible-tmp" ansible-lint > "$TMPDIR/lint.out" 2>&1; echo $?`
 5. **Packaging is valid.** For a seat plugin: `plugin.json` parses and validate passes (the `groups` warning is benign):
    `claude plugin validate roles/ai/files/harness/plugins/<discipline>`
-   For a utility agent instead: both registries parse as JSON (`python3 -c "import json; json.load(open('roles/ai/files/harness/kura/catalog/skill-registry.json')); json.load(open('roles/ai/files/harness/agent-registry.json'))"`).
+   For a utility agent instead: both registries parse as JSON (`python3 -c "import json; json.load(open('roles/ai/files/harness/kura/catalog/skill-registry.json')); json.load(open('roles/ai/files/harness/kura/catalog/agent-registry.json'))"`).
 6. **The seat package is discoverable:**
-   `plugin.json` names `<discipline>` with its groups, and when a project-owned legacy link is available, `claude plugin details <discipline>@skills-dir` lists the bundled agent and skill. Kura v0.3 does not list or provision agents and plugins. A utility agent is global only after the AI role links it.
+   `plugin.json` names `<discipline>` with its groups, and when a project-owned legacy link is available, `claude plugin details <discipline>@skills-dir` lists the bundled agent and skill. Kura v0.7 lists and provisions standalone agents, but not these legacy plugins. A global utility agent appears in both harnesses after bare `kura sync`.
 7. **Trigger-table integrity** (belt and braces after the audit): every domain in the agent's Step 3 table has a reference file in the bundled skill and a matching row in the skill's router; the agent lists bare domain names, the router links them, and both cover the same domains in the same order.
 
 ## Final message contract

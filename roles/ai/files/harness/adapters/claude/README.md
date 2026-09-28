@@ -1,6 +1,6 @@
 # Claude
 
-Shared payload for Claude Code and Pi skills, Claude agents, and skills-dir plugins. Kura manages only the skill lifecycle across both harnesses through the dedicated `../kura/catalog` view, which exposes `skills/` and `skill-registry.json` from this directory. The AI role provisions standalone agents globally, while project plugin links remain project-owned legacy state until Kura adds agent and plugin management.
+Shared payload for Claude Code and Pi skills, agents, and skills-dir plugins. Kura manages standalone skills and agents through `../../kura/catalog/`. Project plugin links remain project-owned legacy state.
 
 This document covers how to **use them in a project** and how to **add new skills and agents to the dotfiles repo** itself.
 
@@ -27,13 +27,13 @@ kura outdated --type skill                       Report which skills are behind 
 kura trust                                       Show or change selected harness trust
 ```
 
-Artifact commands accept only `--type skill` in v0.3. `add` and `remove` also take `--group <tag>` instead of names, and `--global` for temporary machine-wide links. A project is the exact directory containing root `kura.json`; Kura never searches Git or ancestors and `$HOME` is not a project. Full reference, migration behavior and the corner-case FAQ live in Kura's own README.
+Artifact commands accept `--type skill` and `--type agent`; project plugins remain legacy state. `add` and `remove` also take `--group <tag>` instead of names, and `--global` for temporary machine-wide links. A project is the exact directory containing root `kura.json`; Kura never searches Git or ancestors and `$HOME` is not a project. Full reference, migration behavior and the corner-case FAQ live in Kura's own README.
 
-## Agents and plugins in Kura v0.3
+## Agents and legacy plugins
 
-Kura intentionally does not manage agents or plugins in this phase. The AI role links every standalone file under `agents/` into `~/.claude/agents/`, then points Pi's global pi-subagents root at that directory. Every registry agent is therefore global. Skills required by those agents must independently be global in `skill-registry.json`.
+Kura links `global`-tagged standalone agents from `../../kura/catalog/agents/` into each harness's native agent root with bare `kura sync`, including their required skills. The AI role removes only its own former agent links and Pi bridge. Use `kura add <name> --type agent` for an initialized project's standalone agent.
 
-Existing project plugin links under `.claude/skills/` and their Pi agent links under `.agents/agents/` are preserved as project-owned legacy state. `kura init` can record old agent and plugin manifest rows under `legacy`, but no v0.3 command creates, updates, or removes those links. The role also leaves them untouched.
+Existing project plugin links under `.claude/skills/` and their Pi agent links under `.agents/agents/` remain project-owned legacy state. The role leaves them untouched.
 
 ## Product Team
 
@@ -194,10 +194,10 @@ The per-story loop:
 
 Every skill and agent in this repo is either:
 
-- **Tracked** — synced from an upstream GitHub repo, declared under `repos` in [skill-registry.json](skill-registry.json) or [agent-registry.json](agent-registry.json), or
-- **Local** — authored (or consolidated) here, declared under `local_skills` / `local_agents` in the matching registry.
+- **Tracked** - synced from an upstream GitHub repo, declared under `upstream` in [skill-registry.json](../../kura/catalog/skill-registry.json) or [agent-registry.json](../../kura/catalog/agent-registry.json), or
+- **Local** - authored (or consolidated) here, declared under `local` in the matching registry.
 
-**Never both, never neither.** The `local_skills` and `local_agents` arrays are not just "skipped" lists — they're the authoritative inventory of locally-authored items. If a skill or agent exists on disk but doesn't appear in either place, that's a bug.
+**Never both, never neither.** The `local` arrays are the authoritative inventory of locally-authored items. If a skill or agent exists on disk but doesn't appear in either place, that's a bug.
 
 ## Model and effort policy
 
@@ -271,10 +271,10 @@ Authoring guidance for all three lives with the generators, and they are the fil
 1. Create the file directly:
 
    ```
-   roles/ai/files/harness/agents/my-agent.md
+   roles/ai/files/harness/kura/catalog/agents/my-agent.md
    ```
 
-2. Declare it in `local_agents` in [agent-registry.json](agent-registry.json) with its groups and a note:
+2. Declare it in `local` in [agent-registry.json](../../kura/catalog/agent-registry.json) with its groups and a note:
 
    ```json
    { "name": "my-agent", "groups": ["quality", "global"], "note": "Locally authored" }
@@ -282,11 +282,11 @@ Authoring guidance for all three lives with the generators, and they are the fil
 
    Common notes: `"Locally authored"`, `"Consolidated from multiple sources"`, `"No external source"`.
 
-3. Keep the `global` tag: every standalone agent is role-provisioned globally in Kura v0.3, while project-scoped agents belong inside project-owned plugins. Set `effort:` from the [Model and effort policy](#model-and-effort-policy) tiers; a delegated agent should never be left on the session default. Add `memory: project` if the agent benefits from carrying stack facts between dispatches, and pair it with a boundary bullet telling the agent to write there. A seat goes through `/agent-writer` instead, which owns the whole frontmatter contract.
+3. Keep the `global` tag for agents needed machine-wide; Kura also supports project-scoped standalone agents. Set `effort:` from the [Model and effort policy](#model-and-effort-policy) tiers; a delegated agent should never be left on the session default. Add `memory: project` if the agent benefits from carrying stack facts between dispatches, and pair it with a boundary bullet telling the agent to write there. A seat goes through `/agent-writer` instead, which owns the whole frontmatter contract.
 
 ### Option B — Track from an upstream repo
 
-1. Add an entry to [agent-registry.json](agent-registry.json) under the appropriate repo key:
+1. Add an entry to [agent-registry.json](../../kura/catalog/agent-registry.json) under the appropriate upstream repo key:
 
    ```json
    {
@@ -296,7 +296,7 @@ Authoring guidance for all three lives with the generators, and they are the fil
    }
    ```
 
-2. Copy the file in by hand and record `updated_at` yourself: `update` and `outdated` cover skills only (`kura update --type agent` refuses), because every agent here is authored in this repo. `repos` is empty today, and this is the reason to think twice before filling it.
+2. Copy the file in by hand and record `updated_at` yourself: `update` and `outdated` cover skills only (`kura update --type agent` refuses), because every agent here is authored in this repo. `upstream` is empty today, and this is the reason to think twice before filling it.
 
 ## Registry Format
 
@@ -304,8 +304,8 @@ Authoring guidance for all three lives with the generators, and they are the fil
 
 ```json
 {
-  "version": 2,
-  "repos": {
+  "version": 3,
+  "upstream": {
     "owner/repo": {
       "branch": "main",
       "skills": [
@@ -318,52 +318,38 @@ Authoring guidance for all three lives with the generators, and they are the fil
       ]
     }
   },
-  "local_skills": [
+  "local": [
     { "name": "skill-name", "groups": ["productivity"], "note": "Locally authored" }
   ]
 }
 ```
 
-- **`repos`** — keyed by `owner/repo`. Each repo has a `branch` and a `skills` array. Each skill maps `upstream_path` (path in the upstream repo) to a `name` used by `kura` commands, plus a `groups` tag array consumed by `kura add --group <tag> --type skill`.
+- **`upstream`** - keyed by `owner/repo`. Each repo has a `branch` and a `skills` array. Each skill maps `upstream_path` (path in the upstream repo) to a `name` used by `kura` commands, plus a `groups` tag array consumed by `kura add --group <tag> --type skill`.
 - **`updated_at`** — ISO 8601 UTC timestamp, automatically maintained by `update`. Records the last time `update` confirmed this entry against upstream — whether or not files changed. `outdated` reads it to show "last synced" alongside the diff. Missing on tracked entries that have never been synced after this field was introduced.
-- **`local_skills`** — **authoritative inventory of local skills.** Every local skill directory under `skills/` must appear here, with its `groups` tags and a `note` documenting why it's local (locally authored, consolidated, etc.).
+- **`local`** - authoritative inventory of local skills. Every local skill directory under `skills/` must appear here, with its `groups` tags and a `note` documenting why it's local (locally authored, consolidated, etc.).
 
 ### agent-registry.json
 
 ```json
 {
-  "version": 2,
-  "repos": {
-    "owner/repo": {
-      "branch": "main",
-      "agents": [
-        {
-          "upstream_path": "agents/some-agent.md",
-          "name": "my-agent",
-          "groups": ["quality", "review", "global"],
-          "updated_at": "2026-05-12T10:23:45Z"
-        }
-      ]
-    }
-  },
-  "local_agents": [
+  "version": 3,
+  "upstream": {},
+  "local": [
     { "name": "agent-name", "groups": ["quality", "global"], "note": "Locally authored" }
   ]
 }
 ```
 
-- **`agents` array** — maps `upstream_path` → `name` (the `.md` filename without extension in `agents/`), plus repository metadata such as `groups`. Kura v0.3 does not consume this registry. An optional `updated_at` is recorded by hand, since agent updates remain manual.
-- **`local_agents`** is the authoritative inventory of local agents. Every locally-authored `.md` under `agents/` must appear here with a `global` group, its capability tags, and a note documenting why it is local. The AI role, not Kura v0.3, links those files.
+The `local` array records metadata for catalog agents. The `global` group opts an agent and its required skills into bare `kura sync`; omit it for project-only agents.
 
 ## Directory Structure
 
 ```
-roles/ai/files/harness/adapters/claude/
+roles/ai/files/harness/kura/catalog/
   skills/                 # Individual skills (directories with SKILL.md)
-  agents/                 # Agent .md files
-  rules/                  # User-scope rules, linked into ~/.claude/rules/
-  skill-registry.json     # Tracked upstream + local_skills inventory
-  agent-registry.json     # Tracked upstream agents
+  agents/                 # Standalone agent .md files
+  skill-registry.json     # Skill metadata
+  agent-registry.json     # Agent metadata
 ```
 
 Every `.md` in `rules/` is linked into `~/.claude/rules/` and loads at launch in every project, so it is machine-wide the moment the `ai` role runs.

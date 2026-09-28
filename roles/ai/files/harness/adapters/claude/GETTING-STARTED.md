@@ -52,7 +52,7 @@ Three rules hold across both halves, and they are the ones to remember:
 | `/setup-review`, `agent-audit`, `skill-writer`, `agent-writer` | Maintaining this setup itself |
 | `/product-lead` | A signpost that tells you the pipeline is a plugin and hands you the install line |
 
-Other skills are opt in per project. Skills-dir plugins remain project-owned legacy state in Kura v0.3, which manages skills only. This walkthrough's product and seat flows therefore assume the repository already carries the plugin links they need.
+Other skills are opt in per project. Skills-dir plugins remain project-owned legacy state; Kura v0.7 manages standalone skills and agents. This walkthrough's product and seat flows therefore assume the repository already carries the plugin links they need.
 
 ## Step 0: bootstrap a repo
 
@@ -70,7 +70,7 @@ $ kura scout
 
 `scout` fingerprints the directory and ranks catalog skills against it, with the evidence printed beside each row (`react@19.0.0 in package.json`, `no test directory and no test files`). An empty repo has no fingerprint yet, so add any known skill by intent with `kura add <name> --type skill`.
 
-Kura v0.3 cannot install the product-team or seat plugins into a new repository. Existing project plugin links are preserved but unmanaged. Until a later Kura phase owns those artifact types, establish that project-owned plugin state separately before using the product or seat scenarios below. The workspace must then be trusted and Claude relaunched from the repository root before a plugin loads.
+Kura v0.7 does not install these legacy product-team or seat plugins into a new repository. Existing project plugin links are preserved but unmanaged. Until a later Kura phase owns those artifact types, establish that project-owned plugin state separately before using the product or seat scenarios below. The workspace must then be trusted and Claude relaunched from the repository root before a plugin loads.
 
 After the relaunch, re-run scout once the repo has a `package.json` (or `go.mod`, or `pyproject.toml`) so it can see the stack and offer the matching skills:
 
@@ -292,7 +292,7 @@ No pipeline, no architect, often no seat.
 
 ## Gotchas
 
-**Plugins.** Kura v0.3 does not manage them. Existing project links remain legacy state and still require workspace trust plus a relaunch before Claude loads them. The plugin name is the discipline (`qa`), while the agent inside carries the namespace (`qa:qa-staff-engineer`).
+**Plugins.** These legacy skills-dir plugins are not in the Kura catalog. Existing project links remain legacy state and still require workspace trust plus a relaunch before Claude loads them. The plugin name is the discipline (`qa`), while the agent inside carries the namespace (`qa:qa-staff-engineer`).
 
 **Global skills have two owned roots.** `kura add --global` on a skill not tagged `global` is a scratch change in both enabled harnesses: it survives until the next `kura sync` and no longer. To make a skill durably global, tag it `global` in the registry. Removing either native global link by hand is undone the same way.
 
@@ -317,9 +317,9 @@ No pipeline, no architect, often no seat.
 | Product pipeline mechanics (layout, the two gates, profiles, deferrals) | [plugins/product-team/skills/product-lead/references/conventions.md](plugins/product-team/skills/product-lead/references/conventions.md) |
 | Product gate protocol per medium, and the revision flow | [plugins/product-team/skills/product-lead/references/gates.md](plugins/product-team/skills/product-lead/references/gates.md) |
 | The engineering pipeline, step by step | [skills/feature-team/SKILL.md](skills/feature-team/SKILL.md) |
-| The spec contract and the ADR rules | [agents/architect.md](agents/architect.md) |
-| The UX spec contract (flows, surfaces, the state matrix) | [agents/ux-shaper.md](agents/ux-shaper.md), [plugins/product-team/skills/product-lead/references/templates/ux-spec.md](plugins/product-team/skills/product-lead/references/templates/ux-spec.md) |
+| The spec contract and the ADR rules | [architect.md](../../kura/catalog/agents/architect.md) |
+| The UX spec contract (flows, surfaces, the state matrix) | [ux-shaper.md](../../kura/catalog/agents/ux-shaper.md), [plugins/product-team/skills/product-lead/references/templates/ux-spec.md](plugins/product-team/skills/product-lead/references/templates/ux-spec.md) |
 | A seat's anatomy, boundaries and report contract | `plugins/<discipline>/agents/<discipline>-staff-engineer.md` |
 | A seat's failure-mode checklists | `plugins/<discipline>/skills/<discipline>-failure-modes/` |
 | `kura` full reference and FAQ | kura's own README, in its repository |
-| Which artifacts are global, and the group vocabulary | [skill-registry.json](skill-registry.json), [agent-registry.json](agent-registry.json) |
+| Which artifacts are global, and the group vocabulary | [skill-registry.json](../../kura/catalog/skill-registry.json), [agent-registry.json](../../kura/catalog/agent-registry.json) |

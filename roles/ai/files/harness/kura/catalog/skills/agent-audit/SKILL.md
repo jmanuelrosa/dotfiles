@@ -25,13 +25,13 @@ If the fetch fails, say so and limit frontmatter findings to fields observed wor
 ## Step 1: Discover and classify
 
 1. Collect agent files from project `.claude/agents/` and global `~/.claude/agents/`.
-   When run inside the dotfiles repo, use the source of truth instead: `roles/ai/files/harness/agents/` plus `roles/ai/files/harness/agent-registry.json`.
+   When run inside the dotfiles repo, use the source of truth instead: `roles/ai/files/harness/kura/catalog/agents/` plus `roles/ai/files/harness/kura/catalog/agent-registry.json`.
 2. Classify each agent:
-   - **local**: under registry `local_agents`, or no registry entry.
+   - **local**: under registry `local`, or no registry entry.
      Fixes may be applied.
    - **upstream-synced**: under a registry `repos` entry.
      REPORT-ONLY: the file belongs to its upstream repo, so an in-place edit is lost the next time it is re-synced from there.
-     Remedies to offer: contribute the fix upstream, or fork to local (copy the file, move its registry entry to `local_agents`).
+     Remedies to offer: contribute the fix upstream, or fork to local (copy the file, move its registry entry to `local`).
 3. Note registry ↔ disk drift (registered but missing, on disk but unregistered) as findings.
 
 ## Step 2: Score each agent

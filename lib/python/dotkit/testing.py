@@ -36,7 +36,7 @@ REPO = Path(__file__).resolve().parents[3]
 HARNESS = REPO / "roles/ai/files/harness"
 CATALOG = HARNESS / "kura/catalog"
 SKILLS = CATALOG / "skills"
-AGENTS = HARNESS / "agents"
+AGENTS = CATALOG / "agents"
 PLUGINS = HARNESS / "plugins"
 HOOKS = HARNESS / "hooks"
 RULES = HARNESS / "rules"
@@ -44,7 +44,7 @@ INSTRUCTIONS = HARNESS / "AGENTS.md"
 STATUSLINE_VOCABULARY = HARNESS / "statusline.json"
 
 SKILL_REGISTRY = CATALOG / "skill-registry.json"
-AGENT_REGISTRY = HARNESS / "agent-registry.json"
+AGENT_REGISTRY = CATALOG / "agent-registry.json"
 
 # Per-harness adapters: what a single harness reads and nothing else does.
 CLAUDE = HARNESS / "adapters/claude"
@@ -89,13 +89,13 @@ def ai_defaults():
     return yaml.safe_load(AI_DEFAULTS.read_text())
 
 
-def harness_links(home="~"):
+def harness_links(home="~", enabled=None):
     """What the ai role's link table writes, as {dest: src}, the way its tasks expand it.
 
-    `shared` plus every enabled harness; `files` one link each, `globs` one link per
-    regular-file match, which is what Ansible's fileglob lookup keeps. `{{ HOME }}` becomes
-    `home`. Raises on a destination written twice, since the second link would silently
-    replace the first on every run.
+    `shared` plus every enabled harness (or an explicit test set); `files` one link each,
+    `globs` one link per regular-file match, which is what Ansible's fileglob lookup keeps.
+    `{{ HOME }}` becomes `home`. Raises on a destination written twice, since the second
+    link would silently replace the first on every run.
     """
     defaults = ai_defaults()
     links = {}
@@ -104,7 +104,7 @@ def harness_links(home="~"):
         assert dest not in links, f"{dest} is linked from both {links[dest]} and {src}"
         links[dest] = src
 
-    for name in ["shared", *defaults["HARNESS_ENABLED"]]:
+    for name in ["shared", *(defaults["HARNESS_ENABLED"] if enabled is None else enabled)]:
         entry = defaults["HARNESS_LINKS"][name]
         for link in entry.get("files", []):
             put(link["dest"].replace("{{ HOME }}", home), HARNESS / link["src"])

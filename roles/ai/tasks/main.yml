@@ -51,6 +51,50 @@
       {{ out }}
     harness_glob_dirs: "{{ harness_sets | map(attribute='globs') | flatten | map(attribute='dest') | unique | list }}"
 
+# Install the agent-capable release before handing off any native agent paths.
+- name: Ensure AI support directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ AI_DIRS }}"
+
+- name: Install the pinned kura release
+  ansible.builtin.get_url:
+    url: "{{ KURA.repository }}/releases/download/{{ KURA.release }}/kura"
+    dest: "{{ HOME }}/.local/bin/kura"
+    checksum: "{{ KURA.checksum }}"
+    mode: "0755"
+
+# The old Pi bridge must be removed before the directory loop can create Kura's
+# per-agent native root. Never replace a foreign path or a real non-directory.
+- name: Inspect the legacy Pi agent bridge
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.pi/agent/agents"
+    follow: false
+  register: pi_agent_bridge
+  when: "'pi' in HARNESS_ENABLED"
+
+- name: Refuse an unexpected Pi agent root
+  ansible.builtin.assert:
+    that:
+      - >-
+        (pi_agent_bridge.stat.isdir | default(false)) or
+        ((pi_agent_bridge.stat.islnk | default(false)) and
+         pi_agent_bridge.stat.lnk_target == HARNESS_DIR ~ '/agents')
+    fail_msg: "Refusing to replace {{ HOME }}/.pi/agent/agents"
+  when:
+    - "'pi' in HARNESS_ENABLED"
+    - pi_agent_bridge.stat.exists | default(false)
+
+- name: Remove the legacy Pi agent bridge
+  ansible.builtin.file:
+    path: "{{ HOME }}/.pi/agent/agents"
+    state: absent
+  when:
+    - "'pi' in HARNESS_ENABLED"
+    - pi_agent_bridge.stat.islnk | default(false)
+
 # Every destination directory up front, because `state: link` does not create parents
 # the way `state: directory` does.
 - name: Ensure AI config directories exist
@@ -58,7 +102,7 @@
     path: "{{ item }}"
     state: directory
     mode: "0755"
-  loop: "{{ (harness_sets | map(attribute='dirs') | flatten) + AI_DIRS }}"
+  loop: "{{ harness_sets | map(attribute='dirs') | flatten }}"
 
 - name: Link harness files
   ansible.builtin.file:
@@ -113,6 +157,35 @@
     - item.stat.islnk | default(false)
     - item.stat.lnk_source is match('^' ~ role_path ~ '/files/')
 
+# Legacy Claude links are still valid through the catalog alias, but must be
+# handed off before Kura can install its own catalog-backed per-agent links.
+- name: Find legacy Claude agent links
+  ansible.builtin.find:
+    paths: "{{ HOME }}/.claude/agents"
+    file_type: link
+  register: legacy_claude_agents
+  when: "'claude' in HARNESS_ENABLED"
+
+- name: Inspect legacy Claude agent links
+  ansible.builtin.stat:
+    path: "{{ item.path }}"
+    follow: false
+  loop: "{{ legacy_claude_agents.files | default([]) }}"
+  loop_control:
+    label: "{{ item.path }}"
+  register: legacy_claude_agent_stats
+
+- name: Remove only role-owned Claude agent links
+  ansible.builtin.file:
+    path: "{{ item.item.path }}"
+    state: absent
+  loop: "{{ legacy_claude_agent_stats.results }}"
+  loop_control:
+    label: "{{ item.item.path }}"
+  when:
+    - item.stat.islnk | default(false)
+    - item.stat.lnk_target == HARNESS_DIR ~ '/agents/' ~ (item.item.path | basename)
+
 # --- herdr --------------------------------------------------------------------------
 
 # herdr owns both halves of this integration: it writes its own
@@ -155,9 +228,7 @@
   # reports changed.
   loop: "{{ AI_SCRIPTS }}"
 
-# kura is installed rather than linked, so this block runs after the link loop above:
-# were the order reversed, the loop would relink over the downloaded asset on the same
-# apply.
+# Kura is not in AI_SCRIPTS: the script loop cannot overwrite the pinned release.
 - name: Inspect the command left by the old claude-kit link
   ansible.builtin.stat:
     path: "{{ HOME }}/.local/bin/claude-kit"
@@ -178,15 +249,8 @@
     state: absent
   when: claude_kit_command.stat.islnk | default(false)
 
-- name: Install the pinned kura release
-  ansible.builtin.get_url:
-    url: "{{ KURA.repository }}/releases/download/{{ KURA.release }}/kura"
-    dest: "{{ HOME }}/.local/bin/kura"
-    checksum: "{{ KURA.checksum }}"
-    mode: "0755"
-
-# Kura reads only ~/.config/kura/catalog. The catalog view exposes the skills tree and
-# its registry and nothing else of the harness payload.
+# Kura reads only ~/.config/kura/catalog for standalone skills and agents and
+# their registries; seat plugins remain outside its managed catalog.
 - name: Link the artifact catalog at the fixed path
   ansible.builtin.file:
     src: "{{ HARNESS_DIR }}/kura/catalog"
@@ -196,15 +260,14 @@
 
 # Kura requires machine configuration before sync or convergence. Codex and opencode
 # are not kura harnesses: they read ~/.agents/skills, which the pi harness writes.
-- name: Provision kura machine config
-  ansible.builtin.copy:
+# Replace the previously role-written copy with a link so edits to the checkout take
+# effect without another playbook run.
+- name: Link kura machine config
+  ansible.builtin.file:
+    src: "{{ HARNESS_DIR }}/kura/config.json"
     dest: "{{ HOME }}/.config/kura/config.json"
-    mode: "0600"
-    content: |
-      {
-        "schemaVersion": 1,
-        "globalHarnesses": ["claude", "pi"]
-      }
+    state: link
+    force: true
 
 # `kura sync` and `kura converge` are run by hand, not by this role.
 

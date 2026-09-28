@@ -40,14 +40,14 @@ Do not tag the discipline `global`; seats are per-project.
 ### How it loads and is provisioned
 
 The folder auto-loads as `<discipline>@skills-dir`; the agent is `<discipline>:<seat>` and the skill is `<discipline>:<seat>-failure-modes`.
-Kura v0.3 manages skills only, so packaging a seat does not install it into a project. Existing links under `.claude/skills/` remain project-owned legacy state and must be provisioned outside Kura.
+Kura manages standalone catalog agents, but these legacy seat plugins remain outside its catalog. Existing links under `.claude/skills/` remain project-owned state and must be provisioned outside Kura.
 A project-scope plugin loads only in a trusted workspace and only when Claude Code is launched from that repo root; a freshly linked plugin needs a full restart, not `/reload-plugins`.
 
 ## Utility agent: flat file plus registry row
 
-A utility agent (no paired skill) stays a flat file with a registry entry, unchanged:
+A utility agent (no paired skill) is a flat file with a registry entry:
 
-`roles/ai/files/harness/agents/<name>.md` plus a `local_agents` entry:
+`roles/ai/files/harness/kura/catalog/agents/<name>.md` plus a `local` entry in `kura/catalog/agent-registry.json`:
 
 ```json
 {
@@ -57,7 +57,7 @@ A utility agent (no paired skill) stays a flat file with a registry entry, uncha
 }
 ```
 
-Add `dependencies: ["<skill>"]` only if it invokes a skill at runtime. Every standalone agent is global under the v0.3 role convention: add `"global"` to its groups, and ensure every required global skill is independently global because Ansible links agents while Kura syncs only skills.
+Add `dependencies: ["<skill>"]` only if it invokes a skill at runtime. Add `"global"` to its groups if it belongs in both harnesses' global agent views; bare `kura sync` also projects its skill dependencies.
 Always edit the registry via a python3 round-trip with `json.dump(..., indent=2)`; never hand-edit.
 
 ## Groups vocabulary

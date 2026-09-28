@@ -83,7 +83,8 @@ def test_every_destination_directory_is_created_first(links):
 def test_each_harness_reads_the_one_neutral_instructions_file(links):
     assert links["~/.claude/CLAUDE.md"] == INSTRUCTIONS
     assert links["~/.pi/agent/AGENTS.md"] == INSTRUCTIONS
-    assert links["~/.codex/AGENTS.md"] == INSTRUCTIONS
+    assert harness_links(enabled=["codex"])["~/.codex/AGENTS.md"] == INSTRUCTIONS
+    assert ("~/.codex/AGENTS.md" in links) == ("codex" in ai_defaults()["HARNESS_ENABLED"])
 
 
 def test_claude_never_gets_a_user_level_agents_md(links):
@@ -109,12 +110,10 @@ def test_every_hook_is_linked_and_its_tests_are_not(links):
     assert not any("tests" in dest for dest in hooks)
 
 
-def test_every_global_agent_is_linked_for_claude_and_the_directory_for_pi(links):
-    """pi-subagents reads global agents only from ~/.pi/agent/agents and has no neutral
-    root, so pi gets the directory; Claude gets each file, which the prune can manage."""
-    claude = {dest for dest in links if dest.startswith("~/.claude/agents/")}
-    assert claude == {f"~/.claude/agents/{p.name}" for p in AGENTS.glob("*.md")}
-    assert links["~/.pi/agent/agents"] == AGENTS
+def test_agent_roots_belong_to_kura_not_the_link_table(links):
+    assert not any(dest.startswith("~/.claude/agents/") for dest in links)
+    assert "~/.pi/agent/agents" in harness_dirs()
+    assert "~/.pi/agent/agents" not in links
 
 
 def test_the_pi_adapter_files_are_linked(links):
@@ -139,9 +138,11 @@ def test_the_permission_system_directory_is_real_not_a_link(links):
 
 
 def test_codex_gets_its_rendered_hooks_and_the_scripts_they_name(links):
-    assert links["~/.codex/hooks.json"] == CODEX / "generated" / "hooks.json"
-    hooks = {dest for dest in links if dest.startswith("~/.codex/hooks/")}
+    codex_links = harness_links(enabled=["codex"])
+    assert codex_links["~/.codex/hooks.json"] == CODEX / "generated" / "hooks.json"
+    hooks = {dest for dest in codex_links if dest.startswith("~/.codex/hooks/")}
     assert hooks == {f"~/.codex/hooks/{p.name}" for p in (HARNESS / "hooks").iterdir() if p.is_file()}
+    assert ("~/.codex/hooks.json" in links) == ("codex" in ai_defaults()["HARNESS_ENABLED"])
 
 
 def test_codex_config_and_rules_are_never_links(links):
@@ -185,9 +186,11 @@ def test_the_glob_links_come_from_the_expanded_list():
     assert "query('fileglob', HARNESS_DIR" in expand, "a glob must resolve against the harness tree"
 
 
-def test_the_directories_task_creates_every_set_and_the_ai_dirs():
+def test_the_directories_tasks_create_every_set_and_support_dir():
+    support = ai_task("Ensure AI support directories exist")
+    assert support["loop"] == "{{ AI_DIRS }}"
     loop = ai_task(DIRS_TASK)["loop"]
-    assert "map(attribute='dirs')" in loop and "AI_DIRS" in loop
+    assert "map(attribute='dirs')" in loop
 
 
 def test_the_prune_only_removes_symlinks_into_this_role():
