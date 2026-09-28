@@ -7,7 +7,7 @@ Installs and configures AI tooling: Claude Code, Pi (`@earendil-works/pi-coding-
 Everything the harnesses read lives in `files/harness/`, one self-contained tree that `harness.toml` marks as its root, so nothing in it hops out to the rest of the repo by relative path.
 
 - `AGENTS.md`, `rules/`, `hooks/`, `agents/`, `plugins/`, `statusline.json`, `rtk/`: shared by every harness, by symlink.
-- `kura/catalog/`: the skills and `skill-registry.json` that kura projects into each harness.
+- `kura/catalog/`: standalone skills and agents with their registries, projected into each harness by kura. Seat plugins remain outside this catalog.
 - `policy/`: permissions, sandbox and hooks, written once in neutral TOML.
 - `lib/harnessgen/` and `bin/harness-build`: the stdlib-only generator that renders `policy/` into each harness's spelling. Its suites are in `tests/`.
 - `adapters/<harness>/`: what only that harness reads, an `adapter.toml` for the knobs the policy has no word for, and `generated/` for the files rendered whole.
@@ -24,7 +24,7 @@ The rules, the per-harness translations and what each one loses are in [harnesse
 ## What it does
 
 - Installs pi-coding-agent, rtk and uv, plus casks for ChatGPT, Claude, Claude Code, Codex, Cursor and Ollama, via `BREW_PACKAGES`.
-- Links each enabled harness's files from `HARNESS_LINKS`: `~/.claude/` for Claude Code, `~/.pi/agent/` for Pi, `~/.codex/` for Codex. The neutral `AGENTS.md` is Claude's `~/.claude/CLAUDE.md`, Pi's `~/.pi/agent/AGENTS.md` and Codex's `~/.codex/AGENTS.md`.
+- Links each enabled harness's files from `HARNESS_LINKS`: `~/.claude/` for Claude Code, `~/.pi/agent/` for Pi, `~/.codex/` for Codex. Kura owns global agent links instead; the role removes its former Claude agent links and Pi directory bridge only when they still point to its old sources. The neutral `AGENTS.md` is Claude's `~/.claude/CLAUDE.md`, Pi's `~/.pi/agent/AGENTS.md` and Codex's `~/.codex/AGENTS.md`.
 - Runs `harness-build apply codex` on every play, which merges the keys it owns into `~/.codex/config.toml` and writes `~/.codex/rules/dotfiles.rules` as a real file. Neither is a link, because Codex writes both locations itself. After a first run, trust the two hooks once in Codex's `/hooks`.
 - Configures Pi to call Ollama Cloud directly through `models.json`, without `pi-ollama-cloud` or a local Ollama server. `nemotron-3-ultra` and `gpt-oss:120b` are enabled as coding models available on the free account. In Pi, run `/login`, choose API key authentication, select `ollama-cloud`, and paste a key from the Ollama account settings.
 - The Ollama app uses its own account session: run `ollama signin` after provisioning when using the CLI or desktop app.
@@ -37,18 +37,18 @@ The rules, the per-harness translations and what each one loses are in [harnesse
 - Runs `herdr integration install claude` and `herdr integration install pi`, each only when `herdr integration status` does not report it current, so a herdr upgrade that ships a newer hook reinstalls on the next run.
 - Links each tool named in `AI_SCRIPTS` into `~/.local/bin/`, from `files/scripts/<name>/<name>`. Today that is `tokencost`, which prices a stretch of work from the session transcripts: `tokencost <project>` buckets Claude Code spend by skill, and `tokencost --pi <project>` buckets Pi's by `provider/model`, using the cost Pi recorded rather than a rate table.
 - Installs `kura` from its own repository: `get_url` fetches the release pinned in `KURA` to `~/.local/bin/kura` and verifies the checksum, so an upgrade and a rollback are the same edit in opposite directions.
-- Provisions kura's machine config at `~/.config/kura/config.json` with Claude Code and Pi as global harnesses, and links `~/.config/kura/catalog` to `files/harness/kura/catalog`.
+- Links kura's machine config from `files/harness/kura/config.json` to `~/.config/kura/config.json` (Claude Code and Pi are the global harnesses, with Pi's installed subagent extension reading `.pi/agents` in projects), and links `~/.config/kura/catalog` to `files/harness/kura/catalog`. An existing role-written config is replaced by the link on the next run.
 
 ## Kura, by hand
 
 The role provisions kura but never runs it. After a play that changed the catalog or a `global` tag:
 
 ```bash
-kura sync                              # project every global skill into ~/.claude/skills and ~/.agents/skills
+kura sync                              # project global skills and agents into both native harness views
 kura converge --all --root ~/Developer # repair the skill views of every initialized project below ~/Developer
 ```
 
-Codex is not a kura harness. It reads global skills from `~/.agents/skills/`, which exists because kura's `pi` harness writes it, so removing `pi` from `globalHarnesses` would also take Codex's skills away.
+Codex is not a kura harness. It reads global skills from `~/.agents/skills/`, which exists because kura's `pi` harness writes it, so removing `pi` from `globalHarnesses` would also take Codex's skills away. After provisioning the new agent roots, run bare `kura sync` twice (the second run should report `, 0 changes`); `--type skill` does not install agents. Legacy `harness/agents` and `harness/agent-registry.json` aliases keep existing links readable until the handoff, but edit the canonical files in `kura/catalog/`.
 Claude's SessionStart hook runs `kura converge --quiet` when the cwd holds a `kura.json`, so an initialized project is repaired on open.
 
 ## Vars
@@ -56,7 +56,7 @@ Claude's SessionStart hook runs `kura converge --quiet` when the cwd holds a `ku
 - `BREW_PACKAGES`: formulas and casks, as above.
 - `HARNESS_DIR`, `HARNESS_ENABLED`, `HARNESS_LINKS`: where the payload is, which harnesses a machine gets, and what each one links.
 - `PI_EXTENSIONS`, `AI_SCRIPTS`, `KURA`: the Pi extension manifest, the linked scripts, and the pinned kura release.
-- **There is no var for the global skill set.** `kura sync` derives it from the `global` tag in `skill-registry.json` and expands declared skill dependencies. Standalone agents are different: every file in `files/harness/agents/` is global, and `HARNESS_LINKS` links them.
+- **There is no var for the global artifact set.** `kura sync` derives it from the `global` tags in both registries and expands declared skill dependencies.
 
 ## Notes
 

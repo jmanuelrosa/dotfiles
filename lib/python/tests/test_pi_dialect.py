@@ -5,10 +5,8 @@ ignoring the other's. Claude Code reads `effort:` and `disallowedTools:`; Pi's
 pi-subagents extension reads `thinking:` and `disallowed_tools:`. Nothing enforces
 agreement at load time in either harness, so equality here is the guard.
 
-Kura 0.3 manages skills only. The AI role now converges standalone agents into
-`~/.claude/agents` itself and retains `~/.pi/agent/agents` as an agent-only bridge for
-pi-subagents. Project plugin agents remain project-owned legacy links; neither the role
-nor Kura claims to converge them.
+Kura manages standalone agents in native Claude and Pi roots. The AI role removes
+its old links, while project plugin agents remain project-owned legacy links.
 """
 
 import json
@@ -164,10 +162,10 @@ def test_architect_bans_the_agent_tool_in_both_dialects():
 # --- the discovery paths ------------------------------------------------------
 
 
-def test_the_ai_role_links_pis_global_agents():
-    """pi-subagents reads global agents only from ~/.pi/agent/agents, and the role owns
-    the one set both harnesses load."""
-    assert harness_links()["~/.pi/agent/agents"] == AGENTS
+def test_kura_owns_pis_global_agent_root():
+    """pi-subagents reads global agents from ~/.pi/agent/agents, not a bridge."""
+    assert "~/.pi/agent/agents" in harness_dirs()
+    assert "~/.pi/agent/agents" not in harness_links()
 
 
 def test_the_link_parent_is_created_before_the_link():

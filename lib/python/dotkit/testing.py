@@ -36,7 +36,7 @@ REPO = Path(__file__).resolve().parents[3]
 HARNESS = REPO / "roles/ai/files/harness"
 CATALOG = HARNESS / "kura/catalog"
 SKILLS = CATALOG / "skills"
-AGENTS = HARNESS / "agents"
+AGENTS = CATALOG / "agents"
 PLUGINS = HARNESS / "plugins"
 HOOKS = HARNESS / "hooks"
 RULES = HARNESS / "rules"
@@ -44,7 +44,7 @@ INSTRUCTIONS = HARNESS / "AGENTS.md"
 STATUSLINE_VOCABULARY = HARNESS / "statusline.json"
 
 SKILL_REGISTRY = CATALOG / "skill-registry.json"
-AGENT_REGISTRY = HARNESS / "agent-registry.json"
+AGENT_REGISTRY = CATALOG / "agent-registry.json"
 
 # Per-harness adapters: what a single harness reads and nothing else does.
 CLAUDE = HARNESS / "adapters/claude"

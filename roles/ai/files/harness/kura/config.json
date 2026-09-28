@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "globalHarnesses": ["claude", "pi"],
+  "pi": {
+    "agents": {
+      "global": "~/.pi/agent/agents",
+      "project": ".pi/agents"
+    }
+  }
+}

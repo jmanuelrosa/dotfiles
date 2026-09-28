@@ -4,9 +4,8 @@
 
 # There is no var for the global skill set. Kura derives it from the `global` group tag
 # in skill-registry.json, expands declared skill dependencies, and projects independent
-# links into Claude Code and Pi's native global roots. Standalone agents are skills-only
-# Kura's deliberate exception: every file in harness/agents is global and HARNESS_LINKS
-# links them.
+# links into Claude Code and Pi's native global roots. Global standalone agents are
+# selected by the agent registry and linked by Kura, not HARNESS_LINKS.
 
 BREW_PACKAGES:
   formulas:
@@ -19,7 +18,7 @@ BREW_PACKAGES:
     - chatgpt
     - claude
     - claude-code@latest
-    - codex
+    # - codex
     - cursor
     - ollama-app
 
@@ -55,8 +54,8 @@ AI_SCRIPTS:
 # rollback are the same two-line edit in opposite directions.
 KURA:
   repository: https://github.com/jmanuelrosa/kura
-  release: v0.6.1
-  checksum: sha256:cf163043f337e23f1762a4b70dd8658df39228a2e18ab7633e06a38d22e0ae8c
+  release: v0.7.0
+  checksum: sha256:61b2a96b953d352dd065b47b9b6e1cd7998023d9594a0821eac34ee2259f5933
 
 # The harness-neutral payload. Everything every harness shares sits at the top of this
 # tree; what only one harness reads sits under adapters/<harness>/. Lifting the tree
@@ -73,7 +72,7 @@ AI_DIRS:
 HARNESS_ENABLED:
   - claude
   - pi
-  - codex
+  # - codex
 
 # Every link the role writes into a harness's home, as data. Four generic tasks install
 # the table: create `dirs`, link each `files` entry, expand each glob, prune.
@@ -126,13 +125,11 @@ HARNESS_LINKS:
       - src: hooks
         pattern: "*"
         dest: "{{ HOME }}/.claude/hooks"
-      - src: agents
-        pattern: "*.md"
-        dest: "{{ HOME }}/.claude/agents"
 
   pi:
     dirs:
       - "{{ HOME }}/.pi/agent"
+      - "{{ HOME }}/.pi/agent/agents"
       - "{{ HOME }}/.pi/agent/themes"
       - "{{ HOME }}/.pi/agent/extensions"
       # A real directory, never a link into the repo: pi-permission-system writes its
@@ -162,10 +159,6 @@ HARNESS_LINKS:
         dest: "{{ HOME }}/.pi/agent/APPEND_SYSTEM.md"
       - src: AGENTS.md
         dest: "{{ HOME }}/.pi/agent/AGENTS.md"
-      # pi-subagents reads global agents only from ~/.pi/agent/agents and has no
-      # neutral root, so the whole directory is linked.
-      - src: agents
-        dest: "{{ HOME }}/.pi/agent/agents"
     globs:
       - src: adapters/pi/themes
         pattern: "*.json"

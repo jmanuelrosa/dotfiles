@@ -109,12 +109,10 @@ def test_every_hook_is_linked_and_its_tests_are_not(links):
     assert not any("tests" in dest for dest in hooks)
 
 
-def test_every_global_agent_is_linked_for_claude_and_the_directory_for_pi(links):
-    """pi-subagents reads global agents only from ~/.pi/agent/agents and has no neutral
-    root, so pi gets the directory; Claude gets each file, which the prune can manage."""
-    claude = {dest for dest in links if dest.startswith("~/.claude/agents/")}
-    assert claude == {f"~/.claude/agents/{p.name}" for p in AGENTS.glob("*.md")}
-    assert links["~/.pi/agent/agents"] == AGENTS
+def test_agent_roots_belong_to_kura_not_the_link_table(links):
+    assert not any(dest.startswith("~/.claude/agents/") for dest in links)
+    assert "~/.pi/agent/agents" in harness_dirs()
+    assert "~/.pi/agent/agents" not in links
 
 
 def test_the_pi_adapter_files_are_linked(links):
@@ -185,9 +183,11 @@ def test_the_glob_links_come_from_the_expanded_list():
     assert "query('fileglob', HARNESS_DIR" in expand, "a glob must resolve against the harness tree"
 
 
-def test_the_directories_task_creates_every_set_and_the_ai_dirs():
+def test_the_directories_tasks_create_every_set_and_support_dir():
+    support = ai_task("Ensure AI support directories exist")
+    assert support["loop"] == "{{ AI_DIRS }}"
     loop = ai_task(DIRS_TASK)["loop"]
-    assert "map(attribute='dirs')" in loop and "AI_DIRS" in loop
+    assert "map(attribute='dirs')" in loop
 
 
 def test_the_prune_only_removes_symlinks_into_this_role():
