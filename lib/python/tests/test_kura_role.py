@@ -200,8 +200,6 @@ def test_standalone_agents_are_catalog_owned_and_global():
     shipped = {path.stem for path in AGENTS.glob("*.md")}
     assert registered == shipped
     assert all("global" in entry["groups"] for entry in registry["local"])
-    assert (HARNESS / "agents").resolve() == AGENTS
-    assert (HARNESS / "agent-registry.json").resolve() == AGENT_REGISTRY
 
 
 def test_legacy_agent_links_are_removed_only_when_the_role_owns_them():

@@ -135,9 +135,9 @@ def test_shared_aliases_dispatch_modes_to_both_harnesses(tmp_path):
         f'source "{ALIASES}"; '
         'function clean_claude; echo "claude $argv"; end; '
         'function clean_pi; echo "pi $argv"; end; '
-        'clean:ai:skill --dry-run; clean:ai:agents --dry-run; '
-        'clean:ai:purge --dry-run; clean:ai:agents --dry-run -w; clean:pi:skill --dry-run; '
-        'clean:claude:skill --dry-run'
+        'clean:ai:skills --dry-run; clean:ai:agents --dry-run; '
+        'clean:ai:purge --dry-run; clean:ai:agents --dry-run -w; clean:pi:skills --dry-run; '
+        'clean:claude:skills --dry-run'
     )
     result = fish(command, home, home)
     assert result.returncode == 0, result.stderr
