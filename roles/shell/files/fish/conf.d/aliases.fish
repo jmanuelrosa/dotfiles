@@ -41,19 +41,16 @@ alias clean:docker=clean_docker
 alias clean:node=clean_node
 
 alias clean:ai='clean:claude $argv; and clean:pi'
-alias clean:ai:skill='clean:claude:skill $argv; and clean:pi:skill'
 alias clean:ai:skills='clean:claude:skills $argv; and clean:pi:skills'
 alias clean:ai:agents='clean:claude:agents $argv; and clean:pi:agents'
 alias clean:ai:purge='clean:claude:purge $argv; and clean:pi:purge'
 
 alias clean:claude='clean_claude project'
-alias clean:claude:skill='clean_claude skills'
 alias clean:claude:skills='clean_claude skills'
 alias clean:claude:agents='clean_claude agents'
 alias clean:claude:purge='clean_claude purge'
 
 alias clean:pi='clean_pi project'
-alias clean:pi:skill='clean_pi skills'
 alias clean:pi:skills='clean_pi skills'
 alias clean:pi:agents='clean_pi agents'
 alias clean:pi:purge='clean_pi purge'
