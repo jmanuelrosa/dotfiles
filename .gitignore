@@ -1,7 +1,16 @@
-*.log
-.DS_Store
-__pycache__/
-.pytest_cache/
-
 backups
 vault_pass
+
+# AI docs
+docs/plans
+docs/specs
+docs/research
+tasks
+
+# logs
+*.log
+.DS_Store
+
+# cache
+__pycache__/
+.pytest_cache/
