@@ -5,7 +5,7 @@ vault_pass
 docs/plans
 docs/specs
 docs/research
-tasks
+/tasks
 
 # logs
 *.log
