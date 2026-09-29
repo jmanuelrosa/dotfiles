@@ -146,7 +146,7 @@ bat, btop, duf, eza, fastfetch, fd, httpie, hyperfine, nnn, ripgrep, scc, televi
 
 ### Browsers
 
-Google Chrome, Zen, Helium
+Google Chrome, Brave, Zen, Helium
 
 ### Development
 

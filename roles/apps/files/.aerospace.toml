@@ -51,9 +51,9 @@ automatically-unhide-macos-hidden-apps = true
 # even when they are invisible.
 # This config option is only available since 'config-version = 2'
 # Fallback value (if you omit the key): persistent-workspaces = []
-persistent-workspaces = ["1", "2", "3", "4", "AI", "Browsers", "Database",
-                         "Editors", "Music", "Notion", "Personal", "Rest",
-                         "Slack", "Terminal", "Vault", "Whatsapp", "TradingView"
+persistent-workspaces = ["1", "2", "3", "4", "AI", "Didomi", "Editors",
+                          "HTTPRest", "Mine", "Notion", "Off", "Pentla", "Records",
+                          "Slack", "Terminal", "Vault", "Whatsapp", "TradingView",
                         ]
 
 # A callback that runs every time binding mode changes
@@ -94,14 +94,15 @@ gaps.outer.right =      0
     8 = '3'
     9 = '3'
     AI = 'secondary'
-    Browsers = 'secondary'
-    Database = 'secondary'
+    Didomi = 'secondary'
     Editors = ['dell.*', 'main']
-    Music = 'secondary'
+    HttpRest = 'secondary'
+    Mine = 'main'
     Notion = 'main'
-    Personal = 'main'
+    Off = 'secondary'
+    Pentla = 'main'
+    Records = 'secondary'
     Slack = ['secondary', 'main']
-    Rest = 'secondary'
     Terminal = 'secondary'
     TradingView = 'secondary'
     Whatsapp = ['secondary', 'main']
@@ -172,13 +173,14 @@ gaps.outer.right =      0
     alt-3 = 'workspace 3'
     alt-4 = 'workspace 4'
     alt-a = 'workspace AI'
-    alt-b = 'workspace Browsers'
-    alt-d = 'workspace Database'
+    alt-d = 'workspace Didomi'
     alt-e = 'workspace Editors'
-    alt-m = 'workspace Music'
-    alt-o = 'workspace Notion'
-    alt-p = 'workspace Personal'
-    alt-r = 'workspace Rest'
+    alt-h = 'workspace HTTPRest'
+    alt-m = 'workspace Mine'
+    alt-n = 'workspace Notion'
+    alt-o = 'workspace Off'
+    alt-p = 'workspace Pentla'
+    alt-r = 'workspace Records'
     alt-s = 'workspace Slack'
     alt-t = 'workspace Terminal'
     alt-v = 'workspace Vault'
@@ -196,13 +198,14 @@ gaps.outer.right =      0
     alt-shift-8 = 'move-node-to-workspace 8'
     alt-shift-9 = 'move-node-to-workspace 9'
     alt-shift-a = 'move-node-to-workspace AI'
-    alt-shift-b = 'move-node-to-workspace Browsers'
-    alt-shift-d = 'move-node-to-workspace Database'
+    alt-shift-d = 'move-node-to-workspace Didomi'
     alt-shift-e = 'move-node-to-workspace Editors'
-    alt-shift-m = 'move-node-to-workspace Music'
-    alt-shift-o = 'move-node-to-workspace Notion'
-    alt-shift-p = 'move-node-to-workspace Personal'
-    alt-shift-r = 'move-node-to-workspace Rest'
+    alt-shift-h = 'move-node-to-workspace HTTPRest'
+    alt-shift-m = 'move-node-to-workspace Mine'
+    alt-shift-n = 'move-node-to-workspace Notion'
+    alt-shift-o = 'move-node-to-workspace Off'
+    alt-shift-p = 'move-node-to-workspace Pentla'
+    alt-shift-r = 'move-node-to-workspace Records'
     alt-shift-s = 'move-node-to-workspace Slack'
     alt-shift-t = 'move-node-to-workspace Terminal'
     alt-shift-v = 'move-node-to-workspace Vault'
@@ -244,15 +247,15 @@ gaps.outer.right =      0
 
 [[on-window-detected]]
     if.app-id="com.google.Chrome"
-    run= ["layout tiling", 'move-node-to-workspace Browsers']
+    run= ["layout tiling", 'move-node-to-workspace Mine']
 
 [[on-window-detected]]
     if.app-id="net.imput.helium"
-    run= ["layout tiling", 'move-node-to-workspace Browsers']
+    run= ["layout tiling", 'move-node-to-workspace Didomi']
 
 [[on-window-detected]]
-    if.app-id = 'app.zen-browser.zen'
-    run= ["layout tiling", 'move-node-to-workspace Browsers']
+    if.app-id = 'company.thebrowser.Browser'
+    run= ["layout tiling", 'move-node-to-workspace Pentla']
 
 [[on-window-detected]]
     if.app-id="com.microsoft.VSCode"
@@ -260,11 +263,11 @@ gaps.outer.right =      0
 
 [[on-window-detected]]
     if.app-id="com.usebruno.app"
-    run= ["layout tiling", 'move-node-to-workspace Rest']
+    run= ["layout tiling", 'move-node-to-workspace HTTPRest']
 
 [[on-window-detected]]
     if.app-id = 'com.spotify.client'
-    run= ["layout tiling", 'move-node-to-workspace Music']
+    run= ["layout tiling", 'move-node-to-workspace Off']
 
 [[on-window-detected]]
     if.app-id = 'notion.id'
@@ -288,7 +291,7 @@ gaps.outer.right =      0
 
 [[on-window-detected]]
     if.app-id = 'org.jkiss.dbeaver.core.product'
-    run= ["layout tiling", 'move-node-to-workspace Database']
+    run= ["layout tiling", 'move-node-to-workspace Records']
 
 [[on-window-detected]]
     if.app-id = 'net.whatsapp.WhatsApp'

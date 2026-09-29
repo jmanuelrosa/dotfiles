@@ -97,8 +97,9 @@ BREW_PACKAGES:
   casks:
     # Browsers
     - google-chrome
-    - zen
     - helium-browser
+    - brave-browser
+    - zen
     # Communication
     - slack
     - discord

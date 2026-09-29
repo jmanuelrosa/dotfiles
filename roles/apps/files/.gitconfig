@@ -162,8 +162,8 @@
   email = josemanuel.rosamoncayo+github@gmail.com
 
 # Include other gitconfig files depending on the directory (case non-sensitive)
-[includeIf "gitdir/i:~/developer/work"]
-  path = ~/developer/work/.gitconfig.didomi
+[includeIf "gitdir/i:~/Developer/work/"]
+  path = ~/Developer/work/.gitconfig.didomi
 
 [push]
   default = current
