@@ -140,6 +140,8 @@ HARNESS_LINKS:
     files:
       - src: mcp.json
         dest: "{{ HOME }}/.config/mcp/mcp.json"
+      - src: adapters/pi/mcp.json
+        dest: "{{ HOME }}/.pi/agent/mcp.json"
       - src: adapters/pi/settings.json
         dest: "{{ HOME }}/.pi/agent/settings.json"
       - src: adapters/pi/models.json
