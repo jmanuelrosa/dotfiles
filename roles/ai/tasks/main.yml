@@ -148,6 +148,15 @@
     fail_msg: "Refusing to replace {{ HOME }}/.pi/agent/mcp.json"
   when: "'pi' in HARNESS_ENABLED"
 
+- name: Remove the old adapter MCP link
+  ansible.builtin.file:
+    path: "{{ HOME }}/.config/mcp/mcp.json"
+    state: absent
+  when:
+    - "'pi' in HARNESS_ENABLED"
+    - pi_old_mcp_link.stat.islnk | default(false)
+    - pi_old_mcp_link.stat.lnk_target == HARNESS_DIR ~ '/mcp.json'
+
 # Every destination directory up front, because `state: link` does not create parents
 # the way `state: directory` does.
 - name: Ensure AI config directories exist
