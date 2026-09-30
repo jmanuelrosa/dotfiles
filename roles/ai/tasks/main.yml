@@ -120,92 +120,33 @@
     - "'pi' in HARNESS_ENABLED"
     - pi_agent_bridge.stat.islnk | default(false)
 
-- name: Inspect the shared Pi MCP config destination
+- name: Inspect the old adapter MCP link
   ansible.builtin.stat:
     path: "{{ HOME }}/.config/mcp/mcp.json"
     follow: false
-  register: pi_shared_mcp_config
+  register: pi_old_mcp_link
   when: "'pi' in HARNESS_ENABLED"
 
-- name: Refuse to replace a foreign Pi MCP config
-  ansible.builtin.assert:
-    that:
-      - >-
-        not (pi_shared_mcp_config.stat.exists | default(false)) and
-        not (pi_shared_mcp_config.stat.islnk | default(false)) or
-        ((pi_shared_mcp_config.stat.islnk | default(false)) and
-         pi_shared_mcp_config.stat.lnk_target == HARNESS_DIR ~ '/mcp.json')
-    fail_msg: "Refusing to replace {{ HOME }}/.config/mcp/mcp.json"
-  when: "'pi' in HARNESS_ENABLED"
-
-- name: Inspect higher-precedence user-global MCP configs
+- name: Inspect the native Pi MCP config destination
   ansible.builtin.stat:
-    path: "{{ item }}"
+    path: "{{ HOME }}/.pi/agent/mcp.json"
     follow: false
-  loop:
-    - "{{ HOME }}/.agents/mcp.json"
-    - "{{ HOME }}/.agents/mcp/mcp.json"
-    - "{{ HOME }}/.pi/agent/mcp.json"
-  register: pi_mcp_overrides
+  register: pi_native_mcp_config
   when: "'pi' in HARNESS_ENABLED"
 
-- name: Refuse to replace a user-owned Pi MCP override
+- name: Refuse to replace a user-owned Pi MCP config
   ansible.builtin.assert:
     that:
       - >-
-        not (item.stat.exists | default(false)) and
-        not (item.stat.islnk | default(false)) or
-        ((item.stat.islnk | default(false)) and
-         item.stat.lnk_target == HARNESS_DIR ~ '/adapters/pi/mcp.json')
+        (not (pi_native_mcp_config.stat.exists | default(false)) and
+         not (pi_native_mcp_config.stat.islnk | default(false))) or
+        ((pi_native_mcp_config.stat.islnk | default(false)) and
+         pi_native_mcp_config.stat.lnk_target in [
+           HARNESS_DIR ~ '/adapters/pi/mcp.json',
+           HARNESS_DIR ~ '/adapters/pi/generated/mcp.json'
+         ])
     fail_msg: "Refusing to replace {{ HOME }}/.pi/agent/mcp.json"
-  loop: "{{ pi_mcp_overrides.results | default([]) }}"
-  loop_control:
-    label: "{{ item.item }}"
-  when:
-    - "'pi' in HARNESS_ENABLED"
-    - item.item == HOME ~ '/.pi/agent/mcp.json'
-
-- name: Refuse shared server names in the Pi-only inventory
-  ansible.builtin.assert:
-    that:
-      - pi_mcp_collisions | length == 0
-    fail_msg: "Pi-only MCP inventory repeats shared servers: {{ pi_mcp_collisions | join(', ') }}"
-  vars:
-    pi_mcp_collisions: >-
-      {{ (lookup('file', HARNESS_DIR ~ '/adapters/pi/mcp.json') | from_json).mcpServers.keys() |
-         intersect((lookup('file', HARNESS_DIR ~ '/mcp.json') | from_json).mcpServers.keys()) | list }}
   when: "'pi' in HARNESS_ENABLED"
-
-- name: Read user-owned MCP overrides
-  ansible.builtin.slurp:
-    src: "{{ item.item }}"
-  loop: "{{ pi_mcp_overrides.results | default([]) }}"
-  loop_control:
-    label: "{{ item.item }}"
-  register: pi_mcp_override_files
-  no_log: true
-  when:
-    - "'pi' in HARNESS_ENABLED"
-    - item.stat.exists | default(false)
-    - >-
-      not (item.stat.islnk | default(false)) or
-      item.stat.lnk_target != HARNESS_DIR ~ '/adapters/pi/mcp.json'
-
-- name: Refuse shared server names shadowed by a global override
-  ansible.builtin.assert:
-    that:
-      - pi_mcp_collisions | length == 0
-    fail_msg: "MCP override {{ item.item.item }} defines shared servers: {{ pi_mcp_collisions | join(', ') }}"
-  vars:
-    pi_mcp_collisions: >-
-      {{ ((item.content | b64decode | from_json).mcpServers | default({})).keys() |
-         intersect((lookup('file', HARNESS_DIR ~ '/mcp.json') | from_json).mcpServers.keys()) | list }}
-  loop: "{{ pi_mcp_override_files.results | default([]) }}"
-  loop_control:
-    label: "{{ item.item.item }}"
-  when:
-    - "'pi' in HARNESS_ENABLED"
-    - item is not skipped
 
 # Every destination directory up front, because `state: link` does not create parents
 # the way `state: directory` does.

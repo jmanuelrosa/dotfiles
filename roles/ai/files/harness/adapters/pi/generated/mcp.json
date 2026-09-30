@@ -1,6 +1,12 @@
 {
   "mcpServers": {
+    "notion": {
+      "type": "http",
+      "url": "https://mcp.notion.com/mcp"
+    },
     "slack": {
+      "type": "http",
+      "url": "https://mcp.slack.com/mcp",
       "oauth": {
         "clientId": "185316078694.12036247391600",
         "callbackUrl": "http://localhost:19876/callback",

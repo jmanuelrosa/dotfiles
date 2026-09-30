@@ -21,7 +21,7 @@ ADAPTERS = [str(p.relative_to(ROOT)) for p in ROOT.glob("adapters/*/adapter.toml
 @pytest.fixture
 def harness(tmp_path):
     """The inputs and outputs of one build, copied somewhere a test may write."""
-    for relative in ["harness.toml", "policy", *ADAPTERS, *RENDERED]:
+    for relative in ["harness.toml", "policy", "mcp.json", "adapters/pi/mcp.json", *ADAPTERS, *RENDERED]:
         source, target = ROOT / relative, tmp_path / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         (shutil.copytree if source.is_dir() else shutil.copy)(source, target)
@@ -43,6 +43,15 @@ def test_the_cli_exits_clean_on_this_checkout():
 def test_a_second_build_writes_nothing(harness):
     cli.build(harness)
     assert cli.build(harness) == []
+
+
+def test_a_hand_edit_to_pi_mcp_config_is_named(harness):
+    cli.build(harness)
+    path = harness / emit_pi.MCP
+    document = json.loads(path.read_text())
+    document["mcpServers"]["slack"]["url"] = "https://example.invalid/mcp"
+    path.write_text(json.dumps(document))
+    assert cli.check(harness) == [emit_pi.MCP]
 
 
 def test_a_hand_edit_to_a_whole_rendered_file_is_named(harness):

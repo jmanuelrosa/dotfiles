@@ -6,7 +6,7 @@ import tomllib
 
 import pytest
 import yaml
-from harnessgen import cli, manifest, mcp
+from harnessgen import cli, emit_pi, manifest, mcp
 
 ROOT = manifest.find_root()
 
@@ -25,25 +25,39 @@ def inventory(root, servers):
     (root / "mcp.json").write_text(json.dumps({"mcpServers": servers}))
 
 
-def test_notion_is_the_initial_server_and_policy_still_denies_its_tools():
-    assert mcp.load(ROOT) == {"notion": {"type": "http", "url": "https://mcp.notion.com/mcp"}}
+def test_shared_servers_and_notion_policy():
+    assert mcp.load(ROOT) == {
+        "notion": {"type": "http", "url": "https://mcp.notion.com/mcp"},
+        "slack": {"type": "http", "url": "https://mcp.slack.com/mcp"},
+    }
     assert {"notion", "Notion"} <= set(manifest.load(ROOT).permissions["mcp"]["deny"])
 
 
-def test_slack_is_pi_only_and_its_link_refuses_user_owned_overrides():
-    pi_only = json.loads((ROOT / "adapters/pi/mcp.json").read_text())["mcpServers"]
-    assert set(pi_only) == {"slack"}
-    assert pi_only["slack"]["url"] == "https://mcp.slack.com/mcp"
-    assert not (set(pi_only) & set(mcp.load(ROOT)))
+def test_pi_native_config_merges_shared_servers_with_its_oauth_settings():
+    shared = mcp.load(ROOT)
+    native = json.loads((ROOT / emit_pi.MCP).read_text())["mcpServers"]
+    assert set(native) == set(shared)
+    assert native["notion"] == shared["notion"]
+    assert native["slack"]["url"] == shared["slack"]["url"]
+    assert native["slack"]["oauth"] == {
+        "clientId": "185316078694.12036247391600",
+        "callbackUrl": "http://localhost:19876/callback",
+        "scope": "search:read.public channels:read channels:history users:read search:read.users search:read.private search:read.im search:read.mpim groups:read groups:history im:read im:history mpim:read mpim:history chat:write reactions:write",
+    }
+    assert "auth" not in native["slack"] and "exposeResources" not in native["slack"]
 
     ai_role = ROOT.parents[1]
     links = yaml.safe_load((ai_role / "defaults/main.yml").read_text())["HARNESS_LINKS"]["pi"]["files"]
-    assert {"src": "adapters/pi/mcp.json", "dest": "{{ HOME }}/.pi/agent/mcp.json"} in links
+    assert {"src": emit_pi.MCP, "dest": "{{ HOME }}/.pi/agent/mcp.json"} in links
+    assert not any(link["dest"] == "{{ HOME }}/.config/mcp/mcp.json" for link in links)
     tasks = yaml.safe_load((ai_role / "tasks/main.yml").read_text())
-    assert any(task["name"] == "Refuse to replace a user-owned Pi MCP override" for task in tasks)
-    assert any(task["name"] == "Refuse shared server names in the Pi-only inventory" for task in tasks)
-    assert not any("mcp.json" in task.get("ansible.builtin.file", {}).get("path", "") and
-                   task["ansible.builtin.file"].get("state") == "absent" for task in tasks)
+    assert "npm:pi-mcp-adapter" not in json.loads((ROOT / "adapters/pi/settings.json").read_text())["packages"]
+    guard = next(task for task in tasks if task["name"] == "Refuse to replace a user-owned Pi MCP config")
+    assert "adapters/pi/mcp.json" in guard["ansible.builtin.assert"]["that"][0]
+    assert emit_pi.MCP in guard["ansible.builtin.assert"]["that"][0]
+    cleanup = next(task for task in tasks if task["name"] == "Remove the old adapter MCP link")
+    assert "pi_old_mcp_link.stat.islnk | default(false)" in cleanup["when"]
+    assert "pi_old_mcp_link.stat.lnk_target == HARNESS_DIR ~ '/mcp.json'" in cleanup["when"]
 
 
 def test_claude_adds_only_managed_names_and_does_not_rewrite_on_repeat(harness):
@@ -52,11 +66,11 @@ def test_claude_adds_only_managed_names_and_does_not_rewrite_on_repeat(harness):
     config.parent.mkdir(parents=True)
     original = {"numStartups": 4, "mcpServers": {"personal": {"command": "local"}}}
     config.write_text(json.dumps(original))
-    assert cli.apply_claude(root, check_only=True) == ["mcp: notion"]
+    assert cli.apply_claude(root, check_only=True) == ["mcp: notion", "mcp: slack"]
     assert json.loads(config.read_text()) == original
-    assert cli.apply_claude(root) == ["mcp: notion"]
+    assert cli.apply_claude(root) == ["mcp: notion", "mcp: slack"]
     assert json.loads(config.read_text()) == {**original, "mcpServers": {**original["mcpServers"], **mcp.load(root)}}
-    assert json.loads((home / ".claude/.harness-mcp-owned.json").read_text()) == ["notion"]
+    assert json.loads((home / ".claude/.harness-mcp-owned.json").read_text()) == ["notion", "slack"]
     assert cli.apply_claude(root) == []
     assert json.loads((home / ".claude.json.harness-bak").read_text()) == original
 
@@ -78,11 +92,12 @@ def test_codex_preserves_app_server_and_existing_policy(harness):
     config = home / ".codex/config.toml"
     config.parent.mkdir(parents=True)
     config.write_text('[mcp_servers.node_repl]\ncommand = "app-owned"\n[projects."/workspace"]\ntrust_level = "trusted"\n')
-    assert "mcp: notion" in cli.apply_codex(root, check_only=True)
+    assert {"mcp: notion", "mcp: slack"} <= set(cli.apply_codex(root, check_only=True))
     assert not (home / ".codex/.harness-mcp-owned.json").exists()
-    assert "mcp: notion" in cli.apply_codex(root)
+    assert {"mcp: notion", "mcp: slack"} <= set(cli.apply_codex(root))
     servers = tomllib.loads(config.read_text())["mcp_servers"]
-    assert servers == {"node_repl": {"command": "app-owned"}, "notion": {"url": mcp.load(root)["notion"]["url"]}}
+    assert servers == {"node_repl": {"command": "app-owned"},
+                       **{name: {"url": entry["url"]} for name, entry in mcp.load(root).items()}}
     assert tomllib.loads(config.read_text())["projects"]["/workspace"]["trust_level"] == "trusted"
     assert cli.apply_codex(root) == []
     assert "node_repl" in (home / ".codex/config.toml.harness-bak").read_text()
@@ -97,8 +112,8 @@ def test_removal_only_deletes_managed_names_even_after_manual_edit(harness, clie
     text = config.read_text().replace("https://mcp.notion.com/mcp", "https://edited.example.invalid/mcp")
     config.write_text(text)
     inventory(root, {})
-    assert apply(root) == ["mcp: notion"]
-    assert "notion" not in read(config.read_text())["mcpServers" if client == "claude" else "mcp_servers"]
+    assert apply(root) == ["mcp: notion", "mcp: slack"]
+    assert not set(mcp.load(ROOT)) & set(read(config.read_text())["mcpServers" if client == "claude" else "mcp_servers"])
     assert json.loads((home / (".claude" if client == "claude" else ".codex") / mcp.STATE_FILE).read_text()) == []
     assert apply(root) == []
 

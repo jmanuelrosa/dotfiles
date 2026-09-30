@@ -1,6 +1,6 @@
 # Shared MCP configuration - Design Doc
 
-**Status:** Implemented in repository; live client configs not applied
+**Status:** Historical design; Pi adapter path superseded by native MCP (current behavior in [harnesses](../internals/harnesses.md#shared-mcp-servers))
 **Author:** José Manuel Rosa Moncayo
 **Date:** 2026-09-29
 **Scope:** `roles/ai/files/harness/mcp.json` (new), `roles/ai/files/harness/adapters/claude/adapter.toml`, `roles/ai/files/harness/adapters/codex/adapter.toml`, `roles/ai/files/harness/adapters/pi/mcp.json`, `roles/ai/files/harness/lib/harnessgen/`, `roles/ai/defaults/main.yml`, `roles/ai/tasks/main.yml`, `roles/ai/files/harness/tests/`, `Makefile`, `docs/internals/harnesses.md`, `roles/ai/README.md`

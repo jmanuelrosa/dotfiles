@@ -128,7 +128,6 @@ HARNESS_LINKS:
 
   pi:
     dirs:
-      - "{{ HOME }}/.config/mcp"
       - "{{ HOME }}/.pi/agent"
       - "{{ HOME }}/.pi/agent/agents"
       - "{{ HOME }}/.pi/agent/themes"
@@ -138,9 +137,7 @@ HARNESS_LINKS:
       # unredacted.
       - "{{ HOME }}/.pi/agent/extensions/pi-permission-system"
     files:
-      - src: mcp.json
-        dest: "{{ HOME }}/.config/mcp/mcp.json"
-      - src: adapters/pi/mcp.json
+      - src: adapters/pi/generated/mcp.json
         dest: "{{ HOME }}/.pi/agent/mcp.json"
       - src: adapters/pi/settings.json
         dest: "{{ HOME }}/.pi/agent/settings.json"

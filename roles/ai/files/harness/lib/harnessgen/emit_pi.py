@@ -8,12 +8,15 @@ The guardrails extension reads generated/hooks.json at load, in place of a list 
 own; test_pi_guardrails.py pins what it does with each entry.
 """
 
-from harnessgen import emit_claude
+import json
+
+from harnessgen import emit_claude, mcp
 
 NAME = "pi"
 SANDBOX = "adapters/pi/sandbox.json"
 PERMISSIONS = "adapters/pi/permission-system/config.json"
 HOOKS = "adapters/pi/generated/hooks.json"
+MCP = "adapters/pi/generated/mcp.json"
 
 # What guardrails needs from an entry. Timeouts stay in the extension, which states why
 # a gate and a rewrite get different ones.
@@ -185,4 +188,10 @@ def hooks(manifest):
 
 def files(manifest):
     """Relative path to the whole document, for every file this generator owns outright."""
-    return {SANDBOX: sandbox(manifest), PERMISSIONS: permissions(manifest), HOOKS: hooks(manifest)}
+    servers = mcp.load(manifest.root)
+    overrides = json.loads((manifest.root / "adapters/pi/mcp.json").read_text())["mcpServers"]
+    if overrides.keys() - servers.keys():
+        raise ValueError("Pi MCP overrides must name shared servers")
+    pi_servers = {name: {**entry, **overrides.get(name, {})} for name, entry in servers.items()}
+    return {SANDBOX: sandbox(manifest), PERMISSIONS: permissions(manifest), HOOKS: hooks(manifest),
+            MCP: {"mcpServers": pi_servers}}
