@@ -14,7 +14,7 @@
   cp = cherry-pick
 
   # Clean
-  bclean = "!git fetch -p && git for-each-ref refs/heads --format='%(refname:short) %(upstream:track)' | grep '\\[gone\\]' | awk '{print $1}' | grep -v \"$(git symbolic-ref --short HEAD)\" | xargs -r git branch -D"
+  bclean = "!git fetch --prune && git branch --delete-merged '*'"
 
 
   # Commit
