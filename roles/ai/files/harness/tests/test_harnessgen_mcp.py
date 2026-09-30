@@ -5,6 +5,7 @@ import shutil
 import tomllib
 
 import pytest
+import yaml
 from harnessgen import cli, manifest, mcp
 
 ROOT = manifest.find_root()
@@ -27,6 +28,22 @@ def inventory(root, servers):
 def test_notion_is_the_initial_server_and_policy_still_denies_its_tools():
     assert mcp.load(ROOT) == {"notion": {"type": "http", "url": "https://mcp.notion.com/mcp"}}
     assert {"notion", "Notion"} <= set(manifest.load(ROOT).permissions["mcp"]["deny"])
+
+
+def test_slack_is_pi_only_and_its_link_refuses_user_owned_overrides():
+    pi_only = json.loads((ROOT / "adapters/pi/mcp.json").read_text())["mcpServers"]
+    assert set(pi_only) == {"slack"}
+    assert pi_only["slack"]["url"] == "https://mcp.slack.com/mcp"
+    assert not (set(pi_only) & set(mcp.load(ROOT)))
+
+    ai_role = ROOT.parents[1]
+    links = yaml.safe_load((ai_role / "defaults/main.yml").read_text())["HARNESS_LINKS"]["pi"]["files"]
+    assert {"src": "adapters/pi/mcp.json", "dest": "{{ HOME }}/.pi/agent/mcp.json"} in links
+    tasks = yaml.safe_load((ai_role / "tasks/main.yml").read_text())
+    assert any(task["name"] == "Refuse to replace a user-owned Pi MCP override" for task in tasks)
+    assert any(task["name"] == "Refuse shared server names in the Pi-only inventory" for task in tasks)
+    assert not any("mcp.json" in task.get("ansible.builtin.file", {}).get("path", "") and
+                   task["ansible.builtin.file"].get("state") == "absent" for task in tasks)
 
 
 def test_claude_adds_only_managed_names_and_does_not_rewrite_on_repeat(harness):

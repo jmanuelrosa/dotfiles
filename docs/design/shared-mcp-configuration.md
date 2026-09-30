@@ -3,7 +3,7 @@
 **Status:** Implemented in repository; live client configs not applied
 **Author:** José Manuel Rosa Moncayo
 **Date:** 2026-09-29
-**Scope:** `roles/ai/files/harness/mcp.json` (new), `roles/ai/files/harness/adapters/claude/adapter.toml`, `roles/ai/files/harness/adapters/codex/adapter.toml`, `roles/ai/files/harness/lib/harnessgen/`, `roles/ai/defaults/main.yml`, `roles/ai/tasks/main.yml`, `roles/ai/files/harness/tests/`, `Makefile`, `docs/internals/harnesses.md`, `roles/ai/README.md`
+**Scope:** `roles/ai/files/harness/mcp.json` (new), `roles/ai/files/harness/adapters/claude/adapter.toml`, `roles/ai/files/harness/adapters/codex/adapter.toml`, `roles/ai/files/harness/adapters/pi/mcp.json`, `roles/ai/files/harness/lib/harnessgen/`, `roles/ai/defaults/main.yml`, `roles/ai/tasks/main.yml`, `roles/ai/files/harness/tests/`, `Makefile`, `docs/internals/harnesses.md`, `roles/ai/README.md`
 
 ## Summary
 
@@ -67,11 +67,11 @@ Add `roles/ai/files/harness/mcp.json` with the standard `mcpServers` object. The
 }
 ```
 
-Project-scoped and app-managed servers remain outside it. The first version also accepts stdio `command`, `args`, optional `env` and `cwd`, and Streamable HTTP `type: "http"`, `url` with no static headers. HTTP servers can use each client's own OAuth flow. It rejects unknown, Pi-specific or client-specific fields rather than letting one client silently ignore them. Keep MCP deny rules in `policy/permissions.toml` unchanged and independent of this connection file (`harnessgen/emit_claude.py:41,64-70`): `notion` and `Notion` are currently denied, so installing this server does **not** make its tools available in Claude or Pi. Codex reports these MCP denies as untranslatable (`harnessgen/emit_codex.py:118`), so its effective tool permissions may differ.
+Project-scoped and app-managed servers remain outside it. Slack's pre-registered, Pi-specific OAuth settings live in `adapters/pi/mcp.json`, outside the shared inventory; Claude and Codex require their own Slack setup. The first version of the shared inventory also accepts stdio `command`, `args`, optional `env` and `cwd`, and Streamable HTTP `type: "http"`, `url` with no static headers. HTTP servers can use each client's own OAuth flow. It rejects unknown, Pi-specific or client-specific fields rather than letting one client silently ignore them. Keep MCP deny rules in `policy/permissions.toml` unchanged and independent of this connection file (`harnessgen/emit_claude.py:41,64-70`): `notion` and `Notion` are currently denied, so installing this server does **not** make its tools available in Claude or Pi. Codex reports these MCP denies as untranslatable (`harnessgen/emit_codex.py:118`), so its effective tool permissions may differ.
 
 ### 2. Pi consumes the source directly
 
-Link `roles/ai/files/harness/mcp.json` to `~/.config/mcp/mcp.json` through the role's existing link table (`roles/ai/defaults/main.yml:88-165`). Do not restore the `~/.pi/agent/mcp.json` link: that is a higher-precedence Pi override, not the shared path. Change the stale cleanup in `roles/ai/tasks/main.yml:303-324` to remove only known superseded links, preserving a real user-authored Pi override. Before installing the new link, refuse to replace a real file or foreign symlink at `~/.config/mcp/mcp.json`; require explicit migration instead. If any higher-precedence user-global source (`~/.agents/mcp.json`, `~/.agents/mcp/mcp.json`, or `~/.pi/agent/mcp.json`) defines a name from the shared inventory, stop provisioning and name the conflict without altering the override. Do not scan project configs during machine provisioning; project-local overrides remain the project's responsibility. Document that `/mcp edit global` writes the linked source and therefore is not the maintenance route for a committed policy.
+Link `roles/ai/files/harness/mcp.json` to `~/.config/mcp/mcp.json` through the role's existing link table (`roles/ai/defaults/main.yml:88-165`). A subsequent Pi-only Slack decision adds `adapters/pi/mcp.json` at the higher-precedence `~/.pi/agent/mcp.json` path. Provisioning refuses to replace a user-authored override there, and the superseded-link cleanup no longer removes it. Before installing either link, refuse to replace a real file or foreign symlink; require explicit migration instead. If any higher-precedence user-global source (`~/.agents/mcp.json`, `~/.agents/mcp/mcp.json`, or the Pi-only override) defines a name from the shared inventory, stop provisioning and name the conflict without altering the override. Do not scan project configs during machine provisioning; project-local overrides remain the project's responsibility. Document that `/mcp edit global` writes the linked source and therefore is not the maintenance route for a committed policy.
 
 ### 3. Claude Code receives a selective merge
 
@@ -117,7 +117,7 @@ Keep `make harness` for repository renders and `make harness-check` for their dr
 
 - **Link the same JSON into all three clients.** Claude's user-scope servers live in `~/.claude.json` and Codex expects TOML in a file it also writes. Direct links would be unreadable or overwrite unrelated state.
 - **Make Pi import Claude and Codex host configs.** The adapter can import those formats (`~/.pi/agent/npm/node_modules/pi-mcp-adapter/config.ts:78-96,966-1078`), but that gives Pi two mutable inventories and cannot make Claude and Codex agree with each other. Host discovery is off by default for a reason.
-- **Generate a Pi-only `~/.pi/agent/mcp.json`.** It duplicates a representation the adapter already reads natively and reintroduces the stale higher-precedence override the role currently removes.
+- **Mirror the shared inventory in Pi's override.** It would duplicate the generic global source. The Pi-only Slack entry instead uses this override for settings that cannot be translated to Claude and Codex; provisioning refuses foreign overrides and duplicate server names.
 - **Own the entire MCP table in each app config.** Simpler to render, but it would delete Codex's app-managed server and Claude's unrelated user entries.
 - **Put actual tokens in the source to avoid per-client login.** Not acceptable in a committed dotfiles repository; OAuth and environment resolution remain client-specific.
 
@@ -134,6 +134,7 @@ Test external behavior at the file boundary: canonical definition to each client
 - `roles/ai/files/harness/mcp.json` (new)
 - `roles/ai/files/harness/adapters/claude/adapter.toml`
 - `roles/ai/files/harness/adapters/codex/adapter.toml`
+- `roles/ai/files/harness/adapters/pi/mcp.json` (Pi-only Slack OAuth)
 - `roles/ai/files/harness/lib/harnessgen/cli.py`
 - `roles/ai/files/harness/lib/harnessgen/mcp.py` (new, translation and selective ownership merge)
 - `roles/ai/files/harness/tests/test_harnessgen_codex.py`
@@ -144,6 +145,7 @@ Test external behavior at the file boundary: canonical definition to each client
 - `Makefile`
 - `docs/internals/harnesses.md`
 - `roles/ai/README.md`
-- `~/.config/mcp/mcp.json` (new link, installed)
+- `~/.config/mcp/mcp.json` (shared link, installed)
+- `~/.pi/agent/mcp.json` (Pi-only link, installed)
 - `~/.claude.json` and `~/.claude/.harness-mcp-owned.json` (selective installed merge and ownership record)
 - `~/.codex/config.toml` and `~/.codex/.harness-mcp-owned.json` (selective installed merge and ownership record)

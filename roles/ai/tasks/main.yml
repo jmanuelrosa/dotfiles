@@ -149,6 +149,33 @@
   register: pi_mcp_overrides
   when: "'pi' in HARNESS_ENABLED"
 
+- name: Refuse to replace a user-owned Pi MCP override
+  ansible.builtin.assert:
+    that:
+      - >-
+        not (item.stat.exists | default(false)) and
+        not (item.stat.islnk | default(false)) or
+        ((item.stat.islnk | default(false)) and
+         item.stat.lnk_target == HARNESS_DIR ~ '/adapters/pi/mcp.json')
+    fail_msg: "Refusing to replace {{ HOME }}/.pi/agent/mcp.json"
+  loop: "{{ pi_mcp_overrides.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when:
+    - "'pi' in HARNESS_ENABLED"
+    - item.item == HOME ~ '/.pi/agent/mcp.json'
+
+- name: Refuse shared server names in the Pi-only inventory
+  ansible.builtin.assert:
+    that:
+      - pi_mcp_collisions | length == 0
+    fail_msg: "Pi-only MCP inventory repeats shared servers: {{ pi_mcp_collisions | join(', ') }}"
+  vars:
+    pi_mcp_collisions: >-
+      {{ (lookup('file', HARNESS_DIR ~ '/adapters/pi/mcp.json') | from_json).mcpServers.keys() |
+         intersect((lookup('file', HARNESS_DIR ~ '/mcp.json') | from_json).mcpServers.keys()) | list }}
+  when: "'pi' in HARNESS_ENABLED"
+
 - name: Read user-owned MCP overrides
   ansible.builtin.slurp:
     src: "{{ item.item }}"
@@ -360,28 +387,20 @@
     state: absent
   when: pi_superseded_skills_link.stat.islnk | default(false)
 
-# Links earlier layouts wrote that nothing ships any more. Pi reads SYSTEM.md as a
-# replacement system prompt, while mcp.json overrides the shared MCP inventory.
-# Remove only symlinks this role installed, not a user-authored override.
-- name: Check for superseded pi config links
+# Pi reads SYSTEM.md as a replacement system prompt; only remove the old role-owned link.
+- name: Check for superseded pi system prompt link
   ansible.builtin.stat:
-    path: "{{ HOME }}/.pi/agent/{{ item }}"
+    path: "{{ HOME }}/.pi/agent/SYSTEM.md"
     follow: false
-  loop:
-    - SYSTEM.md
-    - mcp.json
-  register: pi_superseded_config_links
+  register: pi_superseded_system_prompt
 
-- name: Remove superseded pi config links
+- name: Remove superseded pi system prompt link
   ansible.builtin.file:
-    path: "{{ HOME }}/.pi/agent/{{ item.item }}"
+    path: "{{ HOME }}/.pi/agent/SYSTEM.md"
     state: absent
-  loop: "{{ pi_superseded_config_links.results }}"
-  loop_control:
-    label: "{{ item.item }}"
   when:
-    - item.stat.islnk | default(false)
-    - item.stat.lnk_target is match('^' ~ HARNESS_DIR ~ '/')
+    - pi_superseded_system_prompt.stat.islnk | default(false)
+    - pi_superseded_system_prompt.stat.lnk_target is match('^' ~ HARNESS_DIR ~ '/')
 
 # Renaming an auto-discovered extension leaves the old role-owned link dangling. Remove
 # only links so a file written by hand under a superseded name remains the user's.
