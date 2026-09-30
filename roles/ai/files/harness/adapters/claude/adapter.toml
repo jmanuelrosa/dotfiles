@@ -3,6 +3,10 @@
 # plus every entry of `hooks` whose command policy/hooks.toml renders (herdr's own entries are kept);
 # every other key there stays hand-edited.
 
+[install]
+mcp_config = "~/.claude.json"
+mcp_state = "~/.claude/.harness-mcp-owned.json"
+
 [sandbox]
 enabled = true
 autoAllowBashIfSandboxed = true

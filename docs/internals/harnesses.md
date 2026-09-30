@@ -13,13 +13,21 @@ Each harness gets an emitter and an `adapters/<harness>/adapter.toml` for the kn
 |---|---|
 | `make harness` | Render every file that differs. Claude's `settings.json` is merged key by key, since a running session writes it too; everything under `generated/` and Pi's derived files are written whole |
 | `make harness-check` | Write nothing and name each drifted file or owned key |
-| `make harness-apply` | Merge the policy into `~/.codex/config.toml` and install the Codex rules file. `CHECK=1` reports what is pending |
+| `make harness-apply` | Merge Codex's policy and shared MCP servers into its config (default), or use `TARGET=claude` to merge shared servers into `~/.claude.json`. `CHECK=1` reports pending changes without writing |
 | `make harness-report` | List every policy rule a harness receives no counterpart for |
 
 A hook reaches a harness only if its `harnesses` list in `hooks.toml` names it, and the comments there say why each one is left off where it is.
 `{harness}` in a policy path expands to the checkout at render time, so a clone somewhere else needs one `make harness` before its rendered files are right.
 `HARNESS_RENDER_ROOT` overrides it; CI sets it to the checkout the committed renders are for, since its own clone lives elsewhere and every drift test would otherwise fail on the path alone.
-Claude's `settings.json` cannot be written from inside a Claude session, so policy changes that reach it are rendered by hand with no session open.
+Claude's `settings.json` cannot be written from inside a Claude session, so policy changes that reach it are rendered by hand with no session open. The same applies to shared MCP updates to `~/.claude.json`.
+
+## Shared MCP servers
+
+`mcp.json` is the committed user-global server inventory, separate from `policy/permissions.toml`: connecting a server does not grant permission to call its tools. Pi's `pi-mcp-adapter` reads it through `~/.config/mcp/mcp.json`. An existing foreign file at that path is not replaced; a same-named server in `~/.agents/mcp.json`, `~/.agents/mcp/mcp.json` or `~/.pi/agent/mcp.json` stops provisioning rather than shadowing the shared definition. Project configurations are not scanned or changed.
+
+Claude and Codex write their own user configs, so `harness-build apply claude` merges only managed `mcpServers` names into `~/.claude.json`, and `apply codex` merges only managed `mcp_servers` names into `~/.codex/config.toml` beside its existing policy merge. Each keeps a names-only record beside its config; existing unmanaged names cause a collision, while manual edits to managed names are overwritten on the next apply. Removing a server from `mcp.json` removes only its managed entry. The first mutation of an existing config keeps a `.harness-bak` copy; check mode never writes.
+
+Only stdio with exact `${NAME}` environment references and Streamable HTTP without static headers are supported. Each client handles HTTP OAuth separately; bearer headers and embedded tokens are out of scope. Notion is the initial server at `https://mcp.notion.com/mcp`. Existing `notion` and `Notion` MCP tool denies stay in place for Claude and Pi, so installing it does not make its tools available there. Codex cannot translate these denies. Codex remains an explicit apply target, not an enabled role: after editing `mcp.json`, run `make harness-apply` to update it and `make harness-apply TARGET=claude` for Claude without a role run.
 
 ## Pi
 
@@ -199,10 +207,10 @@ One constraint applies to every extension here and was found the hard way in thi
 Codex reads the neutral `AGENTS.md` through `~/.codex/AGENTS.md` and global skills from `~/.agents/skills/`.
 It is not a kura harness: that root exists because kura's `pi` harness writes it, so Codex's skills depend on Pi staying enabled in kura's machine config.
 
-**`config.toml` is merged, never linked.** Codex and the ChatGPT app both write `~/.codex/config.toml` (projects, plugins, MCP servers, hook trust), so `harness-build apply codex` replaces only the keys it owns: the adapter's `[config]` table plus `sandbox_workspace_write` rendered from `policy/sandbox.toml`.
+**`config.toml` is merged, never linked.** Codex and the ChatGPT app both write `~/.codex/config.toml` (projects, plugins, MCP servers, hook trust), so `harness-build apply codex` replaces only the keys it owns: the adapter's `[config]` table, `sandbox_workspace_write` rendered from `policy/sandbox.toml`, and shared MCP server names.
 Every other key is read and written back unchanged, the first write keeps the untouched file beside it as `config.toml.harness-bak`, and a new file is created owner-only.
 The stdlib reads TOML but cannot write it, so `harnessgen.tomlw` writes back what `tomllib` read, and comments in the file do not survive a write that changes something.
-The role runs `apply` on every play, and a run with nothing to change writes nothing.
+The role runs `apply` only when Codex is enabled in `HARNESS_ENABLED`; otherwise run `make harness-apply` explicitly. A run with nothing to change writes nothing.
 
 **The rules file is a copy.** Codex's rules loader checks `is_file()` on each directory entry and so skips a symlinked `.rules`, and Codex appends its own approvals to `~/.codex/rules/default.rules`, which a linked directory would land in this checkout.
 `apply` therefore writes `~/.codex/rules/dotfiles.rules` as a real file, and `make harness-apply CHECK=1` reports it once it goes stale.

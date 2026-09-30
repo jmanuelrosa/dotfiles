@@ -16,6 +16,7 @@ approval_policy = "on-request"
 # linked directory would land in this checkout.
 [install]
 config = "~/.codex/config.toml"
+mcp_state = "~/.codex/.harness-mcp-owned.json"
 rules = "~/.codex/rules/dotfiles.rules"
 
 # Where the role links hooks/, so a manifest `script` is spelled as Codex runs it.

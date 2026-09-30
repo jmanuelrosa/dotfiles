@@ -120,6 +120,66 @@
     - "'pi' in HARNESS_ENABLED"
     - pi_agent_bridge.stat.islnk | default(false)
 
+- name: Inspect the shared Pi MCP config destination
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.config/mcp/mcp.json"
+    follow: false
+  register: pi_shared_mcp_config
+  when: "'pi' in HARNESS_ENABLED"
+
+- name: Refuse to replace a foreign Pi MCP config
+  ansible.builtin.assert:
+    that:
+      - >-
+        not (pi_shared_mcp_config.stat.exists | default(false)) and
+        not (pi_shared_mcp_config.stat.islnk | default(false)) or
+        ((pi_shared_mcp_config.stat.islnk | default(false)) and
+         pi_shared_mcp_config.stat.lnk_target == HARNESS_DIR ~ '/mcp.json')
+    fail_msg: "Refusing to replace {{ HOME }}/.config/mcp/mcp.json"
+  when: "'pi' in HARNESS_ENABLED"
+
+- name: Inspect higher-precedence user-global MCP configs
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+  loop:
+    - "{{ HOME }}/.agents/mcp.json"
+    - "{{ HOME }}/.agents/mcp/mcp.json"
+    - "{{ HOME }}/.pi/agent/mcp.json"
+  register: pi_mcp_overrides
+  when: "'pi' in HARNESS_ENABLED"
+
+- name: Read user-owned MCP overrides
+  ansible.builtin.slurp:
+    src: "{{ item.item }}"
+  loop: "{{ pi_mcp_overrides.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item }}"
+  register: pi_mcp_override_files
+  no_log: true
+  when:
+    - "'pi' in HARNESS_ENABLED"
+    - item.stat.exists | default(false)
+    - >-
+      not (item.stat.islnk | default(false)) or
+      item.stat.lnk_target != HARNESS_DIR ~ '/adapters/pi/mcp.json'
+
+- name: Refuse shared server names shadowed by a global override
+  ansible.builtin.assert:
+    that:
+      - pi_mcp_collisions | length == 0
+    fail_msg: "MCP override {{ item.item.item }} defines shared servers: {{ pi_mcp_collisions | join(', ') }}"
+  vars:
+    pi_mcp_collisions: >-
+      {{ ((item.content | b64decode | from_json).mcpServers | default({})).keys() |
+         intersect((lookup('file', HARNESS_DIR ~ '/mcp.json') | from_json).mcpServers.keys()) | list }}
+  loop: "{{ pi_mcp_override_files.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.item }}"
+  when:
+    - "'pi' in HARNESS_ENABLED"
+    - item is not skipped
+
 # Every destination directory up front, because `state: link` does not create parents
 # the way `state: directory` does.
 - name: Ensure AI config directories exist
@@ -300,10 +360,9 @@
     state: absent
   when: pi_superseded_skills_link.stat.islnk | default(false)
 
-# Links earlier layouts wrote that nothing ships any more. Left behind they are not
-# inert: pi reads ~/.pi/agent/SYSTEM.md as a replacement system prompt, and mcp.json
-# configured pi-mcp-adapter, which is no longer installed. Only a symlink is removed, so
-# a file someone wrote by hand is theirs to keep.
+# Links earlier layouts wrote that nothing ships any more. Pi reads SYSTEM.md as a
+# replacement system prompt, while mcp.json overrides the shared MCP inventory.
+# Remove only symlinks this role installed, not a user-authored override.
 - name: Check for superseded pi config links
   ansible.builtin.stat:
     path: "{{ HOME }}/.pi/agent/{{ item }}"
@@ -320,7 +379,9 @@
   loop: "{{ pi_superseded_config_links.results }}"
   loop_control:
     label: "{{ item.item }}"
-  when: item.stat.islnk | default(false)
+  when:
+    - item.stat.islnk | default(false)
+    - item.stat.lnk_target is match('^' ~ HARNESS_DIR ~ '/')
 
 # Renaming an auto-discovered extension leaves the old role-owned link dangling. Remove
 # only links so a file written by hand under a superseded name remains the user's.
@@ -363,6 +424,17 @@
     force: true
   loop: "{{ PI_EXTENSIONS }}"
   when: "'pi' in HARNESS_ENABLED"
+
+- name: Merge shared MCP servers into Claude's user config
+  ansible.builtin.command:
+    argv: "{{ ['uv', 'run', '--no-project', 'python', HARNESS_DIR ~ '/bin/harness-build', 'apply', 'claude'] + (['--check'] if ansible_check_mode else []) }}"
+  environment:
+    PYTHONDONTWRITEBYTECODE: "1"
+  register: claude_mcp_apply
+  check_mode: false
+  changed_when: "'up to date' not in claude_mcp_apply.stdout"
+  failed_when: claude_mcp_apply.rc not in ([0, 1] if ansible_check_mode else [0])
+  when: "'claude' in HARNESS_ENABLED"
 
 # --- codex ------------------------------------------------------------------------
 #

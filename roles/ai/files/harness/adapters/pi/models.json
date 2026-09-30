@@ -6,12 +6,25 @@
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
-            "xhigh": "xhigh"
+            "xhigh": "xhigh",
+            "ultrafast": "ultrafast"
           },
           "contextWindow": 272000,
           "maxTokens": 128000
         },
 
+        "gpt-6.1-sol": {
+          "name": "GPT-6 Sol",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "low": "low",
+            "medium": "medium",
+            "high": "high",
+            "xhigh": "xhigh"
+          },
+          "contextWindow": 272000,
+          "maxTokens": 128000
+        },
         "gpt-6-sol": {
           "name": "GPT-6 Sol",
           "reasoning": true,

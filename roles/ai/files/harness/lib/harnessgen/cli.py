@@ -6,7 +6,7 @@ import shutil
 import tomllib
 from pathlib import Path
 
-from harnessgen import emit_claude, emit_codex, emit_pi, manifest, merge, tomlw
+from harnessgen import emit_claude, emit_codex, emit_pi, manifest, mcp, merge, tomlw
 
 WHOLE_FILE_EMITTERS = (emit_pi, emit_codex)
 REPORTING_EMITTERS = (emit_codex,)
@@ -71,8 +71,31 @@ def build(root=None):
     return written
 
 
+def apply_claude(root=None, check_only=False):
+    """Merge shared servers into Claude's user config without touching other entries."""
+    policy = manifest.load(root)
+    install = policy.adapter(emit_claude.NAME)["install"]
+    config_path = Path(install["mcp_config"]).expanduser()
+    state_path = Path(install["mcp_state"]).expanduser()
+    servers = {name: mcp.for_claude(entry) for name, entry in mcp.load(policy.root).items()}
+    config = json.loads(config_path.read_text()) if config_path.is_file() else {}
+    changed, names = mcp.plan(config, state_path, servers, "mcpServers")
+    if check_only or not changed:
+        return [f"mcp: {name}" for name in changed]
+
+    backup = config_path.with_name(config_path.name + BACKUP_SUFFIX)
+    if config_path.is_file() and not backup.exists():
+        shutil.copy2(config_path, backup)
+    mcp.merge(config, "mcpServers", mcp.names(state_path), servers)
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.touch(mode=0o600, exist_ok=True)
+    config_path.write_text(settings_text(config))
+    mcp.save_names(state_path, names)
+    return [f"mcp: {name}" for name in changed]
+
+
 def apply_codex(root=None, check_only=False):
-    """Merge the owned keys into Codex's config.toml and install its rules file.
+    """Merge the owned keys and shared servers into Codex's config.toml and install its rules file.
 
     Returns what differed, as `config: key` or the rules path. Codex writes its config
     itself, so only the owned keys are compared, by value; the rules file is ours whole.
@@ -82,25 +105,33 @@ def apply_codex(root=None, check_only=False):
     install = policy.adapter(emit_codex.NAME)["install"]
     config_path = Path(install["config"]).expanduser()
     rules_path = Path(install["rules"]).expanduser()
+    state_path = Path(install["mcp_state"]).expanduser()
 
     config = tomllib.loads(config_path.read_text()) if config_path.is_file() else {}
+    servers = {name: mcp.for_codex(entry) for name, entry in mcp.load(policy.root).items()}
+    mcp_changes, names = mcp.plan(config, state_path, servers, "mcp_servers")
     changes = [f"config: {key}" for key, value in emit_codex.owned(policy).items()
                if merge.get(config, key) != value]
+    changes += [f"mcp: {name}" for name in mcp_changes]
     rules = emit_codex.rules(policy)
     if not matches(rules_path, rules):
         changes.append(install["rules"])
     if check_only or not changes:
         return changes
 
-    if any(change.startswith("config: ") for change in changes):
+    if any(change.startswith(("config: ", "mcp: ")) for change in changes):
         backup = config_path.with_name(config_path.name + BACKUP_SUFFIX)
         if config_path.is_file() and not backup.exists():
             shutil.copy2(config_path, backup)
         for key, value in emit_codex.owned(policy).items():
             merge.put(config, key, value)
+        if mcp_changes:
+            mcp.merge(config, "mcp_servers", mcp.names(state_path), servers)
         config_path.parent.mkdir(parents=True, exist_ok=True)
         config_path.touch(mode=0o600, exist_ok=True)
         config_path.write_text(tomlw.dumps(config))
+        if mcp_changes:
+            mcp.save_names(state_path, names)
     if install["rules"] in changes:
         rules_path.parent.mkdir(parents=True, exist_ok=True)
         rules_path.write_text(rules)
@@ -122,7 +153,7 @@ def main(argv=None):
     build_command = commands.add_parser("build", help="render every harness's files from policy/")
     build_command.add_argument("--check", action="store_true", help="write nothing; exit 1 on drift")
     apply_command = commands.add_parser("apply", help="merge the policy into a harness's own config")
-    apply_command.add_argument("harness", choices=[emit_codex.NAME])
+    apply_command.add_argument("harness", choices=[emit_claude.NAME, emit_codex.NAME])
     apply_command.add_argument("--check", action="store_true", help="write nothing; exit 1 on changes")
     commands.add_parser("report", help="list the policy rules each harness cannot carry")
     args = parser.parse_args(argv)
@@ -135,7 +166,7 @@ def main(argv=None):
         return 0
 
     if args.command == "apply":
-        changes = apply_codex(check_only=args.check)
+        changes = (apply_claude if args.harness == emit_claude.NAME else apply_codex)(check_only=args.check)
         for entry in changes:
             print(f"{'pending' if args.check else 'changed'}: {entry}")
         print(summary(changes, "changes", "up to date"))

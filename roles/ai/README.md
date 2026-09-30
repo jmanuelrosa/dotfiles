@@ -9,6 +9,7 @@ Everything the harnesses read lives in `files/harness/`, one self-contained tree
 - `AGENTS.md`, `rules/`, `hooks/`, `agents/`, `plugins/`, `statusline.json`, `rtk/`: shared by every harness, by symlink.
 - `kura/catalog/`: standalone skills and agents with their registries, projected into each harness by kura. Seat plugins remain outside this catalog.
 - `policy/`: permissions, sandbox and hooks, written once in neutral TOML.
+- `mcp.json`: user-global MCP server inventory shared across Claude, Pi and Codex without storing credentials.
 - `lib/harnessgen/` and `bin/harness-build`: the stdlib-only generator that renders `policy/` into each harness's spelling. Its suites are in `tests/`.
 - `adapters/<harness>/`: what only that harness reads, an `adapter.toml` for the knobs the policy has no word for, and `generated/` for the files rendered whole.
 
@@ -17,7 +18,7 @@ The link tasks read that table generically, and prune any link in a globbed dire
 
 ## The generator
 
-`make harness` renders every file that differs, `make harness-check` names the drift, `make harness-report` lists what each harness cannot carry, and `make harness-apply` merges the policy into Codex's own config.
+`make harness` renders every file that differs, `make harness-check` names the drift, `make harness-report` lists what each harness cannot carry, and `make harness-apply` merges the policy and shared MCP servers into Codex's own config. `make harness-apply TARGET=claude` merges shared servers into `~/.claude.json`; `CHECK=1` previews either apply.
 Claude's `settings.json` is merged key by key rather than written whole, because a running session writes it too, and it cannot be written from inside a Claude session: run `make harness` with none open.
 The rules, the per-harness translations and what each one loses are in [harnesses](../../docs/internals/harnesses.md).
 
@@ -25,7 +26,8 @@ The rules, the per-harness translations and what each one loses are in [harnesse
 
 - Installs pi-coding-agent, rtk and uv, plus casks for ChatGPT, Claude, Claude Code, Codex, Cursor and Ollama, via `BREW_PACKAGES`.
 - Links each enabled harness's files from `HARNESS_LINKS`: `~/.claude/` for Claude Code, `~/.pi/agent/` for Pi, `~/.codex/` for Codex. Kura owns global agent links instead; the role removes its former Claude agent links and Pi directory bridge only when they still point to its old sources. The neutral `AGENTS.md` is Claude's `~/.claude/CLAUDE.md`, Pi's `~/.pi/agent/AGENTS.md` and Codex's `~/.codex/AGENTS.md`.
-- Runs `harness-build apply codex` on every play, which merges the keys it owns into `~/.codex/config.toml` and writes `~/.codex/rules/dotfiles.rules` as a real file. Neither is a link, because Codex writes both locations itself. After a first run, trust the two hooks once in Codex's `/hooks`.
+- Links `mcp.json` into Pi's global MCP path, refuses a same-named Pi override, and merges its servers into Claude's `~/.claude.json` when enabled. The initial Notion server uses client-managed OAuth, but the existing Notion MCP tool denies remain in force for Claude and Pi.
+- Runs `harness-build apply codex` only when Codex is enabled; otherwise use `make harness-apply` explicitly. It merges owned keys and MCP server names into `~/.codex/config.toml` and writes `~/.codex/rules/dotfiles.rules` as a real file. Neither is a link, because Codex writes both locations itself. After a first run, trust the two hooks once in Codex's `/hooks`.
 - Configures Pi to call Ollama Cloud directly through `models.json`, without `pi-ollama-cloud` or a local Ollama server. `nemotron-3-ultra` and `gpt-oss:120b` are enabled as coding models available on the free account. In Pi, run `/login`, choose API key authentication, select `ollama-cloud`, and paste a key from the Ollama account settings.
 - The Ollama app uses its own account session: run `ollama signin` after provisioning when using the CLI or desktop app.
 - Pi's Cursor models come from the `npm:pi-cursor-sdk` package in `adapters/pi/settings.json`, not from a `cursor` block in `models.json`, which is only for HTTP APIs Pi already speaks. Auth is a Cursor SDK API key saved once with `/login` (or `CURSOR_API_KEY`), then `/cursor-refresh-models` if you logged in after startup. Desktop/CLI login is not reused, and the key stays out of the repo.

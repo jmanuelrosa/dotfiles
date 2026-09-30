@@ -39,10 +39,11 @@ harness:
 harness-check:
 	PYTHONDONTWRITEBYTECODE=1 $(HARNESS_BUILD) build --check
 
-# Merge the policy's owned keys into ~/.codex/config.toml and install its rules file,
-# which the ai role also does on every run. CHECK=1 writes nothing.
+# Merge shared MCP servers into Claude's user config, or Codex's config and rules.
+# Codex stays explicit; the ai role applies Claude during provisioning. CHECK=1 writes nothing.
+TARGET ?= codex
 harness-apply:
-	PYTHONDONTWRITEBYTECODE=1 $(HARNESS_BUILD) apply codex $(if $(CHECK),--check)
+	PYTHONDONTWRITEBYTECODE=1 $(HARNESS_BUILD) apply $(TARGET) $(if $(CHECK),--check)
 
 # Every policy rule a harness receives no counterpart for.
 harness-report:
