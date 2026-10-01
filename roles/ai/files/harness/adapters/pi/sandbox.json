@@ -1,5 +1,7 @@
 {
   "enabled": true,
+  "permissionPromptTimeoutSeconds": 120,
+  "permissionPromptMaxAttempts": 2,
   "network": {
     "allowedDomains": [
       "registry.npmjs.org",
@@ -41,7 +43,9 @@
       "~/Developer/dotfiles/roles/ai/files/harness/kura/catalog/skills",
       "~/Developer/dotfiles/roles/ai/files/harness/hooks",
       "~/Developer/dotfiles/roles/ai/files/harness/plugins",
-      "~/Developer/dotfiles/roles/ai/files/harness/adapters/claude/settings.json"
+      "~/Developer/dotfiles/roles/ai/files/harness/adapters/claude/settings.json",
+      "~/.pi/agent/npm/node_modules/pi-subagents/skills/pi-subagents",
+      "~/.pi/agent/npm/node_modules/pi-ask-user/skills/ask-user"
     ],
     "denyRead": [
       "~/.ssh",

@@ -116,16 +116,19 @@ def sandbox(manifest):
     network = manifest.sandbox["network"]
     filesystem = manifest.sandbox["filesystem"]
     paths = manifest.permissions["paths"]
+    adapter = manifest.adapter(NAME)["sandbox"]
     allow_write = [p for p in filesystem["allow_write"] if not p.startswith("$")]
     return {
         "enabled": True,
+        "permissionPromptTimeoutSeconds": adapter["permissionPromptTimeoutSeconds"],
+        "permissionPromptMaxAttempts": adapter["permissionPromptMaxAttempts"],
         "network": {
             "allowedDomains": list(network["allow_domains"]),
             "allowLocalBinding": bool(network["allow_local_binding"]),
         },
         "filesystem": {
             "allowWrite": allow_write + [DARWIN_TEMP_ROOT],
-            "allowRead": list(filesystem["allow_read"]),
+            "allowRead": unique(list(filesystem["allow_read"]) + adapter["filesystem"]["allowRead"]),
             "denyRead": unique(
                 list(filesystem["deny_read"]) + [to_sandbox_pattern(p) for p in paths["deny_read"]]
             ),

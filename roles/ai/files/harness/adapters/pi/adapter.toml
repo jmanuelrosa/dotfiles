@@ -1,0 +1,9 @@
+[sandbox]
+permissionPromptTimeoutSeconds = 120
+permissionPromptMaxAttempts = 2
+
+[sandbox.filesystem]
+allowRead = [
+  "~/.pi/agent/npm/node_modules/pi-subagents/skills/pi-subagents",
+  "~/.pi/agent/npm/node_modules/pi-ask-user/skills/ask-user",
+]

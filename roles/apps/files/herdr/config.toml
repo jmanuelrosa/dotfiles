@@ -291,7 +291,7 @@ enabled = true
 # Allow launching herdr from inside a herdr-managed pane.
 # allow_nested = false
 # Save recent pane screen history across full server restarts.
-pane_history = false
+pane_history = true
 # While prefix mode is active, temporarily switch the macOS host input
 # source to an ASCII-capable keyboard layout so prefix commands register
 # even when a CJK IME is active, then restore the previous input source

@@ -33,11 +33,13 @@ def test_shared_servers_and_notion_policy():
     assert {"notion", "Notion"} <= set(manifest.load(ROOT).permissions["mcp"]["deny"])
 
 
-def test_pi_native_config_merges_shared_servers_with_its_oauth_settings():
+def test_pi_native_config_merges_shared_servers_with_its_overrides():
     shared = mcp.load(ROOT)
     native = json.loads((ROOT / emit_pi.MCP).read_text())["mcpServers"]
+    assert native == emit_pi.files(manifest.load(ROOT))[emit_pi.MCP]["mcpServers"]
     assert set(native) == set(shared)
-    assert native["notion"] == shared["notion"]
+    assert native["notion"] == {**shared["notion"], "enabled": False}
+    assert "enabled" not in shared["notion"]
     assert native["slack"]["url"] == shared["slack"]["url"]
     assert native["slack"]["oauth"] == {
         "clientId": "185316078694.12036247391600",

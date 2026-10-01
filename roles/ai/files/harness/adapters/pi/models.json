@@ -22,7 +22,7 @@
             "high": "high",
             "xhigh": "xhigh"
           },
-          "contextWindow": 272000,
+          "contextWindow": 1050000,
           "maxTokens": 128000
         },
         "gpt-6-sol": {
