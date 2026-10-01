@@ -64,8 +64,14 @@ Pick the id by benchmark score among high-reputation results. A `/websites/...` 
 
 ## Web (standards, vendors, competitors)
 
-WebSearch / WebFetch for quick external facts. When the external half of the question is itself deep (vendor comparison, standard's edge cases, ecosystem survey), invoke the built-in `/deep-research` skill with the refined sub-question and cite its report as one source.
+Use the current harness's available web-search and page-reading tools for external facts, factual vendor comparisons, and standards research.
+Prefer official sources and keep each search tied to an evidence sub-question.
+If required source access is unavailable, report the gap and request the source text rather than answering from memory.
 
-## Slack (manual paste)
+## Slack
 
-No Slack CLI or MCP exists on this machine. When the request references a thread or channel, ask the user to paste the thread text (sender + message per line is enough). Record the source as "Slack thread pasted by user (YYYY-MM-DD)". Never claim to have read Slack directly.
+When a read-only Slack MCP is available, read the referenced thread, including the parent and replies, and follow pagination until complete.
+Cite the thread permalink and distinguish the author's claims from independently verified facts.
+If Slack access is unavailable or authentication fails, report it and ask for a paste instead of claiming the thread was read.
+For a paste, sender + message per line is enough; record the source as "Slack thread pasted by user (YYYY-MM-DD)".
+Do not send Slack messages or publish the memo to Slack.

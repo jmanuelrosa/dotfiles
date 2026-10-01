@@ -377,6 +377,28 @@ def test_every_registered_skill_has_a_source_on_disk():
     assert missing == [], f"registered skills with no directory: {missing}"
 
 
+def test_to_plan_dependencies_have_registered_sources():
+    registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
+    entries = {entry["name"]: entry for entry in registry["local"]}
+    entries.update(
+        (entry["upstream_path"].rstrip("/").rsplit("/", 1)[-1], entry)
+        for repo in registry["upstream"].values()
+        for entry in repo["skills"]
+    )
+    assert entries["to-plan"]["dependencies"] == ["research", "grilling"]
+
+    pending = list(entries["to-plan"]["dependencies"])
+    visited = set()
+    while pending:
+        name = pending.pop()
+        if name in visited:
+            continue
+        visited.add(name)
+        assert name in entries, f"unregistered dependency: {name}"
+        assert (SKILLS / name / "SKILL.md").is_file(), f"missing dependency: {name}"
+        pending.extend(entries[name].get("dependencies", []))
+
+
 def test_the_global_set_holds_exactly_the_documented_membership():
     """A registry retag changes the global set even while sync is disabled."""
     registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
