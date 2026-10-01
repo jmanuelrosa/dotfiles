@@ -5,12 +5,12 @@ from pathlib import Path
 
 
 FUNCTIONS = Path(__file__).resolve().parents[3] / "roles/shell/files/fish/functions"
-ALIASES = FUNCTIONS.parent / "conf.d/aliases.fish"
+ALIASES = FUNCTIONS.parent / "conf.d/aliases/aliases.fish"
 
 
 def fish(command, home, cwd, reply=""):
     return subprocess.run(
-        ["fish", "--no-config", "-c", f'set -p fish_function_path "{FUNCTIONS}"; {command}'],
+        ["fish", "--no-config", "-c", f'set -p fish_function_path "{FUNCTIONS}"/*; {command}'],
         cwd=cwd,
         env={**os.environ, "HOME": str(home), "NO_COLOR": "1"},
         input=reply,

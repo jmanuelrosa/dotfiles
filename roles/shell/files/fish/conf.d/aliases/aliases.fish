@@ -59,7 +59,7 @@ alias clean:system='mo clean; mo optimize'
 alias clean:all=clean_all
 
 # docker. The engine is a colima VM, so starting "docker" means starting colima;
-# DOCKER_HOST points at that VM's socket in conf.d/exports.fish.
+# DOCKER_HOST points at that VM's socket in conf.d/exports/exports.fish.
 alias docker:start='colima start'
 alias docker:stop='colima stop'
 

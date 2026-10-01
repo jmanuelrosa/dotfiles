@@ -44,7 +44,7 @@ DERIVATIONS = (
 
 
 def source(name):
-    return (FISH_FUNCTIONS / name).read_text()
+    return (FISH_FUNCTIONS / "kura" / name).read_text()
 
 
 @pytest.mark.parametrize("name", CABLES)
@@ -80,9 +80,9 @@ def test_the_toggle_reads_its_direction_from_kura():
 def test_shell_kura_surfaces_match_v030s_skills_only_contract():
     shell = REPO / "roles/shell"
     paths = [
-        shell / "files/fish/conf.d/aliases.fish",
-        shell / "files/fish/functions/_tv_kura_list.fish",
-        shell / "files/fish/functions/_tv_kura_toggle.fish",
+        shell / "files/fish/conf.d/aliases/aliases.fish",
+        shell / "files/fish/functions/kura/_tv_kura_list.fish",
+        shell / "files/fish/functions/kura/_tv_kura_toggle.fish",
         shell / "files/television/config.toml",
     ]
     for path in paths:
@@ -124,7 +124,7 @@ def sources():
 def test_a_retired_helper_is_gone_and_unreferenced(retired):
     """Including from prose: a doc naming one of these is an instruction to keep a
     duplicate in sync, and the duplicate no longer exists."""
-    assert not (FISH_FUNCTIONS / f"{retired}.fish").exists()
+    assert not list(FISH_FUNCTIONS.rglob(f"{retired}.fish"))
     offenders = [str(p.relative_to(REPO)) for p in sources() if retired in p.read_text()]
     assert offenders == [], f"{retired} is gone but still named in: {', '.join(offenders)}"
 

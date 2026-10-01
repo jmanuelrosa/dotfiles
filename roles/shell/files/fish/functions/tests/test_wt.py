@@ -7,7 +7,7 @@ real git worktrees or the user's home config.
 import re
 from pathlib import Path
 
-WT_FISH = Path(__file__).parent.parent / "wt.fish"
+WT_FISH = Path(__file__).parent.parent / "wt/wt.fish"
 
 
 def extract_wt_add_body():

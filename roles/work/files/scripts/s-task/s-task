@@ -4,7 +4,7 @@
 # Usage: s-task JIRA-123
 #        s-task 456
 
-# Output goes through `_ui` (roles/shell/files/fish/functions/_ui.fish), the shared
+# Output goes through `_ui` (roles/shell/files/fish/functions/ui/_ui.fish), the shared
 # vocabulary: a coloured glyph carries the status, and an emoji only ever appears on a
 # heading or on the closing summary.
 
@@ -241,7 +241,7 @@ if set -q _flag_worktree
     # wt is a fish function from the shell role, which the work profile always installs
     # before this one, so its absence means a broken install rather than a missing flag.
     type -q wt
-    or die "--worktree needs the 'wt' fish function (roles/shell/files/fish/functions/wt.fish)"
+    or die "--worktree needs the 'wt' fish function (roles/shell/files/fish/functions/wt/wt.fish)"
 else
     set -g USE_WORKTREE 0
 end

@@ -156,7 +156,7 @@ def fish(command, **env_overrides):
     fish gives every command substitution a pipe of its own, so a helper called inside
     one sees a pipe for fd 1 however the outer command was run, and cannot tell which.
     """
-    preamble = f"set -g fish_function_path {FISH_FUNCTIONS} $fish_function_path\n"
+    preamble = f'set -g fish_function_path "{FISH_FUNCTIONS}/ui" $fish_function_path\n'
     env = {**os.environ, "TERM": "xterm-256color"}
     env.pop("FORCE_COLOR", None)
     env.pop("NO_COLOR", None)
@@ -209,7 +209,7 @@ def test_color_enabled_answers_through_its_exit_status(env, expected):
 
 def fish_render(kind, text):
     """One line as _ui.fish renders it, escape codes included."""
-    preamble = f"set -g fish_function_path {FISH_FUNCTIONS} $fish_function_path\n"
+    preamble = f'set -g fish_function_path "{FISH_FUNCTIONS}/ui" $fish_function_path\n'
     env = {**os.environ, "FORCE_COLOR": "1", "TERM": "xterm-256color"}
     env.pop("NO_COLOR", None)
     result = subprocess.run(
@@ -236,7 +236,7 @@ def test_the_fish_half_refuses_an_unknown_kind():
     """Both halves take their kinds from one table. fish cannot import ui.KINDS, so
     the guarantee it can offer is that a name outside its own switch is an error rather
     than a silently unstyled line."""
-    preamble = f"set -g fish_function_path {FISH_FUNCTIONS} $fish_function_path\n"
+    preamble = f'set -g fish_function_path "{FISH_FUNCTIONS}/ui" $fish_function_path\n'
     result = subprocess.run(
         ["fish", "--no-config", "-c", preamble + "_ui shout hello"],
         capture_output=True,

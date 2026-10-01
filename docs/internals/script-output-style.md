@@ -1,7 +1,7 @@
 # Script output style
 
 
-Every script here prints through **one vocabulary, expressed twice**: [_ui.fish](../../roles/shell/files/fish/functions/_ui.fish) for fish and [dotkit/ui.py](../../lib/python/dotkit/ui.py) for python. Same kinds, same glyphs, same palette, same reset bytes. **Never hand-roll `set_color` / ANSI escapes in a new script**, and never invent a glyph: if a line does not fit a kind below, the kind is missing and belongs in both files.
+Every script here prints through **one vocabulary, expressed twice**: [_ui.fish](../../roles/shell/files/fish/functions/ui/_ui.fish) for fish and [dotkit/ui.py](../../lib/python/dotkit/ui.py) for python. Same kinds, same glyphs, same palette, same reset bytes. **Never hand-roll `set_color` / ANSI escapes in a new script**, and never invent a glyph: if a line does not fit a kind below, the kind is missing and belongs in both files.
 
 | kind | renders | for |
 |---|---|---|
@@ -49,4 +49,4 @@ These are not the only committed symlinks in the repo (`mode 120000`), since the
 
 Fish scripts anywhere, including the work role's, autoload `_ui` from `~/.config/fish/functions`; the `work` profile includes the `shell` role, so it is always present.
 
-**Television cable rows are the one exemption**, and deliberately so: [_tv_kura_fmt](../../roles/shell/files/fish/functions/_tv_kura_list.fish) and [_tv_jira](../../roles/work/files/fish/functions/_tv_jira.fish) emit fixed-width columns for a picker to lay out and filter (`string match -e '[linked]'` reads them back), not lines for a human to read, and `_tv_jira` colours from inside a jq program where `_ui` cannot reach. Their emoji are type icons in a fixed column, not status.
+**Television cable rows are the one exemption**, and deliberately so: [_tv_kura_fmt](../../roles/shell/files/fish/functions/kura/_tv_kura_list.fish) and [_tv_jira](../../roles/work/files/fish/functions/_tv_jira.fish) emit fixed-width columns for a picker to lay out and filter (`string match -e '[linked]'` reads them back), not lines for a human to read, and `_tv_jira` colours from inside a jq program where `_ui` cannot reach. Their emoji are type icons in a fixed column, not status.
