@@ -846,12 +846,17 @@
     {
       "name": "to-plan",
       "groups": [
-        "product",
+        "engineering",
+        "architecture",
+        "planning",
         "workflow",
-        "research",
         "global"
       ],
-      "note": "Locally authored; global signpost to the product-team plugin"
+      "dependencies": [
+        "research",
+        "grilling"
+      ],
+      "note": "Locally authored; composes research and grilling into task plans"
     },
     {
       "name": "ac",

@@ -8,7 +8,7 @@ Fill every section that applies to the mode; drop sections marked for other mode
 | | |
 |---|---|
 | Date | YYYY-MM-DD (add `revised YYYY-MM-DD` when extending) |
-| Mode | feasibility / code deep-dive / general investigation |
+| Mode | feasibility / code deep-dive / general investigation / planning-groundwork |
 | Question | <the one-sentence core question> |
 | Repos examined | <repo names, or "none"> |
 | Requested by / source | <Jira key, Slack thread, Notion doc, or "direct ask"> |
@@ -18,6 +18,7 @@ Fill every section that applies to the mode; drop sections marked for other mode
 <Feasibility mode: **Verdict: Feasible / Feasible with caveats / Not feasible** (confidence: high/medium/low), then 2-4 sentences of why.>
 <Deep-dive mode: the 2-4 sentences you'd tell a teammate about how this area actually works.>
 <General mode: the recommendation and the one fact that drives it.>
+<Planning-groundwork mode: the key current-state facts, constraints, and decisions still needed, without recommending a solution.>
 
 ## Context
 
@@ -60,9 +61,10 @@ Fill every section that applies to the mode; drop sections marked for other mode
 
 ## Sources
 
-<Every source consulted: Jira keys, Notion page ids, PR/issue URLs, doc URLs, "Slack thread pasted by user (YYYY-MM-DD)". One per line.>
+<Every source consulted: Jira keys, Notion page ids, PR/issue URLs, doc URLs, Slack thread permalink (or "Slack thread pasted by user (YYYY-MM-DD)"). One per line.>
 
 ## Next steps
 
 <What decision is needed, from whom, and the concrete follow-up (spike, ticket, PR) if the answer is yes.>
+<Planning-groundwork mode: list unresolved decision questions and evidence gaps for the caller's interview, not a proposed implementation.>
 ```

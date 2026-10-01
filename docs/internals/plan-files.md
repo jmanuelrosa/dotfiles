@@ -12,3 +12,13 @@ Three things about it are load-bearing:
 - **It fails open and never restamps.** The rename is cosmetic, so every error path exits 0 with no output rather than costing the user an approved plan, and an already-dated name is skipped whatever the date, so a plan revised and re-approved keeps the day it was written.
 
 The hook needs no Ansible change: the symlink task globs `files/harness/hooks/*` with `isfile` filtering, as kura's own architecture notes describe.
+
+## Task planning in either harness
+
+The shared [to-plan skill](../../roles/ai/files/harness/kura/catalog/skills/to-plan/SKILL.md) writes `docs/plans/YYYY-MM-DD-<task-slug>.md` directly.
+Use `/skill:to-plan <task>` in Pi or `/to-plan <task>` in Claude Code; both use the same output convention without requiring Claude's native plan mode or its rename hook.
+
+`to-plan` internally loads `research` in fact-only planning-groundwork mode and `grilling` for unresolved decisions, with both dependencies declared in the skill registry.
+Research includes relevant external sources as well as code and retains its cited memo under `.claude/state/research/`; the plan links that evidence and records agreed decisions, ordered tasks, acceptance criteria, and verification.
+Revisions keep the original filename and creation date.
+Plan approval is separate from explicit authorization to implement.
