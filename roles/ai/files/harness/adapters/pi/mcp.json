@@ -1,5 +1,8 @@
 {
   "mcpServers": {
+    "notion": {
+      "enabled": false
+    },
     "slack": {
       "oauth": {
         "clientId": "185316078694.12036247391600",
