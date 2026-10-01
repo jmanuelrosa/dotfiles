@@ -992,5 +992,5 @@ def test_every_committed_site_file_is_what_the_tool_would_write(tool):
 def test_the_lokl_aliases_are_gone():
     """`lokl` owns the proxy verbs now. An alias of the same name is a second
     implementation that drifts, which is why the claude-skill functions went too."""
-    aliases = (REPO / "roles/shell/files/fish/conf.d/aliases.fish").read_text()
+    aliases = (REPO / "roles/shell/files/fish/conf.d/aliases/aliases.fish").read_text()
     assert "alias lokl:" not in aliases

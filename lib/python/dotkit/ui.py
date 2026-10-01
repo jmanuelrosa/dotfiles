@@ -1,6 +1,6 @@
 """The line vocabulary every script in this repo prints through.
 
-The python half of roles/shell/files/fish/functions/_ui.fish, kind for kind and glyph
+The python half of roles/shell/files/fish/functions/ui/_ui.fish, kind for kind and glyph
 for glyph, so a fish function and a python command are indistinguishable on screen.
 Two rules hold the whole style together:
 

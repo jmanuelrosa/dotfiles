@@ -43,6 +43,7 @@
     mode: "0755"
   with_items:
     - .config/fish
+    - .config/fish/conf.d
     - .config/ghostty
     - .config/television/cable
     - .config/television/shell
@@ -69,6 +70,7 @@
     - .config/fish/config.fish
     - .config/fish/conf.d/aliases.fish
     - .config/fish/conf.d/exports.fish
+    - .config/fish/conf.d/gcloud-profiles.fish
     - .config/fish/functions/clean_claude.fish
     - .config/fish/functions/clean_docker.fish
     - .config/fish/functions/clean_node.fish
@@ -134,17 +136,31 @@
   with_items:
     - fish/config.fish
 
-# Globbed for the same reason the functions below are: fish sources conf.d by
-# filename, so a hand-maintained list leaves a new file unsourced and silent, with
-# nothing to notice until the setting it carries turns out never to have applied.
+- name: Discover fish conf.d snippets
+  ansible.builtin.find:
+    paths: "{{ role_path }}/files/fish/conf.d"
+    patterns: "*.fish"
+    file_type: file
+    recurse: true
+  register: fish_confd_sources
+
+- name: Require unique fish conf.d filenames
+  ansible.builtin.assert:
+    that:
+      - fish_confd_names | unique | length == fish_confd_names | length
+    fail_msg: "Fish conf.d snippets must have unique filenames across feature directories"
+  vars:
+    fish_confd_names: "{{ fish_confd_sources.files | map(attribute='path') | map('basename') | list }}"
+
 - name: Symlink fish conf.d
   ansible.builtin.file:
-    src: "{{ item }}"
-    dest: "{{ HOME }}/.config/fish/conf.d/{{ item | basename }}"
+    src: "{{ item.path }}"
+    dest: "{{ HOME }}/.config/fish/conf.d/{{ item.path | basename }}"
     state: link
     force: true
-  with_fileglob:
-    - "{{ role_path }}/files/fish/conf.d/*.fish"
+  loop: "{{ fish_confd_sources.files | sort(attribute='path') }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
 
 - name: Inspect the autoloaded lns function link
   ansible.builtin.stat:
@@ -319,17 +335,31 @@
     - legacy_port_command.stat.isreg | default(false)
     - legacy_port_command.stat.checksum | default('') == SHOO.legacy_port_checksum
 
-# Globbed rather than listed: fish autoloads by filename, so a hand-maintained list
-# silently leaves any new function dead in the shell. It had already drifted by six
-# files (clean_all and wt were never linked at all).
+- name: Discover fish function sources
+  ansible.builtin.find:
+    paths: "{{ role_path }}/files/fish/functions"
+    patterns: "*.fish"
+    file_type: file
+    recurse: true
+  register: fish_function_sources
+
+- name: Require unique fish function filenames
+  ansible.builtin.assert:
+    that:
+      - fish_function_names | unique | length == fish_function_names | length
+    fail_msg: "Fish functions must have unique filenames across feature directories"
+  vars:
+    fish_function_names: "{{ fish_function_sources.files | map(attribute='path') | map('basename') | list }}"
+
 - name: Symlink fish functions
   ansible.builtin.file:
-    src: "{{ item }}"
-    dest: "{{ HOME }}/.config/fish/functions/{{ item | basename }}"
+    src: "{{ item.path }}"
+    dest: "{{ HOME }}/.config/fish/functions/{{ item.path | basename }}"
     state: link
     force: true
-  with_fileglob:
-    - "{{ role_path }}/files/fish/functions/*.fish"
+  loop: "{{ fish_function_sources.files | sort(attribute='path') }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
 
 - name: Discover linked fish functions
   ansible.builtin.find:
@@ -338,22 +368,31 @@
     file_type: link
   register: fish_function_links
 
+- name: Inspect linked fish function targets
+  ansible.builtin.stat:
+    path: "{{ item.path }}"
+    follow: false
+  loop: "{{ fish_function_links.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  register: fish_function_link_stats
+
 # Renaming or folding away a function leaves its symlink dangling, and fish keeps
 # autoloading by filename, so the dead name stays tab-completable forever. Only links
 # pointing back into this role are candidates, so the work role's helpers and anything
 # you linked by hand are left alone.
 - name: Prune fish function symlinks whose source is gone
   ansible.builtin.file:
-    path: "{{ item.path }}"
+    path: "{{ item.item.path }}"
     state: absent
-  loop: "{{ fish_function_links.files }}"
+  loop: "{{ fish_function_link_stats.results }}"
   loop_control:
-    label: "{{ item.path | basename }}"
+    label: "{{ item.item.path | basename }}"
   vars:
     functions_dir: "{{ role_path }}/files/fish/functions"
   when:
-    - (item.lnk_target | default('', true)).startswith(functions_dir ~ '/')
-    - not (functions_dir ~ '/' ~ (item.path | basename)) is exists
+    - item.stat.lnk_source.startswith(functions_dir ~ '/')
+    - (item.item.path | basename) not in (fish_function_sources.files | map(attribute='path') | map('basename') | list)
 
 - name: Symlink television custom channels
   ansible.builtin.file:

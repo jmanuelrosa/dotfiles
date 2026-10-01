@@ -10,7 +10,7 @@
 # Configuration
 # ============================================================================
 
-# Output goes through `_ui` (roles/shell/files/fish/functions/_ui.fish), the shared
+# Output goes through `_ui` (roles/shell/files/fish/functions/ui/_ui.fish), the shared
 # vocabulary: a coloured glyph carries the status, and an emoji only ever appears on a
 # heading or on the closing summary.
 
