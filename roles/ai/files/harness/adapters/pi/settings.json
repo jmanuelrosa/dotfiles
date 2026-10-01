@@ -5,9 +5,9 @@
     "keepRecentTokens": 10000,
     "reserveTokens": 8192
   },
-  "defaultModel": "gpt-6-sol",
+  "defaultModel": "gpt-6.1-sol",
   "defaultProvider": "openai-codex",
-  "defaultThinkingLevel": "xhigh",
+  "defaultThinkingLevel": "high",
   "modelThinkingLevels": {
     "anthropic/claude-opus-5": "xhigh",
     "anthropic/claude-sonnet-5": "xhigh",
@@ -62,7 +62,8 @@
     "npm:pi-sandbox",
     "npm:@gotgenes/pi-permission-system@27.1.1",
     "npm:pi-ask-user",
-    "npm:pi-subagents"
+    "npm:pi-subagents",
+    "-builtin:mcp"
   ],
   "quietStartup": true,
   "showCacheMissNotices": true,

@@ -208,7 +208,7 @@
       "mcp__Supabase"
     ]
   },
-  "model": "haiku",
+  "model": "opus",
   "fallbackModel": [
     "opus",
     "sonnet"
