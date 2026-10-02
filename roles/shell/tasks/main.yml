@@ -44,6 +44,7 @@
   with_items:
     - .config/fish
     - .config/fish/conf.d
+    - .config/gcloud-profiles
     - .config/ghostty
     - .config/television/cable
     - .config/television/shell
@@ -57,6 +58,7 @@
     - .config/fish/conf.d
     - .config/fish/functions
     - .config/fish/completions
+    - .config/gcloud-profiles
     - .config/ghostty
     - .config/television/cable
     - .config/television/shell
@@ -71,6 +73,7 @@
     - .config/fish/conf.d/aliases.fish
     - .config/fish/conf.d/exports.fish
     - .config/fish/conf.d/gcloud-profiles.fish
+    - .config/gcloud-profiles/config.json
     - .config/fish/functions/clean_claude.fish
     - .config/fish/functions/clean_docker.fish
     - .config/fish/functions/clean_node.fish
@@ -126,6 +129,13 @@
   loop_control:
     label: "{{ item.path | basename }}"
   when: (item.path | basename | regex_replace('\.toml$', '')) not in TV_CABLE_ALLOWLIST
+
+- name: Symlink Google Cloud profile mappings
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/fish/conf.d/gcloud-profiles/config.json"
+    dest: "{{ HOME }}/.config/gcloud-profiles/config.json"
+    state: link
+    force: true
 
 - name: Symlink fish config
   ansible.builtin.file:

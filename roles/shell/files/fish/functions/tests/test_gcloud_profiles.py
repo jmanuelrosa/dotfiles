@@ -1,4 +1,6 @@
+import json
 import os
+import shlex
 import shutil
 import subprocess
 from pathlib import Path
@@ -28,12 +30,22 @@ def home(tmp_path):
 
 
 @pytest.fixture
-def run_fish(home):
+def profiles_config(home):
+    config = home / ".config/gcloud-profiles/config.json"
+    config.parent.mkdir(parents=True)
+    config.write_text(json.dumps({"~/Developer/work/addingwell": "didomi"}))
+    return config
+
+
+@pytest.fixture
+def run_fish(home, profiles_config):
     fish = shutil.which("fish")
     if fish is None:
         pytest.skip("Fish is required for shell behavior tests")
 
-    def run(script, *, configuration=None, cwd=None, interactive=True):
+    def run(
+        script, *, configuration=None, cwd=None, interactive=True, expected_error=None
+    ):
         env = os.environ.copy()
         env.update(
             HOME=str(home),
@@ -42,6 +54,7 @@ def run_fish(home):
             XDG_CACHE_HOME=str(home / ".cache"),
             TERM="dumb",
             TEST_GCLOUD_SNIPPET=str(SNIPPET),
+            TEST_GCLOUD_CONFIG=str(profiles_config),
             TEST_FISH_BINARY=fish,
             PATH=os.pathsep.join((str(home / "bin"), env["PATH"])),
         )
@@ -69,7 +82,11 @@ source "$TEST_GCLOUD_SNIPPET"
             text=True,
             timeout=10,
         )
-        assert (result.returncode, result.stderr) == (0, ""), result.stdout
+        assert result.returncode == 0, (result.stdout, result.stderr)
+        if expected_error is None:
+            assert result.stderr == "", result.stdout
+        else:
+            assert expected_error in result.stderr
         return result.stdout.splitlines()
 
     return run
@@ -113,15 +130,18 @@ show_profile
 
 
 @pytest.mark.parametrize("child_first", [False, True])
-def test_most_specific_mapping_wins_in_either_order(run_fish, child_first):
+def test_most_specific_mapping_wins_in_either_order(
+    run_fish, profiles_config, child_first
+):
     pairs = [
-        '"$HOME/Developer/work/addingwell" didomi',
-        '"$HOME/Developer/work/addingwell/backend" pentla',
+        ("~/Developer/work/addingwell", "didomi"),
+        ("~/Developer/work/addingwell/backend", "pentla"),
     ]
     if child_first:
         pairs.reverse()
+    profiles_config.write_text(json.dumps(dict(pairs)))
     assert run_fish(
-        "set -g GCLOUD_DIRECTORY_PROFILES " + " ".join(pairs) + r"""
+        r"""
 cd "$HOME/Developer/work/addingwell/backend/tests"
 show_profile
 cd ../..
@@ -133,12 +153,12 @@ show_profile
     ) == ["set:pentla", "set:didomi", "set:personal"]
 
 
-def test_transitions_between_roots_preserve_original_snapshot(run_fish):
+def test_transitions_between_roots_preserve_original_snapshot(run_fish, profiles_config):
+    profiles_config.write_text(
+        json.dumps({"~/Developer/work/addingwell": "didomi", "~/other-project": "pentla"})
+    )
     assert run_fish(
         r"""
-set -g GCLOUD_DIRECTORY_PROFILES \
-    "$HOME/Developer/work/addingwell" didomi \
-    "$HOME/other-project" pentla
 cd "$HOME/Developer/work/addingwell"
 show_profile
 cd "$HOME/other-project"
@@ -188,12 +208,12 @@ def test_logical_symlink_path_does_not_match_target(run_fish, home):
     ) == ["set:personal"]
 
 
-def test_roots_with_spaces_and_glob_characters_are_literal(run_fish, home):
+def test_roots_with_spaces_and_glob_characters_are_literal(run_fish, home, profiles_config):
     (home / "project [work]*").mkdir()
     (home / "project w-other").mkdir()
+    profiles_config.write_text(json.dumps({"~/project [work]*": "pentla"}))
     assert run_fish(
         r"""
-set -g GCLOUD_DIRECTORY_PROFILES "$HOME/project [work]*" pentla
 cd "$HOME/project [work]*"
 show_profile
 cd "$HOME/project w-other"
@@ -202,17 +222,144 @@ show_profile
     ) == ["set:pentla", "unset"]
 
 
-@pytest.mark.parametrize("root", ['"$HOME/"', "/"])
-def test_normalized_and_filesystem_roots(run_fish, root):
+@pytest.mark.parametrize("root", ["~/", "/"])
+def test_normalized_and_filesystem_roots(run_fish, profiles_config, root):
+    profiles_config.write_text(
+        json.dumps({root: "personal", "~/Developer/work/addingwell/": "didomi"})
+    )
     assert run_fish(
-        "set -g GCLOUD_DIRECTORY_PROFILES " + root + r""" personal \
-    "$HOME/Developer/work/addingwell/" didomi
+        r"""
 cd "$HOME/other-project"
 show_profile
 cd "$HOME/Developer/work/addingwell/backend"
 show_profile
 """
     ) == ["set:personal", "set:didomi"]
+
+
+def test_absolute_root_loads_from_json(run_fish, home, profiles_config):
+    root = home / "Developer/work/addingwell"
+    profiles_config.write_text(json.dumps({str(root): "pentla"}))
+    assert run_fish(
+        'show_profile; cd "$HOME"; show_profile', cwd=root, configuration="personal"
+    ) == ["set:pentla", "set:personal"]
+
+
+@pytest.mark.parametrize("configuration", [None, "", "personal"])
+def test_empty_config_preserves_environment(run_fish, profiles_config, configuration):
+    profiles_config.write_text("{}")
+    assert run_fish(
+        'show_profile; cd "$HOME/Developer/work/addingwell"; show_profile',
+        configuration=configuration,
+    ) == [profile(configuration), profile(configuration)]
+
+
+@pytest.mark.parametrize("configuration", [None, "", "personal"])
+def test_config_edits_require_source_and_preserve_snapshot(run_fish, configuration):
+    assert run_fish(
+        r"""
+cd "$HOME/Developer/work/addingwell"
+show_profile
+printf '%s\n' '{"~/Developer/work/addingwell": "pentla"}' > "$TEST_GCLOUD_CONFIG"
+cd backend/tests
+show_profile
+source "$TEST_GCLOUD_SNIPPET"
+show_profile
+cd "$HOME"
+show_profile
+""",
+        configuration=configuration,
+    ) == ["set:didomi", "set:didomi", "set:pentla", profile(configuration)]
+
+
+@pytest.mark.parametrize("configuration", [None, "", "personal"])
+def test_empty_config_reload_restores_snapshot(run_fish, configuration):
+    assert run_fish(
+        r"""
+cd "$HOME/Developer/work/addingwell"
+show_profile
+printf '{}\n' > "$TEST_GCLOUD_CONFIG"
+source "$TEST_GCLOUD_SNIPPET"
+show_profile
+cd backend/tests
+show_profile
+""",
+        configuration=configuration,
+    ) == ["set:didomi", profile(configuration), profile(configuration)]
+
+
+@pytest.mark.parametrize("configuration", [None, "", "personal"])
+def test_invalid_startup_config_preserves_environment(
+    run_fish, home, profiles_config, configuration
+):
+    profiles_config.write_text("{")
+    assert run_fish(
+        'show_profile; cd "$HOME"; show_profile',
+        cwd=home / "Developer/work/addingwell",
+        configuration=configuration,
+        expected_error="parse error",
+    ) == [profile(configuration), profile(configuration)]
+
+
+@pytest.mark.parametrize("configuration", [None, "", "personal"])
+def test_failed_reload_discards_partial_output_and_preserves_snapshot(
+    run_fish, configuration
+):
+    assert run_fish(
+        r"""
+cd "$HOME/Developer/work/addingwell"
+show_profile
+printf '%s\n' '{"~/Developer/work/addingwell": "pentla"}' '{' > "$TEST_GCLOUD_CONFIG"
+source "$TEST_GCLOUD_SNIPPET"
+show_profile
+cd "$HOME"
+show_profile
+cd "$HOME/Developer/work/addingwell/backend"
+show_profile
+cd "$HOME"
+show_profile
+""",
+        configuration=configuration,
+        expected_error="parse error",
+    ) == [
+        "set:didomi",
+        "set:didomi",
+        profile(configuration),
+        "set:didomi",
+        profile(configuration),
+    ]
+
+
+@pytest.mark.parametrize("interactive", [False, True])
+def test_jq_runs_only_when_sourced(run_fish, home, interactive):
+    jq = shutil.which("jq")
+    assert jq is not None
+    wrapper = home / "bin/jq"
+    wrapper.write_text(
+        '#!/bin/sh\nprintf "parse\\n" >> "$HOME/jq-calls"\n'
+        f'exec {shlex.quote(jq)} "$@"\n'
+    )
+    wrapper.chmod(0o755)
+    assert run_fish(
+        r"""
+cd "$HOME/Developer/work/addingwell"
+show_profile
+cd backend/tests
+show_profile
+cd "$HOME"
+show_profile
+source "$TEST_GCLOUD_SNIPPET"
+show_profile
+""",
+        interactive=interactive,
+    ) == (
+        ["set:didomi", "set:didomi", "unset", "unset"] if interactive else ["unset"] * 4
+    )
+    calls = home / "jq-calls"
+    if interactive:
+        assert calls.read_text().splitlines() == ["parse", "parse"]
+    else:
+        assert not calls.exists()
 
 
 @pytest.mark.parametrize("configuration", [None, "pentla"])
@@ -287,3 +434,27 @@ def test_provisioning_creates_directory_and_backs_up_snippet():
     )
     assert ".config/fish/conf.d" in directories["with_items"]
     assert ".config/fish/conf.d/gcloud-profiles.fish" in backups["with_items"]
+    assert ".config/gcloud-profiles" in directories["with_items"]
+    backup_directories = next(
+        task for task in tasks if task["name"] == "Ensure backup directories exist"
+    )
+    assert ".config/gcloud-profiles" in backup_directories["with_items"]
+    assert ".config/gcloud-profiles/config.json" in backups["with_items"]
+    mappings = next(
+        task for task in tasks if task["name"] == "Symlink Google Cloud profile mappings"
+    )
+    assert mappings["ansible.builtin.file"] == {
+        "src": "{{ role_path }}/files/fish/conf.d/gcloud-profiles/config.json",
+        "dest": "{{ HOME }}/.config/gcloud-profiles/config.json",
+        "state": "link",
+        "force": True,
+    }
+    defaults = yaml.safe_load((SNIPPET.parents[4] / "defaults/main.yml").read_text())
+    assert "jq" in defaults["BREW_PACKAGES"]["formulas"]
+
+
+def test_shipped_config_contains_the_initial_mappings():
+    assert json.loads(SNIPPET.with_name("config.json").read_text()) == {
+        "~/Developer/work/addingwell": "didomi",
+        "~/Developer/work/pentla": "pentla",
+    }

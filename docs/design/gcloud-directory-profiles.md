@@ -3,6 +3,7 @@
 **Status:** Implemented
 **Author:** Jose Manuel Rosa
 **Date:** 2026-09-30
+**Updated:** 2026-10-02
 **Scope:** Fish startup configuration, shell provisioning, shell tests, and shell documentation.
 
 ## Summary
@@ -17,8 +18,9 @@ Different directory trees belong to different Google Cloud contexts.
 Manually changing the globally active configuration can unintentionally affect another terminal working on a different project.
 The desired workflow is to change directory and have subsequent CLI commands use the matching configuration, while leaving unrelated directories unchanged.
 
-The switcher must not load `.env`, execute `.envrc`, or introduce another dependency.
-Mappings belong in the trusted dotfiles rather than in individual project repositories.
+The switcher must not load `.env` or execute `.envrc`.
+Mappings belong in a trusted, dotfiles-owned JSON configuration rather than in individual project repositories or the event-handler source.
+The shell role provisions jq to parse that file once at startup or explicit reload, keeping parser processes out of directory changes.
 
 ## Non-goals
 
@@ -37,7 +39,8 @@ A startup snippet avoids that problem ([Fish event handlers](https://fishshell.c
 
 The shell role discovers `.fish` snippets recursively under `files/fish/conf.d/` and symlinks them by filename into the user's flat Fish configuration directory.
 The backup list is explicit, so a new snippet needs its own entry (`roles/shell/tasks/main.yml:62-90`).
-Configuration directories are also explicitly created (`roles/shell/tasks/main.yml:39-49`).
+Configuration directories are also explicitly created in the same task file.
+The JSON mapping file needs its own directory, backup entry, and symlink task because the generic discovery only installs `*.fish` files.
 
 `CLOUDSDK_ACTIVE_CONFIG_NAME` selects a configuration for the current process environment without changing Google's global default ([Google Cloud startup documentation](https://docs.cloud.google.com/sdk/gcloud/reference/topic/startup)).
 The switcher therefore does not need to invoke `gcloud config configurations activate`.
@@ -45,7 +48,8 @@ The switcher therefore does not need to invoke `gcloud config configurations act
 ## Design rules
 
 - Run only in interactive Fish shells.
-- Keep mappings and the handler together in one trusted, symlinked startup snippet.
+- Keep mappings in a trusted, symlinked JSON file and load them once when the Fish snippet is sourced.
+- Keep the directory-change handler in Fish so it changes the current shell and performs no parser invocation on directory changes.
 - Match a root itself and its descendants, never a similarly named sibling.
 - Choose the longest matching root when mappings overlap, regardless of their order.
 - Match Fish's logical `$PWD`, not a symlink's resolved target.
@@ -61,16 +65,25 @@ Google Cloud continues to own configurations, account selection, projects, and c
 
 ### 1. Central mapping and startup handler
 
-Create `roles/shell/files/fish/conf.d/gcloud-profiles/gcloud-profiles.fish` with a global, unexported list of alternating directory roots and configuration names:
+Store the mapping in `roles/shell/files/fish/conf.d/gcloud-profiles/config.json`, installed at `~/.config/gcloud-profiles/config.json`:
 
-```fish
-set -g GCLOUD_DIRECTORY_PROFILES \
-    "$HOME/Developer/work/addingwell" didomi
+```json
+{
+  "~/Developer/work/addingwell": "didomi"
+}
 ```
 
-Additional mappings are added as another root/name pair in this list.
-`$HOME` is expanded at startup, rather than embedding a particular user's absolute home directory.
+Each object key is an absolute directory path or a path beginning with `~/`; each value names an existing Google Cloud CLI configuration.
+The loader expands a leading `~/` against the current shell's `$HOME` without evaluating arbitrary environment variables or executable content.
+The JSON object needs no ordering because the longest matching root wins.
+
+`gcloud-profiles.fish` uses jq's NUL-delimited output and Fish's `string split0` to load an unexported in-memory list without splitting spaces or interpreting glob characters.
+The loader replaces that list only after jq succeeds, preserving previously loaded mappings after a malformed edit.
+An empty object clears the list, and the initial handler call restores any outstanding baseline.
+On an invalid initial load, jq prints a diagnostic and no directory override is applied.
+
 The snippet registers a `PWD` variable-change handler and invokes it once immediately, so a terminal opened inside the mapped tree starts with the correct configuration.
+Mapping edits take effect in a new shell or after explicitly sourcing the snippet, not on every directory change.
 
 ### 2. Matching and restoration
 
@@ -89,7 +102,9 @@ A nested shell treats the environment inherited from its parent as its incoming 
 ### 3. Provisioning
 
 Use the shell role's recursive conf.d discovery and flat symlink installation to install the snippet.
-Add `.config/fish/conf.d` to the directory-creation list and `.config/fish/conf.d/gcloud-profiles.fish` to the existing backup list.
+Install jq through the shell role's formulas and create `~/.config/gcloud-profiles` along with its backup directory.
+Include `.config/gcloud-profiles/config.json` in the existing backup flow, then explicitly symlink the tracked JSON there.
+Keep `.config/fish/conf.d` and the snippet's existing backup coverage.
 Do not add an Ansible template or host-variable layer: this repository already uses live symlinks for trusted shell configuration.
 Install through `make run-role ROLE=shell`, which requires the usual interactive passwords.
 
@@ -114,6 +129,9 @@ Install through `make run-role ROLE=shell`, which requires the usual interactive
 - **Project-local `.gcloud-profile` files:** require repository-local artifacts and parent-directory discovery when central ownership is preferred.
 - **Global activation on each directory change:** changes shared state and allows terminals to interfere with each other.
 - **Ansible-rendered mappings:** add provisioning state and delay mapping edits until a playbook run, unlike the existing symlinked shell configuration.
+- **Inline or executable Fish mappings:** avoid a parser dependency but keep mapping edits in executable shell syntax rather than a standard data format.
+- **TOML with Python:** supports a standard, comment-friendly format but adds a larger runtime than jq; local sample parsing was also slower.
+- **Automatic reload on directory changes:** adds file checks and parser state to the event handler when explicit reload is sufficient.
 
 ## Testing Decisions
 
@@ -121,15 +139,19 @@ Add `test_gcloud_profiles.py` to the existing shell suite, `roles/shell/files/fi
 Existing tests such as `test_wt.py` locate their Fish subject relatively; the new tests follow that convention but execute the standalone snippet because source-text checks cannot verify event behavior or restoration.
 
 Use the installed Fish binary with `--no-config`, an isolated temporary home, and temporary directory trees.
-Test startup selection, actual `cd` events, descendant and sibling boundaries, overlapping mappings in both orders, incoming unset/empty/named values, repeated sourcing, per-shell independence, nested-shell baselines, and non-interactive exclusion.
+Give each isolated shell its own JSON configuration and test startup selection, actual `cd` events, descendant and sibling boundaries, overlapping mappings in both orders, incoming unset/empty/named values, repeated sourcing, per-shell independence, nested-shell baselines, and non-interactive exclusion.
+Also test absolute and home-relative roots, empty mappings, edits requiring explicit reload, parse failure with partial output, and preservation of previously loaded mappings and restoration snapshots.
+A recording jq wrapper verifies that parsing happens only at source time and never in non-interactive shells or on directory changes.
+The provisioning assertions cover jq, config and backup directories, the JSON backup entry, the explicit symlink, and the shipped initial mapping.
 Exercise `.envrc` non-execution at runtime and use a fake cloud executable to catch any cloud command invocation.
 Creating an actual `.env` fixture returned `Operation not permitted`, so `.env` exclusion is checked through source-level assertions that there are no project-file loaders or environment-file references.
 Run through `make test`; no vault or cloud credentials are needed.
 Use `UV_OFFLINE=1` when dependency resolution must use uv's existing cache.
 
-Verification: all 26 focused tests passed.
-The full suite completed with 1,352 passed, seven failed, and one skipped.
-The failing tests concern a Minion state-transition timeout, temporary lockfile permission errors, and generated harness sandbox configuration drift; none are in the shell suite.
+Verification for the JSON configuration update: all 45 focused tests passed, and the complete Fish functions suite passed all 55 tests.
+The full suite, run with `GIT_CONFIG_GLOBAL=/dev/null UV_OFFLINE=1 make test` to avoid inaccessible global Git configuration, completed with 1,385 passed, five failed, and one skipped.
+The failures concern a Minion state-transition timeout, Pi permission-package pinning, and temporary lockfile permission errors; none are in the shell suite.
+`make lint` reached the playbook syntax check but could not decrypt the vault, and `make check-role ROLE=shell` could not proceed without the interactive vault and become passwords.
 
 ## Open questions
 
@@ -139,7 +161,9 @@ The failing tests concern a Minion state-transition timeout, temporary lockfile 
 ## Appendix: affected files
 
 - Create `roles/shell/files/fish/conf.d/gcloud-profiles/gcloud-profiles.fish`.
-- Modify `roles/shell/tasks/main.yml` for directory creation and backup coverage.
+- Create `roles/shell/files/fish/conf.d/gcloud-profiles/config.json`.
+- Modify `roles/shell/defaults/main.yml` to provision jq.
+- Modify `roles/shell/tasks/main.yml` for directory creation, backup coverage, and the explicit JSON symlink.
 - Create `roles/shell/files/fish/functions/tests/test_gcloud_profiles.py`.
 - Modify `roles/shell/README.md` to explain mappings, restoration, and credential boundaries.
 - Read `roles/shell/files/fish/config.fish`, `roles/shell/files/fish/functions/tests/test_wt.py`, `pytest.ini`, and `Makefile` as integration and testing references.
