@@ -453,7 +453,8 @@ def test_provisioning_creates_directory_and_backs_up_snippet():
     assert "jq" in defaults["BREW_PACKAGES"]["formulas"]
 
 
-def test_shipped_config_contains_the_initial_mapping():
+def test_shipped_config_contains_the_initial_mappings():
     assert json.loads(SNIPPET.with_name("config.json").read_text()) == {
-        "~/Developer/work/addingwell": "didomi"
+        "~/Developer/work/addingwell": "didomi",
+        "~/Developer/work/pentla": "pentla",
     }
