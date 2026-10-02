@@ -65,6 +65,12 @@ A script is its own process and cannot `cd` the shell that ran it, so landing in
 | `staging` | 5433 | yes | `postgres` | - |
 | `local` | 5432 | no | `testuser` | `testuser` |
 
+`connect` and `dump` accept `-a NAME` / `--account NAME`, where NAME is an existing named Google Cloud CLI configuration, not an account email.
+They default to `didomi`, regardless of the shell's active configuration: `s-db staging --account pentla` or `s-db dump staging --account pentla` selects another configuration.
+New proxies use `--gcloud-auth` with a process-scoped `CLOUDSDK_ACTIVE_CONFIG_NAME`, so credentials come from that configuration's signed-in account instead of Application Default Credentials, refresh through the CLI, and leave the globally active configuration unchanged.
+A running proxy is reused with its original credentials; stop it using the printed `kill` command before selecting another account.
+Local connections, local dumps and restores need no Google Cloud credentials.
+
 `local` is the environment added for these subcommands, and it is the one with nothing to connect: `s-db local` says so and exits 0 rather than treating it as an error.
 Database is `addingwell` throughout. All of it is hardcoded, for the same reason the Cloud SQL instances and `s-release`'s `ORG` are: one org, and a layout that changes rarely enough that a config file would only be a second place to look.
 
