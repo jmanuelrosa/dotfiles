@@ -27,6 +27,7 @@ BREW_PACKAGES:
   formulas:
     - fish
     - fisher
+    - jq
     - starship
     - gnupg
   casks:

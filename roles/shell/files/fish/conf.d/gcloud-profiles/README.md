@@ -2,12 +2,19 @@
 
 `gcloud-profiles.fish` selects an existing Google Cloud CLI configuration when an interactive Fish shell starts in or enters a mapped directory tree.
 The initial mapping is `~/Developer/work/addingwell` and its children to `didomi`.
-Add directory/configuration pairs to the central list:
+Edit the directory-to-configuration object in `~/.config/gcloud-profiles/config.json`:
 
-```fish
-set -g GCLOUD_DIRECTORY_PROFILES \
-    "$HOME/Developer/work/addingwell" didomi
+```json
+{
+  "~/Developer/work/addingwell": "didomi"
+}
 ```
+
+The shell role installs jq and symlinks this file to the tracked `config.json` beside the Fish snippet.
+Run `make run-role ROLE=shell` to install the dependency and configuration link.
+Keys are absolute directory paths or start with `~/`, which expands to the current shell's `$HOME`.
+Other environment variables are not interpolated.
+Values name existing Google Cloud CLI configurations, not account emails.
 
 The longest matching root wins, regardless of list order.
 Matching follows logical `$PWD`: similarly named siblings and unrelated symlink paths do not match.
@@ -21,6 +28,9 @@ After installation or editing the mappings, open a new shell or reload:
 source ~/.config/fish/conf.d/gcloud-profiles.fish
 ```
 
+jq parses the JSON only at startup or explicit reload; changing directory only scans the loaded mappings with Fish builtins.
 Reloading preserves an outstanding restoration snapshot.
+An empty object disables all mappings and restores any captured incoming value on reload.
+If parsing fails, jq prints its diagnostic and the shell keeps its previously loaded mappings; a failed initial load leaves the incoming configuration unchanged.
 The hook never invokes cloud commands, loads `.env` or `.envrc` files, authenticates accounts, or switches Application Default Credentials used by SDKs and Terraform.
 See [the design](../../../../../../docs/design/gcloud-directory-profiles.md) for scope and verification limits.

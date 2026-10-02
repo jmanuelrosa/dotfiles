@@ -2,8 +2,19 @@ if not status is-interactive
   return
 end
 
-set -g GCLOUD_DIRECTORY_PROFILES \
-  "$HOME/Developer/work/addingwell" didomi
+set -l mappings (command jq --raw-output0 'to_entries[] | .key, .value' "$HOME/.config/gcloud-profiles/config.json" | string split0)
+if test $pipestatus[1] -eq 0
+  set -l profiles
+  while set -q mappings[2]
+    set -l root "$mappings[1]"
+    if string match --quiet -- '~/*' "$root"
+      set root "$HOME"(string sub --start 2 -- "$root")
+    end
+    set -a profiles "$root" "$mappings[2]"
+    set mappings $mappings[3..-1]
+  end
+  set -g GCLOUD_DIRECTORY_PROFILES $profiles
+end
 
 function __gcloud_directory_profile --on-variable PWD
   set -l mappings $GCLOUD_DIRECTORY_PROFILES
