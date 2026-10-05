@@ -196,7 +196,7 @@ def test_local_skill_pins_use_selected_providers():
         if name in expected:
             assert model == expected[name]
         if model.startswith("cursor/"):
-            assert model == "cursor/composer-2-5"
+            assert model == "cursor/composer-latest"
 
 
 def test_bundle_agents_use_workload_routes():
