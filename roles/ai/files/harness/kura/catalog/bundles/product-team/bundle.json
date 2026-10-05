@@ -1,0 +1,21 @@
+{
+  "name": "product-team",
+  "description": "Two-gate product pipeline: the nine numbered stage skills plus setup-strategy and the product-lead hub, bundled with the seven agents the stages dispatch and the pt.py checker they run.",
+  "version": "0.2.0",
+  "author": {
+    "name": "Jose Manuel Rosa",
+    "email": "josemanuel.rosamoncayo@gmail.com"
+  },
+  "groups": [
+    "product",
+    "pm",
+    "planning",
+    "documentation",
+    "workflow"
+  ],
+  "requires": {
+    "skills": [
+      "idea-refine"
+    ]
+  }
+}

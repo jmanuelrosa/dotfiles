@@ -5,12 +5,13 @@ released separately now, so what remains is the half this repository can break:
 
   the installer   a pinned release and checksum, machine config, the legacy command and
                   cross-harness link removals, and the commands the role runs
-  the catalog     that the dedicated Kura view exposes skills, agents and their registries,
-                  that every shipped artifact is loadable, that seat routing
+  the catalog     that the dedicated Kura view exposes skills, agents, bundles and their
+                  registries, that every shipped artifact is loadable, that seat routing
                   names every implementer seat, and that `global` means what it should
 
-Kura v0.7 manages skills and standalone agents. The role hands its old agent links off
-to Kura and leaves project-owned plugin links untouched. The tool's own behaviour is
+Kura v0.7 manages skills, standalone agents and bundles. The role hands its old agent
+links off to Kura; the seats and the product pipeline, which used to ship as Claude
+plugins beside the catalog, are bundles inside it. The tool's own behaviour is
 asserted in its own repository against a fixture catalog. Nothing here imports it: the derivations that need its answers ask the
 installed command and skip when it is absent or predates the multi-harness interface.
 """
@@ -23,10 +24,10 @@ import yaml
 from dotkit.testing import (
     AGENT_REGISTRY,
     AGENTS,
+    BUNDLES,
     CATALOG,
     CLAUDE_SETTINGS,
     HARNESS,
-    PLUGINS,
     REPO,
     SKILLS,
     ai_defaults,
@@ -139,13 +140,29 @@ def test_the_catalog_view_exposes_kuras_supported_inputs():
         "skill-registry.json",
         "agents",
         "agent-registry.json",
+        "bundles",
     }
     assert (KURA_CATALOG / "skills").is_dir()
     assert (KURA_CATALOG / "skill-registry.json").is_file()
     assert (KURA_CATALOG / "agents").is_dir()
+    assert (KURA_CATALOG / "bundles").is_dir()
     assert (KURA_CATALOG / "agent-registry.json").is_file()
     assert SKILLS == KURA_CATALOG / "skills"
     assert AGENTS == KURA_CATALOG / "agents"
+
+
+def test_every_bundle_carries_what_kura_refuses_to_install_without():
+    """A bundle with no manifest, no agent or no skill is a catalog error kura names.
+
+    These arrived from `plugins/`, where the manifest was `.claude-plugin/plugin.json` and
+    nothing read it: Claude Code ignored the keys this repository cared about, and kura
+    never looked. `bundle.json` is read, so a missing one is now a bundle that does not
+    exist rather than one that merely looks untagged.
+    """
+    for bundle in sorted(entry for entry in BUNDLES.iterdir() if entry.is_dir()):
+        assert (bundle / "bundle.json").is_file(), bundle.name
+        assert list((bundle / "agents").glob("*.md")), bundle.name
+        assert list((bundle / "skills").glob("*/SKILL.md")), bundle.name
 
 
 def test_kura_convergence_tasks_remain_disabled():
@@ -293,7 +310,7 @@ def test_every_tool_ships_an_executable_named_after_its_directory(role, var, tas
 
 
 def artifact_files():
-    """Catalog skills and plugin-bundled artifacts both need valid frontmatter."""
+    """Catalog skills and bundle-owned artifacts both need valid frontmatter."""
     agents = [p for p in HARNESS.rglob("*.md") if p.parent.name == "agents"]
     return sorted({*SKILLS.rglob("SKILL.md"), *HARNESS.rglob("SKILL.md"), *agents})
 
@@ -330,9 +347,12 @@ def test_every_artifact_ships_frontmatter_a_yaml_parser_accepts():
 
 
 def seat_agents():
-    """Every staff-engineer agent shipped by a seat plugin, with its frontmatter."""
-    for plugin in sorted(PLUGINS.iterdir()):
-        for path in sorted((plugin / "agents").glob("*-staff-engineer.md")):
+    """Every staff-engineer agent shipped by a catalog bundle, with its frontmatter."""
+    for bundle in sorted(BUNDLES.iterdir()):
+        agents_dir = bundle / "agents"
+        if not agents_dir.is_dir():
+            continue
+        for path in sorted(agents_dir.glob("*-staff-engineer.md")):
             block = frontmatter(path)
             yield path, (yaml.safe_load(block) if block else {})
 

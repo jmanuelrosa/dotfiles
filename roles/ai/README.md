@@ -6,8 +6,8 @@ Installs and configures AI tooling: Claude Code, Pi (`@earendil-works/pi-coding-
 
 Everything the harnesses read lives in `files/harness/`, one self-contained tree that `harness.toml` marks as its root, so nothing in it hops out to the rest of the repo by relative path.
 
-- `AGENTS.md`, `rules/`, `hooks/`, `agents/`, `plugins/`, `statusline.json`, `rtk/`: shared by every harness, by symlink.
-- `kura/catalog/`: standalone skills and agents with their registries, projected into each harness by kura. Seat plugins remain outside this catalog.
+- `AGENTS.md`, `rules/`, `hooks/`, `agents/`, `statusline.json`, `rtk/`: shared by every harness, by symlink.
+- `kura/catalog/`: standalone skills and agents with their registries, plus seat and product bundles under `kura/catalog/bundles/`, projected into each harness by kura.
 - `policy/`: permissions, sandbox and hooks, written once in neutral TOML.
 - `mcp.json`: user-global MCP server inventory shared across Claude, Pi and Codex without storing credentials.
 - `lib/harnessgen/` and `bin/harness-build`: the stdlib-only generator that renders `policy/` into each harness's spelling. Its suites are in `tests/`.

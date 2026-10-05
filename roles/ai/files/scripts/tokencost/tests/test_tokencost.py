@@ -255,22 +255,22 @@ def test_since_filters_by_date_but_keeps_undated_records(home):
 
 def test_match_subtotals_the_buckets_that_contain_the_pattern(home):
     write_transcript(home, "-tmp-demo", "s1", [
-        record(ROUND_USAGE, skill="product-team:5-decompose"),
-        record(ROUND_USAGE, skill="product-team:6-verify"),
+        record(ROUND_USAGE, skill="5-decompose"),
+        record(ROUND_USAGE, skill="6-verify"),
         record(ROUND_USAGE, skill="feature-team"),
     ])
-    result = run(home, "demo", "--match", "product-team")
+    result = run(home, "demo", "--match", "5-decompose", "--match", "6-verify")
     assert "matched 2 buckets: $81.00" in result.stdout
-    assert "product-team" in result.stdout
+    assert "5-decompose" in result.stdout
 
 
 def test_match_accepts_several_patterns(home):
     write_transcript(home, "-tmp-demo", "s1", [
-        record(ROUND_USAGE, skill="product-team:5-decompose"),
+        record(ROUND_USAGE, skill="5-decompose"),
         record(ROUND_USAGE, skill="product-lead"),
         record(ROUND_USAGE, skill="unrelated"),
     ])
-    result = run(home, "demo", "--match", "product-team", "--match", "product-lead")
+    result = run(home, "demo", "--match", "5-decompose", "--match", "product-lead")
     assert "matched 2 buckets: $81.00" in result.stdout
 
 

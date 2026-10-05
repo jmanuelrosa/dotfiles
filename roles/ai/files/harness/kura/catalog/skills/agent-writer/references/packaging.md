@@ -1,15 +1,15 @@
 # Packaging a new seat or agent
 
 When to read: the agent and its skill are authored and need to be placed and wired.
-Two packaging paths, decided in mode selection: a seat (it has a paired failure-modes skill) ships as a skills-dir plugin; a utility agent (no paired skill) stays a flat file with a registry row.
+Two packaging paths, decided in mode selection: a seat (it has a paired failure-modes skill) ships as a catalog bundle; a utility agent (no paired skill) stays a flat file with a registry row.
 
-## Seat: a skills-dir plugin
+## Seat: a catalog bundle
 
-A seat and its skill live in one plugin folder, so the coupling cannot drift:
+A seat and its skill live in one bundle folder, so the coupling cannot drift:
 
 ```
-roles/ai/files/harness/plugins/<discipline>/
-├── .claude-plugin/plugin.json
+roles/ai/files/harness/kura/catalog/bundles/<discipline>/
+├── bundle.json
 ├── agents/<seat>.md
 └── skills/<seat>-failure-modes/        (SKILL.md + references/)
 ```
@@ -17,7 +17,7 @@ roles/ai/files/harness/plugins/<discipline>/
 `<discipline>` is the seat name without the `-staff-engineer` suffix (backend, frontend, sre, dx).
 Move the authored files in with `git mv` so history follows them; never leave a seat under the flat `agents/` or `skills/` trees.
 
-### plugin.json
+### bundle.json
 
 ```json
 {
@@ -29,8 +29,7 @@ Move the authored files in with `git mv` so history follows them; never leave a 
 }
 ```
 
-`groups` lives here, not in a registry. Kura v0.3 leaves plugin metadata and lifecycle unmanaged.
-`claude plugin validate <plugin dir>` prints one benign warning ("Unknown field 'groups'. Claude Code ignores it at load time"); that is expected on every seat plugin, not a failure.
+`groups` lives here, not in a registry. Optional catalog skills the seat expects at runtime go in `requires.skills` (for example `frontend-design` on the design bundle).
 
 ### No registry rows
 
@@ -39,9 +38,8 @@ Do not tag the discipline `global`; seats are per-project.
 
 ### How it loads and is provisioned
 
-The folder auto-loads as `<discipline>@skills-dir`; the agent is `<discipline>:<seat>` and the skill is `<discipline>:<seat>-failure-modes`.
-Kura manages standalone catalog agents, but these legacy seat plugins remain outside its catalog. Existing links under `.claude/skills/` remain project-owned state and must be provisioned outside Kura.
-A project-scope plugin loads only in a trusted workspace and only when Claude Code is launched from that repo root; a freshly linked plugin needs a full restart, not `/reload-plugins`.
+Projects install with `kura add <discipline> --type bundle` in an initialized repo. Kura links the agent to `.claude/agents/<seat>.md` (and Pi's agent root) and the failure-modes skill to the harness skill roots under bare names (`backend-failure-modes`, not a prefix).
+After adding a bundle, trust the workspace (`kura trust --on`) and restart the harness from the repo root if artifacts do not appear immediately.
 
 ## Utility agent: flat file plus registry row
 
@@ -65,7 +63,7 @@ Always edit the registry via a python3 round-trip with `json.dump(..., indent=2)
 Tags come from the controlled vocabulary in the repo CLAUDE.md's groups paragraph, in facet order: discipline, persona, technology, topic.
 Reuse an existing tag before coining one; the tooling treats groups as opaque, so no code change is needed either way.
 Coining is legitimate when the fleet already carries the tag (that is how `data` and `security` were coined): add the new tag to the matching facet list in CLAUDE.md as part of the same change.
-The seat convention is `["<discipline>", "<persona-or-domain>"]` in `plugin.json`; the paired skill no longer carries its own group list, since it is not browsable on its own.
+The seat convention is `["<discipline>", "<persona-or-domain>"]` in `bundle.json`; the paired skill no longer carries its own group list, since it is not browsable on its own.
 
 ## Agent frontmatter gotcha
 

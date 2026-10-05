@@ -5,8 +5,8 @@ ignoring the other's. Claude Code reads `effort:` and `disallowedTools:`; Pi's
 pi-subagents extension reads `thinking:` and `disallowed_tools:`. Nothing enforces
 agreement at load time in either harness, so equality here is the guard.
 
-Kura manages standalone agents in native Claude and Pi roots. The AI role removes
-its old links, while project plugin agents remain project-owned legacy links.
+Kura manages standalone agents and bundle-owned ones in native Claude and Pi roots.
+The AI role removes its old links.
 """
 
 import json
@@ -14,7 +14,7 @@ import re
 
 import pytest
 import yaml
-from dotkit.testing import AGENTS, CLAUDE, PI, PLUGINS, REPO, SKILLS, harness_dirs, harness_links
+from dotkit.testing import AGENTS, BUNDLES, CLAUDE, PI, REPO, SKILLS, harness_dirs, harness_links
 
 AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 PI_SETTINGS = PI / "settings.json"
@@ -34,7 +34,7 @@ def frontmatter_of(path):
 def agent_files():
     """Every agent definition either harness could load: registry agents and seat agents."""
     yield from sorted(AGENTS.glob("*.md"))
-    yield from sorted(PLUGINS.glob("*/agents/*.md"))
+    yield from sorted(BUNDLES.glob("*/agents/*.md"))
 
 
 def dual_keyed():
@@ -277,9 +277,9 @@ CLAUDE_ONLY_SKILL_FRONTMATTER = {
 
 
 def skill_files():
-    """Every SKILL.md either harness could load, local and plugin-bundled."""
+    """Every SKILL.md either harness could load, standalone and bundle-owned."""
     yield from sorted(SKILLS.glob("*/SKILL.md"))
-    yield from sorted(PLUGINS.glob("*/skills/*/SKILL.md"))
+    yield from sorted(BUNDLES.glob("*/skills/*/SKILL.md"))
 
 
 def skills_with_claude_only_keys():

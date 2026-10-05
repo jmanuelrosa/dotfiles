@@ -4,10 +4,10 @@ When to read: at the start of every agent-writer run, to pick the path before to
 
 ## The four modes
 
-- **New implementer seat.** A staff-engineer agent that edits files under a delegated brief (the shipped fleet: backend, frontend, design, mobile, platform, cloud, sre, data, analytics, gtm, database, qa, dx). Full pipeline: research, paired failure-modes skill, audit, sweep. Pin the workload's model per `docs/internals/seat-plugins.md`, not a fleet-wide alias. Ships as a plugin (see `packaging.md`).
+- **New implementer seat.** A staff-engineer agent that edits files under a delegated brief (the shipped fleet: backend, frontend, design, mobile, platform, cloud, sre, data, analytics, gtm, database, qa, dx). Full pipeline: research, paired failure-modes skill, audit, sweep. Pin the workload's model per `docs/internals/seat-plugins.md`, not a fleet-wide alias. Ships as a catalog bundle (see `packaging.md`).
 - **Seat upgrade.** An existing pre-pattern agent gains the failure-modes architecture. Same full pipeline, plus an inventory of what the current file already has and what is seat-specific and must survive (see below).
 - **Advisor seat.** Read-only, never edits files, output is an assessment (security-staff-engineer is the shipped example). Full pipeline with the adaptations in `advisor-adaptation.md`. Model and tools may deliberately differ from the family; preserve them.
-- **Utility agent.** Narrow, single-purpose, usually invoked by one specific skill (product-team:pm-red-team, product-team:adr-scribe, product-team:ac-writer, the researchers). Light path in `utility-agents.md`: no failure-modes pair, no researchers, no audit subagent.
+- **Utility agent.** Narrow, single-purpose, usually invoked by one specific skill (pm-red-team, adr-scribe, ac-writer, the researchers). Light path in `utility-agents.md`: no failure-modes pair, no researchers, no audit subagent.
 
 ## Choosing between seat and utility
 
@@ -26,5 +26,5 @@ List three things from the current file, in the final message and in your workin
 
 ## Where the files go
 
-Canonical home is the dotfiles repo. A seat (implementer or advisor) is a plugin: `roles/ai/files/harness/plugins/<discipline>/` bundling `agents/<seat>.md` and `skills/<seat>-failure-modes/`. A utility agent is flat: `roles/ai/files/harness/agents/<name>.md`.
+Canonical home is the dotfiles repo. A seat (implementer or advisor) is a plugin: `roles/ai/files/harness/kura/catalog/bundles/<discipline>/` bundling `agents/<seat>.md` and `skills/<seat>-failure-modes/`. A utility agent is flat: `roles/ai/files/harness/agents/<name>.md`.
 Project-local is the exception (a seat plugin under `.claude/skills/<discipline>/`, a utility agent under `.claude/agents/`) and skips the registry entirely; confirm with the user before choosing that path.

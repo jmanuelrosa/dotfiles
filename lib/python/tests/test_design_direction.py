@@ -35,9 +35,9 @@ import json
 import re
 
 import pytest
-from dotkit.testing import AGENT_REGISTRY, INSTRUCTIONS, PLUGINS, SKILL_REGISTRY
+from dotkit.testing import AGENT_REGISTRY, BUNDLES, INSTRUCTIONS, SKILL_REGISTRY
 
-DESIGN = PLUGINS / "design"
+DESIGN = BUNDLES / "design"
 DESIGN_AGENT = DESIGN / "agents/design-staff-engineer.md"
 CRAFT = DESIGN / "skills/design-failure-modes/references/craft-and-distinctiveness.md"
 
@@ -66,12 +66,12 @@ DIRECTION_DOC = "docs/design/direction.md"
 
 
 def seat_agents():
-    """Every seat agent that ships, paired with the plugin it belongs to."""
+    """Every seat agent that ships, paired with the bundle it belongs to."""
     return sorted(
-        (plugin.name, path)
-        for plugin in PLUGINS.iterdir()
-        if plugin.is_dir()
-        for path in (plugin / "agents").glob("*-staff-engineer.md")
+        (bundle.name, path)
+        for bundle in BUNDLES.iterdir()
+        if bundle.is_dir()
+        for path in (bundle / "agents").glob("*-staff-engineer.md")
     )
 
 
@@ -97,12 +97,12 @@ def routed_references(text):
     return stems
 
 
-@pytest.mark.parametrize("plugin,path", seat_agents(), ids=lambda v: getattr(v, "name", v))
-def test_every_reference_a_seat_routes_to_exists(plugin, path):
+@pytest.mark.parametrize("bundle,path", seat_agents(), ids=lambda v: getattr(v, "name", v))
+def test_every_reference_a_seat_routes_to_exists(bundle, path):
     """A trigger row pointing at nothing is indistinguishable from a clean checklist."""
-    references = PLUGINS / plugin / "skills" / f"{plugin}-failure-modes" / "references"
+    references = BUNDLES / bundle / "skills" / f"{bundle}-failure-modes" / "references"
     if not references.is_dir():
-        pytest.skip(f"{plugin} bundles no failure-modes references")
+        pytest.skip(f"{bundle} carries no failure-modes references")
     on_disk = {file.stem for file in references.glob("*.md")}
     named = routed_references(path.read_text())
     assert named, f"{path.name} routes to no reference at all; the scan found nothing"
@@ -179,7 +179,7 @@ def test_the_self_check_can_fail_a_design_that_decided_nothing():
 @pytest.mark.parametrize("seat", CONSUMERS)
 def test_no_consuming_seat_routes_to_the_origination_skill(seat):
     """`frontend-design` behind a gate and beside it are not the same offer."""
-    text = (PLUGINS / seat / "agents" / f"{seat}-staff-engineer.md").read_text()
+    text = (BUNDLES / seat / "agents" / f"{seat}-staff-engineer.md").read_text()
     assert "to `frontend-design`" not in text, (
         f"{seat} routes to frontend-design, which bypasses the design seat's direction gate"
     )
@@ -188,7 +188,7 @@ def test_no_consuming_seat_routes_to_the_origination_skill(seat):
 @pytest.mark.parametrize("seat", CONSUMERS)
 def test_every_consuming_seat_reads_the_direction(seat):
     """A direction nobody downstream opens stops at the seat boundary."""
-    text = (PLUGINS / seat / "agents" / f"{seat}-staff-engineer.md").read_text()
+    text = (BUNDLES / seat / "agents" / f"{seat}-staff-engineer.md").read_text()
     assert DIRECTION_DOC in text, f"{seat} never reads {DIRECTION_DOC}"
 
 
@@ -196,15 +196,16 @@ def test_the_design_seat_writes_the_direction_where_the_others_read_it():
     assert DIRECTION_DOC in DESIGN_AGENT.read_text()
 
 
-def test_the_craft_skills_arrive_with_the_plugin():
+def test_the_craft_skills_arrive_with_the_bundle():
     """Routing prose naming a skill nothing installs is decorative.
 
     The seat named `emil-design-eng` and `frontend-design` in its routing table for as
-    long as the manifest declared neither, so a fresh project installed the design plugin
-    and got a trigger table pointing at nothing.
+    long as the manifest declared neither, so a fresh project installed the design seat
+    and got a trigger table pointing at nothing. Under `requires` the names are no longer
+    decorative either way: kura resolves them when the bundle is added.
     """
-    manifest = json.loads((DESIGN / ".claude-plugin/plugin.json").read_text())
-    declared = set(manifest.get("skillDependencies", ()))
+    manifest = json.loads((DESIGN / "bundle.json").read_text())
+    declared = set(manifest.get("requires", {}).get("skills", ()))
     assert {"frontend-design", "emil-design-eng"} <= declared
 
     registry = json.loads(SKILL_REGISTRY.read_text())
@@ -232,9 +233,9 @@ def test_the_dead_topic_tag_stays_dead():
     for value in agents.values():
         if isinstance(value, list):
             offenders += [e["name"] for e in value if "design" in e.get("groups", ())]
-    for manifest in PLUGINS.glob("*/.claude-plugin/plugin.json"):
+    for manifest in BUNDLES.glob("*/bundle.json"):
         if "design" in json.loads(manifest.read_text()).get("groups", ()):
-            offenders.append(manifest.parents[1].name)
+            offenders.append(manifest.parent.name)
     assert not offenders, f"`design` is not a topic tag; use `ui` or the `designer` persona: {offenders}"
 
 
@@ -249,7 +250,7 @@ def test_precedence_is_stated_once_and_pointed_at():
     assert "## Skill precedence" in text
     assert "no skill grants permission" in text.lower()
     for seat in ("design", *CONSUMERS):
-        agent = (PLUGINS / seat / "agents" / f"{seat}-staff-engineer.md").read_text()
+        agent = (BUNDLES / seat / "agents" / f"{seat}-staff-engineer.md").read_text()
         assert POINTER.search(agent), (
             f"{seat} must send a skill conflict to the `Skill precedence` section of AGENTS.md. "
             f"Naming the section alone is satisfied by a sentence that resolves the conflict "

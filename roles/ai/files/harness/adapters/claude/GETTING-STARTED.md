@@ -88,7 +88,7 @@ Greenfield. You have an idea and an empty repo. Running example: *Ledger*, a sub
 **1. Strategy, once per repo.**
 
 ```
-/product-team:setup-strategy
+/setup-strategy
 ```
 
 It interviews you one question at a time for vision, 3-5 bets, non-bets, and OKRs, then writes `docs/strategy/strategy.md`, `docs/strategy/okrs.md` and `docs/strategy/product-team.yml`, and scaffolds the repo. Arrive with a raw idea instead of a strategy and it runs `/idea-refine` first, whose one-pager in `docs/ideas/` seeds the interview. The numbers are always yours: it will not invent a baseline.
@@ -100,19 +100,19 @@ Then `/commit`. Merge before running any initiative.
 **2. Open the initiative.**
 
 ```
-/product-team:0-refine-idea "let a team see every subscription they pay for in one place"
+/0-refine-idea "let a team see every subscription they pay for in one place"
 ```
 
-Writes `docs/initiatives/subscription-visibility/00-brief.md` and `STATUS.md`, and dispatches `product-team:strategy-checker` for a blunt fit verdict against the strategy you just wrote. Then it asks you **Gate 0**: proceed, or kill.
+Writes `docs/initiatives/subscription-visibility/00-brief.md` and `STATUS.md`, and dispatches `strategy-checker` for a blunt fit verdict against the strategy you just wrote. Then it asks you **Gate 0**: proceed, or kill.
 
 A healthy funnel kills most ideas here. Killing at Gate 0 is the pipeline working. Whatever you answer, the reason goes in `STATUS.md` next to your name: a gate that records only "approved" is indistinguishable from one nobody read.
 
 **3. Research, PRD, red team, and Gate 1.**
 
 ```
-/product-team:1-research      # the roster's researchers, in parallel
-/product-team:2-write-prd     # 02-prd.md: SHALL requirements, each with WHEN/THEN scenarios
-/product-team:3-red-team      # pm-red-team attacks the PRD, fixes fold back in  → Gate 1
+/1-research      # the roster's researchers, in parallel
+/2-write-prd     # 02-prd.md: SHALL requirements, each with WHEN/THEN scenarios
+/3-red-team      # pm-red-team attacks the PRD, fixes fold back in  → Gate 1
 ```
 
 Requirements are written as `### R3: {name}` plus a SHALL sentence plus `#### R3.S1` scenarios. Those scenario ids are the traceability currency for everything downstream, so a story claims `R3.S1` rather than restating it.
@@ -122,15 +122,15 @@ Gate 1 comes after the red team on purpose. It is the requirements gate, and req
 **4. Technical shape, then decompose.**
 
 ```
-/product-team:4-tech-shape    # 04-ux-spec.md + 04-design-doc.md + ADRs
-/product-team:5-decompose     # 05-tasks.md, plus thin story headers in the full profile
-/product-team:6-verify        # runs pt.py check, then judges what a script cannot
+/4-tech-shape    # 04-ux-spec.md + 04-design-doc.md + ADRs
+/5-decompose     # 05-tasks.md, plus thin story headers in the full profile
+/6-verify        # runs pt.py check, then judges what a script cannot
 ```
 
 No gate on either. The design gate went because the open decisions at that stage resolve unaided, and the ADRs it used to review are now covered by a `docs/adr/` line in CODEOWNERS. The readiness gate went too, because its mechanical half is now a script:
 
 ```
-python3 .claude/skills/product-team/skills/product-lead/scripts/pt.py check subscription-visibility
+python3 .claude/skills/product-lead/scripts/pt.py check subscription-visibility
 ```
 
 That decides scenario coverage (every requirement claimed by some story or task), id resolution, UX anchors, deferral closure, and size rationales. Run it yourself whenever you like; `6-verify` runs it first and never re-decides it.
@@ -140,8 +140,8 @@ That decides scenario coverage (every requirement claimed by some story or task)
 **5. Push to the board, then record what shipped.**
 
 ```
-/product-team:7-push-to-board   # full profile only
-/product-team:8-living-spec     # at ship time, not before
+/7-push-to-board   # full profile only
+/8-living-spec     # at ship time, not before
 ```
 
 Stage 7 dry-runs first and waits for your Go, then creates the GitHub epic and story issues with each story's claimed scenarios expanded into the body, links them, and adds them to the Project.
@@ -151,7 +151,7 @@ Stage 8 is the one that outlives the initiative. When a requirement's tasks are 
 Lost at any point:
 
 ```
-/product-team:product-lead
+/product-lead
 ```
 
 It runs `pt.py status` over every initiative and tells you the exact next command. Nothing maintains a stage table: which stage is next is derived from the files on disk.
@@ -172,7 +172,7 @@ Constraints: docs/adr/ (accepted ADRs are immutable)"
 Three anchors, always: the story, the PRD, the ADR directory. What happens next:
 
 1. It restates the brief and confirms scope. If it is fuzzy it stops and suggests `/grill-me` first.
-2. It inventories the installed seats (`.claude/agents/`, `~/.claude/agents/`, `claude plugin list`) and names any missing one with the exact `kura add` line.
+2. It inventories the installed seats (`.claude/agents/`, `~/.claude/agents/`, `kura list --type bundle`) and names any missing one with the exact `kura add` line.
 3. It dispatches `architect`, which explores read-only and writes `docs/specs/csv-export.md` with an owner-split work breakdown, exact cross-slice contracts, and ADRs for hard-to-reverse choices.
 4. **It stops at the approval gate** and shows you the objective, acceptance criteria, owner split, and decision items. Nothing is implemented until you say so. It is cheaper to fix a bad plan than bad code.
 5. On approval it dispatches every slice marked `Parallel: yes` in one message so they run concurrently, in isolated git worktrees when there are 2+ of them.
@@ -197,8 +197,8 @@ Then move the issue to Done and pick the next PASS story.
 Same pipeline, less of it. The only real difference is that stage 4 has a real codebase to read.
 
 1. `kura scout` in the repo, install what it suggests, plus `product-team` if the repo runs initiatives.
-2. `/product-team:setup-strategy` **once**, if `docs/strategy/` does not exist yet. Skip it forever after.
-3. Every feature is its own initiative: `/product-team:0-refine-idea` through `/product-team:8-living-spec`.
+2. `/setup-strategy` **once**, if `docs/strategy/` does not exist yet. Skip it forever after.
+3. Every feature is its own initiative: `/0-refine-idea` through `/8-living-spec`.
 4. Stage 4 reads the real code, cites `path:line` for every design claim, fits the existing patterns, and numbers new ADRs after the ones already in `docs/adr/`.
 5. Engineering side is identical: one story, `/feature-team`, review, commit.
 
@@ -213,7 +213,7 @@ Most work is this. A single seat, dispatched directly, no architect and no `/fea
 Ask for the seat by name in the conversation:
 
 ```
-Dispatch backend:backend-staff-engineer with this brief:
+Dispatch backend-staff-engineer with this brief:
 
 Goal: add cursor pagination to GET /subscriptions, which currently returns every row.
 Owns: src/routes/subscriptions.ts, src/services/subscription-list.ts, and their tests.
@@ -224,7 +224,7 @@ Acceptance:
 Note: pre-authorized to add an index migration if the sort key needs one.
 ```
 
-The name matters. A seat installed as a plugin is namespaced by the plugin, so the agent is `backend:backend-staff-engineer`, not `backend-staff-engineer`. `claude plugin list` shows the plugins (`backend@skills-dir`); the agent inside carries the prefix.
+The name matters. A seat installed as a plugin is namespaced by the plugin, so the agent is `backend-staff-engineer`, not `backend-staff-engineer`. `kura list --type bundle` shows the plugins (`backend-staff-engineer`); the agent inside carries the prefix.
 
 A brief that works has four parts, and they are the same four the architect emits per slice:
 
@@ -279,8 +279,8 @@ No pipeline, no architect, often no seat.
 
 | Situation | Start with |
 |---|---|
-| An idea, no repo, no strategy | `/product-team:setup-strategy` |
-| A strategy exists, a new idea arrives | `/product-team:0-refine-idea` |
+| An idea, no repo, no strategy | `/setup-strategy` |
+| A strategy exists, a new idea arrives | `/0-refine-idea` |
 | A PASS story on the board | `/feature-team "<story>"` |
 | A clear feature spanning 2+ seats, no PRD | `/feature-team "<brief>"` |
 | Design needed, dispatch not wanted | `architect` alone |
@@ -292,7 +292,7 @@ No pipeline, no architect, often no seat.
 
 ## Gotchas
 
-**Plugins.** These legacy skills-dir plugins are not in the Kura catalog. Existing project links remain legacy state and still require workspace trust plus a relaunch before Claude loads them. The plugin name is the discipline (`qa`), while the agent inside carries the namespace (`qa:qa-staff-engineer`).
+**Plugins.** These legacy catalog bundles are not in the Kura catalog. Existing project links remain legacy state and still require workspace trust plus a relaunch before Claude loads them. The plugin name is the discipline (`qa`), while the agent inside carries the namespace (`qa:qa-staff-engineer`).
 
 **Global skills have two owned roots.** `kura add --global` on a skill not tagged `global` is a scratch change in both enabled harnesses: it survives until the next `kura sync` and no longer. To make a skill durably global, tag it `global` in the registry. Removing either native global link by hand is undone the same way.
 
@@ -314,11 +314,11 @@ No pipeline, no architect, often no seat.
 |---|---|
 | The reference for all of this | [README.md](README.md) |
 | Keeping a session cheap, and what is not worth optimising | [CONTEXT-TIPS.md](CONTEXT-TIPS.md) |
-| Product pipeline mechanics (layout, the two gates, profiles, deferrals) | [plugins/product-team/skills/product-lead/references/conventions.md](plugins/product-team/skills/product-lead/references/conventions.md) |
-| Product gate protocol per medium, and the revision flow | [plugins/product-team/skills/product-lead/references/gates.md](plugins/product-team/skills/product-lead/references/gates.md) |
+| Product pipeline mechanics (layout, the two gates, profiles, deferrals) | [kura/catalog/bundles/product-team/skills/product-lead/references/conventions.md](kura/catalog/bundles/product-team/skills/product-lead/references/conventions.md) |
+| Product gate protocol per medium, and the revision flow | [kura/catalog/bundles/product-team/skills/product-lead/references/gates.md](kura/catalog/bundles/product-team/skills/product-lead/references/gates.md) |
 | The engineering pipeline, step by step | [skills/feature-team/SKILL.md](skills/feature-team/SKILL.md) |
 | The spec contract and the ADR rules | [architect.md](../../kura/catalog/agents/architect.md) |
-| The UX spec contract (flows, surfaces, the state matrix) | [ux-shaper.md](../../kura/catalog/agents/ux-shaper.md), [plugins/product-team/skills/product-lead/references/templates/ux-spec.md](plugins/product-team/skills/product-lead/references/templates/ux-spec.md) |
+| The UX spec contract (flows, surfaces, the state matrix) | [ux-shaper.md](../../kura/catalog/agents/ux-shaper.md), [kura/catalog/bundles/product-team/skills/product-lead/references/templates/ux-spec.md](kura/catalog/bundles/product-team/skills/product-lead/references/templates/ux-spec.md) |
 | A seat's anatomy, boundaries and report contract | `plugins/<discipline>/agents/<discipline>-staff-engineer.md` |
 | A seat's failure-mode checklists | `plugins/<discipline>/skills/<discipline>-failure-modes/` |
 | `kura` full reference and FAQ | kura's own README, in its repository |

@@ -41,7 +41,7 @@ allow_read = [
   "~/.config/acli",
   "{harness}/kura/catalog/skills",
   "{harness}/hooks",
-  "{harness}/plugins",
+  "{harness}/kura/catalog/bundles",
   "{harness}/adapters/claude/settings.json",
 ]
 deny_read = [

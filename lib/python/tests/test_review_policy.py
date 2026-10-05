@@ -16,9 +16,9 @@ local review cannot read, and linked at the top level it would sit beside CLAUDE
 rule nothing scoped. A repository REVIEW.md is written at the root that reads it, on the
 day hosted Code Review is enabled, and never staged here in the meantime.
 
-The second failure is drift. The policy routes each axis to a seat plugin's failure-modes
+The second failure is drift. The policy routes each axis to a seat bundle's failure-modes
 skill rather than to reference filenames, so retitling a reference upstream cannot strand
-it; renaming or dropping a *seat* still can, and a route to a plugin that does not exist
+it; renaming or dropping a *seat* still can, and a route to a bundle that does not exist
 is a checklist silently never opened.
 
 The policy is split across two files by audience, and the split is what these tests pin.
@@ -48,8 +48,8 @@ import re
 
 import pytest
 from dotkit.testing import (
+    BUNDLES,
     CLAUDE,
-    PLUGINS,
     REPO,
     RULES,
     SKILLS,
@@ -77,7 +77,7 @@ MUTATORS = (
     "performance-optimization",
 )
 
-SEAT_ROUTE = re.compile(r"\b([a-z]+):\1-failure-modes\b")
+SEAT_ROUTE = re.compile(r"\b([a-z]+)-failure-modes\b")
 
 # The harness accepts these six as `/code-review`'s first argument. `ultra` is in the list
 # because it is spellable, not because it is a rung above `max`: it runs in the cloud and
@@ -101,7 +101,7 @@ def call_sites():
     `kura update` replaces them wholesale, so an edit there is discarded on the next
     sync.
     """
-    yield from sorted(PLUGINS.glob("*/agents/*.md"))
+    yield from sorted(BUNDLES.glob("*/agents/*.md"))
     yield from sorted((SKILLS / "feature-team").glob("*.md"))
     yield CLAUDE / "GETTING-STARTED.md"
     yield CLAUDE / "README.md"
@@ -237,7 +237,7 @@ def test_every_seat_the_policy_routes_to_exists():
     missing = [
         seat
         for seat in sorted(routed)
-        if not (PLUGINS / seat / "skills" / f"{seat}-failure-modes" / "SKILL.md").is_file()
+        if not (BUNDLES / seat / "skills" / f"{seat}-failure-modes" / "SKILL.md").is_file()
     ]
     assert missing == [], f"policy routes to seats that do not ship: {missing}"
 

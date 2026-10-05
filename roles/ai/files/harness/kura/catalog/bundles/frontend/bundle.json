@@ -1,0 +1,14 @@
+{
+  "name": "frontend",
+  "description": "Frontend staff-engineer seat bundled with its frontend-failure-modes checklists.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Jose Manuel Rosa",
+    "email": "josemanuel.rosamoncayo@gmail.com"
+  },
+  "groups": [
+    "engineering",
+    "frontend",
+    "observability"
+  ]
+}

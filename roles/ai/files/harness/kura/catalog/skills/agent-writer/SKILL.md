@@ -24,7 +24,7 @@ allowed-tools:
 # Agent Writer
 
 The single canonical workflow for creating or upgrading subagents, the way skill-writer is for skills.
-It encodes the process that shipped the staff-engineer fleet and their failure-modes pairs as skills-dir plugins, so a new agent lands consistent with the family on the first pass instead of after three audits.
+It encodes the process that shipped the staff-engineer fleet and their failure-modes pairs as catalog bundles, so a new agent lands consistent with the family on the first pass instead of after three audits.
 
 Follow the steps in order.
 Load only the reference files required for the step you are on.
@@ -39,7 +39,7 @@ The shipped pairs on disk are the living exemplars; references here describe the
 | author the paired failure-modes skill (router + reference template) | `references/failure-modes-skill.md` |
 | keep agent and skill from contradicting each other (the audit-derived rules) | `references/coherence-rules.md` |
 | brief and run the two background researchers | `references/research-protocol.md` |
-| package a seat as a skills-dir plugin, or wire a utility agent into the registry | `references/packaging.md` |
+| package a seat as a catalog bundle, or wire a utility agent into the registry | `references/packaging.md` |
 | run the final verification sweep | `references/verification-sweep.md` |
 | adapt the pattern for a read-only or advisor seat | `references/advisor-adaptation.md` |
 | build a narrow single-purpose agent instead of a seat | `references/utility-agents.md` |
@@ -49,7 +49,7 @@ The shipped pairs on disk are the living exemplars; references here describe the
 
 1. Read `references/mode-selection.md` and classify the request: new seat, seat upgrade, advisor seat, or utility agent.
 2. Utility agents take the light path in `references/utility-agents.md` and skip Steps 3-4; everything else runs the full pipeline.
-3. Canonical home is this dotfiles repo: a seat is a plugin at `roles/ai/files/harness/plugins/<discipline>/` (agent + skill bundled); a utility agent is flat at `roles/ai/files/harness/agents/`. If invoked elsewhere, ask whether the agent is project-local (a seat plugin under `.claude/skills/`, a utility agent under `.claude/agents/`) before writing anything.
+3. Canonical home is this dotfiles repo: a seat is a bundle at `roles/ai/files/harness/kura/catalog/bundles/<discipline>/` (agent + skill bundled); a utility agent is flat at `roles/ai/files/harness/agents/`. If invoked elsewhere, ask whether the agent is project-local (a seat bundle via `kura add`, a utility agent under `.claude/agents/`) before writing anything.
 4. If the user wants a prompt for a future session rather than the work done now, produce it from `references/session-prompt-template.md` and stop.
 
 ## Step 2: Ground in the canon and the current state
@@ -75,12 +75,12 @@ This is the only question in the whole pipeline; everything else proceeds on the
 1. Author the failure-modes skill per `references/failure-modes-skill.md`.
 2. Write or rewrite the agent per `references/seat-agent-anatomy.md` (or `references/advisor-adaptation.md` for read-only seats).
 3. Apply `references/coherence-rules.md` while writing, not as a cleanup pass.
-4. Package the seat as a skills-dir plugin (or wire a utility agent into the registry) per `references/packaging.md`.
+4. Package the seat as a catalog bundle (or wire a utility agent into the registry) per `references/packaging.md`.
 
 ## Step 6: Fresh-eyes audit
 
-Spawn a synchronous subagent with no prior context to audit the new pair, its `plugin.json` (or the registry entry for a utility agent), and the sibling pair with the sharpest demarcation risk.
-Priority order: contradictions between agent and references (annotation breadth, never-vs-ask-first coherence), packaging (trigger-table domains vs actual reference files, plugin.json or registry entry), technical wrongness (fact-check domain claims: statistics, engine behavior, security semantics), family consistency (section order, report contract, loop numbering), style.
+Spawn a synchronous subagent with no prior context to audit the new pair, its `bundle.json` (or the registry entry for a utility agent), and the sibling pair with the sharpest demarcation risk.
+Priority order: contradictions between agent and references (annotation breadth, never-vs-ask-first coherence), packaging (trigger-table domains vs actual reference files, bundle.json or registry entry), technical wrongness (fact-check domain claims: statistics, engine behavior, security semantics), family consistency (section order, report contract, loop numbering), style.
 Apply its must-fix and should-fix findings.
 
 ## Step 7: Verify and report

@@ -1,7 +1,7 @@
 # Utility agents
 
 When to read: the request is a narrow single-purpose agent, not a discipline seat.
-Shipped examples all live in the `product-team` plugin, under `plugins/product-team/agents/`: `pm-red-team.md`, `adr-scribe.md`, `ac-writer.md`, `competitive-researcher.md`, `strategy-checker.md`. They are bundled rather than registered, so they carry no `agent-registry.json` row and load namespaced as `product-team:<name>`.
+Shipped examples all live in the `product-team` plugin, under `bundles/product-team/agents/`: `pm-red-team.md`, `adr-scribe.md`, `ac-writer.md`, `competitive-researcher.md`, `strategy-checker.md`. They are bundled rather than registered, so they carry no `agent-registry.json` row and load with bare agent names after `kura add product-team --type bundle`.
 
 ## The light path
 
@@ -15,7 +15,7 @@ The whole job is usually under 80 lines of agent file.
 - **Description contract.** State the caller and the exclusivity: "Use ONLY from /<skill> with <inputs>". State the output surface exactly: "writes 01-research/competitive.md and nothing else", or "it writes nothing, its final message IS the verdict".
 - **Context isolation when it is the point.** A red-team or fresh-eyes agent says what it reads and what it must NOT read ("reads the PRD and NOTHING else"); the isolation is the value, so make it a hard rule in the body, not a suggestion.
 - **Body.** Role paragraph, hard rules, a short operating procedure, and an output contract (file template or final-message shape). No detect-the-stack table, no skill routing, no completion-report scaffolding unless the caller consumes it.
-- **Failure honesty.** Even a 40-line agent states what it does when inputs are missing or wrong: report the gap to the caller, never invent (product-team:ac-writer "reports untraceable stories instead of inventing requirements" is the model).
+- **Failure honesty.** Even a 40-line agent states what it does when inputs are missing or wrong: report the gap to the caller, never invent (ac-writer "reports untraceable stories instead of inventing requirements" is the model).
 
 ## Wiring
 
