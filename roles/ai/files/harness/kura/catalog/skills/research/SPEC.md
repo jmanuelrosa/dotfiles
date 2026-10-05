@@ -17,7 +17,7 @@ In scope:
 Out of scope:
 
 - Any code, config, or `.gitignore` modification.
-- Market/user/competitive research for product initiatives (that is `/product-team:1-research`).
+- Market/user/competitive research for product initiatives (that is `/1-research` on the product-team bundle).
 - Implementation plans (owned by `to-plan`), design docs, and ADRs.
 
 ## Users And Trigger Context

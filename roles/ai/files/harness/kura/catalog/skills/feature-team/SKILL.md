@@ -12,9 +12,9 @@ If empty, ask for it before anything else.
 
 1. **Restate the brief** in one sentence and confirm scope.
    If it is fuzzy (multiple readings, unstated constraints), stop and suggest running /grill-me on it first; offer to continue with the current brief only if I decline.
-2. **Inventory the seats.** List `.claude/agents/` and `~/.claude/agents/`, and run `claude plugin list` for skills-dir seat plugins (e.g. `backend@skills-dir`, whose agent shows as `backend:backend-staff-engineer`).
+2. **Inventory the seats.** List `.claude/agents/` and `~/.claude/agents/`, and run `kura list --type bundle --json` for installed seat bundles (e.g. `backend-staff-engineer` linked from the `backend` bundle).
    Report which staff-engineer seats are installed by either mechanism.
-   If the work clearly needs a seat that is missing (tests → qa, migrations → database, pipelines → platform, IaC → cloud, data/dbt → data/analytics, SLOs → sre), report that the project-owned plugin link is missing and wait; Kura v0.3 cannot provision plugins. Frontend/backend cover their slices when no specialist is installed.
+   If the work clearly needs a seat that is missing (tests → qa, migrations → database, pipelines → platform, IaC → cloud, data/dbt → data/analytics, SLOs → sre), report that the bundle is not installed and wait until the user runs `kura add <discipline> --type bundle`. Frontend/backend cover their slices when no specialist is installed.
 3. **Design.** Dispatch the architect subagent with the brief.
    It returns a spec at docs/specs/ plus dispatch briefs per seat.
    If it returns `needs-decision`, bring me the decision brief, collect my answer, and re-dispatch.
@@ -40,11 +40,11 @@ If empty, ask for it before anything else.
    Confirm every report's verification section shows real command output; list anything "not runtime-verified" for me, then suggest `/code-review max` on the combined diff.
    End with the integration report: per-seat status table, acceptance criteria met/unmet, pending ask-first items, gotchas the seats proposed for CLAUDE.md, worktree cleanup confirmed, and the suggested next step (`/code-review max`, then `/commit`).
    Do not commit; that is mine to run.
-   Where the work came from a `docs/initiatives/` story, tick off the `05-tasks.md` lines it completed and name `/product-team:8-living-spec` in the suggested next steps. That stage merges every requirement whose tasks are all done into `docs/specs/`, and nothing in the pipeline is present at ship time to notice it was skipped.
+   Where the work came from a `docs/initiatives/` story, tick off the `05-tasks.md` lines it completed and name `/8-living-spec` in the suggested next steps. That stage merges every requirement whose tasks are all done into `docs/specs/`, and nothing in the pipeline is present at ship time to notice it was skipped.
 
 Single-seat tasks don't need this pipeline - delegate directly instead.
 Use this skill when the work spans two or more seats or needs the architect's spec first.
 
 Under the pi harness, two more substitutions apply besides step 5's `--no-isolate` rule.
-In step 2, inventory project seats from `.agents/agents/` and the project-owned plugin links in `.claude/skills/`; Kura v0.3 reports skills only and `claude plugin list` reports Claude Code's loading, not Pi's.
+In step 2, inventory project seats from `.pi/agents/` and `.claude/agents/` (and `.agents/agents/` on Pi); `kura list --type bundle` reflects declared bundle intent in `kura.json`, not every link a harness may show.
 In step 8, suggest a pi-review run instead of `/code-review max`, which does not exist under pi.

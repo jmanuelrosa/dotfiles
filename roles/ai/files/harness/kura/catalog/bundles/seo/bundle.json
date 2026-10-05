@@ -1,0 +1,15 @@
+{
+  "name": "seo",
+  "description": "SEO staff-engineer seat bundled with its seo-failure-modes checklists.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Jose Manuel Rosa",
+    "email": "josemanuel.rosamoncayo@gmail.com"
+  },
+  "groups": [
+    "engineering",
+    "marketer",
+    "seo",
+    "web"
+  ]
+}

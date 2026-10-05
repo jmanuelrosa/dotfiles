@@ -1,7 +1,7 @@
 # Seat agent anatomy
 
 When to read: writing or rewriting the agent file itself.
-The living exemplars are `plugins/backend/agents/backend-staff-engineer.md` and `plugins/platform/agents/platform-staff-engineer.md` (each bundled with its skill under the same `plugins/<discipline>/`); read them before this file means anything.
+The living exemplars are `bundles/backend/agents/backend-staff-engineer.md` and `bundles/platform/agents/platform-staff-engineer.md` (each bundled with its skill under the same `bundles/<discipline>/`); read them before this file means anything.
 
 ## Budget
 
@@ -49,7 +49,7 @@ It is committable by design, so the seat writes the shape of the codebase there 
 3. `## Operating loop`: 8 numbered steps. Step 1 restates the brief plus the blast radius (which <surfaces, consumers, contracts> the change can reach) and bails to `needs-decision` on ambiguity or ask-first actions. Steps 2-4 point at Steps 1-3 below. Then read-before-writing, small verifiable increments, gate + self-check, report.
 4. `## Step 1: Detect the stack (always, before any edit)`: a signal table (file globs -> what it tells you), ending with the `CLAUDE.md` / `AGENTS.md` row ("outrank everything in this file except the never tier") and a "Different stack?" fallback paragraph.
 5. `## Step 2: Route to installed skills`: inventory, invoke every matching skill, unmatched tech goes to the report as `kura add <name> --type skill`.
-6. `## Step 3: Open the failure-mode checklists`: states that the `<seat>-failure-modes` skill is bundled in this plugin (invoked as `<discipline>:<seat>-failure-modes`) and loads automatically with the agent, the "typical brief fires..." example, then the trigger table of bare domain names (no lookup paths, no not-installed fallback, since a plugin always ships its skill); the domains match the skill's router table in the same order (see `coherence-rules.md`).
+6. `## Step 3: Open the failure-mode checklists`: states that the `<seat>-failure-modes` skill is bundled in this plugin (invoked as `<seat>-failure-modes`) and loads automatically with the agent, the "typical brief fires..." example, then the trigger table of bare domain names (no lookup paths, no not-installed fallback, since a plugin always ships its skill); the domains match the skill's router table in the same order (see `coherence-rules.md`).
 7. `## Ways of thinking`: ~7 bold-led bullets of staff judgment (reversible vs irreversible, invisible consumers, why-not-mechanizable, the seat's own core stances).
 8. `## Red flags: refuse to ship`: ~8 bullets, each a stop-and-fix or `needs-decision` if the brief forces it.
 9. `## Boundaries`: three tiers. ✅ Always (6 bullets; the fifth is "run the gate and self-check before reporting done" and the last is the memory bullet, "record durable stack facts and repo gotchas in your memory directory; the completion report still names them for the caller"). An advisor seat has no `## Boundaries`, so its memory bullet is the last of the `## Hard rules` instead. ⚠️ Ask first ("stop and report `needs-decision` with your recommendation; do not proceed"). 🚫 Never: the seat identity invariants, sibling-surface exclusions with the owning seat named, secrets, lockfiles, `git commit`/`git push`, claiming unrun checks, editing CLAUDE.md.

@@ -2,7 +2,7 @@
 
 When to read: the agent is read-only and produces an assessment instead of a diff.
 An advisor seat still ships as a plugin (see `packaging.md`); only its agent body and skill semantics differ from an implementer seat.
-The shipped example is the `plugins/security/` plugin (`agents/security-staff-engineer.md` + `skills/security-failure-modes/`); read that pair alongside this file.
+The shipped example is the `bundles/security/` plugin (`agents/security-staff-engineer.md` + `skills/security-failure-modes/`); read that pair alongside this file.
 Blindly applying the implementer template to an advisor seat produces nonsense; these are the locked swaps.
 
 ## What the failure modes mean

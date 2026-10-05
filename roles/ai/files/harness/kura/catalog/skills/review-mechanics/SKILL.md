@@ -43,17 +43,17 @@ Every other artifact that tells you to run a review names a level consistent wit
 
 ## Seat routing
 
-A seat's `<seat>:<seat>-failure-modes` skill is the deep checklist for its axes, and its own trigger table picks which references to open.
+A seat's `<discipline>-failure-modes` skill is the deep checklist for its axes, and its own trigger table picks which references to open.
 Invoke the skill rather than naming reference files, so retitling a reference upstream does not strand this guidance.
 
 | Axis | Seats |
 |---|---|
-| Contract and compatibility | `database:database-failure-modes`, `backend:backend-failure-modes`, `platform:platform-failure-modes` |
-| Security and privacy | `security:security-failure-modes`, plus `frontend`, `mobile` and `desktop` for their own security references |
-| Failure visibility and operability | any installed seat's `failure-visibility` reference, and `sre:sre-failure-modes` for alerting and tracing |
-| Test adequacy | `qa:qa-failure-modes` |
+| Contract and compatibility | `database-failure-modes`, `backend-failure-modes`, `platform-failure-modes` |
+| Security and privacy | `security-failure-modes`, plus `frontend`, `mobile` and `desktop` for their own security references |
+| Failure visibility and operability | any installed seat's `failure-visibility` reference, and `sre-failure-modes` for alerting and tracing |
+| Test adequacy | `qa-failure-modes` |
 
-Seats are plugins, so they load only when the plugin is installed in this project, the workspace is trusted, and the session has been restarted.
+Seats are bundles, so they load only when `kura add <discipline> --type bundle` ran in this project, the workspace is trusted, and the harness has been restarted from the repo root.
 Check, then route.
 If the seat is absent, review the axis from the policy and say in the summary that the deep checklist was unavailable.
 Never assume a seat is present because the axis needs it.

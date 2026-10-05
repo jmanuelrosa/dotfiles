@@ -17,10 +17,10 @@ come back in one file while the others have moved on.
 import re
 
 import pytest
-from dotkit.testing import CLAUDE, PLUGINS, REPO
+from dotkit.testing import BUNDLES, CLAUDE, REPO
 
-PLUGIN = PLUGINS / "product-team"
-SKILLS = PLUGIN / "skills"
+BUNDLE = BUNDLES / "product-team"
+SKILLS = BUNDLE / "skills"
 TEMPLATES = SKILLS / "product-lead/references/templates"
 CONVENTIONS = SKILLS / "product-lead/references/conventions.md"
 SCRIPT = SKILLS / "product-lead/scripts/pt.py"
@@ -102,7 +102,7 @@ def test_the_scaffolded_learnings_file_names_the_stage_that_writes_it():
 def test_every_stage_skill_exists_and_is_named_in_the_pipeline_map(name):
     assert (SKILLS / name / "SKILL.md").is_file()
     body = (SKILLS / "product-lead/SKILL.md").read_text(encoding="utf-8")
-    assert f"/product-team:{name}" in body, "a stage the hub never names is a stage nobody runs"
+    assert f"/{name}" in body, "a stage the hub never names is a stage nobody runs"
 
 
 @pytest.mark.parametrize("name", STAGES)
@@ -154,8 +154,8 @@ def test_no_skill_writes_a_stage_status_row():
 
 
 @pytest.mark.parametrize("word", RETIRED)
-def test_the_retired_vocabulary_is_gone_from_the_plugin_and_its_docs(word):
-    """Scoped to the plugin, this scan missed `Local mode` in the walkthrough for a commit.
+def test_the_retired_vocabulary_is_gone_from_the_bundle_and_its_docs(word):
+    """Scoped to the bundle, this scan missed `Local mode` in the walkthrough for a commit.
 
     Case-insensitively, because the one that survived was a bolded heading and the
     vocabulary here is written lowercase.
@@ -163,7 +163,7 @@ def test_the_retired_vocabulary_is_gone_from_the_plugin_and_its_docs(word):
     docs = [CLAUDE / "README.md", CLAUDE / "GETTING-STARTED.md"]
     hits = [
         path.relative_to(REPO)
-        for path in list(PLUGIN.rglob("*.md")) + docs
+        for path in list(BUNDLE.rglob("*.md")) + docs
         if word.lower() in path.read_text(encoding="utf-8").lower()
     ]
     assert not hits, f"{word!r} still appears in {hits}"

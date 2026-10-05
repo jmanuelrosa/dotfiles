@@ -1,6 +1,6 @@
 # Claude
 
-Shared payload for Claude Code and Pi skills, agents, and skills-dir plugins. Kura manages standalone skills and agents through `../../kura/catalog/`. Project plugin links remain project-owned legacy state.
+Shared payload for Claude Code and Pi skills, agents, and catalog bundles. Kura manages standalone skills and agents through `../../kura/catalog/`. Project plugin links remain project-owned legacy state.
 
 This document covers how to **use them in a project** and how to **add new skills and agents to the dotfiles repo** itself.
 
@@ -27,17 +27,17 @@ kura outdated --type skill                       Report which skills are behind 
 kura trust                                       Show or change selected harness trust
 ```
 
-Artifact commands accept `--type skill` and `--type agent`; project plugins remain legacy state. `add` and `remove` also take `--group <tag>` instead of names, and `--global` for temporary machine-wide links. A project is the exact directory containing root `kura.json`; Kura never searches Git or ancestors and `$HOME` is not a project. Full reference, migration behavior and the corner-case FAQ live in Kura's own README.
+Artifact commands accept `--type skill`, `--type agent`, and `--type bundle`. `add` and `remove` also take `--group <tag>` instead of names, and `--global` for temporary machine-wide links. A project is the exact directory containing root `kura.json`; Kura never searches Git or ancestors and `$HOME` is not a project. Full reference, migration behavior and the corner-case FAQ live in Kura's own README.
 
-## Agents and legacy plugins
+## Agents and bundles
 
 Kura links `global`-tagged standalone agents from `../../kura/catalog/agents/` into each harness's native agent root with bare `kura sync`, including their required skills. The AI role removes only its own former agent links and Pi bridge. Use `kura add <name> --type agent` for an initialized project's standalone agent.
 
-Existing project plugin links under `.claude/skills/` and their Pi agent links under `.agents/agents/` remain project-owned legacy state. The role leaves them untouched.
+Seat and product bundles live under `../../kura/catalog/bundles/`. Install them per project with `kura add <name> --type bundle` after `kura init`.
 
 ## Product Team
 
-A two-gate, spec-driven pipeline that takes a raw product idea to an engineering-ready backlog, and then to a living record of what the system actually does. It ships as the `product-team` plugin (see [plugins/product-team/skills/product-lead/SKILL.md](plugins/product-team/skills/product-lead/SKILL.md) for the guide).
+A two-gate, spec-driven pipeline that takes a raw product idea to an engineering-ready backlog, and then to a living record of what the system actually does. It ships as the `product-team` bundle (see [kura/catalog/bundles/product-team/skills/product-lead/SKILL.md](kura/catalog/bundles/product-team/skills/product-lead/SKILL.md) for the guide).
 
 The mental model:
 
@@ -54,8 +54,8 @@ Configuration lives in `docs/strategy/product-team.yml`: the `profile`, the `gat
 
 The pipeline always runs inside one repo and scaffolds `docs/` into it; the only real difference between the two cases is how much code stage 4 has to read.
 
-- **New product (greenfield).** Start in an empty repo (`git init`), run `/product-team:setup-strategy` to establish the strategy and scaffold `docs/`, then open the first initiative with `/product-team:0-refine-idea "<idea>"`. Stage 4 has little or no code to explore, so it asks for stack choices rather than inferring them and writes the design from scratch.
-- **New feature in an existing project (brownfield).** Run `/product-team:setup-strategy` once to capture the strategy and OKRs the product already implies (skip it if `docs/strategy/` already exists), then treat every feature as its own initiative, `/product-team:0-refine-idea` through `/product-team:8-living-spec`. Stage 4 reads the real codebase, cites `path:line` for every design claim, fits existing patterns, and numbers new ADRs after (or supersedes) the ones already in `docs/adr/`.
+- **New product (greenfield).** Start in an empty repo (`git init`), run `/setup-strategy` to establish the strategy and scaffold `docs/`, then open the first initiative with `/0-refine-idea "<idea>"`. Stage 4 has little or no code to explore, so it asks for stack choices rather than inferring them and writes the design from scratch.
+- **New feature in an existing project (brownfield).** Run `/setup-strategy` once to capture the strategy and OKRs the product already implies (skip it if `docs/strategy/` already exists), then treat every feature as its own initiative, `/0-refine-idea` through `/8-living-spec`. Stage 4 reads the real codebase, cites `path:line` for every design claim, fits existing patterns, and numbers new ADRs after (or supersedes) the ones already in `docs/adr/`.
 
 Either way `docs/strategy/`, `docs/adr/` and `docs/specs/` are shared across every initiative in the repo, and each initiative's own artifacts live under `docs/initiatives/{slug}/`.
 
@@ -63,16 +63,16 @@ Either way `docs/strategy/`, `docs/adr/` and `docs/specs/` are shared across eve
 
 | Stage | Reads | Produces | Gate | Agents |
 |---|---|---|---|---|
-| `/product-team:setup-strategy` (once) | interview (optionally seeded by `/idea-refine`) | `docs/strategy/` incl. `product-team.yml`, CODEOWNERS, repo scaffold | strategy | none |
-| `/product-team:0-refine-idea "<idea>"` | interview + strategy | `00-brief.md`, `STATUS.md` | **Gate 0: kill or proceed** | `product-team:strategy-checker` |
-| `/product-team:1-research` | brief | `01-research/` (the roster's researchers + `summary.md`) | none | `product-team:competitive-researcher`, `product-team:user-evidence-researcher`, `product-team:market-sizer` (parallel) |
-| `/product-team:2-write-prd` | brief + research | `02-prd.md`: SHALL requirements with `R{n}.S{k}` scenarios | none | none |
-| `/product-team:3-red-team` | PRD only (fresh eyes) | `03-red-team-report.md`, PRD revision | **Gate 1: the right requirements?** | `product-team:pm-red-team` |
-| `/product-team:4-tech-shape` | PRD + this codebase | `04-ux-spec.md`, `04-design-doc.md`, `docs/adr/` | none; ADRs via CODEOWNERS | `ux-shaper`, `product-team:adr-scribe` |
-| `/product-team:5-decompose` | PRD + UX spec + design doc | `05-tasks.md`, and `05-backlog/` in the full profile | none | `product-team:ac-writer` |
-| `/product-team:6-verify` | tasks + backlog | `06-dor-report.md` | none (full profile only) | none |
-| `/product-team:7-push-to-board` | backlog + DoR report | GitHub issues + Project items | dry-run confirm (full only) | none |
-| `/product-team:8-living-spec` | tasks + PRD | `docs/specs/{capability}/spec.md`, `docs/LEARNINGS.md` | none, at ship time | none |
+| `/setup-strategy` (once) | interview (optionally seeded by `/idea-refine`) | `docs/strategy/` incl. `product-team.yml`, CODEOWNERS, repo scaffold | strategy | none |
+| `/0-refine-idea "<idea>"` | interview + strategy | `00-brief.md`, `STATUS.md` | **Gate 0: kill or proceed** | `strategy-checker` |
+| `/1-research` | brief | `01-research/` (the roster's researchers + `summary.md`) | none | `competitive-researcher`, `user-evidence-researcher`, `market-sizer` (parallel) |
+| `/2-write-prd` | brief + research | `02-prd.md`: SHALL requirements with `R{n}.S{k}` scenarios | none | none |
+| `/3-red-team` | PRD only (fresh eyes) | `03-red-team-report.md`, PRD revision | **Gate 1: the right requirements?** | `pm-red-team` |
+| `/4-tech-shape` | PRD + this codebase | `04-ux-spec.md`, `04-design-doc.md`, `docs/adr/` | none; ADRs via CODEOWNERS | `ux-shaper`, `adr-scribe` |
+| `/5-decompose` | PRD + UX spec + design doc | `05-tasks.md`, and `05-backlog/` in the full profile | none | `ac-writer` |
+| `/6-verify` | tasks + backlog | `06-dor-report.md` | none (full profile only) | none |
+| `/7-push-to-board` | backlog + DoR report | GitHub issues + Project items | dry-run confirm (full only) | none |
+| `/8-living-spec` | tasks + PRD | `docs/specs/{capability}/spec.md`, `docs/LEARNINGS.md` | none, at ship time | none |
 
 A healthy funnel kills most ideas at Gate 0. Killing early is the pipeline working, not failing.
 
@@ -82,18 +82,18 @@ A healthy funnel kills most ideas at Gate 0. Killing early is the pipeline worki
 
 ### Running an initiative
 
-1. `/product-team:setup-strategy` once per repo: interviews you for vision, bets, non-bets, OKRs and the config, then writes `docs/strategy/` and scaffolds the repo. Arrive with a raw idea instead and it first runs `/idea-refine` (the vendored ideation skill), whose one-pager in `docs/ideas/` seeds the interview; the 3-5 bets and human-supplied OKR numbers are still required in full.
-2. `/product-team:0-refine-idea "<your idea>"`: writes `00-brief.md`, pre-filling its interview from a matching `docs/ideas/` one-pager when one exists, runs `product-team:strategy-checker` for a fit verdict, and asks **Gate 0**.
-3. `/product-team:1-research`: fans out to the roster's researchers in parallel (the only fan-out in the pipeline) and synthesizes `01-research/summary.md`, naming any pass the roster skipped as an evidence gap.
-4. `/product-team:2-write-prd`: writes `02-prd.md`, where each requirement is a SHALL with at least one WHEN/THEN scenario, a capability, non-goals, and metrics that name the requirement making them measurable.
-5. `/product-team:3-red-team`: `product-team:pm-red-team` attacks the PRD with fresh eyes; agreed fixes are applied by the skill, and then it asks **Gate 1**. That order is deliberate: on a real initiative the gate was answered first and the report then had to amend an already-approved PRD.
-6. `/product-team:4-tech-shape`: dispatches `ux-shaper` to write `04-ux-spec.md` (every flow, every surface, every state, and the design-system pieces that do not exist yet), then explores this codebase read-only and writes `04-design-doc.md` against those states, closing every deferral aimed at it and stating where validity is enforced relative to deploy and who can read the deployed thing; `product-team:adr-scribe` extracts decisions into the repo-wide `docs/adr/`. `ux-shaper` is a standalone global agent provisioned by the AI role, so this stage and the architect share one definition of a UX spec.
-7. `/product-team:5-decompose`: writes `05-tasks.md`, the whole build in dependency order from an empty repo to accepted, including the toolchain, deploy and acceptance work that could never be a story because no requirement asks for it. In the full profile it also writes thin story headers, and `product-team:ac-writer` fills each one's claimed scenario ids and reports any slice needing a criterion the PRD lacks.
-8. `/product-team:6-verify`: runs `pt.py check --strict` (errors and warnings both fail at DoR time), then judges the four items a script cannot, and writes `06-dor-report.md`. Pinned to Sonnet: it used to inherit an Opus session and cost more than research, the PRD and the red team combined.
-9. `/product-team:7-push-to-board`: dry-runs, asks Go/Cancel, then creates the GitHub epic and story issues with each story's claimed scenarios expanded into the body, links them, and adds them to the Project.
-10. `/product-team:8-living-spec`, at ship time: merges every requirement whose tasks are all checked off into `docs/specs/{capability}/spec.md`, and appends the retrospective to `docs/LEARNINGS.md`. This is the only artifact that outlives the initiative alongside the ADRs.
+1. `/setup-strategy` once per repo: interviews you for vision, bets, non-bets, OKRs and the config, then writes `docs/strategy/` and scaffolds the repo. Arrive with a raw idea instead and it first runs `/idea-refine` (the vendored ideation skill), whose one-pager in `docs/ideas/` seeds the interview; the 3-5 bets and human-supplied OKR numbers are still required in full.
+2. `/0-refine-idea "<your idea>"`: writes `00-brief.md`, pre-filling its interview from a matching `docs/ideas/` one-pager when one exists, runs `strategy-checker` for a fit verdict, and asks **Gate 0**.
+3. `/1-research`: fans out to the roster's researchers in parallel (the only fan-out in the pipeline) and synthesizes `01-research/summary.md`, naming any pass the roster skipped as an evidence gap.
+4. `/2-write-prd`: writes `02-prd.md`, where each requirement is a SHALL with at least one WHEN/THEN scenario, a capability, non-goals, and metrics that name the requirement making them measurable.
+5. `/3-red-team`: `pm-red-team` attacks the PRD with fresh eyes; agreed fixes are applied by the skill, and then it asks **Gate 1**. That order is deliberate: on a real initiative the gate was answered first and the report then had to amend an already-approved PRD.
+6. `/4-tech-shape`: dispatches `ux-shaper` to write `04-ux-spec.md` (every flow, every surface, every state, and the design-system pieces that do not exist yet), then explores this codebase read-only and writes `04-design-doc.md` against those states, closing every deferral aimed at it and stating where validity is enforced relative to deploy and who can read the deployed thing; `adr-scribe` extracts decisions into the repo-wide `docs/adr/`. `ux-shaper` is a standalone global agent provisioned by the AI role, so this stage and the architect share one definition of a UX spec.
+7. `/5-decompose`: writes `05-tasks.md`, the whole build in dependency order from an empty repo to accepted, including the toolchain, deploy and acceptance work that could never be a story because no requirement asks for it. In the full profile it also writes thin story headers, and `ac-writer` fills each one's claimed scenario ids and reports any slice needing a criterion the PRD lacks.
+8. `/6-verify`: runs `pt.py check --strict` (errors and warnings both fail at DoR time), then judges the four items a script cannot, and writes `06-dor-report.md`. Pinned to Sonnet: it used to inherit an Opus session and cost more than research, the PRD and the red team combined.
+9. `/7-push-to-board`: dry-runs, asks Go/Cancel, then creates the GitHub epic and story issues with each story's claimed scenarios expanded into the body, links them, and adds them to the Project.
+10. `/8-living-spec`, at ship time: merges every requirement whose tasks are all checked off into `docs/specs/{capability}/spec.md`, and appends the retrospective to `docs/LEARNINGS.md`. This is the only artifact that outlives the initiative alongside the ADRs.
 
-Run `/product-team:product-lead` at any time for a status board: it runs `pt.py status` over every initiative and prints the exact next command.
+Run `/product-lead` at any time for a status board: it runs `pt.py status` over every initiative and prints the exact next command.
 
 ### Artifact trail
 
@@ -136,15 +136,15 @@ Each is single-artifact and least-privilege: it is dispatched only from its owni
 
 | Agent | Dispatched from | Writes | Role |
 |---|---|---|---|
-| `product-team:strategy-checker` | `/product-team:0-refine-idea` | nothing (verdict only) | Judges brief fit against strategy + OKRs; blunt proceed/kill verdict |
-| `product-team:competitive-researcher` | `/product-team:1-research` | `01-research/competitive.md` | Maps who solves the problem today and where the gaps are |
-| `product-team:user-evidence-researcher` | `/product-team:1-research` | `01-research/user-evidence.md` | Collects public user signals, quoting evidence separately from inference |
-| `product-team:market-sizer` | `/product-team:1-research` | `01-research/sizing.md` | Rough TAM/SAM sizing with arithmetic shown and every assumption labeled |
-| `product-team:pm-red-team` | `/product-team:3-red-team` | `03-red-team-report.md` | Attacks the PRD with fresh eyes, at least 5 severity-labeled challenges |
-| `product-team:adr-scribe` | `/product-team:4-tech-shape` | `docs/adr/NNNN-*.md` | Extracts design decisions into numbered, immutable ADRs |
-| `product-team:ac-writer` | `/product-team:5-decompose` | edits `05-backlog/story-*.md` | Claims and completes: fills each story's scenario ids from the PRD and reports any slice needing a scenario the PRD lacks |
+| `strategy-checker` | `/0-refine-idea` | nothing (verdict only) | Judges brief fit against strategy + OKRs; blunt proceed/kill verdict |
+| `competitive-researcher` | `/1-research` | `01-research/competitive.md` | Maps who solves the problem today and where the gaps are |
+| `user-evidence-researcher` | `/1-research` | `01-research/user-evidence.md` | Collects public user signals, quoting evidence separately from inference |
+| `market-sizer` | `/1-research` | `01-research/sizing.md` | Rough TAM/SAM sizing with arithmetic shown and every assumption labeled |
+| `pm-red-team` | `/3-red-team` | `03-red-team-report.md` | Attacks the PRD with fresh eyes, at least 5 severity-labeled challenges |
+| `adr-scribe` | `/4-tech-shape` | `docs/adr/NNNN-*.md` | Extracts design decisions into numbered, immutable ADRs |
+| `ac-writer` | `/5-decompose` | edits `05-backlog/story-*.md` | Claims and completes: fills each story's scenario ids from the PRD and reports any slice needing a scenario the PRD lacks |
 
-The pipeline skills are all `disable-model-invocation: true` (human-invoked only). The one exception is `idea-refine`, vendored pristine from `addyosmani/agent-skills` and left model-invocable: `/product-team:setup-strategy` and `/product-team:0-refine-idea` invoke it via the Skill tool as their ideation front-end, and it works standalone too. The seven product agents ship inside the project-owned plugin bundle and `ux-shaper` is provisioned globally by the AI role. Kura v0.3 preserves an existing pipeline plugin link as legacy state but does not install one.
+The pipeline skills are all `disable-model-invocation: true` (human-invoked only). The one exception is `idea-refine`, vendored pristine from `addyosmani/agent-skills` and left model-invocable: `/setup-strategy` and `/0-refine-idea` invoke it via the Skill tool as their ideation front-end, and it works standalone too. The seven product agents ship inside the project-owned plugin bundle and `ux-shaper` is provisioned globally by the AI role. Kura v0.3 preserves an existing pipeline plugin link as legacy state but does not install one.
 
 ## Staff-engineer bench
 
@@ -169,15 +169,15 @@ A separate delegation system for building what Product Team specs out. Each seat
 | `qa-staff-engineer` | Unit/integration/e2e tests, test infra, fixtures, flake diagnosis | Modifies application source; reports product bugs back to the caller |
 | `security-staff-engineer` | Read-only assessment: STRIDE threat models, dependency audits, secrets hygiene, authn/authz review | Edits files; auto-delegation during coding (diff review is `/security-review`) |
 
-Each seat is a skills-dir plugin under `roles/ai/files/harness/plugins/<discipline>/` that bundles the agent with its `<discipline>-failure-modes` skill (`frontend-failure-modes`, `backend-failure-modes`, and so on): an audited checklist of that domain's common defects the seat consults before it implements. Because the skill lives inside the plugin folder, `kura add <seat> --type plugin` links the whole plugin into the project and the skill travels with it (invoked as `<discipline>:<discipline>-failure-modes`); the seat loads once the workspace is trusted.
+Each seat is a catalog bundle under `roles/ai/files/harness/kura/catalog/bundles/<discipline>/` that bundles the agent with its `<discipline>-failure-modes` skill (`frontend-failure-modes`, `backend-failure-modes`, and so on): an audited checklist of that domain's common defects the seat consults before it implements. `kura add <discipline> --type bundle` links the agent and skill into the project under bare names (`backend-staff-engineer`, `backend-failure-modes`).
 
-Product Team hands off a backlog; then `/feature-team "<brief>"` runs the build side: `architect` writes the spec, you approve the plan, the available project-owned seats implement in parallel, and the skill verifies and returns an integration report. A seat's **plugin name is the bare discipline** (`backend`); the namespaced `backend:backend-staff-engineer` is how the agent inside is dispatched. Kura v0.3 does not add or remove these plugin links.
+Product Team hands off a backlog; then `/feature-team "<brief>"` runs the build side: `architect` writes the spec, you approve the plan, the installed seats implement in parallel, and the skill verifies and returns an integration report. Dispatch seats by agent filename (`backend-staff-engineer`, not a prefix).
 
 The parallel wave runs in **isolated git worktrees** by default (2+ independent slices; pass `--no-isolate` to keep it in the main checkout). One-file-one-owner stays the primary guarantee against source collisions; the worktree is the mechanism underneath it, fencing each seat's build/test side effects (`node_modules`, build output, generated files) and turning any ownership slip into a visible diff instead of a silent clobber. The architect marks each slice `Parallel: yes|no` and `Depends on:`; the wave (all `Parallel: yes`) dispatches with the Agent tool's `isolation: "worktree"`, and the team lead copies each seat's owned files back into the main checkout (seats never commit, so there is nothing to merge). Held/dependent slices run afterward in the main checkout so they read the integrated work. This relies on `worktree.baseRef: "head"` in [settings.json](settings.json) so seats branch from the current feature tip rather than `origin/main`. It is deliberately **not** wired to the `wt` fish helper: the Agent tool can only isolate subagents into `.claude/worktrees/`, and `wt`'s sibling worktrees fall outside the sandbox write root, so `wt` stays the tool you drive by hand.
 
 ### From backlog to build
 
-Once `/product-team:6-verify` reports ALL PASS, the durable handoff is `docs/initiatives/{slug}/05-backlog/story-{n.m}.md` (backed by the GitHub Project issues `/product-team:7-push-to-board` created), each story a vertical tracer-bullet slice claiming the PRD scenario ids it satisfies and naming the `05-tasks.md` groups that implement it. Read the story with `02-prd.md` open: the story claims `R3.S1`, and the WHEN/THEN text lives in the PRD. Work **one story at a time**: a story is already the unit `/feature-team` and `architect` are built around, so feed one story per run rather than a whole epic.
+Once `/6-verify` reports ALL PASS, the durable handoff is `docs/initiatives/{slug}/05-backlog/story-{n.m}.md` (backed by the GitHub Project issues `/7-push-to-board` created), each story a vertical tracer-bullet slice claiming the PRD scenario ids it satisfies and naming the `05-tasks.md` groups that implement it. Read the story with `02-prd.md` open: the story claims `R3.S1`, and the WHEN/THEN text lives in the PRD. Work **one story at a time**: a story is already the unit `/feature-team` and `architect` are built around, so feed one story per run rather than a whole epic.
 
 The per-story loop:
 
@@ -186,7 +186,7 @@ The per-story loop:
 3. `architect` writes `docs/specs/<feature>.md` with the owner-split work breakdown; you approve at the gate; the seats implement in isolated waves and the skill returns an integration report.
 4. `/code-review max`, then `/commit`, then move the issue to Done and pick the next PASS story.
 
-**Two design docs, one decision record.** `/product-team:4-tech-shape` already wrote `04-design-doc.md`, and `architect` writes its own `docs/specs/<feature>.md`. Either point the architect at `04-design-doc.md` so it inherits those decisions, or let it design fresh from the PRD for an independent check. Whichever you choose, `docs/adr/` is the shared, immutable tie-breaker: the spec honors accepted ADRs and supersedes (never edits) if it diverges, continuing the same global numbering both pipelines use.
+**Two design docs, one decision record.** `/4-tech-shape` already wrote `04-design-doc.md`, and `architect` writes its own `docs/specs/<feature>.md`. Either point the architect at `04-design-doc.md` so it inherits those decisions, or let it design fresh from the PRD for an independent check. Whichever you choose, `docs/adr/` is the shared, immutable tie-breaker: the spec honors accepted ADRs and supersedes (never edits) if it diverges, continuing the same global numbering both pipelines use.
 
 **One UX spec, though.** The states each surface can reach were reviewed, and possibly rewritten, by the `.github/CODEOWNERS` design owner where the repo names one, so point the architect at `04-ux-spec.md` rather than letting it re-derive them from the PRD and throw that review away. Outside the pipeline there is no spec to read, and a brief touching UI comes back `needs-decision` naming the `ux-shaper` run for you to make: the architect cannot dispatch it, which is the design rather than a limitation.
 

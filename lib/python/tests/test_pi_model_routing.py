@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 import yaml
-from dotkit.testing import PI, PLUGINS, SKILLS, SKILL_REGISTRY
+from dotkit.testing import BUNDLES, PI, SKILLS, SKILL_REGISTRY
 
 
 @pytest.fixture(scope="module")
@@ -174,7 +174,7 @@ def test_every_cursor_skill_pin_is_allowed_or_redirected():
     routing = json.loads((PI / "model-routing.json").read_text())
     allowed = {f"cursor/{model}" for model in routing["cursorModels"]}
 
-    for root in (SKILLS, PLUGINS):
+    for root in (SKILLS, BUNDLES):
         for path in root.rglob("SKILL.md"):
             text = path.read_text()
             if not text.startswith("---\n"):
@@ -205,7 +205,7 @@ def test_local_skill_pins_use_selected_providers():
             assert model == "cursor/composer-2-5"
 
 
-def test_plugin_agents_use_workload_routes():
+def test_bundle_agents_use_workload_routes():
     groups = {
         "openai-codex/gpt-5.6-sol": {
             "backend-staff-engineer", "database-staff-engineer", "cloud-staff-engineer",
@@ -224,7 +224,7 @@ def test_plugin_agents_use_workload_routes():
     }
     expected = {name: model for model, names in groups.items() for name in names}
     actual = {}
-    for path in PLUGINS.glob("*/agents/*.md"):
+    for path in BUNDLES.glob("*/agents/*.md"):
         frontmatter = yaml.safe_load(path.read_text().split("---", 2)[1])
         actual[path.stem] = frontmatter["model"]
     assert actual == expected
@@ -241,18 +241,18 @@ def test_product_team_skills_use_direct_workload_routes():
     }
     expected = {name: model for model, names in groups.items() for name in names}
     actual = {}
-    for path in (PLUGINS / "product-team/skills").glob("*/SKILL.md"):
+    for path in (BUNDLES / "product-team/skills").glob("*/SKILL.md"):
         frontmatter = yaml.safe_load(path.read_text().split("---", 2)[1])
         actual[path.parent.name] = frontmatter["model"]
     assert actual == expected
 
 
-def test_plugin_pins_do_not_depend_on_legacy_redirects():
+def test_bundle_pins_do_not_depend_on_legacy_redirects():
     settings = json.loads((PI / "settings.json").read_text())
     enabled = set(settings["enabledModels"])
     routing = json.loads((PI / "model-routing.json").read_text())
     allowed_cursor = {f"cursor/{model}" for model in routing["cursorModels"]}
-    paths = [*PLUGINS.glob("*/agents/*.md"), *PLUGINS.glob("*/skills/*/SKILL.md")]
+    paths = [*BUNDLES.glob("*/agents/*.md"), *BUNDLES.glob("*/skills/*/SKILL.md")]
     for path in paths:
         frontmatter = yaml.safe_load(path.read_text().split("---", 2)[1])
         model = frontmatter.get("model")
