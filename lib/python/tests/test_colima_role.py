@@ -17,13 +17,17 @@ def test_colima_profile_uses_native_virtualization_and_balanced_resources():
     assert {key: config[key] for key in ("cpu", "memory", "disk")} == {
         "cpu": 6,
         "memory": 8,
-        "disk": 100,
+        "disk": 30,
     }
-    assert config["arch"] == "host"
+    assert config["arch"] == "aarch64"
     assert config["runtime"] == "docker"
     assert config["vmType"] == "vz"
     assert config["mountType"] == "virtiofs"
-    assert config["mountInotify"] is True
+    assert config["mountInotify"] is False
+    assert config["portForwarder"] == "grpc"
+    assert config["network"]["address"] is True
+    assert config["docker"]["builder"]["gc"]["enabled"] is True
+    assert config["provision"][0]["mode"] == "system"
     assert config["rosetta"] is False
     assert config["binfmt"] is True
     assert config["kubernetes"]["enabled"] is False

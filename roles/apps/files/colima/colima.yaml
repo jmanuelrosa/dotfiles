@@ -6,7 +6,7 @@ cpu: 6
 # NOTE: value can only be increased after virtual machine has been created.
 #
 # Default: 100
-disk: 100
+disk: 30
 
 # Size of the memory in GiB to be allocated to the virtual machine.
 # Default: 2
@@ -16,7 +16,7 @@ memory: 8
 #
 # NOTE: value cannot be changed after virtual machine is created.
 # Default: host
-arch: host
+arch: aarch64
 
 # Container runtime to be used (docker, containerd).
 #
@@ -35,7 +35,7 @@ modelRunner: docker
 # Set custom hostname for the virtual machine.
 # Default: colima
 #          colima-profile_name for other profiles
-hostname: ""
+hostname: colima
 
 # Kubernetes configuration for the virtual machine.
 kubernetes:
@@ -71,7 +71,7 @@ network:
   # Assign reachable IP address to the virtual machine.
   # NOTE: this is currently macOS only and ignored on Linux.
   # Default: false
-  address: false
+  address: true
 
   # Network mode for the virtual machine (shared, bridged).
   # NOTE: this is currently macOS only and ignored on Linux.
@@ -95,7 +95,7 @@ network:
   # dns: [8.8.8.8, 1.1.1.1]
   #
   # Default: []
-  dns: []
+  dns: null
 
   # DNS hostnames to resolve to custom targets using the internal resolver.
   # This setting has no effect if a custom DNS resolver list is supplied above.
@@ -105,8 +105,7 @@ network:
   # EXAMPLE
   # dnsHosts:
   #   example.com: 1.2.3.4
-  dnsHosts:
-    host.docker.internal: host.lima.internal
+  dnsHosts: {}
 
   # Replicate host IP addresses in the VM. This enables port forwarding to specific
   # host IP addresses.
@@ -150,7 +149,15 @@ forwardAgent: false
 #
 # Colima default behaviour: buildkit enabled
 # Default: {}
-docker: {}
+docker:
+  builder:
+    gc:
+      defaultKeepStorage: 20GB
+      enabled: true
+  log-driver: json-file
+  log-opts:
+    max-file: "3"
+    max-size: 10m
 
 # Virtual Machine type (krunkit, qemu, vz)
 # NOTE: this is macOS 13 only. For Linux and macOS <13.0, qemu is always used.
@@ -168,7 +175,7 @@ vmType: vz
 # none disables port forwarding.
 #
 # Default: ssh
-portForwarder: ssh
+portForwarder: grpc
 
 # Utilise rosetta for amd64 emulation (requires m1 mac and vmType `vz`)
 # Default: false
@@ -197,13 +204,13 @@ mountType: virtiofs
 
 # Propagate inotify file events to the VM.
 # NOTE: this is experimental.
-mountInotify: true
+mountInotify: false
 
 # The CPU type for the virtual machine (requires vmType `qemu`).
 # Options available for host emulation can be checked with: `qemu-system-$(arch) -cpu help`.
 # Instructions are also supported by appending to the cpu type e.g. "qemu64,+ssse3".
 # Default: host
-cpuType: host
+cpuType: ""
 
 # Custom provision scripts for the virtual machine.
 # Provisioning scripts are executed on startup and therefore needs to be idempotent.
@@ -232,7 +239,17 @@ cpuType: host
 #     script: echo "everything is ready"
 #
 # Default: []
-provision: []
+provision:
+  - mode: system
+    script: |
+      #!/bin/sh
+      (
+        for i in $(seq 1 60); do
+          gw=$(ip -4 route show default dev col0 | awk '/via/ {print $3; exit}')
+          [ -n "$gw" ] && ip route replace default via "$gw" dev col0 metric 100 && exit 0
+          sleep 1
+        done
+      ) &
 
 # Modify ~/.ssh/config automatically to include a SSH config for the virtual machine.
 # SSH config will still be generated in $COLIMA_HOME/ssh_config regardless.
