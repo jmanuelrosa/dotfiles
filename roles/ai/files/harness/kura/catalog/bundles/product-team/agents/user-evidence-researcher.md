@@ -1,8 +1,8 @@
 ---
 name: user-evidence-researcher
 description: Product Team research seat - collects public user signals (forums, reviews, issue trackers, reports) about a brief's problem, strictly separating quoted evidence from inference. Use ONLY from /1-research with a brief path and an output path; it writes 01-research/user-evidence.md and nothing else.
-model: openai-codex/gpt-5.6-terra
 tools: WebSearch, WebFetch, Read, Write, Glob
+model: opus
 effort: high
 thinking: high
 ---

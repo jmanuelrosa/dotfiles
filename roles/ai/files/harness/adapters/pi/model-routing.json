@@ -1,26 +1,26 @@
 {
   "cursorModels": [
-    "composer-2-5",
+    "composer-latest",
     "grok-4.7@256k",
     "grok-4.7@500k",
     "grok-4.6",
-    "claude-fable-5-1@1m",
-    "claude-fable-5-1@300k",
-    "claude-opus-5@1m",
-    "claude-sonnet-5@1m",
-    "kimi-k3"
+    "kimi-k3",
+    "glm-5p3"
   ],
-  "redirects": {},
-  "fallbacks": {
-    "anthropic/claude-fable-5-1": ["openai-codex/gpt-6-astra"],
-    "anthropic/claude-opus-5-5": ["openai-codex/gpt-6-sol"],
-    "anthropic/claude-opus-5": ["openai-codex/gpt-6-sol"],
-    "anthropic/claude-sonnet-5": ["openai-codex/gpt-6-sol"],
-    "anthropic/claude-haiku-4-5": ["openai-codex/gpt-6-luna"],
-
-    "cursor/composer-2-5": ["openai-codex/gpt-5.6-luna"],
-    "cursor/grok-4.7@256k": ["openai-codex/gpt-6-sol"],
-    "cursor/grok-4.7@500k": ["openai-codex/gpt-6-sol"],
-    "cursor/grok-4.6": ["openai-codex/gpt-6-sol"]
+  "redirects": {
+    "fable": "openai-codex/gpt-6-astra",
+    "opus": "openai-codex/gpt-6.1-sol",
+    "sonnet": "openai-codex/gpt-6.1-sol",
+    "haiku": "openai-codex/gpt-6-luna",
+    "cursor/composer-2-5": "cursor/composer-latest",
+    "anthropic/claude-fable-5-1": "openai-codex/gpt-6-astra",
+    "anthropic/claude-fable": "openai-codex/gpt-6-astra",
+    "anthropic/claude-opus": "openai-codex/gpt-6.1-sol",
+    "anthropic/claude-opus-5-5": "openai-codex/gpt-6.1-sol",
+    "anthropic/claude-opus-5": "openai-codex/gpt-6.1-sol",
+    "anthropic/claude-sonnet": "openai-codex/gpt-6.1-sol",
+    "anthropic/claude-sonnet-5": "openai-codex/gpt-6.1-sol",
+    "anthropic/claude-haiku": "openai-codex/gpt-6-luna",
+    "anthropic/claude-haiku-4-5": "openai-codex/gpt-6-luna"
   }
 }

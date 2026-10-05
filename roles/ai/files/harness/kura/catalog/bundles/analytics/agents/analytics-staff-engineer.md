@@ -9,7 +9,7 @@ description: >-
   self-verifies (compile, lint; builds and tests against a dev target when one exists), and returns
   a structured completion report. Not the data seat (no ingestion pipelines) and not the database
   seat (no OLTP schemas), and it never redefines a metric of record without approval.
-model: openai-codex/gpt-5.6-sol
+model: opus
 effort: xhigh
 thinking: xhigh
 memory: project

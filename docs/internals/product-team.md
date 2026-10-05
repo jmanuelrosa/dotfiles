@@ -9,19 +9,21 @@ Model assignments follow the approved subscription routing rather than a fleet-w
 
 | Artifacts | Model | Reason |
 |---|---|---|
-| `competitive-researcher`, `market-sizer`, `user-evidence-researcher` | `openai-codex/gpt-5.6-terra` | Bounded evidence collection and synthesis |
-| `pm-red-team`, `strategy-checker` | `openai-codex/gpt-5.6-sol` | Adversarial reasoning and strategic contradictions |
-| `adr-scribe` | `cursor/composer-2-5` | Extract decisions already made, without designing alternatives |
+| `competitive-researcher`, `market-sizer` | `sonnet` | Bounded evidence collection and synthesis |
+| `user-evidence-researcher` | `opus` | Evidence synthesis across user sources |
+| `pm-red-team`, `strategy-checker` | `opus` | Adversarial reasoning and strategic contradictions |
+| `adr-scribe` | `sonnet` | Extract decisions already made, without designing alternatives |
 | `ac-writer` | `sonnet` | Precise acceptance-criteria writing, consistent with the local `ac` skill |
 | `1-research`, `4-tech-shape`, `5-decompose` | `openai-codex/gpt-5.6-sol` | Cross-artifact synthesis, technical planning and decomposition |
 | `2-write-prd` | `anthropic/claude-opus-5` | Requirements synthesis and trade-offs |
 | `setup-strategy`, `0-refine-idea`, `3-red-team`, `6-verify`, `8-living-spec` | `anthropic/claude-sonnet-5` | Interviews, constrained writing and stage coordination |
-| `product-lead`, `7-push-to-board` | `cursor/composer-2-5` | Pipeline dispatch and board operations |
+| `product-lead`, `7-push-to-board` | `cursor/composer-latest` | Pipeline dispatch and board operations |
 
 These are workload-based choices, not comparative benchmark results.
-Provider-qualified model pins are Pi-first, not portable Claude Code model selections; that compatibility trade was accepted when choosing the routes.
+Agent pins are Claude-native, so they mean the same thing in Claude Code; in Pi they run through the [model-routing redirects](harnesses.md).
+The provider-qualified skill pins are Pi-first, not portable Claude Code model selections; that compatibility trade was accepted when choosing the routes.
 Existing effort/thinking pins, tool allowlists and artifact contracts remain unchanged.
-Direct Anthropic skill pins retain the [skill-model fallbacks](harnesses.md), but those fallbacks do not protect agent pins, including `ac-writer` and `adr-scribe`.
+In pi, Anthropic skill and agent pins run through the [model-routing redirects](harnesses.md): skills through `skill-model`, and agents such as `ac-writer` through `subagents.agentOverrides`.
 Cursor on-demand billing must still be disabled to bound Composer charges.
 
 `product-lead` lives *inside* the bundle because it owns the pipeline's shared library: `references/conventions.md` (gates, gate medium, deferrals, profiles), twelve templates, and `scripts/pt.py`, which every stage reaches via `../product-lead/`.
