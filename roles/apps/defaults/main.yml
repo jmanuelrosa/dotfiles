@@ -32,6 +32,9 @@ CADDY_SITES_PATH: "{{ CADDYFILE_PATH | dirname }}/sites"
 # wanted on demand only, so the play's job is to keep this path absent.
 CADDY_BOOT_PLIST: /Library/LaunchDaemons/homebrew.mxcl.caddy.plist
 
+COLIMA_CONFIG_PATH: "{{ HOME }}/.colima/default/colima.yaml"
+COLIMA_CONFIG_BACKUP_PATH: "{{ CURRENT_DIR }}/backups/.colima/default/colima.yaml"
+
 # Tools symlinked onto PATH from files/scripts/, named rather than globbed, for the same
 # reason the ai, work and coreutils roles name theirs: every entry is a directory, and
 # Ansible's fileglob lookup filters matches through os.path.isfile, so a glob would match
