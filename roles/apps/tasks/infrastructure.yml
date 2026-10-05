@@ -23,6 +23,39 @@
     state: link
     force: true
 
+- name: Ensure Colima config and backup directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ COLIMA_CONFIG_PATH | dirname }}"
+    - "{{ COLIMA_CONFIG_BACKUP_PATH | dirname }}"
+
+- name: Inspect existing Colima config
+  ansible.builtin.stat:
+    path: "{{ COLIMA_CONFIG_PATH }}"
+    follow: false
+  register: colima_config
+
+- name: Back up existing Colima config
+  ansible.builtin.copy:
+    src: "{{ COLIMA_CONFIG_PATH }}"
+    dest: "{{ COLIMA_CONFIG_BACKUP_PATH }}"
+    remote_src: true
+    force: false
+    mode: "0644"
+  when:
+    - colima_config.stat.exists
+    - colima_config.stat.lnk_source | default('') != role_path ~ '/files/colima/colima.yaml'
+
+- name: Symlink Colima config
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/colima/colima.yaml"
+    dest: "{{ COLIMA_CONFIG_PATH }}"
+    state: link
+    force: true
+
 - name: Remove ctop, superseded by lazydocker
   # Dropping a formula from BREW_PACKAGES never uninstalls it: the install task
   # is state=present only. Idempotent: no-op once it's gone.
