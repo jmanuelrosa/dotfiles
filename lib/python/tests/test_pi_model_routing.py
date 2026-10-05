@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 import yaml
-from dotkit.testing import BUNDLES, PI, SKILLS, SKILL_REGISTRY
+from dotkit.testing import AGENTS, BUNDLES, PI, SKILLS, SKILL_REGISTRY
 
 
 @pytest.fixture(scope="module")
@@ -159,13 +159,7 @@ def test_routing_targets_are_enabled_and_cursor_is_restricted():
     assert {model for model in enabled if model.startswith("cursor/")} == allowed_cursor
     for target in routing["redirects"].values():
         assert target in enabled
-        assert not target.startswith("cursor/")
-    for primary, fallbacks in routing["fallbacks"].items():
-        assert primary in enabled
-        assert fallbacks
-        for target in fallbacks:
-            assert target in enabled
-            assert target.startswith("openai-codex/")
+    assert set(routing) == {"cursorModels", "redirects"}
     subagents = json.loads((PI / "subagents.json").read_text())
     assert subagents["scopeModels"] is True
 
@@ -247,19 +241,64 @@ def test_product_team_skills_use_direct_workload_routes():
     assert actual == expected
 
 
-def test_bundle_pins_do_not_depend_on_legacy_redirects():
+def catalog_pins():
+    paths = [
+        *SKILLS.glob("*/SKILL.md"),
+        *AGENTS.glob("*.md"),
+        *BUNDLES.glob("*/skills/*/SKILL.md"),
+        *BUNDLES.glob("*/agents/*.md"),
+    ]
+    for path in paths:
+        text = path.read_text()
+        if not text.startswith("---\n"):
+            continue
+        frontmatter = yaml.safe_load(text.split("---", 2)[1])
+        model = frontmatter.get("model")
+        if model is not None:
+            yield path, frontmatter, str(model)
+
+
+def test_every_catalog_pin_is_servable():
+    enabled = {model.lower() for model in json.loads((PI / "settings.json").read_text())["enabledModels"]}
+    redirects = json.loads((PI / "model-routing.json").read_text())["redirects"]
+    for path, _, model in catalog_pins():
+        spec = model.lower()
+        assert spec == "inherit" or spec in redirects or spec in enabled, str(path)
+
+
+def test_redirects_are_one_hop_to_enabled_models():
+    enabled = set(json.loads((PI / "settings.json").read_text())["enabledModels"])
+    redirects = json.loads((PI / "model-routing.json").read_text())["redirects"]
+    for source, target in redirects.items():
+        assert source == source.lower(), source
+        assert target in enabled, source
+        assert target.lower() not in redirects, source
+
+
+def test_agent_overrides_match_redirects():
+    redirects = json.loads((PI / "model-routing.json").read_text())["redirects"]
+    settings = json.loads((PI / "settings.json").read_text())
+    expected = {
+        frontmatter["name"]: {"model": redirects[model.lower()]}
+        for path, frontmatter, model in catalog_pins()
+        if path.parent.name == "agents" and model.lower() in redirects
+    }
+    actual = settings.get("subagents", {}).get("agentOverrides", {})
+    assert actual == expected, (
+        "subagents.agentOverrides in adapters/pi/settings.json must be:\n"
+        + json.dumps(dict(sorted(expected.items())), indent=2)
+    )
+
+
+def test_bundle_pins_resolve_to_enabled_models():
     settings = json.loads((PI / "settings.json").read_text())
     enabled = set(settings["enabledModels"])
     routing = json.loads((PI / "model-routing.json").read_text())
     allowed_cursor = {f"cursor/{model}" for model in routing["cursorModels"]}
-    paths = [*BUNDLES.glob("*/agents/*.md"), *BUNDLES.glob("*/skills/*/SKILL.md")]
-    for path in paths:
-        frontmatter = yaml.safe_load(path.read_text().split("---", 2)[1])
-        model = frontmatter.get("model")
-        if model is None:
+    for path, _, model in catalog_pins():
+        if BUNDLES not in path.parents:
             continue
-        resolved = "anthropic/claude-sonnet-5" if model == "sonnet" else model
+        resolved = routing["redirects"].get(model.lower(), model)
         assert resolved in enabled, str(path)
-        assert model not in routing["redirects"], str(path)
-        if model.startswith("cursor/"):
-            assert model in allowed_cursor, str(path)
+        if resolved.startswith("cursor/"):
+            assert resolved in allowed_cursor, str(path)

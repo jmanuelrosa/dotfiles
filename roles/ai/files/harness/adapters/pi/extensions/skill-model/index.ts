@@ -7,12 +7,9 @@
  * string in the shared SKILL.md, and bare values resolve against this session's scoped
  * catalogue, so reordering `enabledModels` reorders which model a bare `opus` wins.
  *
- * model-routing.json redirects legacy Cursor pins before lookup, then switches to a mapped
- * Codex model when the primary has no auth or returns an account or capacity error. Unpinned
- * agent runs arm the same routes from their selected model, which also covers child sessions
- * created by pi-subagents. The error is rewritten to pi's retryable provider form after the
- * model switch, so pi repeats the failed assistant turn on the fallback; network, server and
- * generic SDK failures retain pi's normal provider retry behavior.
+ * model-routing.json `redirects` translate a declared spec to the model pi should run
+ * instead, before lookup, because the shared catalog names models pi has no auth for.
+ * Unpinned agent runs apply the same redirects to the session's selected model.
  *
  * The pin lasts one agent run, which is the boundary Claude Code uses as well: the
  * override "applies for the rest of the current turn" and the session model resumes on the
@@ -44,32 +41,9 @@ const MODEL_FIELD = /^model:[ \t]*(.+?)[ \t]*$/m;
 const SKILL_FILE = "SKILL.md";
 const INHERIT = "inherit";
 const routingPath = resolve(dirname(realpathSync(fileURLToPath(import.meta.url))), "../../model-routing.json");
-const MODEL_ROUTING = JSON.parse(readFileSync(routingPath, "utf8")) as {
+const { redirects } = JSON.parse(readFileSync(routingPath, "utf8")) as {
   redirects: Readonly<Record<string, string>>;
-  fallbacks: Readonly<Record<string, readonly string[]>>;
 };
-const ACCOUNT_OR_LIMIT_ERROR = new RegExp(
-  [
-    "unauthenticated",
-    "unauthorized",
-    "unauthorised",
-    "forbidden",
-    "invalid (?:api )?key",
-    "authentication",
-    "(?:^|\\D)40[123](?:\\D|$)",
-    "(?:^|\\D)429(?:\\D|$)",
-    "rate.?limit",
-    "too many requests",
-    "usage limit",
-    "quota (?:exceeded|exhausted)",
-    "insufficient_quota",
-    "out of budget",
-    "spend.?limit",
-    "billing",
-    "subscription",
-  ].join("|"),
-  "i",
-);
 
 interface SkillModelPinV1 {
   version: 1;
@@ -80,20 +54,9 @@ interface SkillModelPinV1 {
   previousThinking: ThinkingLevel;
 }
 
-interface ActiveRoute {
-  route: readonly string[];
-  routeIndex: number;
-  currentModel: string;
-}
-
-interface ActivePin extends ActiveRoute {
-  pin: SkillModelPinV1;
-}
-
-interface ActiveRunRoute extends ActiveRoute {
+interface RunRedirect {
   previousModel: string;
   previousThinking: ThinkingLevel;
-  switched: boolean;
 }
 
 function reference(model: Model): string {
@@ -122,12 +85,8 @@ function resolveSpec(ctx: ExtensionContext, spec: string): Model | undefined {
   );
 }
 
-function routeFor(ctx: ExtensionContext, spec: string): readonly string[] {
-  const redirected = MODEL_ROUTING.redirects[spec.toLowerCase()] ?? spec;
-  const primary = resolveSpec(ctx, redirected);
-  const primaryReference = primary ? reference(primary) : redirected;
-  const fallbacks = MODEL_ROUTING.fallbacks[primaryReference.toLowerCase()] ?? [];
-  return [primaryReference, ...fallbacks];
+function redirected(spec: string): string {
+  return redirects[spec.toLowerCase()] ?? spec;
 }
 
 function declaredModel(skillPath: string): string | null {
@@ -164,44 +123,30 @@ function latestPin(branch: readonly SessionEntry[]): SkillModelPinV1 | null {
 }
 
 export default function registerSkillModel(pi: ExtensionAPI): void {
-  let active: ActivePin | null = null;
-  let runRoute: ActiveRunRoute | null = null;
+  let active: SkillModelPinV1 | null = null;
+  let runRedirect: RunRedirect | null = null;
 
   const pin = async (skill: string, path: string, ctx: ExtensionContext) => {
     if (active) return;
     const spec = declaredModel(path);
     if (!spec || spec.toLowerCase() === INHERIT) return;
 
-    const route = routeFor(ctx, spec);
-    const previousModel = ctx.model ? reference(ctx.model) : null;
-    const previousThinking = pi.getThinkingLevel();
-    let matchedReference: string | undefined;
-    let selected: { target: Model; index: number } | undefined;
-
-    for (let index = 0; index < route.length; index += 1) {
-      const target = resolveSpec(ctx, route[index]);
-      if (!target) continue;
-      matchedReference ??= reference(target);
-      const alreadySelected = ctx.model && reference(ctx.model) === reference(target);
-      if (!alreadySelected && !(await pi.setModel(target))) continue;
-      selected = { target, index };
-      break;
+    const target = resolveSpec(ctx, redirected(spec));
+    if (!target) {
+      ctx.ui.notify(`${skill} wants "${spec}", which no enabled model matches`, "warning");
+      return;
     }
+    const targetReference = reference(target);
+    const previousModel = ctx.model ? reference(ctx.model) : null;
+    if (previousModel === targetReference) return;
 
-    if (!selected) {
-      const wanted = route.length === 1 ? matchedReference : route.join(" then ");
-      const message = matchedReference
-        ? `${skill} wants ${wanted}, which has no configured auth`
-        : `${skill} wants "${spec}", which no enabled model matches`;
-      ctx.ui.notify(message, "warning");
+    const previousThinking = pi.getThinkingLevel();
+    if (!(await pi.setModel(target))) {
+      ctx.ui.notify(`${skill} wants ${targetReference}, which has no configured auth`, "warning");
       return;
     }
 
-    const { target, index } = selected;
-    const targetReference = reference(target);
-    if (previousModel === targetReference && route.length === 1) return;
-
-    const candidate: SkillModelPinV1 = {
+    active = {
       version: 1,
       state: "pinned",
       skill,
@@ -209,81 +154,28 @@ export default function registerSkillModel(pi: ExtensionAPI): void {
       previousModel,
       previousThinking,
     };
-    active = {
-      pin: candidate,
-      route,
-      routeIndex: index,
-      currentModel: targetReference,
-    };
-    pi.appendEntry(CUSTOM_TYPE, candidate);
+    pi.appendEntry(CUSTOM_TYPE, active);
     ctx.ui.setStatus(STATUS_KEY, ctx.ui.theme.fg("accent", `${skill} on ${target.id}`));
-    if (index > 0) {
-      ctx.ui.notify(
-        `${skill}: ${route[0]} is unavailable; using ${targetReference}`,
-        "warning",
-      );
-    }
   };
 
-  const armRunRoute = async (ctx: ExtensionContext) => {
-    if (active || runRoute || !ctx.model) return;
+  const redirectRun = async (ctx: ExtensionContext) => {
+    if (active || runRedirect || !ctx.model) return;
 
     const previousModel = reference(ctx.model);
-    const route = routeFor(ctx, previousModel);
-    if (route.length === 1 && route[0].toLowerCase() === previousModel.toLowerCase()) return;
+    const spec = redirected(previousModel);
+    if (spec === previousModel) return;
+    const target = resolveSpec(ctx, spec);
+    if (!target || reference(target) === previousModel) return;
 
     const previousThinking = pi.getThinkingLevel();
-    let selected: { target: Model; index: number } | undefined;
-    for (let index = 0; index < route.length; index += 1) {
-      const target = resolveSpec(ctx, route[index]);
-      if (!target) continue;
-      const alreadySelected = ctx.model && reference(ctx.model) === reference(target);
-      if (!alreadySelected && !(await pi.setModel(target))) continue;
-      selected = { target, index };
-      break;
-    }
-    if (!selected) return;
-
-    const currentModel = reference(selected.target);
-    runRoute = {
-      route,
-      routeIndex: selected.index,
-      currentModel,
-      previousModel,
-      previousThinking,
-      switched: currentModel !== previousModel,
-    };
-    if (selected.index > 0) {
-      ctx.ui.notify(
-        `agent run: ${route[0]} is unavailable; using ${currentModel}`,
-        "warning",
-      );
-    }
-  };
-
-  const advance = async (
-    route: ActiveRoute,
-    ctx: ExtensionContext,
-  ): Promise<Model | undefined> => {
-    for (let index = route.routeIndex + 1; index < route.route.length; index += 1) {
-      const target = resolveSpec(ctx, route.route[index]);
-      if (!target) continue;
-      const targetReference = reference(target);
-      if (ctx.model && reference(ctx.model) !== targetReference && !(await pi.setModel(target))) {
-        continue;
-      }
-      route.routeIndex = index;
-      route.currentModel = targetReference;
-      return target;
-    }
-    return undefined;
+    if (!(await pi.setModel(target))) return;
+    runRedirect = { previousModel, previousThinking };
   };
 
   const release = async (ctx: ExtensionContext) => {
-    const activePin = active;
-    if (!activePin) return;
+    const pinned = active;
+    if (!pinned) return;
     active = null;
-    const pinned = activePin.pin;
 
     const previous = pinned.previousModel ? fromReference(ctx, pinned.previousModel) : undefined;
     if (previous) await pi.setModel(previous);
@@ -292,19 +184,19 @@ export default function registerSkillModel(pi: ExtensionAPI): void {
     ctx.ui.setStatus(STATUS_KEY, undefined);
   };
 
-  const releaseRunRoute = async (ctx: ExtensionContext) => {
-    const route = runRoute;
-    runRoute = null;
-    if (!route?.switched) return;
+  const releaseRun = async (ctx: ExtensionContext) => {
+    const run = runRedirect;
+    runRedirect = null;
+    if (!run) return;
 
-    const previous = fromReference(ctx, route.previousModel);
+    const previous = fromReference(ctx, run.previousModel);
     if (previous) await pi.setModel(previous);
-    pi.setThinkingLevel(route.previousThinking);
+    pi.setThinkingLevel(run.previousThinking);
   };
 
   pi.on("session_start", async (_event, ctx) => {
     active = null;
-    runRoute = null;
+    runRedirect = null;
     let stranded: SkillModelPinV1 | null = null;
     try {
       stranded = latestPin(ctx.sessionManager.getBranch());
@@ -312,12 +204,7 @@ export default function registerSkillModel(pi: ExtensionAPI): void {
       return;
     }
     if (stranded?.state !== "pinned") return;
-    active = {
-      pin: stranded,
-      route: [stranded.model],
-      routeIndex: 0,
-      currentModel: stranded.model,
-    };
+    active = stranded;
     await release(ctx);
   });
 
@@ -338,43 +225,11 @@ export default function registerSkillModel(pi: ExtensionAPI): void {
   });
 
   pi.on("before_agent_start", async (_event, ctx) => {
-    await armRunRoute(ctx);
-  });
-
-  pi.on("message_end", async (event, ctx) => {
-    const skillPin = active;
-    const route = skillPin ?? runRoute;
-    if (!route || event.message.role !== "assistant") return;
-    const message = event.message;
-    if (message.stopReason !== "error") return;
-    if (!message.errorMessage || !ACCOUNT_OR_LIMIT_ERROR.test(message.errorMessage)) return;
-    if (`${message.provider}/${message.model}` !== route.currentModel) return;
-
-    const target = await advance(route, ctx);
-    if (!target) return;
-    const label = skillPin?.pin.skill ?? "agent run";
-    if (skillPin) {
-      ctx.ui.setStatus(
-        STATUS_KEY,
-        ctx.ui.theme.fg("accent", `${skillPin.pin.skill} on ${target.id}`),
-      );
-    } else if (runRoute) {
-      runRoute.switched = true;
-    }
-    ctx.ui.notify(
-      `${label}: ${message.provider} account or capacity failure; retrying with ${reference(target)}`,
-      "warning",
-    );
-    return {
-      message: {
-        ...message,
-        errorMessage: `Provider returned error: retrying ${label} with ${reference(target)}`,
-      },
-    };
+    await redirectRun(ctx);
   });
 
   pi.on("agent_settled", async (_event, ctx) => {
     await release(ctx);
-    await releaseRunRoute(ctx);
+    await releaseRun(ctx);
   });
 }

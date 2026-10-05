@@ -33,10 +33,6 @@
     "cursor/grok-4.7@256k",
     "cursor/grok-4.7@500k",
     "cursor/grok-4.6",
-    "cursor/claude-fable-5-1@1m",
-    "cursor/claude-fable-5-1@300k",
-    "cursor/claude-opus-5@1m",
-    "cursor/claude-sonnet-5@1m",
     "cursor/kimi-k3",
     "anthropic/claude-fable-5-1",
     "anthropic/claude-opus-5-5",
@@ -74,6 +70,15 @@
   "showCacheMissNotices": true,
   "showHardwareCursor": true,
   "steeringMode": "all",
+  "subagents": {
+    "agentOverrides": {
+      "ac-writer": { "model": "openai-codex/gpt-6-sol" },
+      "architect": { "model": "openai-codex/gpt-6-sol" },
+      "cc-staff-reviewer": { "model": "openai-codex/gpt-6-sol" },
+      "pi-staff-reviewer": { "model": "openai-codex/gpt-6-sol" },
+      "ux-shaper": { "model": "openai-codex/gpt-6-sol" }
+    }
+  },
   "terminal": {
     "showTerminalProgress": true
   },
