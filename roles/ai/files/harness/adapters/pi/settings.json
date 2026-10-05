@@ -51,10 +51,16 @@
     "xai/grok-4.5",
     "xai/grok-build-0.1"
   ],
-  "extensions": [],
+  "extensions": [
+    "+builtin:mcp",
+    "+builtin:codemode"
+  ],
   "followUpMode": "one-at-a-time",
   "hideThinkingBlock": true,
-  "lastChangelogVersion": "0.99.1",
+  "lastChangelogVersion": "1.0.1",
+  "defaultTools": [
+    "+codemode"
+  ],
   "packages": [
     "git:github.com/earendil-works/pi-review",
     "npm:pi-cc-patch",
@@ -62,8 +68,7 @@
     "npm:pi-sandbox",
     "npm:@gotgenes/pi-permission-system@27.1.1",
     "npm:pi-ask-user",
-    "npm:pi-subagents",
-    "-builtin:mcp"
+    "npm:pi-subagents"
   ],
   "quietStartup": true,
   "showCacheMissNotices": true,
