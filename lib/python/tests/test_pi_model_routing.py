@@ -201,20 +201,16 @@ def test_local_skill_pins_use_selected_providers():
 
 def test_bundle_agents_use_workload_routes():
     groups = {
-        "openai-codex/gpt-5.6-sol": {
-            "backend-staff-engineer", "database-staff-engineer", "cloud-staff-engineer",
-            "platform-staff-engineer", "sre-staff-engineer", "data-staff-engineer",
-            "security-staff-engineer", "pm-red-team", "strategy-checker",
-            "analytics-staff-engineer", "design-staff-engineer", "desktop-staff-engineer",
-            "dx-staff-engineer", "gtm-staff-engineer", "mobile-staff-engineer",
-            "qa-staff-engineer", "seo-staff-engineer",
+        "opus": {
+            "analytics-staff-engineer", "backend-staff-engineer", "cloud-staff-engineer",
+            "data-staff-engineer", "database-staff-engineer", "design-staff-engineer",
+            "desktop-staff-engineer", "dx-staff-engineer", "frontend-staff-engineer",
+            "gtm-staff-engineer", "mobile-staff-engineer", "platform-staff-engineer",
+            "pm-red-team", "qa-staff-engineer", "seo-staff-engineer", "sre-staff-engineer",
+            "strategy-checker", "user-evidence-researcher",
         },
-        "openai-codex/gpt-5.6-terra": {
-            "frontend-staff-engineer", "competitive-researcher", "market-sizer",
-            "user-evidence-researcher",
-        },
-        "cursor/composer-2-5": {"adr-scribe"},
-        "sonnet": {"ac-writer"},
+        "sonnet": {"ac-writer", "adr-scribe", "competitive-researcher", "market-sizer"},
+        "fable": {"security-staff-engineer"},
     }
     expected = {name: model for model, names in groups.items() for name in names}
     actual = {}
