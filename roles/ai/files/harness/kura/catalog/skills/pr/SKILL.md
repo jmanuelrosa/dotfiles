@@ -2,7 +2,7 @@
 name: pr
 description: Generate the PR description from the current branch and open the PR (GitHub) or MR (GitLab), returning the URL
 argument-hint: "[base-branch]"
-model: cursor/composer-2-5
+model: cursor/composer-latest
 effort: medium
 disable-model-invocation: true
 allowed-tools:

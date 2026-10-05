@@ -1,7 +1,7 @@
 ---
 name: product-lead
 description: Pointer to the Product Team pipeline, which ships as the project-installed `product-team` bundle. Use when asked about the product flow, an initiative's status, or which product command comes next, in a repo where the bundle is not installed yet.
-model: cursor/composer-2-5
+model: cursor/composer-latest
 disable-model-invocation: true
 allowed-tools:
   - Read
