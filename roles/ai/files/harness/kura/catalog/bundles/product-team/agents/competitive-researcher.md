@@ -1,8 +1,8 @@
 ---
 name: competitive-researcher
 description: Product Team research seat - maps who solves a brief's problem today, how, and where the gaps are, from web evidence with cited URLs. Use ONLY from /1-research with a brief path and an output path; it writes 01-research/competitive.md and nothing else.
-model: openai-codex/gpt-5.6-terra
 tools: WebSearch, WebFetch, Read, Write, Glob
+model: sonnet
 effort: high
 thinking: high
 ---
