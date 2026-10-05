@@ -197,7 +197,7 @@
             "documentation"
           ],
           "dependency_only": true,
-          "updated_at": "2026-09-23T18:45:32Z"
+          "updated_at": "2026-10-01T18:42:56Z"
         }
       ]
     },
@@ -308,7 +308,7 @@
             "frontend",
             "tailwind"
           ],
-          "updated_at": "2026-09-23T18:46:14Z"
+          "updated_at": "2026-10-01T18:43:58Z"
         },
         {
           "upstream_path": "plugins/javascript-typescript/skills/nodejs-backend-patterns",
@@ -317,7 +317,7 @@
             "backend",
             "node"
           ],
-          "updated_at": "2026-09-23T18:46:14Z"
+          "updated_at": "2026-10-01T18:43:58Z"
         },
         {
           "upstream_path": "plugins/cloud-infrastructure/skills/terraform-module-library",
@@ -349,7 +349,7 @@
             "backend",
             "graphql"
           ],
-          "updated_at": "2026-09-23T18:45:19Z"
+          "updated_at": "2026-10-01T18:42:35Z"
         }
       ]
     },
@@ -378,7 +378,7 @@
             "ios",
             "swift"
           ],
-          "updated_at": "2026-09-23T18:45:23Z"
+          "updated_at": "2026-10-01T18:42:38Z"
         }
       ]
     },
