@@ -51,9 +51,9 @@ automatically-unhide-macos-hidden-apps = true
 # even when they are invisible.
 # This config option is only available since 'config-version = 2'
 # Fallback value (if you omit the key): persistent-workspaces = []
-persistent-workspaces = ["1", "2", "3", "4", "AI", "Didomi", "Editors",
-                          "HTTPRest", "Mine", "Notion", "Off", "Pentla", "Records",
-                          "Slack", "Terminal", "Vault", "Whatsapp", "TradingView",
+persistent-workspaces = ["1", "2", "3", "4", "AI", "Didomi", "Editors", "HTTPRest",
+                          "Mine", "Notion", "Offtopic", "Pentla", "Records", "Slack",
+                          "Terminal", "Vault", "Whatsapp", "TradingView",
                         ]
 
 # A callback that runs every time binding mode changes
@@ -99,7 +99,7 @@ gaps.outer.right =      0
     HttpRest = 'secondary'
     Mine = 'main'
     Notion = 'main'
-    Off = 'secondary'
+    Offtopic = 'secondary'
     Pentla = 'main'
     Records = 'secondary'
     Slack = ['secondary', 'main']
@@ -173,12 +173,12 @@ gaps.outer.right =      0
     alt-3 = 'workspace 3'
     alt-4 = 'workspace 4'
     alt-a = 'workspace AI'
+    alt-c = 'workspace Notion'
     alt-d = 'workspace Didomi'
     alt-e = 'workspace Editors'
     alt-h = 'workspace HTTPRest'
     alt-m = 'workspace Mine'
-    alt-n = 'workspace Notion'
-    alt-o = 'workspace Off'
+    alt-o = 'workspace Offtopic'
     alt-p = 'workspace Pentla'
     alt-r = 'workspace Records'
     alt-s = 'workspace Slack'
@@ -198,12 +198,12 @@ gaps.outer.right =      0
     alt-shift-8 = 'move-node-to-workspace 8'
     alt-shift-9 = 'move-node-to-workspace 9'
     alt-shift-a = 'move-node-to-workspace AI'
+    alt-shift-c = 'move-node-to-workspace Notion'
     alt-shift-d = 'move-node-to-workspace Didomi'
     alt-shift-e = 'move-node-to-workspace Editors'
     alt-shift-h = 'move-node-to-workspace HTTPRest'
     alt-shift-m = 'move-node-to-workspace Mine'
-    alt-shift-n = 'move-node-to-workspace Notion'
-    alt-shift-o = 'move-node-to-workspace Off'
+    alt-shift-o = 'move-node-to-workspace Offtopic'
     alt-shift-p = 'move-node-to-workspace Pentla'
     alt-shift-r = 'move-node-to-workspace Records'
     alt-shift-s = 'move-node-to-workspace Slack'
@@ -267,14 +267,10 @@ gaps.outer.right =      0
 
 [[on-window-detected]]
     if.app-id = 'com.spotify.client'
-    run= ["layout tiling", 'move-node-to-workspace Off']
+    run= ["layout tiling", 'move-node-to-workspace Offtopic']
 
 [[on-window-detected]]
     if.app-id = 'notion.id'
-    run= ["layout tiling", 'move-node-to-workspace Notion']
-
-[[on-window-detected]]
-    if.app-id = 'md.obsidian'
     run= ["layout tiling", 'move-node-to-workspace Notion']
 
 [[on-window-detected]]
