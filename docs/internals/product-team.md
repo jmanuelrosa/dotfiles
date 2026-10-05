@@ -17,7 +17,7 @@ Model assignments follow the approved subscription routing rather than a fleet-w
 | `1-research`, `4-tech-shape`, `5-decompose` | `openai-codex/gpt-5.6-sol` | Cross-artifact synthesis, technical planning and decomposition |
 | `2-write-prd` | `anthropic/claude-opus-5` | Requirements synthesis and trade-offs |
 | `setup-strategy`, `0-refine-idea`, `3-red-team`, `6-verify`, `8-living-spec` | `anthropic/claude-sonnet-5` | Interviews, constrained writing and stage coordination |
-| `product-lead`, `7-push-to-board` | `cursor/composer-2-5` | Pipeline dispatch and board operations |
+| `product-lead`, `7-push-to-board` | `cursor/composer-latest` | Pipeline dispatch and board operations |
 
 These are workload-based choices, not comparative benchmark results.
 Agent pins are Claude-native, so they mean the same thing in Claude Code; in Pi they run through the [model-routing redirects](harnesses.md).

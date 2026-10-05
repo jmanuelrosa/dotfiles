@@ -2,7 +2,7 @@
 name: product-lead
 description: Product Team guide and status board - explains the two-gate product pipeline, runs pt.py status over every initiative in the current repo, and tells you the exact next command to run.
 argument-hint: "[initiative slug]"
-model: cursor/composer-2-5
+model: cursor/composer-latest
 disable-model-invocation: true
 allowed-tools:
   - Read

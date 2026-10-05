@@ -227,7 +227,7 @@ def test_product_team_skills_use_direct_workload_routes():
         "anthropic/claude-sonnet-5": {
             "setup-strategy", "0-refine-idea", "3-red-team", "6-verify", "8-living-spec",
         },
-        "cursor/composer-2-5": {"product-lead", "7-push-to-board"},
+        "cursor/composer-latest": {"product-lead", "7-push-to-board"},
     }
     expected = {name: model for model, names in groups.items() for name in names}
     actual = {}
