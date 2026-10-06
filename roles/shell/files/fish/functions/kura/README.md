@@ -1,6 +1,6 @@
 # Kura Television helpers
 
-`_tv_kura_list` renders the skill rows used by the Television cables.
+`_tv_kura_list` renders the skill, agent, and bundle rows used by the Television cables.
 `_tv_kura_toggle` applies installation and global-scope changes to the selected rows.
 Both derive state exclusively from `kura list --json`; neither reconstructs the catalog, workspace anchoring, or scope rules.
 

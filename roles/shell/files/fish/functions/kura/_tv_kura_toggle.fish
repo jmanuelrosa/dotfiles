@@ -1,4 +1,4 @@
-function _tv_kura_toggle --description "Television action: toggle links for catalog skills" --argument-names kind
+function _tv_kura_toggle --description "Television action: toggle links for catalog skills, agents, or bundles" --argument-names kind
     set -l names $argv[2..]
     if test (count $names) -eq 0
         _ui err "_tv_kura_toggle: missing name"
@@ -9,11 +9,12 @@ function _tv_kura_toggle --description "Television action: toggle links for cata
         return 1
     end
 
-    if not contains -- $kind skill skills
-        _ui err "_tv_kura_toggle: kind must be 'skill'"
+    set -l type (string replace -r 's$' '' -- $kind)
+    if not contains -- $type skill agent bundle
+        _ui err "_tv_kura_toggle: kind must be 'skill', 'agent', or 'bundle'"
         return 1
     end
-    _tv_kura_toggle_type skill $names
+    _tv_kura_toggle_type $type $names
 end
 
 function _tv_kura_toggle_type --description "Add or remove every named artifact of one type, in the scope kura reports for it" --argument-names type
