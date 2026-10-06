@@ -27,8 +27,10 @@ function _wt_help
   echo "  add [-b <branch>] [-h/--herdr] [-f/--focus] <dir>"
   echo "                           Create worktree at sibling dir <dir>. Branch defaults"
   echo "                           to <dir>; pass -b/--branch to override (created from"
-  echo "                           develop > main > master). Copies env/.vscode/.claude and"
-  echo "                           installs deps from lockfile (frozen) if present."
+  echo "                           develop > main > master). Copies root/nested .env* files"
+  echo "                           and .vscode/.claude/.agents from the main checkout,"
+  echo "                           skipping Git metadata and dependency directories."
+  echo "                           Installs deps from lockfile (frozen) if present."
   echo "                           Pass -h/--herdr to also open the worktree as a workspace"
   echo "                           in the current herdr session. Pass -f/--focus to move to"
   echo "                           the new worktree (cd, and focus the herdr workspace);"
@@ -140,19 +142,20 @@ function _wt_add
     git worktree add -b $branch $target $base; or return 1
   end
 
-  for envfile in (command find $main_wt -maxdepth 1 -type f -name '.env*' 2>/dev/null)
-    _ui step "Copying "(basename $envfile)
-    cp $envfile $target/
+  for envfile in (command find $main_wt -type d \( -name .git -o -name node_modules -o -name .venv -o -name venv -o -name vendor \) -prune -o \( -type f -o -type l \) -name '.env*' -print0 | string split0)
+    set -l relative (string replace -- "$main_wt/" "" $envfile | string collect)
+    set -l destination $target/$relative
+    _ui step "Copying $relative"
+    mkdir -p (path dirname $destination | string collect); or return 1
+    cp $envfile $destination; or return 1
   end
 
-  if test -d $main_wt/.vscode
-    _ui step "Copying .vscode/"
-    cp -R $main_wt/.vscode $target/
-  end
-
-  if test -d $main_wt/.claude
-    _ui step "Copying .claude/"
-    cp -R $main_wt/.claude $target/
+  for config_dir in .vscode .claude .agents
+    if test -d $main_wt/$config_dir
+      _ui step "Copying $config_dir/"
+      mkdir -p $target/$config_dir; or return 1
+      cp -R $main_wt/$config_dir/. $target/$config_dir/; or return 1
+    end
   end
 
   _wt_pi_sandbox $target
@@ -160,7 +163,7 @@ function _wt_add
   set -l prev_dir $PWD
   cd $target
 
-  if test -d .claude
+  if test -d .claude; or test -d .agents
     kura converge --quiet
   end
 
