@@ -1,0 +1,57 @@
+{
+  "version": 3,
+  "upstream": {},
+  "local": [
+    {
+      "name": "analytics"
+    },
+    {
+      "name": "backend"
+    },
+    {
+      "name": "cloud"
+    },
+    {
+      "name": "data"
+    },
+    {
+      "name": "database"
+    },
+    {
+      "name": "design"
+    },
+    {
+      "name": "desktop"
+    },
+    {
+      "name": "dx"
+    },
+    {
+      "name": "frontend"
+    },
+    {
+      "name": "gtm"
+    },
+    {
+      "name": "mobile"
+    },
+    {
+      "name": "platform"
+    },
+    {
+      "name": "product-team"
+    },
+    {
+      "name": "qa"
+    },
+    {
+      "name": "security"
+    },
+    {
+      "name": "seo"
+    },
+    {
+      "name": "sre"
+    }
+  ]
+}
