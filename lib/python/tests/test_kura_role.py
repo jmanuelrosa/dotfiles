@@ -141,12 +141,14 @@ def test_the_catalog_view_exposes_kuras_supported_inputs():
         "agents",
         "agent-registry.json",
         "bundles",
+        "bundle-registry.json",
     }
     assert (KURA_CATALOG / "skills").is_dir()
     assert (KURA_CATALOG / "skill-registry.json").is_file()
     assert (KURA_CATALOG / "agents").is_dir()
     assert (KURA_CATALOG / "bundles").is_dir()
     assert (KURA_CATALOG / "agent-registry.json").is_file()
+    assert (KURA_CATALOG / "bundle-registry.json").is_file()
     assert SKILLS == KURA_CATALOG / "skills"
     assert AGENTS == KURA_CATALOG / "agents"
 
