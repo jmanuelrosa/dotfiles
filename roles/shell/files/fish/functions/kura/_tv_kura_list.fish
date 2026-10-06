@@ -1,4 +1,4 @@
-function _tv_kura_list --description "Television source: list catalog skills with groups and link status" --argument-names kind filter
+function _tv_kura_list --description "Television source: list catalog skills, agents, or bundles with groups and link status" --argument-names kind filter
     # A formatter, and nothing more. Every fact on a row - the catalogue, which entries
     # are hidden as dependency_only, whether an artifact belongs in ~/.claude or the
     # project, and whether it is linked there - comes from `kura list --json`.
@@ -13,11 +13,11 @@ function _tv_kura_list --description "Television source: list catalog skills wit
         return 1
     end
 
-    if not contains -- $kind skill skills
-        _ui err "_tv_kura_list: kind must be 'skill'"
+    set -l type (string replace -r 's$' '' -- $kind)
+    if not contains -- $type skill agent bundle
+        _ui err "_tv_kura_list: kind must be 'skill', 'agent', or 'bundle'"
         return 1
     end
-    set -l types skill
 
     set -l select
     switch $filter
@@ -43,11 +43,7 @@ function _tv_kura_list --description "Television source: list catalog skills wit
         (if .state == "missing" then "not downloaded" else .state end)
     ] | @tsv'
 
-    begin
-        for type in $types
-            kura list --type $type --json | jq -r $prog
-        end
-    end | while read -l -d \t name groups state
+    kura list --type $type --json | jq -r $prog | while read -l -d \t name groups state
         _tv_kura_fmt $name "$groups" $state
     end | sort
 end

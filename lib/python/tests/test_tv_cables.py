@@ -19,7 +19,6 @@ import re
 from pathlib import Path
 
 import pytest
-import yaml
 from dotkit.testing import FISH_FUNCTIONS, REPO
 
 # The two functions the cables call, and the whole of what fish still owns here.
@@ -77,34 +76,18 @@ def test_the_toggle_reads_its_direction_from_kura():
     assert "kura $action $name --type $type $want_global" in body
 
 
-def test_shell_kura_surfaces_match_v030s_skills_only_contract():
-    shell = REPO / "roles/shell"
-    paths = [
-        shell / "files/fish/conf.d/aliases/aliases.fish",
-        shell / "files/fish/functions/kura/_tv_kura_list.fish",
-        shell / "files/fish/functions/kura/_tv_kura_toggle.fish",
-        shell / "files/television/config.toml",
-    ]
-    for path in paths:
-        text = path.read_text()
-        assert "--type agent" not in text, path
-        assert "--type plugin" not in text, path
-        assert "kura-agents" not in text, path
-    assert not (shell / "files/television/cable/kura-agents.toml").exists()
-
-
-def test_the_retired_agent_cable_link_is_removed_only_when_role_owned():
-    tasks = yaml.safe_load((REPO / "roles/shell/tasks/main.yml").read_text())
-    remove = next(
-        task for task in tasks
-        if task.get("name") == "Remove the superseded kura agents cable link"
-    )
-    assert remove["ansible.builtin.file"] == {
-        "path": "{{ HOME }}/.config/television/cable/kura-agents.toml",
-        "state": "absent",
-    }
-    assert "islnk" in " ".join(remove["when"])
-    assert "lnk_source" in " ".join(remove["when"])
+def test_a_cable_offers_only_the_actions_kura_accepts_for_its_type():
+    """kura refuses `outdated` and `update` for anything but a skill, since only skills
+    carry upstreams, so binding them on the agent or bundle picker is a key that always
+    fails. Plugins are gone as a type here: bundles replaced them in the catalog."""
+    cables = REPO / "roles/shell/files/television/cable"
+    for kind in ("agent", "bundle"):
+        text = (cables / f"kura-{kind}s.toml").read_text()
+        assert "kura outdated" not in text and "kura update" not in text, kind
+        assert f"_tv_kura_toggle {kind} " in text, kind
+        assert f"_tv_kura_list {kind}" in text, kind
+    for path in [*cables.glob("kura-*.toml"), REPO / "roles/shell/files/television/config.toml"]:
+        assert "--type plugin" not in path.read_text(), path
 
 
 def sources():

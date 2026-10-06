@@ -1,0 +1,37 @@
+[metadata]
+name = "kura-bundles"
+description = "Manage catalog bundles (toggle link, edit)"
+requirements = ["fish", "jq", "bat", "eza", "kura"]
+
+[source]
+command = [
+  { name = "No global", run = "fish -c '_tv_kura_list bundle noglobal'" },
+  { name = "Linked",    run = "fish -c '_tv_kura_list bundle linked'" },
+  { name = "Available", run = "fish -c '_tv_kura_list bundle available'" },
+  { name = "All",       run = "fish -c '_tv_kura_list bundle'" },
+]
+output = "{split: :0}"
+
+[preview]
+command = "bat --color=always --plain --language=json $DOTFILES_DIR/roles/ai/files/harness/kura/catalog/bundles/{split: :0}/bundle.json 2>/dev/null; and eza --tree --color=always $DOTFILES_DIR/roles/ai/files/harness/kura/catalog/bundles/{split: :0}; or echo 'Not in the catalog'"
+
+[ui]
+layout = "portrait"
+
+[keybindings]
+enter = "actions:toggle"
+ctrl-o = "actions:edit"
+
+# No outdated/update actions: kura refuses both for bundles, since only skills carry upstreams.
+# Actions split the selection on a newline for the reason given in kura-skills.toml.
+[actions.toggle]
+description = "Toggle the bundle link in this project"
+command = "fish -c '_tv_kura_toggle bundle {split:\\n:..|map:{split: :0}|join: }'"
+mode = "execute"
+separator = "\n"
+
+[actions.edit]
+description = "Open the bundle directory in $EDITOR"
+command = "$EDITOR {split:\\n:..|map:{split: :0|prepend:$DOTFILES_DIR/roles/ai/files/harness/kura/catalog/bundles/}|join: }"
+mode = "execute"
+separator = "\n"

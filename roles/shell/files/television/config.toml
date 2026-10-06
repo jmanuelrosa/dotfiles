@@ -208,6 +208,8 @@ fallback_channel = "files"
   "kura outdated --type skill",
   "kura update --type skill"
 ]
+"kura-agents" = ["kura add --type agent", "kura remove --type agent"]
+"kura-bundles" = ["kura add --type bundle", "kura remove --type bundle"]
 "jira" = ["acli jira"]
 "sentry" = ["sentry-cli issues"]
 
