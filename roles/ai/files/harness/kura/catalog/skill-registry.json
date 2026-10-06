@@ -65,7 +65,7 @@
             "test-driven-development",
             "context-engineering"
           ],
-          "updated_at": "2026-09-23T18:45:17Z"
+          "updated_at": "2026-10-05T18:49:02Z"
         },
         {
           "upstream_path": "skills/test-driven-development",
@@ -85,7 +85,7 @@
             "documentation",
             "global"
           ],
-          "updated_at": "2026-09-23T18:45:17Z"
+          "updated_at": "2026-10-05T18:49:02Z"
         },
         {
           "upstream_path": "skills/code-simplification",
@@ -104,7 +104,7 @@
             "backend",
             "frontend"
           ],
-          "updated_at": "2026-09-28T10:58:53Z"
+          "updated_at": "2026-10-05T18:49:02Z"
         },
         {
           "upstream_path": "skills/performance-optimization",
@@ -114,7 +114,7 @@
             "frontend",
             "review"
           ],
-          "updated_at": "2026-09-23T18:45:17Z"
+          "updated_at": "2026-10-05T18:49:02Z"
         },
         {
           "upstream_path": "skills/ci-cd-and-automation",
@@ -147,7 +147,7 @@
             "workflow",
             "global"
           ],
-          "updated_at": "2026-09-23T18:45:32Z"
+          "updated_at": "2026-10-05T18:49:17Z"
         },
         {
           "upstream_path": "skills/productivity/grill-me",
@@ -378,7 +378,7 @@
             "ios",
             "swift"
           ],
-          "updated_at": "2026-10-01T18:42:38Z"
+          "updated_at": "2026-10-05T18:49:08Z"
         }
       ]
     },
@@ -448,7 +448,7 @@
             "marketing",
             "seo"
           ],
-          "updated_at": "2026-09-23T18:45:24Z"
+          "updated_at": "2026-10-05T18:49:10Z"
         },
         {
           "upstream_path": "skills/cro",
@@ -472,7 +472,7 @@
             "marketing",
             "seo"
           ],
-          "updated_at": "2026-09-23T18:45:24Z"
+          "updated_at": "2026-10-05T18:49:10Z"
         }
       ]
     },
@@ -531,7 +531,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-09-23T18:45:29Z"
+          "updated_at": "2026-10-05T18:49:14Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-brownfield",
@@ -540,7 +540,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-09-23T18:45:29Z"
+          "updated_at": "2026-10-05T18:49:14Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-dev-client",
@@ -549,7 +549,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-09-23T18:45:29Z"
+          "updated_at": "2026-10-05T18:49:14Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-design-system",
@@ -558,7 +558,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-09-23T18:45:29Z"
+          "updated_at": "2026-10-05T18:49:14Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-data-fetching",
@@ -567,7 +567,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-09-23T18:45:29Z"
+          "updated_at": "2026-10-05T18:49:14Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-upgrade",
@@ -576,7 +576,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-09-23T18:45:29Z"
+          "updated_at": "2026-10-05T18:49:14Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-dom",
@@ -585,7 +585,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-09-23T18:45:29Z"
+          "updated_at": "2026-10-05T18:49:14Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-router",
@@ -594,7 +594,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-09-23T18:45:29Z"
+          "updated_at": "2026-10-05T18:49:14Z"
         },
         {
           "upstream_path": "plugins/expo/skills/expo-web-to-native",
@@ -603,7 +603,7 @@
             "mobile",
             "expo"
           ],
-          "updated_at": "2026-09-23T18:45:29Z"
+          "updated_at": "2026-10-05T18:49:14Z"
         }
       ]
     },
@@ -734,7 +734,7 @@
             "devops",
             "infrastructure"
           ],
-          "updated_at": "2026-09-23T18:45:34Z"
+          "updated_at": "2026-10-05T18:49:19Z"
         },
         {
           "upstream_path": "pulumi/skills/pulumi-component",
