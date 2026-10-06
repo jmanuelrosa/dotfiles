@@ -15,9 +15,10 @@ All checks must pass; a red check is fixed or reported honestly, never skipped.
    Run for the agent and the skill's SKILL.md.
 4. **ansible-lint exits 0** (redirect output to a file; the spinner garbles inline capture):
    `ANSIBLE_LOCAL_TEMP="$TMPDIR/ansible-tmp" ansible-lint > "$TMPDIR/lint.out" 2>&1; echo $?`
-5. **Packaging is valid.** For a seat bundle: `bundle.json` parses as JSON and names `<discipline>` with its `groups` (`python3 -c "import json; json.load(open('roles/ai/files/harness/kura/catalog/bundles/<discipline>/bundle.json'))"`).
+5. **Packaging is valid.** For a seat bundle: `bundle.json` and `bundle-registry.json` parse as JSON, their names match `<discipline>`, and only the registry entry carries `groups`.
+   Confirm the manifest retains its identity and `requires`, and the registry groups omit `global` for a project-scoped seat.
    For a utility agent instead: both registries parse as JSON (`python3 -c "import json; json.load(open('roles/ai/files/harness/kura/catalog/skill-registry.json')); json.load(open('roles/ai/files/harness/kura/catalog/agent-registry.json'))"`).
-6. **The seat package is discoverable:**
+6. **The seat package is discoverable (after upgrading to a Kura release that supports bundle registry groups):**
    `kura list --type bundle --json` includes `<discipline>` with the expected agent and failure-modes skill after `kura add <discipline> --type bundle` in a scratch project. A global utility agent appears in both harnesses after bare `kura sync`.
 7. **Trigger-table integrity** (belt and braces after the audit): every domain in the agent's Step 3 table has a reference file in the bundled skill and a matching row in the skill's router; the agent lists bare domain names, the router links them, and both cover the same domains in the same order.
 

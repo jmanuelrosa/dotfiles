@@ -3,55 +3,147 @@
   "upstream": {},
   "local": [
     {
-      "name": "analytics"
+      "name": "analytics",
+      "groups": [
+        "engineering",
+        "data",
+        "observability"
+      ]
     },
     {
-      "name": "backend"
+      "name": "backend",
+      "groups": [
+        "engineering",
+        "backend",
+        "observability"
+      ]
     },
     {
-      "name": "cloud"
+      "name": "cloud",
+      "groups": [
+        "engineering",
+        "devops",
+        "deployment",
+        "observability"
+      ]
     },
     {
-      "name": "data"
+      "name": "data",
+      "groups": [
+        "engineering",
+        "data",
+        "observability"
+      ]
     },
     {
-      "name": "database"
+      "name": "database",
+      "groups": [
+        "engineering",
+        "database",
+        "observability"
+      ]
     },
     {
-      "name": "design"
+      "name": "design",
+      "groups": [
+        "engineering",
+        "designer",
+        "ui"
+      ]
     },
     {
-      "name": "desktop"
+      "name": "desktop",
+      "groups": [
+        "engineering",
+        "desktop",
+        "observability"
+      ]
     },
     {
-      "name": "dx"
+      "name": "dx",
+      "groups": [
+        "engineering",
+        "devops",
+        "workflow",
+        "observability"
+      ]
     },
     {
-      "name": "frontend"
+      "name": "frontend",
+      "groups": [
+        "engineering",
+        "frontend",
+        "observability"
+      ]
     },
     {
-      "name": "gtm"
+      "name": "gtm",
+      "groups": [
+        "engineering",
+        "data",
+        "web",
+        "observability"
+      ]
     },
     {
-      "name": "mobile"
+      "name": "mobile",
+      "groups": [
+        "engineering",
+        "mobile",
+        "observability"
+      ]
     },
     {
-      "name": "platform"
+      "name": "platform",
+      "groups": [
+        "engineering",
+        "devops",
+        "ci",
+        "observability"
+      ]
     },
     {
-      "name": "product-team"
+      "name": "product-team",
+      "groups": [
+        "product",
+        "pm",
+        "planning",
+        "documentation",
+        "workflow"
+      ]
     },
     {
-      "name": "qa"
+      "name": "qa",
+      "groups": [
+        "quality",
+        "qa",
+        "testing",
+        "observability"
+      ]
     },
     {
-      "name": "security"
+      "name": "security",
+      "groups": [
+        "engineering",
+        "security"
+      ]
     },
     {
-      "name": "seo"
+      "name": "seo",
+      "groups": [
+        "engineering",
+        "marketer",
+        "seo",
+        "web"
+      ]
     },
     {
-      "name": "sre"
+      "name": "sre",
+      "groups": [
+        "engineering",
+        "devops",
+        "observability"
+      ]
     }
   ]
 }
