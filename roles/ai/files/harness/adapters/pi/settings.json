@@ -54,7 +54,7 @@
   ],
   "followUpMode": "one-at-a-time",
   "hideThinkingBlock": true,
-  "lastChangelogVersion": "1.0.1",
+  "lastChangelogVersion": "1.0.2",
   "defaultTools": [
     "+codemode"
   ],
@@ -73,33 +73,87 @@
   "steeringMode": "all",
   "subagents": {
     "agentOverrides": {
-      "ac-writer": { "model": "openai-codex/gpt-6.1-sol" },
-      "adr-scribe": { "model": "openai-codex/gpt-6.1-sol" },
-      "analytics-staff-engineer": { "model": "openai-codex/gpt-6.1-sol" },
-      "architect": { "model": "openai-codex/gpt-6.1-sol" },
-      "backend-staff-engineer": { "model": "openai-codex/gpt-6.1-sol" },
-      "cc-staff-reviewer": { "model": "openai-codex/gpt-6.1-sol" },
-      "cloud-staff-engineer": { "model": "openai-codex/gpt-6.1-sol" },
-      "competitive-researcher": { "model": "openai-codex/gpt-6.1-sol" },
-      "data-staff-engineer": { "model": "openai-codex/gpt-6.1-sol" },
-      "database-staff-engineer": { "model": "openai-codex/gpt-6.1-sol" },
-      "design-staff-engineer": { "model": "openai-codex/gpt-6.1-sol" },
-      "desktop-staff-engineer": { "model": "openai-codex/gpt-6.1-sol" },
-      "dx-staff-engineer": { "model": "openai-codex/gpt-6.1-sol" },
-      "frontend-staff-engineer": { "model": "openai-codex/gpt-6.1-sol" },
-      "gtm-staff-engineer": { "model": "openai-codex/gpt-6.1-sol" },
-      "market-sizer": { "model": "openai-codex/gpt-6.1-sol" },
-      "mobile-staff-engineer": { "model": "openai-codex/gpt-6.1-sol" },
-      "pi-staff-reviewer": { "model": "openai-codex/gpt-6.1-sol" },
-      "platform-staff-engineer": { "model": "openai-codex/gpt-6.1-sol" },
-      "pm-red-team": { "model": "openai-codex/gpt-6.1-sol" },
-      "qa-staff-engineer": { "model": "openai-codex/gpt-6.1-sol" },
-      "security-staff-engineer": { "model": "openai-codex/gpt-6-astra" },
-      "seo-staff-engineer": { "model": "openai-codex/gpt-6.1-sol" },
-      "sre-staff-engineer": { "model": "openai-codex/gpt-6.1-sol" },
-      "strategy-checker": { "model": "openai-codex/gpt-6.1-sol" },
-      "user-evidence-researcher": { "model": "openai-codex/gpt-6.1-sol" },
-      "ux-shaper": { "model": "openai-codex/gpt-6.1-sol" }
+      "ac-writer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "adr-scribe": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "analytics-staff-engineer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "architect": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "backend-staff-engineer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "cc-staff-reviewer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "cloud-staff-engineer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "competitive-researcher": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "data-staff-engineer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "database-staff-engineer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "design-staff-engineer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "desktop-staff-engineer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "dx-staff-engineer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "frontend-staff-engineer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "gtm-staff-engineer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "market-sizer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "mobile-staff-engineer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "pi-staff-reviewer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "platform-staff-engineer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "pm-red-team": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "qa-staff-engineer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "security-staff-engineer": {
+        "model": "openai-codex/gpt-6-astra"
+      },
+      "seo-staff-engineer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "sre-staff-engineer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "strategy-checker": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "user-evidence-researcher": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "ux-shaper": {
+        "model": "openai-codex/gpt-6.1-sol"
+      }
     }
   },
   "terminal": {
