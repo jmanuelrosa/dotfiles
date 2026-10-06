@@ -167,6 +167,36 @@ def test_every_bundle_carries_what_kura_refuses_to_install_without():
         assert list((bundle / "skills").glob("*/SKILL.md")), bundle.name
 
 
+def test_every_shipped_bundle_has_one_registry_entry():
+    registry = json.loads((KURA_CATALOG / "bundle-registry.json").read_text())
+    assert registry["version"] == 3
+    entries = registry["local"]
+    names = [entry["name"] for entry in entries]
+    assert len(names) == len(set(names))
+    assert set(names) == {path.name for path in BUNDLES.iterdir() if path.is_dir()}
+    for name in names:
+        manifest = json.loads((BUNDLES / name / "bundle.json").read_text())
+        assert manifest["name"] == name
+
+
+def test_bundle_groups_and_scope_live_only_in_the_registry():
+    registry = json.loads((KURA_CATALOG / "bundle-registry.json").read_text())
+    for entry in registry["local"]:
+        groups = entry["groups"]
+        assert isinstance(groups, list) and groups, entry["name"]
+        assert all(isinstance(group, str) and group for group in groups), entry["name"]
+        assert len(groups) == len(set(groups)), entry["name"]
+        assert "global" not in entry, entry["name"]
+        manifest = json.loads((BUNDLES / entry["name"] / "bundle.json").read_text())
+        assert "groups" not in manifest, entry["name"]
+        assert "global" not in manifest, entry["name"]
+
+
+def test_shipped_bundles_remain_project_scoped():
+    registry = json.loads((KURA_CATALOG / "bundle-registry.json").read_text())
+    assert all("global" not in entry["groups"] for entry in registry["local"])
+
+
 def test_kura_convergence_tasks_remain_disabled():
     names = {task["name"] for task in yaml.safe_load(AI_TASKS.read_text())}
     assert SYNC_TASK not in names

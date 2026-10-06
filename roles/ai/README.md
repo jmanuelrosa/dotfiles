@@ -43,6 +43,11 @@ The rules, the per-harness translations and what each one loses are in [harnesse
 
 ## Kura, by hand
 
+Bundle groups now live in `files/harness/kura/catalog/bundle-registry.json`, with a final `global` tag reserved for machine scope.
+All shipped bundles remain project-scoped.
+This metadata migration is staged: the pinned Kura v0.7.0 ignores it, and the newer registry-enforcing checkout rejects bundle `groups` until support lands.
+Implement and release that Kura support before updating the pin or using the staged catalog with that build; see the [migration plan](../../docs/plans/2026-10-06-bundle-registry-metadata.md).
+
 The role provisions kura but never runs it. After a play that changed the catalog or a `global` tag:
 
 ```bash

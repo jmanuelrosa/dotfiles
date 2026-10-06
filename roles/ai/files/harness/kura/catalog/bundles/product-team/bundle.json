@@ -6,13 +6,6 @@
     "name": "Jose Manuel Rosa",
     "email": "josemanuel.rosamoncayo@gmail.com"
   },
-  "groups": [
-    "product",
-    "pm",
-    "planning",
-    "documentation",
-    "workflow"
-  ],
   "requires": {
     "skills": [
       "idea-refine"
