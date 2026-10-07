@@ -284,7 +284,10 @@ def test_no_shell_tool_alias_is_claimed():
 
 def test_the_package_is_declared_in_the_packages_pi_loads():
     """The config is inert without the extension that reads it."""
-    packages = json.loads(PI_SETTINGS.read_text())["packages"]
+    packages = [
+        entry["source"] if isinstance(entry, dict) else entry
+        for entry in json.loads(PI_SETTINGS.read_text())["packages"]
+    ]
     assert any(package == PACKAGE or package.startswith(f"{PACKAGE}@") for package in packages)
 
 
@@ -301,17 +304,18 @@ def test_the_package_is_pinned():
     `ETARGET`. Move this forward to a version that has aged past the window, not to
     whatever `latest` reports.
     """
-    packages = [
-        package for package in json.loads(PI_SETTINGS.read_text())["packages"]
-        if package == PACKAGE or package.startswith(f"{PACKAGE}@")
+    sources = [
+        entry["source"] if isinstance(entry, dict) else entry
+        for entry in json.loads(PI_SETTINGS.read_text())["packages"]
     ]
+    packages = [package for package in sources if package == PACKAGE or package.startswith(f"{PACKAGE}@")]
     assert packages
     assert all(re.fullmatch(rf"{re.escape(PACKAGE)}@\d+\.\d+\.\d+", package) for package in packages)
 
 
 def test_the_sandbox_is_still_installed_beside_it():
     """This layer decides and records. It contains nothing, so removing the other is a loss."""
-    assert "npm:pi-sandbox" in json.loads(PI_SETTINGS.read_text())["packages"]
+    assert {"source": "npm:pi-sandbox", "extensions": []} in json.loads(PI_SETTINGS.read_text())["packages"]
 
 
 def test_the_role_links_the_config_into_place():

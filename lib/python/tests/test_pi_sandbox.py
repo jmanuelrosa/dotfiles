@@ -20,8 +20,9 @@ Four things the translation cannot carry, verified against pi-sandbox 0.6.5 and 
 - `excludedCommands`. Claude runs fourteen entries outside its sandbox: twelve CLIs so
   they can read their own credential stores, plus `bunx ctx7` and `npx -y ctx7`, which
   need it for network egress rather than for credentials. pi-sandbox has no per-command
-  exclusion, so those commands are confined like any other. Reads of a denied path are
-  *prompted* rather than refused, so `aws` and friends still work, with a prompt.
+  exclusion. Our sandbox adapter exempts direct gcloud and bq calls only, while keeping
+  the cloud read-only gate enabled. Other commands remain confined. Reads of a denied
+  path are *prompted* rather than refused, so `aws` and friends still work, with a prompt.
   ctx7 is the one that does not degrade gracefully: a blocked request is not a prompt,
   it is a causeless `fetch failed`, so under pi a docs question falls back to search.
   Blanket-allowing their credential directories would undo the `denyRead` this repo
@@ -149,7 +150,11 @@ def test_the_darwin_temp_root_stands_in_for_tmpdir():
 def test_pi_sandbox_is_declared_in_the_packages_pi_loads():
     """The config is inert without the extension that reads it."""
     packages = json.loads((PI / "settings.json").read_text())["packages"]
-    assert "npm:pi-sandbox" in packages
+    assert {"source": "npm:pi-sandbox", "extensions": []} in packages
+
+
+def test_only_the_requested_cloud_commands_are_exempted():
+    assert pi_sandbox()["excludedCommands"] == ["gcloud", "bq"]
 
 
 def test_the_role_links_the_sandbox_config_into_place():

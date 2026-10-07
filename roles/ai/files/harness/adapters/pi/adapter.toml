@@ -1,4 +1,5 @@
 [sandbox]
+excludedCommands = ["gcloud", "bq"]
 permissionPromptTimeoutSeconds = 120
 permissionPromptMaxAttempts = 2
 

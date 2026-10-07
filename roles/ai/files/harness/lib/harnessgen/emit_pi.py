@@ -120,6 +120,7 @@ def sandbox(manifest):
     allow_write = [p for p in filesystem["allow_write"] if not p.startswith("$")]
     return {
         "enabled": True,
+        "excludedCommands": list(adapter["excludedCommands"]),
         "permissionPromptTimeoutSeconds": adapter["permissionPromptTimeoutSeconds"],
         "permissionPromptMaxAttempts": adapter["permissionPromptMaxAttempts"],
         "network": {

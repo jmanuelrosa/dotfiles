@@ -2,7 +2,7 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-# There is no var for the global skill set. Kura derives it from the `global` group tag
+# There is no var for the global skill set. Kura derives it from the `global` boolean flag
 # in skill-registry.json, expands declared skill dependencies, and projects independent
 # links into Claude Code and Pi's native global roots. Global standalone agents are
 # selected by the agent registry and linked by Kura, not HARNESS_LINKS.
@@ -29,6 +29,7 @@ PI_EXTENSIONS:
   - cursor-model-policy
   - guardrails
   - minion
+  - sandbox
   - skill-aliases
   - skill-model
   - statusline

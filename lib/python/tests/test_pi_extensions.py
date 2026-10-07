@@ -59,6 +59,10 @@ def test_role_links_documented_extension_directories():
 
 def test_role_removes_the_old_flat_extension_links():
     superseded = set(task("Check for superseded pi extension links")["loop"])
-    active = set(yaml.safe_load(DEFAULTS.read_text())["PI_EXTENSIONS"])
+    old_flat_links = {
+        "activity.ts", "claude-ui.ts", "context-continuity.ts", "cursor-model-policy.ts",
+        "footer.ts", "guardrails.ts", "minion.ts", "skill-aliases.ts", "skill-model.ts",
+        "statusline.ts", "velocity.ts",
+    }
 
-    assert {f"{name}.ts" for name in active} <= superseded
+    assert old_flat_links <= superseded
