@@ -38,7 +38,7 @@ id = "pre-commit-verify"
 event = "pre_tool"
 tools = ["bash"]
 script = "pre-commit-verify.sh"
-claude_if = ["Bash(git *)"]
+claude_if = ["Bash(git *)", "Bash(python3 *skills/commit/scripts/apply.py *)"]
 timeout = 180
 harnesses = ["claude", "pi", "codex"]
 

@@ -198,8 +198,6 @@
       "Bash(dive *)",
       "Bash(nnn)",
       "Bash(nnn *)",
-      "Bash(pgcli)",
-      "Bash(pgcli *)",
       "Bash(lazydocker)",
       "Bash(lazydocker *)",
       "mcp__notion",
@@ -210,7 +208,6 @@
   },
   "model": "opus",
   "fallbackModel": [
-    "opus",
     "sonnet"
   ],
   "availableModels": [
@@ -262,6 +259,12 @@
           },
           {
             "type": "command",
+            "command": "~/.claude/hooks/pre-commit-verify.sh",
+            "if": "Bash(python3 *skills/commit/scripts/apply.py *)",
+            "timeout": 180
+          },
+          {
+            "type": "command",
             "command": "if [ -n \"$RTK_ENABLE\" ] && command -v rtk >/dev/null 2>&1; then rtk hook claude || true; fi"
           }
         ]
@@ -283,11 +286,6 @@
           {
             "type": "command",
             "command": "if [ -f ./kura.json ]; then ~/.local/bin/kura converge --quiet; fi",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/herdr-agent-state.sh session",
             "timeout": 10
           }
         ]
@@ -334,7 +332,6 @@
     "padding": 0
   },
   "enabledPlugins": {
-    "code-simplifier@claude-plugins-official": false,
     "frontend-design@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": true
   },
@@ -366,7 +363,6 @@
     },
     "filesystem": {
       "allowWrite": [
-        ".",
         "/tmp",
         "$TMPDIR",
         "~/.bun/install/cache",
@@ -399,14 +395,18 @@
     },
     "enableWeakerNetworkIsolation": true,
     "excludedCommands": [
-      "pgcli",
-      "git",
-      "gh",
-      "glab",
-      "acli",
-      "sentry",
-      "bru-cli",
-      "ntn",
+      "git *",
+      "gh *",
+      "glab *",
+      "pgcli *",
+      "acli *",
+      "sentry *",
+      "bru-cli *",
+      "ntn *",
+      "wrangler *",
+      "cf *",
+      "python3 ~/.claude/skills/commit/scripts/apply.py *",
+      "python3 ~/.claude/skills/pr/scripts/apply.py *",
       "bunx ctx7 *",
       "npx -y ctx7 *",
       "aws *",

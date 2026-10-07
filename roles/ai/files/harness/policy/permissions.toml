@@ -90,8 +90,6 @@ deny = [
   "dive *",
   "nnn",
   "nnn *",
-  "pgcli",
-  "pgcli *",
   "lazydocker",
   "lazydocker *",
 ]
