@@ -37,12 +37,14 @@ Add a `local` entry in `kura/catalog/bundle-registry.json`:
 
 ```json
 {
-  "name": "<discipline>"
+  "name": "<discipline>",
+  "groups": ["<discipline-tag>", "<persona-or-domain>", "<topic>"]
 }
 ```
 
 A seat carries no `agent-registry.json` or `skill-registry.json` entry and no `dependency_only` flag: the skill ships with the agent because they share the folder, not because a resolver pulls it.
-Keep seats project-scoped: bundle registry rows must omit `groups`, `global`, `dependencies`, and `dependency_only`.
+Declare descriptive `groups` in the registry only; they are not inherited by bundle-owned agents or skills.
+Keep seats project-scoped: bundle registry rows must omit `global`, `dependencies`, and `dependency_only`, and groups must not contain `global`.
 Kura rejects these fields, including `global: false`; declare required catalog artifacts in `bundle.json` under `requires`.
 
 ### How it loads and is provisioned
@@ -71,10 +73,10 @@ Always edit the registry via a python3 round-trip with `json.dump(..., indent=2)
 
 ## Groups vocabulary
 
-Standalone artifact tags come from the controlled vocabulary in `docs/internals/skill-registry.md`, in facet order: discipline, persona, technology, topic.
+Artifact tags come from the controlled vocabulary in `docs/internals/skill-registry.md`, in facet order: discipline, persona, technology, topic.
 Reuse an existing tag before coining one; the tooling treats groups as opaque, so no code change is needed either way.
 Coining is legitimate when the fleet already carries the tag: add it to the matching facet list in the registry documentation as part of the same change.
-Bundles and their paired skills carry no group list.
+Bundle tags live only in the registry; their paired skills carry no group list.
 
 ## Agent frontmatter gotcha
 

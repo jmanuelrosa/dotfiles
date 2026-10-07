@@ -15,12 +15,13 @@ All checks must pass; a red check is fixed or reported honestly, never skipped.
    Run for the agent and the skill's SKILL.md.
 4. **ansible-lint exits 0** (redirect output to a file; the spinner garbles inline capture):
    `ANSIBLE_LOCAL_TEMP="$TMPDIR/ansible-tmp" ansible-lint > "$TMPDIR/lint.out" 2>&1; echo $?`
-5. **Packaging is valid.** For a seat bundle: `bundle.json` and `bundle-registry.json` parse as JSON, their names match `<discipline>`, and neither carries `groups` or `global`.
-   Confirm the manifest retains its identity and `requires`, and the registry row also omits `dependencies` and `dependency_only`.
+5. **Packaging is valid.** For a seat bundle: `bundle.json` and `bundle-registry.json` parse as JSON, their names match `<discipline>`, and the manifest carries neither `groups` nor `global`.
+   Confirm the manifest retains its identity and `requires`; descriptive groups live only in the registry, are nonempty and deduplicated, and omit the `global` tag.
+   The registry row must omit `global`, `dependencies`, and `dependency_only`.
    For a utility agent instead: both registries parse as JSON (`python3 -c "import json; json.load(open('roles/ai/files/harness/kura/catalog/skill-registry.json')); json.load(open('roles/ai/files/harness/kura/catalog/agent-registry.json'))"`).
    Utility global roots use boolean `global: true`; their descriptive `groups` must not contain `global`.
-6. **The seat package is discoverable (with an executable supporting explicit global flags):**
-   `kura list --type bundle --json` includes `<discipline>` with the expected agent and failure-modes skill after `kura add <discipline> --type bundle` in a scratch project. A global utility agent appears in both harnesses after bare `kura sync`.
+6. **The seat package is discoverable (with an executable supporting explicit global flags and bundle registry groups):**
+   `kura list --type bundle --json` includes `<discipline>` with its descriptive groups, expected agent, and failure-modes skill after `kura add <discipline> --type bundle` in a scratch project. A global utility agent appears in both harnesses after bare `kura sync`.
 7. **Trigger-table integrity** (belt and braces after the audit): every domain in the agent's Step 3 table has a reference file in the bundled skill and a matching row in the skill's router; the agent lists bare domain names, the router links them, and both cover the same domains in the same order.
 
 ## Final message contract

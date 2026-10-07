@@ -1,4 +1,5 @@
 {
+  "$schema": "https://raw.githubusercontent.com/jmanuelrosa/kura/main/docs/schemas/agent-registry.schema.json",
   "version": 3,
   "upstream": {},
   "local": [
