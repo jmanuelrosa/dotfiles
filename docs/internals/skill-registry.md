@@ -31,8 +31,8 @@ Both are real directories, not links into this repository.
 
 **The flag decides location, not just membership.** A global skill belongs in both machine roots and a non-global skill belongs in every native root selected by the project's root `kura.json`. Project commands use the exact cwd and refuse without initialization, so running from `$HOME` cannot silently turn project intent into global state. A direct project skill that later becomes global stays declared in `kura.json`; convergence removes its redundant project links only after the global views are healthy, and restores them if policy later changes.
 
-**Upgrade before mutating views.** The catalog now uses explicit global flags, but the pinned Kura v0.7.0 ignores them.
-Do not run `sync`, `converge`, or other catalog mutations with that executable; upgrade to a release carrying the merged global-policy schema first.
+**Upgrade before mutating views.** The pinned Kura v0.8.0 supports explicit global flags and all three registry schemas.
+Run `make run-role ROLE=ai` to install it before running `sync`, `converge`, or other catalog mutations with the new policy; Kura v0.7.0 ignores the flags.
 Registry `version: 3` does not negotiate compatibility, and the executable does not migrate registries automatically.
 
 Kura owns and safely prunes catalog-backed links under `~/.claude/skills/`, `~/.agents/skills/`, `~/.claude/agents/`, and `~/.pi/agent/agents/`. The role removes only its own former agent links; bundle content lives under `files/harness/kura/catalog/bundles/` and is installed with `kura add --type bundle`.

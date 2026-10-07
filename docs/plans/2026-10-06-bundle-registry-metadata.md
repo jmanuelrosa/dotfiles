@@ -6,8 +6,9 @@ The user approved full compliance with [Kura's merged explicit-global schema](ht
 Skill and standalone-agent rows now use boolean `global: true` instead of the retired group tag, preserving their existing roots and dependencies.
 Bundle registry groups were removed because Kura rejects `groups`, `global`, `dependencies`, and `dependency_only` on bundle rows; all bundles remain project-scoped, and manifests are unchanged.
 The previous tags remain recoverable from git history.
-The installed and pinned Kura v0.7.0 does not understand the flags, and no compatible release is published yet.
-Leave the release pin and checksum unchanged and do not run live catalog mutations until a compatible executable is installed.
+Kura v0.8.0 is now published and pinned with its release checksum; it supports explicit global flags and all three registry schemas, but still rejects bundle registry groups.
+Run `make run-role ROLE=ai` to replace the installed v0.7.0 before using the new global policy.
+Restoring bundle groups remains blocked on Kura schema and runtime support; no live catalog mutations are part of this upgrade.
 
 Decisions: replace obsolete agent-writer packaging guidance in place; skill-writer description optimization and new maintenance artifacts are unnecessary because the skill's trigger, layout, and scope are unchanged.
 The skill-writer completion template is overridden by the harness output contract; no extra report sections are added.
@@ -34,9 +35,9 @@ The skill-writer description-optimization and new maintenance-artifact steps are
 - [ ] Release Kura support, update `KURA.release` and its checksum here, and add the bundle registry schema reference once its schema supports `groups`.
 - [ ] Validate live bundle listing and group filters with that release; verify global bundle convergence in isolated fixtures before using machine views.
 
-## Compatibility boundary
+## Original compatibility boundary
 
-The pinned Kura v0.7.0 does not consume bundle registry metadata and reports empty bundle groups and `global: false`.
+The then-pinned Kura v0.7.0 did not consume bundle registry metadata and reports empty bundle groups and `global: false`.
 The newer local Kura checkout currently rejects `groups` in bundle registry entries.
 This migration is staged, not a usable Kura feature yet.
 Do not run catalog commands with that registry-enforcing build until its support lands.

@@ -45,12 +45,12 @@ The rules, the per-harness translations and what each one loses are in [harnesse
 
 Skills and standalone agents declare machine roots with `global: true`; their `groups` are descriptive only.
 Bundle registry rows carry names, not groups or global policy, and all shipped bundles remain project-scoped.
-The catalog matches the merged explicit-global schema, but the pinned Kura v0.7.0 ignores the new flags.
-Do not run catalog mutations with that executable; first upgrade to a compatible release and update the pin and checksum.
-No compatible release was published at this cutover; the [migration plan](../../docs/plans/2026-10-06-bundle-registry-metadata.md) records the removed staged metadata and outstanding executable upgrade.
+The pinned Kura v0.8.0 supports the catalog's explicit global flags and all three registry schemas.
+Run `make run-role ROLE=ai` to install the pinned executable before using the new policy; Kura v0.7.0 ignores the flags.
+Bundle registry groups remain unsupported; the [migration plan](../../docs/plans/2026-10-06-bundle-registry-metadata.md) records the removed staged metadata.
 
 The role provisions kura but never runs it.
-With a compatible executable, after a play that changed the catalog or a `global` flag:
+With the pinned executable installed, after a play that changed the catalog or a `global` flag:
 
 ```bash
 kura sync                              # project global skills and agents into both native harness views

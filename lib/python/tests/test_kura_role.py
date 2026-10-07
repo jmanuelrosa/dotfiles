@@ -246,12 +246,21 @@ def test_standalone_agents_are_catalog_owned_and_global():
     assert "{{ HOME }}/.pi/agent/agents" in ai_defaults()["HARNESS_LINKS"]["pi"]["dirs"]
 
     registry = json.loads(AGENT_REGISTRY.read_text())
-    assert set(registry) == {"version", "upstream", "local"}
+    assert set(registry) == {"$schema", "version", "upstream", "local"}
     assert registry["version"] == 3
     registered = {entry["name"] for entry in registry["local"]}
     shipped = {path.stem for path in AGENTS.glob("*.md")}
     assert registered == shipped
     assert all(entry["global"] is True for entry in registry["local"])
+
+
+@pytest.mark.parametrize("artifact_type", ["agent", "bundle"])
+def test_agent_and_bundle_schemas_match_the_skill_registry(artifact_type):
+    skill_registry = json.loads((CATALOG / "skill-registry.json").read_text())
+    registry = json.loads((CATALOG / f"{artifact_type}-registry.json").read_text())
+    assert registry["$schema"] == skill_registry["$schema"].replace(
+        "skill-registry.schema.json", f"{artifact_type}-registry.schema.json"
+    )
 
 
 def test_legacy_agent_links_are_removed_only_when_the_role_owns_them():
