@@ -68,6 +68,44 @@ def test_the_owned_keys_are_the_ones_the_adapter_header_names():
         assert f"`{key}`" in header, f"adapter.toml does not say harness-build owns {key}"
 
 
+# --- skill overrides ----------------------------------------------------------
+
+
+REGISTRY = {
+    "upstream": {
+        "owner/repo": {
+            "skills": [
+                {"upstream_path": "skills/parent", "dependencies": ["child"]},
+                {"upstream_path": "skills/productivity/child", "dependency_only": True},
+                {"upstream_path": "skills/raw", "name": "renamed", "dependency_only": True},
+            ]
+        }
+    },
+    "local": [{"name": "helper", "dependency_only": True}, {"name": "commit"}],
+}
+
+
+def test_a_dependency_only_skill_keeps_its_name_but_loses_its_description():
+    assert emit_claude.skill_overrides(REGISTRY, {}) == {
+        "child": "name-only",
+        "renamed": "name-only",
+        "helper": "name-only",
+    }
+
+
+def test_an_adapter_override_wins_over_the_derived_one():
+    overrides = emit_claude.skill_overrides(REGISTRY, {"child": "off", "deploy": "user-invocable-only"})
+    assert overrides["child"] == "off"
+    assert overrides["deploy"] == "user-invocable-only"
+
+
+def test_every_dependency_only_skill_in_the_catalog_is_rendered():
+    rendered = emit_claude.owned(manifest.load(ROOT))["skillOverrides"]
+    registry = manifest.load(ROOT).skill_registry()
+    for name in emit_claude.dependency_only_skills(registry):
+        assert name in rendered
+
+
 # --- the merge ----------------------------------------------------------------
 
 
