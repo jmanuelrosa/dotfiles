@@ -424,31 +424,19 @@ def test_hook_has_no_project_file_loader():
     assert not any(loader in source for loader in ("source ", ".env", "dotenv", "direnv"))
 
 
-def test_provisioning_creates_directory_and_backs_up_snippet():
+def test_provisioning_creates_directory_and_links_mappings():
     tasks = yaml.safe_load((SNIPPET.parents[4] / "tasks/main.yml").read_text())
     directories = next(
         task for task in tasks if task["name"] == "Ensure shell config directories exist"
     )
-    backups = next(
-        task for task in tasks if task["name"] == "Check if files to backup exists"
-    )
-    assert ".config/fish/conf.d" in directories["with_items"]
-    assert ".config/fish/conf.d/gcloud-profiles.fish" in backups["with_items"]
-    assert ".config/gcloud-profiles" in directories["with_items"]
-    backup_directories = next(
-        task for task in tasks if task["name"] == "Ensure backup directories exist"
-    )
-    assert ".config/gcloud-profiles" in backup_directories["with_items"]
-    assert ".config/gcloud-profiles/config.json" in backups["with_items"]
-    mappings = next(
-        task for task in tasks if task["name"] == "Symlink Google Cloud profile mappings"
-    )
-    assert mappings["ansible.builtin.file"] == {
-        "src": "{{ role_path }}/files/fish/conf.d/gcloud-profiles/config.json",
-        "dest": "{{ HOME }}/.config/gcloud-profiles/config.json",
-        "state": "link",
-        "force": True,
-    }
+    assert ".config/fish/conf.d" in directories["loop"]
+    assert ".config/gcloud-profiles" in directories["loop"]
+    configs = next(task for task in tasks if task["name"] == "Symlink shell configs")
+    assert configs["ansible.builtin.file"]["dest"] == "{{ HOME }}/.config/{{ item.dest }}"
+    assert {
+        "src": "fish/conf.d/gcloud-profiles/config.json",
+        "dest": "gcloud-profiles/config.json",
+    } in configs["loop"]
     defaults = yaml.safe_load((SNIPPET.parents[4] / "defaults/main.yml").read_text())
     assert "jq" in defaults["BREW_PACKAGES"]["formulas"]
 

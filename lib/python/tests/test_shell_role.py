@@ -11,21 +11,12 @@ def role_task(name):
     return matching[0]
 
 
-def test_shell_backup_skips_dangling_config_symlinks():
-    inspect = role_task("Check if files to backup exists")["ansible.builtin.stat"]
-    backup = role_task("Backup fish settings")
-
-    assert inspect == {
-        "path": "{{ HOME }}/{{ item }}",
-        "follow": True,
-    }
-    assert backup["when"] == "item.stat.exists"
-
-
 def test_television_config_is_linked_before_television_runs():
     tasks = yaml.safe_load(SHELL_TASKS.read_text())
     task_names = [task["name"] for task in tasks]
 
-    assert task_names.index("Symlink television config") < task_names.index(
+    configs = role_task("Symlink shell configs")["loop"]
+    assert {"src": "television/config.toml", "dest": "television/config.toml"} in configs
+    assert task_names.index("Symlink shell configs") < task_names.index(
         "Sync upstream television channels"
     )

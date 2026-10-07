@@ -1,14 +1,14 @@
 # shell
 
 Provisions Fish, Ghostty, Starship, and Television, plus the pinned standalone `lns` and `shoo` tools.
-Installs packages and Fisher plugins, selects Fish as the login shell, backs up existing configuration, and symlinks the repository's configs into `~/.config`.
+Installs packages and Fisher plugins, selects Fish as the login shell, and symlinks the repository's configs into `~/.config`.
 
 ```sh
 make run-role ROLE=shell
 ```
 
 Provisioning prompts for vault and macOS passwords.
-See [defaults](defaults/main.yml) for package lists, plugins, release checksums, and the Television cable allowlist; [tasks](tasks/main.yml) defines installation and migration behavior.
+See [defaults](defaults/main.yml) for package lists, plugins, release checksums, and the Television cable allowlist; [tasks](tasks/main.yml) defines installation behavior.
 See [lns usage](docs/lns.md) and the upstream [shoo documentation](https://github.com/jmanuelrosa/shoo) for the standalone commands.
 
 ## Fish startup snippets
@@ -39,7 +39,7 @@ See [lns usage](docs/lns.md) and the upstream [shoo documentation](https://githu
 Each feature directory owns its scripts, related helpers, and a short README.
 Ansible discovers `.fish` files recursively and installs flat symlinks by filename, preserving Fish's startup and autoload behavior.
 Filenames must be unique within each category; documentation is not installed.
-Re-run the role after moving source files so existing symlinks point to their new locations.
+Re-run the role after moving or deleting source files: it relinks moved ones and removes the dangling links left behind.
 Tests remain under `files/fish/functions/tests/` and `lib/python/tests/`.
 
 ## Other configuration
@@ -50,4 +50,3 @@ Tests remain under `files/fish/functions/tests/` and `lib/python/tests/`.
 - [secrets.fish.j2](templates/secrets.fish.j2): vault-backed environment exports, rendered separately with mode `0600`.
 
 Installation modifies `/etc/shells` and the login shell, and channel updates require network access.
-Pre-existing configs are backed up under the repository's `backups/` directory.
