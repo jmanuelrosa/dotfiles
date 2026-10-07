@@ -6,13 +6,14 @@ Installs modern replacements for traditional Unix utilities, plus the configs th
 
 ## What it does
 
-- Installs utilities listed in `BREW_PACKAGES.formulas` via `community.general.homebrew`.
-- Symlinks per-tool configs (bat, ripgrep, eza, btop) from `files/` into `~/.config/`.
+- Installs utilities listed in `BREW_PACKAGES.formulas` through the shared `roles/brew/tasks/packages.yml`.
+- Symlinks each config named in `COREUTILS_CONFIGS` from `files/<path>` to `~/.config/<path>`.
 - Downloads the pinned `hostof` release asset directly to `~/.local/bin/hostof`. This role creates `~/.local/bin` itself because it runs before the `ai` role that otherwise would.
 
 ## Vars
 
 - `BREW_PACKAGES` (defaults/main.yml) — formulas only: bat, btop, duf, eza, fastfetch, fd, httpie, hyperfine, nnn, ripgrep, scc, television, vnstat, wget, zoxide, unar.
+- `COREUTILS_CONFIGS` (defaults/main.yml): config paths, relative to both `files/` and `~/.config/`.
 - `HOSTOF` (defaults/main.yml): upstream repository, release, and SHA-256 checksum for the installed `hostof` asset.
 
 ## Tools

@@ -8,6 +8,14 @@ HOSTOF:
   release: v0.1.0
   checksum: sha256:32f6d3e413f77248802f371522c13be53bde8b0da49be5a64e6c609260ec0387
 
+# Configs symlinked from files/<path> to ~/.config/<path>.
+COREUTILS_CONFIGS:
+  - bat/config
+  - btop/btop.conf
+  - eza/theme.yml
+  - fastfetch/config.jsonc
+  - ripgrep/config
+
 BREW_PACKAGES:
   formulas:
     - bat

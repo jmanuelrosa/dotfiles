@@ -2,44 +2,17 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Ensure user config directory exists
+- name: Install coreutils Homebrew packages
+  ansible.builtin.include_tasks: "{{ CURRENT_DIR }}/roles/brew/tasks/packages.yml"
+
+# coreutils runs before the ai role, which also creates ~/.local/bin, and the hostof
+# release needs its destination to exist on a fresh machine.
+- name: Ensure coreutils directories exist
   ansible.builtin.file:
-    path: "{{ HOME }}/.config"
+    path: "{{ HOME }}/{{ item }}"
     state: directory
     mode: "0755"
-
-- name: Install CLI formulas
-  community.general.homebrew:
-    name: "{{ BREW_PACKAGES.formulas | default([]) }}"
-    state: present
-  when: BREW_PACKAGES.formulas | default([]) | length > 0
-
-# The ai role creates this too, but coreutils runs 15 roles earlier in dotfiles.yml,
-# and the hostof release needs its destination to exist on a fresh machine.
-- name: Ensure user bin directory exists
-  ansible.builtin.file:
-    path: "{{ HOME }}/.local/bin"
-    state: directory
-    mode: "0755"
-
-- name: Inspect the installed hostof command
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.local/bin/hostof"
-    follow: false
-  register: hostof_command
-
-- name: Refuse to replace an unexpected hostof symlink
-  ansible.builtin.assert:
-    that:
-      - hostof_command.stat.lnk_source == role_path ~ "/files/scripts/hostof/hostof"
-    fail_msg: "Refusing to replace {{ hostof_command.stat.lnk_source }} as hostof"
-  when: hostof_command.stat.islnk | default(false)
-
-- name: Remove the legacy hostof symlink
-  ansible.builtin.file:
-    path: "{{ HOME }}/.local/bin/hostof"
-    state: absent
-  when: hostof_command.stat.islnk | default(false)
+  loop: "{{ ['.local/bin'] + (COREUTILS_CONFIGS | map('dirname') | map('regex_replace', '^', '.config/') | list) }}"
 
 - name: Install the pinned hostof release
   ansible.builtin.get_url:
@@ -48,67 +21,10 @@
     checksum: "{{ HOSTOF.checksum }}"
     mode: "0755"
 
-- name: Ensure bat config directory exists
+- name: Symlink coreutils configs
   ansible.builtin.file:
-    path: "{{ HOME }}/.config/bat"
-    state: directory
-    mode: "0755"
-
-- name: Symlink bat config
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/bat/config"
-    dest: "{{ HOME }}/.config/bat/config"
+    src: "{{ role_path }}/files/{{ item }}"
+    dest: "{{ HOME }}/.config/{{ item }}"
     state: link
     force: true
-
-- name: Ensure ripgrep config directory exists
-  ansible.builtin.file:
-    path: "{{ HOME }}/.config/ripgrep"
-    state: directory
-    mode: "0755"
-
-- name: Symlink ripgrep config
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/ripgrep/config"
-    dest: "{{ HOME }}/.config/ripgrep/config"
-    state: link
-    force: true
-
-- name: Ensure eza config directory exists
-  ansible.builtin.file:
-    path: "{{ HOME }}/.config/eza"
-    state: directory
-    mode: "0755"
-
-- name: Symlink eza theme
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/eza/theme.yml"
-    dest: "{{ HOME }}/.config/eza/theme.yml"
-    state: link
-    force: true
-
-- name: Ensure btop config directory exists
-  ansible.builtin.file:
-    path: "{{ HOME }}/.config/btop"
-    state: directory
-    mode: "0755"
-
-- name: Symlink btop config
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/btop/btop.conf"
-    dest: "{{ HOME }}/.config/btop/btop.conf"
-    state: link
-    force: true
-
-- name: Ensure fastfetch config directory exists
-  ansible.builtin.file:
-    path: "{{ HOME }}/.config/fastfetch"
-    state: directory
-    mode: "0755"
-
-- name: Symlink fastfetch config
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/fastfetch/config.jsonc"
-    dest: "{{ HOME }}/.config/fastfetch/config.jsonc"
-    state: link
-    force: true
+  loop: "{{ COREUTILS_CONFIGS }}"
