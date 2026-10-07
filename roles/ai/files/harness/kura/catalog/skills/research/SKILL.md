@@ -3,7 +3,7 @@ name: research
 description: Investigates code and external sources to write a cited, verified memo for feasibility, unfamiliar code, general investigation, or fact-only planning groundwork. Use explicitly for "research", "investigate", "is this feasible", or a Jira ticket, Notion document, or Slack thread needing analysis. Also supplies evidence internally to to-plan without recommending a solution or publishing. Uses source gathering, code exploration, and adversarial verification, with authorized subagents for volume reads.
 argument-hint: "[question, Jira key, URL, or pasted thread/doc]"
 disable-model-invocation: true
-model: openai-codex/gpt-5.6-sol
+model: opus
 allowed-tools:
   - Read
   - Glob
