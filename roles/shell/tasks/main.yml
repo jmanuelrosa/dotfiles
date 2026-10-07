@@ -2,17 +2,8 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Install shell formulas
-  community.general.homebrew:
-    name: "{{ BREW_PACKAGES.formulas | default([]) }}"
-    state: present
-  when: BREW_PACKAGES.formulas | default([]) | length > 0
-
-- name: Install shell casks
-  community.general.homebrew_cask:
-    name: "{{ BREW_PACKAGES.casks | default([]) }}"
-    state: present
-  when: BREW_PACKAGES.casks | default([]) | length > 0
+- name: Install shell Homebrew packages
+  ansible.builtin.include_tasks: "{{ CURRENT_DIR }}/roles/brew/tasks/packages.yml"
 
 - name: Add fish as a known shell
   become: true
@@ -41,112 +32,44 @@
     path: "{{ HOME }}/{{ item }}"
     state: directory
     mode: "0755"
-  with_items:
-    - .config/fish
-    - .config/fish/conf.d
-    - .config/gcloud-profiles
-    - .config/ghostty
-    - .config/television/cable
-    - .config/television/shell
-
-- name: Ensure backup directories exist
-  ansible.builtin.file:
-    path: "{{ CURRENT_DIR }}/backups/{{ item }}"
-    state: directory
-    recurse: true
-  with_items:
+  loop:
     - .config/fish/conf.d
     - .config/fish/functions
-    - .config/fish/completions
     - .config/gcloud-profiles
     - .config/ghostty
     - .config/television/cable
     - .config/television/shell
+    - .local/bin
 
-- name: Check if files to backup exists
-  ansible.builtin.stat:
-    path: "{{ HOME }}/{{ item }}"
-    follow: true
-  with_items:
-    - .config/ghostty/config
-    - .config/fish/config.fish
-    - .config/fish/conf.d/aliases.fish
-    - .config/fish/conf.d/exports.fish
-    - .config/fish/conf.d/gcloud-profiles.fish
-    - .config/gcloud-profiles/config.json
-    - .config/fish/functions/clean_claude.fish
-    - .config/fish/functions/clean_docker.fish
-    - .config/fish/functions/clean_node.fish
-    - .config/fish/functions/create_gitconfig.fish
-    - .config/fish/functions/_tv_kura_list.fish
-    - .config/fish/functions/_tv_kura_toggle.fish
-    - .config/fish/functions/tv_change_dir.fish
-    - .config/television/config.toml
-    - .config/television/cable/aerospace.toml
-    - .config/television/cable/kura-skills.toml
-    - .config/television/cable/kura-agents.toml
-    - .config/television/cable/kura-bundles.toml
-    - .config/television/cable/sentry.toml
-    - .config/starship.toml
-  register: results
-
-- name: Backup fish settings
-  ansible.builtin.copy:
-    src: "{{ item.stat.path }}"
-    dest: "{{ CURRENT_DIR }}/backups/{{ item.item }}"
-    mode: "0644"
-  when: item.stat.exists
-  with_items: "{{ results.results }}"
-
-- name: Symlink Ghostty config
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/ghostty/config"
-    dest: "{{ HOME }}/.config/ghostty/config"
-    state: link
-    force: true
-
-- name: Symlink television config
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/television/config.toml"
-    dest: "{{ HOME }}/.config/television/config.toml"
-    state: link
-    force: true
-
-- name: Sync upstream television channels
-  ansible.builtin.command: tv update-channels
-  changed_when: false
-
-- name: Discover non-symlink television cables
-  ansible.builtin.find:
-    paths: "{{ HOME }}/.config/television/cable"
-    patterns: "*.toml"
-    file_type: file
-  register: tv_cable_files
-
-- name: Prune upstream cables not in TV_CABLE_ALLOWLIST
-  ansible.builtin.file:
-    path: "{{ item.path }}"
-    state: absent
-  loop: "{{ tv_cable_files.files }}"
+- name: Install the pinned standalone tools
+  ansible.builtin.get_url:
+    url: "{{ item.value.repository }}/releases/download/{{ item.value.release }}/{{ item.key }}"
+    dest: "{{ HOME }}/.local/bin/{{ item.key }}"
+    checksum: "{{ item.value.checksum }}"
+    mode: "0755"
+  loop: "{{ {'lns': LNS, 'shoo': SHOO} | dict2items }}"
   loop_control:
-    label: "{{ item.path | basename }}"
-  when: (item.path | basename | regex_replace('\.toml$', '')) not in TV_CABLE_ALLOWLIST
+    label: "{{ item.key }} {{ item.value.release }}"
 
-- name: Symlink Google Cloud profile mappings
+- name: Symlink shell configs
   ansible.builtin.file:
-    src: "{{ role_path }}/files/fish/conf.d/gcloud-profiles/config.json"
-    dest: "{{ HOME }}/.config/gcloud-profiles/config.json"
+    src: "{{ role_path }}/files/{{ item.src }}"
+    dest: "{{ HOME }}/.config/{{ item.dest }}"
     state: link
     force: true
-
-- name: Symlink fish config
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/{{ item }}"
-    dest: "{{ HOME }}/.config/{{ item }}"
-    state: link
-    force: true
-  with_items:
-    - fish/config.fish
+  loop:
+    - src: fish/config.fish
+      dest: fish/config.fish
+    - src: fish/conf.d/gcloud-profiles/config.json
+      dest: gcloud-profiles/config.json
+    - src: ghostty/config
+      dest: ghostty/config
+    - src: starship.toml
+      dest: starship.toml
+    - src: television/config.toml
+      dest: television/config.toml
+  loop_control:
+    label: "{{ item.dest }}"
 
 - name: Discover fish conf.d snippets
   ansible.builtin.find:
@@ -174,179 +97,6 @@
   loop_control:
     label: "{{ item.path | basename }}"
 
-- name: Inspect the autoloaded lns function link
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.config/fish/functions/lns.fish"
-    follow: false
-  register: lns_function
-
-- name: Refuse to replace an unexpected lns function override
-  ansible.builtin.assert:
-    that:
-      - lns_function.stat.islnk | default(false)
-      - lns_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/lns[.]fish$")
-    fail_msg: "Refusing to replace the Fish function at {{ HOME }}/.config/fish/functions/lns.fish"
-  when: lns_function.stat.exists | default(false)
-
-- name: Inspect the legacy lns usage function link
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.config/fish/functions/_lns_usage.fish"
-    follow: false
-  register: lns_usage_function
-
-- name: Refuse to replace an unexpected lns usage function override
-  ansible.builtin.assert:
-    that:
-      - lns_usage_function.stat.islnk | default(false)
-      - lns_usage_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/_lns_usage[.]fish$")
-    fail_msg: "Refusing to replace the Fish function at {{ HOME }}/.config/fish/functions/_lns_usage.fish"
-  when: lns_usage_function.stat.exists | default(false)
-
-- name: Inspect the legacy lns target function link
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.config/fish/functions/_lns_target.fish"
-    follow: false
-  register: lns_target_function
-
-- name: Refuse to replace an unexpected lns target function override
-  ansible.builtin.assert:
-    that:
-      - lns_target_function.stat.islnk | default(false)
-      - lns_target_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/_lns_target[.]fish$")
-    fail_msg: "Refusing to replace the Fish function at {{ HOME }}/.config/fish/functions/_lns_target.fish"
-  when: lns_target_function.stat.exists | default(false)
-
-- name: Inspect the installed lns command
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.local/bin/lns"
-    follow: false
-  register: lns_command
-
-- name: Refuse to replace an unexpected lns command
-  ansible.builtin.assert:
-    that:
-      - lns_command.stat.isreg | default(false)
-    fail_msg: "Refusing to replace the command at {{ HOME }}/.local/bin/lns"
-  when: lns_command.stat.exists | default(false)
-
-- name: Install the pinned lns release
-  ansible.builtin.get_url:
-    url: "{{ LNS.repository }}/releases/download/{{ LNS.release }}/lns"
-    dest: "{{ HOME }}/.local/bin/lns"
-    checksum: "{{ LNS.checksum }}"
-    mode: "0755"
-
-- name: Remove the legacy lns function symlink
-  ansible.builtin.file:
-    path: "{{ HOME }}/.config/fish/functions/lns.fish"
-    state: absent
-  when:
-    - lns_function.stat.islnk | default(false)
-    - lns_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/lns[.]fish$")
-
-- name: Remove the legacy lns usage function symlink
-  ansible.builtin.file:
-    path: "{{ HOME }}/.config/fish/functions/_lns_usage.fish"
-    state: absent
-  when:
-    - lns_usage_function.stat.islnk | default(false)
-    - lns_usage_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/_lns_usage[.]fish$")
-
-- name: Remove the legacy lns target function symlink
-  ansible.builtin.file:
-    path: "{{ HOME }}/.config/fish/functions/_lns_target.fish"
-    state: absent
-  when:
-    - lns_target_function.stat.islnk | default(false)
-    - lns_target_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/_lns_target[.]fish$")
-
-- name: Inspect the autoloaded port function link
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.config/fish/functions/port.fish"
-    follow: false
-  register: port_function
-
-- name: Refuse to replace an unexpected port function override
-  ansible.builtin.assert:
-    that:
-      - port_function.stat.islnk | default(false)
-      - port_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/port[.]fish$")
-    fail_msg: "Refusing to replace the Fish function at {{ HOME }}/.config/fish/functions/port.fish"
-  when: port_function.stat.exists | default(false)
-
-- name: Inspect the legacy port usage function link
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.config/fish/functions/_port_usage.fish"
-    follow: false
-  register: port_usage_function
-
-- name: Refuse to replace an unexpected port usage function override
-  ansible.builtin.assert:
-    that:
-      - port_usage_function.stat.islnk | default(false)
-      - port_usage_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/_port_usage[.]fish$")
-    fail_msg: "Refusing to replace the Fish function at {{ HOME }}/.config/fish/functions/_port_usage.fish"
-  when: port_usage_function.stat.exists | default(false)
-
-- name: Inspect the legacy port command
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.local/bin/port"
-    follow: false
-    checksum_algorithm: sha256
-  register: legacy_port_command
-
-- name: Refuse to remove an unexpected port command
-  ansible.builtin.assert:
-    that:
-      - legacy_port_command.stat.isreg | default(false)
-      - legacy_port_command.stat.checksum | default('') == SHOO.legacy_port_checksum
-    fail_msg: "Refusing to remove the command at {{ HOME }}/.local/bin/port"
-  when: legacy_port_command.stat.exists | default(false)
-
-- name: Inspect the installed shoo command
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.local/bin/shoo"
-    follow: false
-  register: shoo_command
-
-- name: Refuse to replace an unexpected shoo command
-  ansible.builtin.assert:
-    that:
-      - shoo_command.stat.isreg | default(false)
-    fail_msg: "Refusing to replace the command at {{ HOME }}/.local/bin/shoo"
-  when: shoo_command.stat.exists | default(false)
-
-- name: Install the pinned shoo release
-  ansible.builtin.get_url:
-    url: "{{ SHOO.repository }}/releases/download/{{ SHOO.release }}/shoo"
-    dest: "{{ HOME }}/.local/bin/shoo"
-    checksum: "{{ SHOO.checksum }}"
-    mode: "0755"
-
-- name: Remove the legacy port function symlink
-  ansible.builtin.file:
-    path: "{{ HOME }}/.config/fish/functions/port.fish"
-    state: absent
-  when:
-    - port_function.stat.islnk | default(false)
-    - port_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/port[.]fish$")
-
-- name: Remove the legacy port usage function symlink
-  ansible.builtin.file:
-    path: "{{ HOME }}/.config/fish/functions/_port_usage.fish"
-    state: absent
-  when:
-    - port_usage_function.stat.islnk | default(false)
-    - port_usage_function.stat.lnk_source is match(".*/roles/shell/files/fish/functions/_port_usage[.]fish$")
-
-- name: Remove the legacy port command
-  ansible.builtin.file:
-    path: "{{ HOME }}/.local/bin/port"
-    state: absent
-  when:
-    - legacy_port_command.stat.isreg | default(false)
-    - legacy_port_command.stat.checksum | default('') == SHOO.legacy_port_checksum
-
 - name: Discover fish function sources
   ansible.builtin.find:
     paths: "{{ role_path }}/files/fish/functions"
@@ -373,39 +123,6 @@
   loop_control:
     label: "{{ item.path | basename }}"
 
-- name: Discover linked fish functions
-  ansible.builtin.find:
-    paths: "{{ HOME }}/.config/fish/functions"
-    patterns: "*.fish"
-    file_type: link
-  register: fish_function_links
-
-- name: Inspect linked fish function targets
-  ansible.builtin.stat:
-    path: "{{ item.path }}"
-    follow: false
-  loop: "{{ fish_function_links.files }}"
-  loop_control:
-    label: "{{ item.path | basename }}"
-  register: fish_function_link_stats
-
-# Renaming or folding away a function leaves its symlink dangling, and fish keeps
-# autoloading by filename, so the dead name stays tab-completable forever. Only links
-# pointing back into this role are candidates, so the work role's helpers and anything
-# you linked by hand are left alone.
-- name: Prune fish function symlinks whose source is gone
-  ansible.builtin.file:
-    path: "{{ item.item.path }}"
-    state: absent
-  loop: "{{ fish_function_link_stats.results }}"
-  loop_control:
-    label: "{{ item.item.path | basename }}"
-  vars:
-    functions_dir: "{{ role_path }}/files/fish/functions"
-  when:
-    - item.stat.lnk_source.startswith(functions_dir ~ '/')
-    - (item.item.path | basename) not in (fish_function_sources.files | map(attribute='path') | map('basename') | list)
-
 - name: Symlink television custom channels
   ansible.builtin.file:
     src: "{{ item }}"
@@ -415,17 +132,56 @@
   with_fileglob:
     - "{{ role_path }}/files/television/cable/*.toml"
 
+# A file deleted or renamed in the repo leaves its link dangling, and fish keeps
+# autoloading by filename, so a dead function stays tab-completable. With -L, `-type l`
+# matches only broken links, and -lname narrows them to the ones this role wrote, so the
+# work role's helpers and anything linked by hand stay put.
+- name: Remove shell links whose source left the repo
+  ansible.builtin.command:
+    argv:
+      - find
+      - -L
+      - "{{ HOME }}/.config/fish/conf.d"
+      - "{{ HOME }}/.config/fish/functions"
+      - "{{ HOME }}/.config/television/cable"
+      - -maxdepth
+      - "1"
+      - -type
+      - l
+      - -lname
+      - "{{ role_path }}/files/*"
+      - -print
+      - -exec
+      - rm
+      - "{}"
+      - ;
+  register: shell_prune
+  changed_when: shell_prune.stdout | length > 0
+
+- name: Sync upstream television channels
+  ansible.builtin.command: tv update-channels
+  changed_when: false
+
+- name: Discover upstream television cables
+  ansible.builtin.find:
+    paths: "{{ HOME }}/.config/television/cable"
+    patterns: "*.toml"
+    file_type: file
+  register: tv_cable_files
+
+- name: Prune upstream cables not in TV_CABLE_ALLOWLIST
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ tv_cable_files.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  when: (item.path | basename | regex_replace('\.toml$', '')) not in TV_CABLE_ALLOWLIST
+
 - name: Generate television shell integration for fish
   ansible.builtin.shell: tv init fish > {{ HOME }}/.config/television/shell/integration.fish
   args:
     creates: "{{ HOME }}/.config/television/shell/integration.fish"
-
-- name: Symlink starship config
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/starship.toml"
-    dest: "{{ HOME }}/.config/starship.toml"
-    state: link
-    force: true
 
 - name: Render fish secrets file from vault
   ansible.builtin.template:

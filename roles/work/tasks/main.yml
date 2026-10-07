@@ -2,38 +2,18 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Add Homebrew taps for work tooling
-  community.general.homebrew_tap:
-    name: "{{ item }}"
-    state: present
-  loop: "{{ BREW_PACKAGES.taps | default([]) }}"
+- name: Install work Homebrew packages
+  ansible.builtin.include_tasks: "{{ CURRENT_DIR }}/roles/brew/tasks/packages.yml"
 
-- name: Trust non-official Homebrew taps for work tooling
-  ansible.builtin.command:
-    cmd: "{{ lookup('pipe', 'which brew') }} trust {{ item }}"
-  loop: "{{ BREW_PACKAGES.trusted | default([]) }}"
-  register: brew_trust
-  changed_when: brew_trust.stdout is search('^Trusted ')
-
-- name: Install work formulas
-  community.general.homebrew:
-    name: "{{ BREW_PACKAGES.formulas | default([]) }}"
-    state: present
-  when: BREW_PACKAGES.formulas | default([]) | length > 0
-
-- name: Symlink Jira television cable
+- name: Symlink the Jira television cable and its fish helper
   ansible.builtin.file:
-    src: "{{ role_path }}/files/television/cable/jira.toml"
-    dest: "{{ HOME }}/.config/television/cable/jira.toml"
+    src: "{{ role_path }}/files/{{ item }}"
+    dest: "{{ HOME }}/.config/{{ item }}"
     state: link
     force: true
-
-- name: Symlink Jira helper fish function
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/fish/functions/_tv_jira.fish"
-    dest: "{{ HOME }}/.config/fish/functions/_tv_jira.fish"
-    state: link
-    force: true
+  loop:
+    - television/cable/jira.toml
+    - fish/functions/_tv_jira.fish
 
 - name: Render work secrets file from vault
   ansible.builtin.template:
@@ -41,18 +21,13 @@
     dest: "{{ HOME }}/.config/fish/conf.d/work-secrets.fish"
     mode: "0600"
 
+# ~/.local/bin is created by the coreutils role, which runs first.
 - name: Link work scripts into the user bin directory
   ansible.builtin.file:
     src: "{{ role_path }}/files/scripts/{{ item }}/{{ item }}"
     dest: "{{ HOME }}/.local/bin/{{ item }}"
     state: link
     force: true
-  # Same shape as the ai role: one directory per tool, the executable named after it,
-  # and a manifest rather than a glob now that every entry is a directory. src stays
-  # absolute for the same reason it does there.
-  #
-  # ~/.local/bin is created by the ai role, which the work profile always includes and
-  # which the playbook runs first.
   loop: "{{ WORK_SCRIPTS }}"
 
 - name: Ensure glab-cli config directory exists
@@ -105,12 +80,9 @@
       (The SSH hostname keeps the alias because ~/.ssh/config resolves it to
       the real gitlab.com using the work key id_didomi.)
 
-      The tokens are stored in the macOS keychain — this repo keeps no
+      The tokens are stored in the macOS keychain, so this repo keeps no
       GitLab credentials on disk. See roles/work/README.md (GitLab auth) for
       the full explanation.
 
       Then re-run the playbook.
   when: glab_auth_check.results | selectattr('rc', 'ne', 0) | list | length > 0
-
-# SSH keys (work and personal) are deployed by the `ssh` role from
-# SSH_KEYS + SSH_KEYS_EXTRA. host_vars/work.yml supplies the work key.

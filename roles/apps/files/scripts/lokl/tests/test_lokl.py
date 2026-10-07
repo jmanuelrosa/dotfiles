@@ -968,11 +968,12 @@ def test_the_playbook_links_the_site_directory_beside_the_caddyfile():
     """Caddy resolves the import against the directory of the file it was handed and does
     not follow the Caddyfile symlink back here, so the second link is what serves the
     domains at all. Losing it is silent: the config still validates."""
-    tasks = (REPO / "roles/apps/tasks/development.yml").read_text()
-    assert "CADDY_SITES_PATH" in tasks
-    defaults = (REPO / "roles/apps/defaults/main.yml").read_text()
-    assert "CADDY_SITES_PATH:" in defaults
-    assert "lokl" in defaults
+    yaml = pytest.importorskip("yaml")
+    defaults = yaml.safe_load((REPO / "roles/apps/defaults/main.yml").read_text())
+    links = {link["src"]: link["dest"] for link in defaults["APPS_LINKS"]}
+    assert links["caddy/Caddyfile"] == "{{ CADDYFILE_PATH }}"
+    assert links["caddy/sites"] == "{{ CADDYFILE_PATH | dirname }}/sites"
+    assert "lokl" in defaults["APPS_SCRIPTS"]
 
 
 def test_every_committed_site_file_is_what_the_tool_would_write(tool):

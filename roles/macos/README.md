@@ -7,7 +7,6 @@ Applies macOS user preferences (`defaults write`) and a few firmware-level tweak
 - Loops `community.general.osx_defaults` over `OSX_DEFAULTS` to set keyboard repeat, Finder/Dock options, screensaver password, etc.
 - Mutes the boot sound (`nvram SystemAudioVolume=" "`).
 - Disables hibernation and the sleep image (`pmset`, `chflags`).
-- Disables the SSD-irrelevant sudden motion sensor.
 
 ## Vars
 

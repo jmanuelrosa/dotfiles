@@ -1,7 +1,7 @@
 # Ansible defaults for the apps role
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 #
-# Versions are intentionally NOT pinned for VSCODE_EXTENSIONS — VSCode's
+# Versions are intentionally NOT pinned for VSCODE_EXTENSIONS: VSCode's
 # built-in extension auto-update runs in the background regardless of what
 # the playbook installed, so pinning at install time is bypassed within hours.
 ---
@@ -17,30 +17,74 @@ VSCODE_EXTENSIONS:
   - Prisma.prisma
   - bradlc.vscode-tailwindcss
 
-# Where the Homebrew-provided caddy service reads its config from. The service
-# runs `caddy run --config <this>`, so it is the only path Caddy will look at.
-CADDYFILE_PATH: /opt/homebrew/etc/Caddyfile
+GH_EXTENSIONS:
+  - dlvhdr/gh-dash
 
-# Where the per-domain site files the Caddyfile imports have to be reachable. Derived
-# rather than restated: Caddy resolves an `import` against the directory of the file
-# holding it and never follows the Caddyfile symlink back into this repo, so the same
-# directory has to exist beside the Caddyfile under whatever prefix that one uses.
-CADDY_SITES_PATH: "{{ CADDYFILE_PATH | dirname }}/sites"
-
-# The LaunchDaemon `brew services start caddy` writes. Its presence is the whole
-# difference between Caddy running from boot and running when asked, and Caddy is
-# wanted on demand only, so the play's job is to keep this path absent.
-CADDY_BOOT_PLIST: /Library/LaunchDaemons/homebrew.mxcl.caddy.plist
-
-COLIMA_CONFIG_PATH: "{{ HOME }}/.colima/default/colima.yaml"
-COLIMA_CONFIG_BACKUP_PATH: "{{ CURRENT_DIR }}/backups/.colima/default/colima.yaml"
-
-# Tools symlinked onto PATH from files/scripts/, named rather than globbed, for the same
-# reason the ai, work and coreutils roles name theirs: every entry is a directory, and
-# Ansible's fileglob lookup filters matches through os.path.isfile, so a glob would match
-# nothing and silently install no tools.
 APPS_SCRIPTS:
   - lokl
+
+# Where Homebrew's caddy reads its config from: `caddy run --config <this>`.
+CADDYFILE_PATH: /opt/homebrew/etc/Caddyfile
+
+APPS_DIRS:
+  - "{{ HOME }}/.config/gh"
+  - "{{ HOME }}/.config/gh-dash"
+  - "{{ HOME }}/.config/diffnav"
+  - "{{ HOME }}/.config/pgcli"
+  - "{{ HOME }}/.config/herdr"
+  - "{{ HOME }}/.config/dive"
+  - "{{ HOME }}/.docker"
+  - "{{ HOME }}/.colima/default"
+  - "{{ HOME }}/Library/Application Support/lazygit"
+  - "{{ HOME }}/Library/Application Support/jesseduffield/lazydocker"
+  - "{{ HOME }}/Library/Application Support/Code/User"
+
+# `src` is relative to files/. Parents must exist already or be listed in APPS_DIRS.
+APPS_LINKS:
+  # Development
+  - src: .gitconfig
+    dest: "{{ HOME }}/.gitconfig"
+  - src: .gitignore
+    dest: "{{ HOME }}/.gitignore"
+  - src: lazygit/config.yml
+    dest: "{{ HOME }}/Library/Application Support/lazygit/config.yml"
+  - src: .npmrc
+    dest: "{{ HOME }}/.npmrc"
+  - src: gh/config.yml
+    dest: "{{ HOME }}/.config/gh/config.yml"
+  - src: gh-dash/config.yml
+    dest: "{{ HOME }}/.config/gh-dash/config.yml"
+  - src: diffnav/config.yml
+    dest: "{{ HOME }}/.config/diffnav/config.yml"
+  - src: pgcli/config
+    dest: "{{ HOME }}/.config/pgcli/config"
+  - src: herdr/config.toml
+    dest: "{{ HOME }}/.config/herdr/config.toml"
+  - src: caddy/Caddyfile
+    dest: "{{ CADDYFILE_PATH }}"
+  # Caddy resolves `import sites/*.caddyfile` against the directory of the file it was
+  # handed, without following the symlink back into this repo. Without this second link
+  # the glob matches nothing, which is only a warning, so every dev domain would silently
+  # stop being served while the config still validated.
+  - src: caddy/sites
+    dest: "{{ CADDYFILE_PATH | dirname }}/sites"
+  # Editors
+  - src: vscode/settings.json
+    dest: "{{ HOME }}/Library/Application Support/Code/User/settings.json"
+  - src: vscode/keybindings.json
+    dest: "{{ HOME }}/Library/Application Support/Code/User/keybindings.json"
+  # Infrastructure
+  - src: docker/config.json
+    dest: "{{ HOME }}/.docker/config.json"
+  - src: colima/colima.yaml
+    dest: "{{ HOME }}/.colima/default/colima.yaml"
+  - src: lazydocker/config.yml
+    dest: "{{ HOME }}/Library/Application Support/jesseduffield/lazydocker/config.yml"
+  - src: dive/config.yaml
+    dest: "{{ HOME }}/.config/dive/config.yaml"
+  # System
+  - src: .aerospace.toml
+    dest: "{{ HOME }}/.aerospace.toml"
 
 BREW_PACKAGES:
   taps:
@@ -79,8 +123,8 @@ BREW_PACKAGES:
     # Infrastructure
     - awscli
     # Cloudflare needs wrangler for the Workers platform (deploy, dev, tail) and
-    # `cf` for the rest of the account. `cf` is not a brew formula, so it is
-    # installed globally with bun in tasks/infrastructure.yml.
+    # `cf` for the rest of the account. `cf` is not a brew formula, so tasks/main.yml
+    # installs it globally with bun.
     - cloudflare-wrangler
     - colima
     - dive

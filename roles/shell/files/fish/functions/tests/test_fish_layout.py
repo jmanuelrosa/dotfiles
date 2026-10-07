@@ -67,21 +67,15 @@ def test_duplicate_filename_guards_run_before_linking(guard, variable, register,
     ]
 
 
-def test_pruning_preserves_grouped_sources_and_foreign_links():
+def test_pruning_removes_only_dangling_role_links_after_linking():
     install = next(task for task in TASKS if task["name"] == "Symlink fish functions")
-    prune = next(task for task in TASKS if task["name"] == "Prune fish function symlinks whose source is gone")
-    inspect = next(task for task in TASKS if task["name"] == "Inspect linked fish function targets")
-    assert TASKS.index(install) < TASKS.index(inspect) < TASKS.index(prune)
-    assert inspect["ansible.builtin.stat"] == {"path": "{{ item.path }}", "follow": False}
-    assert inspect["loop"] == "{{ fish_function_links.files }}"
-    assert inspect["register"] == "fish_function_link_stats"
-    assert prune["loop"] == "{{ fish_function_link_stats.results }}"
-    assert prune["ansible.builtin.file"]["path"] == "{{ item.item.path }}"
-    assert prune["vars"]["functions_dir"] == "{{ role_path }}/files/fish/functions"
-    assert prune["when"] == [
-        "item.stat.lnk_source.startswith(functions_dir ~ '/')",
-        "(item.item.path | basename) not in (fish_function_sources.files | map(attribute='path') | map('basename') | list)",
-    ]
+    prune = next(task for task in TASKS if task["name"] == "Remove shell links whose source left the repo")
+    assert TASKS.index(install) < TASKS.index(prune)
+    argv = prune["ansible.builtin.command"]["argv"]
+    assert argv[:2] == ["find", "-L"]
+    assert "{{ HOME }}/.config/fish/functions" in argv
+    assert argv[argv.index("-type") + 1] == "l"
+    assert argv[argv.index("-lname") + 1] == "{{ role_path }}/files/*"
 
 
 def test_readme_local_links_resolve():

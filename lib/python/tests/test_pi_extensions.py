@@ -46,9 +46,10 @@ def test_manifest_activates_every_extension_except_the_parked_experiment():
 
 
 def test_role_links_documented_extension_directories():
-    link = task("Symlink pi extensions")
+    link = task("Link pi extensions")
 
     assert link["loop"] == "{{ PI_EXTENSIONS }}"
+    assert link["when"] == "'pi' in HARNESS_ENABLED"
     assert link["ansible.builtin.file"] == {
         "src": "{{ HARNESS_DIR }}/adapters/pi/extensions/{{ item }}",
         "dest": "{{ HOME }}/.pi/agent/extensions/{{ item }}",
@@ -56,13 +57,3 @@ def test_role_links_documented_extension_directories():
         "force": True,
     }
 
-
-def test_role_removes_the_old_flat_extension_links():
-    superseded = set(task("Check for superseded pi extension links")["loop"])
-    old_flat_links = {
-        "activity.ts", "claude-ui.ts", "context-continuity.ts", "cursor-model-policy.ts",
-        "footer.ts", "guardrails.ts", "minion.ts", "skill-aliases.ts", "skill-model.ts",
-        "statusline.ts", "velocity.ts",
-    }
-
-    assert old_flat_links <= superseded

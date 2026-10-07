@@ -2,38 +2,29 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-- name: Add Homebrew taps for AI tooling
-  community.general.homebrew_tap:
-    name: "{{ item }}"
-    state: present
-  loop: "{{ BREW_PACKAGES.taps | default([]) }}"
+- name: Install AI Homebrew packages
+  ansible.builtin.include_tasks: "{{ CURRENT_DIR }}/roles/brew/tasks/packages.yml"
 
-- name: Trust non-official Homebrew taps for AI tooling
-  ansible.builtin.command:
-    cmd: "{{ lookup('pipe', 'which brew') }} trust {{ item }}"
-  loop: "{{ BREW_PACKAGES.trusted | default([]) }}"
-  register: brew_trust
-  changed_when: brew_trust.stdout is search('^Trusted ')
-
-- name: Install AI formulas
-  community.general.homebrew:
-    name: "{{ BREW_PACKAGES.formulas | default([]) }}"
-    state: present
-  when: BREW_PACKAGES.formulas | default([]) | length > 0
-
-- name: Install AI casks
-  community.general.homebrew_cask:
-    name: "{{ BREW_PACKAGES.casks | default([]) }}"
-    state: present
-  when: BREW_PACKAGES.casks | default([]) | length > 0
-
-# Install the agent-capable release before handing off any native agent paths.
 - name: Ensure AI support directories exist
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     mode: "0755"
   loop: "{{ AI_DIRS }}"
+
+- name: Link AI scripts into the user bin directory
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/scripts/{{ item }}/{{ item }}"
+    dest: "{{ HOME }}/.local/bin/{{ item }}"
+    state: link
+    force: true
+  loop: "{{ AI_SCRIPTS }}"
+
+# --- kura ---------------------------------------------------------------------------
+#
+# Kura owns every global skill and agent link, and the native roots they live in
+# (~/.claude/skills, ~/.claude/agents, ~/.agents/skills, ~/.pi/agent/agents), so none
+# of those appear in HARNESS_LINKS.
 
 - name: Install the pinned kura release
   ansible.builtin.get_url:
@@ -42,42 +33,32 @@
     checksum: "{{ KURA.checksum }}"
     mode: "0755"
 
-# Kura reads only ~/.config/kura/catalog for standalone skills and agents and
-# their registries; seat plugins remain outside its managed catalog.
-- name: Link the artifact catalog at the fixed path
+- name: Link kura's catalog and machine config
   ansible.builtin.file:
-    src: "{{ HARNESS_DIR }}/kura/catalog"
-    dest: "{{ HOME }}/.config/kura/catalog"
+    src: "{{ HARNESS_DIR }}/kura/{{ item }}"
+    dest: "{{ HOME }}/.config/kura/{{ item }}"
     state: link
     force: true
+  loop:
+    - catalog
+    - config.json
 
-# Kura requires machine configuration before sync or convergence. Codex and opencode
-# are not kura harnesses: they read ~/.agents/skills, which the pi harness writes.
-# Replace the previously role-written copy with a link so edits to the checkout take
-# effect without another playbook run.
-- name: Link kura machine config
-  ansible.builtin.file:
-    src: "{{ HARNESS_DIR }}/kura/config.json"
-    dest: "{{ HOME }}/.config/kura/config.json"
-    state: link
-    force: true
+# `removes` skips the check-mode run on a machine where get_url has not downloaded kura yet.
+- name: Sync global skills and agents with kura
+  ansible.builtin.command:
+    argv: "{{ [HOME ~ '/.local/bin/kura', 'sync'] + (['--dry-run'] if ansible_check_mode else []) }}"
+    removes: "{{ HOME }}/.local/bin/kura"
+  register: kura_sync
+  check_mode: false
+  changed_when: "', 0 changes' not in kura_sync.stdout"
 
-## TODO: run kura sunc for global skills and agents
-
-### +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ REDO/RETHINK
-
-# --- the harness link table -------------------------------------------------------
-#
-# HARNESS_LINKS in defaults is the whole inventory of what lands in each harness's home.
-# These tasks install it and know nothing about any one harness, so adding a harness is
-# a table entry, not a task.
+# --- harness links ------------------------------------------------------------------
 
 - name: Select the enabled harness link sets
   ansible.builtin.set_fact:
     harness_sets: "{{ (['shared'] + HARNESS_ENABLED) | map('extract', HARNESS_LINKS) | list }}"
 
-# One link per glob match, computed here so the link and prune tasks below read the same
-# list. fileglob keeps regular files only, which is what keeps hooks/tests/ unlinked.
+# fileglob keeps regular files only, which is what keeps hooks/tests/ unlinked.
 - name: Expand the harness link globs
   ansible.builtin.set_fact:
     harness_glob_links: >-
@@ -88,77 +69,8 @@
       {%- endfor -%}
       {%- endfor -%}
       {{ out }}
-    harness_glob_dirs: "{{ harness_sets | map(attribute='globs') | flatten | map(attribute='dest') | unique | list }}"
 
-
-# The old Pi bridge must be removed before the directory loop can create Kura's
-# per-agent native root. Never replace a foreign path or a real non-directory.
-- name: Inspect the legacy Pi agent bridge
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.pi/agent/agents"
-    follow: false
-  register: pi_agent_bridge
-  when: "'pi' in HARNESS_ENABLED"
-
-- name: Refuse an unexpected Pi agent root
-  ansible.builtin.assert:
-    that:
-      - >-
-        (pi_agent_bridge.stat.isdir | default(false)) or
-        ((pi_agent_bridge.stat.islnk | default(false)) and
-         pi_agent_bridge.stat.lnk_target == HARNESS_DIR ~ '/agents')
-    fail_msg: "Refusing to replace {{ HOME }}/.pi/agent/agents"
-  when:
-    - "'pi' in HARNESS_ENABLED"
-    - pi_agent_bridge.stat.exists | default(false)
-
-- name: Remove the legacy Pi agent bridge
-  ansible.builtin.file:
-    path: "{{ HOME }}/.pi/agent/agents"
-    state: absent
-  when:
-    - "'pi' in HARNESS_ENABLED"
-    - pi_agent_bridge.stat.islnk | default(false)
-
-- name: Inspect the old adapter MCP link
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.config/mcp/mcp.json"
-    follow: false
-  register: pi_old_mcp_link
-  when: "'pi' in HARNESS_ENABLED"
-
-- name: Inspect the native Pi MCP config destination
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.pi/agent/mcp.json"
-    follow: false
-  register: pi_native_mcp_config
-  when: "'pi' in HARNESS_ENABLED"
-
-- name: Refuse to replace a user-owned Pi MCP config
-  ansible.builtin.assert:
-    that:
-      - >-
-        (not (pi_native_mcp_config.stat.exists | default(false)) and
-         not (pi_native_mcp_config.stat.islnk | default(false))) or
-        ((pi_native_mcp_config.stat.islnk | default(false)) and
-         pi_native_mcp_config.stat.lnk_target in [
-           HARNESS_DIR ~ '/adapters/pi/mcp.json',
-           HARNESS_DIR ~ '/adapters/pi/generated/mcp.json'
-         ])
-    fail_msg: "Refusing to replace {{ HOME }}/.pi/agent/mcp.json"
-  when: "'pi' in HARNESS_ENABLED"
-
-- name: Remove the old adapter MCP link
-  ansible.builtin.file:
-    path: "{{ HOME }}/.config/mcp/mcp.json"
-    state: absent
-  when:
-    - "'pi' in HARNESS_ENABLED"
-    - pi_old_mcp_link.stat.islnk | default(false)
-    - pi_old_mcp_link.stat.lnk_target == HARNESS_DIR ~ '/mcp.json'
-
-# Every destination directory up front, because `state: link` does not create parents
-# the way `state: directory` does.
+# `state: link` does not create parents the way `state: directory` does.
 - name: Ensure AI config directories exist
   ansible.builtin.file:
     path: "{{ item }}"
@@ -186,206 +98,21 @@
   loop_control:
     label: "{{ item.dest }}"
 
-# The globs link what the repo ships and prune nothing, so a rule, hook, agent or theme
-# deleted here would leave a dangling link on every machine already provisioned. The
-# stale set comes off disk rather than from a list of names. Only symlinks pointing into
-# this role's files/ are candidates, which also sweeps links left by the layout before
-# harness/ and leaves herdr's real hook file, hand-written rules and kura's links alone.
-- name: Find the links in the harness glob directories
-  ansible.builtin.find:
-    paths: "{{ harness_glob_dirs }}"
-    file_type: link
-  register: harness_dir_links
+# A file deleted or renamed in the repo leaves its glob link dangling. With -L, `-type l`
+# matches only broken links, and -lname narrows them to the ones this role wrote, so
+# herdr's real hook file and anything written by hand stay put.
+- name: Remove harness links whose source left the repo
+  ansible.builtin.command:
+    argv: >-
+      {{ ['find', '-L']
+         + (harness_sets | map(attribute='globs') | flatten | map(attribute='dest') | unique | list)
+         + ['-maxdepth', '1', '-type', 'l', '-lname', role_path ~ '/files/*', '-print', '-exec', 'rm', '{}', ';'] }}
+  register: harness_prune
+  changed_when: harness_prune.stdout | length > 0
 
-# find reports no link target, so a stat per link supplies lnk_source.
-- name: Inspect the links in the harness glob directories
-  ansible.builtin.stat:
-    path: "{{ item.path }}"
-    follow: false
-  loop: "{{ harness_dir_links.files }}"
-  loop_control:
-    label: "{{ item.path }}"
-  register: harness_dir_link_stats
-
-- name: Remove harness links the repo no longer ships
-  ansible.builtin.file:
-    path: "{{ item.item.path }}"
-    state: absent
-  loop: "{{ harness_dir_link_stats.results }}"
-  loop_control:
-    label: "{{ item.item.path }}"
-  when:
-    - item.item.path not in (harness_glob_links | map(attribute='dest'))
-    - item.stat.islnk | default(false)
-    - item.stat.lnk_source is match('^' ~ role_path ~ '/files/')
-
-# Legacy Claude links are still valid through the catalog alias, but must be
-# handed off before Kura can install its own catalog-backed per-agent links.
-- name: Find legacy Claude agent links
-  ansible.builtin.find:
-    paths: "{{ HOME }}/.claude/agents"
-    file_type: link
-  register: legacy_claude_agents
-  when: "'claude' in HARNESS_ENABLED"
-
-- name: Inspect legacy Claude agent links
-  ansible.builtin.stat:
-    path: "{{ item.path }}"
-    follow: false
-  loop: "{{ legacy_claude_agents.files | default([]) }}"
-  loop_control:
-    label: "{{ item.path }}"
-  register: legacy_claude_agent_stats
-
-- name: Remove only role-owned Claude agent links
-  ansible.builtin.file:
-    path: "{{ item.item.path }}"
-    state: absent
-  loop: "{{ legacy_claude_agent_stats.results }}"
-  loop_control:
-    label: "{{ item.item.path }}"
-  when:
-    - item.stat.islnk | default(false)
-    - item.stat.lnk_target == HARNESS_DIR ~ '/agents/' ~ (item.item.path | basename)
-
-# --- herdr --------------------------------------------------------------------------
-
-# herdr owns both halves of this integration: it writes its own
-# hooks/herdr-agent-state.sh (a real file, not a repo symlink, so the prune above never
-# touches it) and registers the SessionStart entry that reports agent state back to the
-# workspace manager. `integration status` is the gate: it prints `claude: current (v<n>)`
-# only when the installed hook matches the version herdr ships, so a herdr upgrade
-# reinstalls on the next run. It is read-only, hence check_mode: false.
-#
-# The pi integration is an extension at ~/.pi/agent/extensions/ rather than a hook, and
-# is installed on the same terms from the same status output.
-- name: Check the herdr claude integration status
-  ansible.builtin.command: herdr integration status
-  register: herdr_integration
-  changed_when: false
-  check_mode: false
-
-- name: Install the herdr claude integration
-  ansible.builtin.command: herdr integration install claude
-  when: "'claude: current' not in herdr_integration.stdout"
-  changed_when: true
-
-- name: Install the herdr pi integration
-  ansible.builtin.command: herdr integration install pi
-  when: "'pi: current' not in herdr_integration.stdout"
-  changed_when: true
-
-# --- scripts and kura ---------------------------------------------------------------
-
-- name: Link AI scripts into the user bin directory
-  ansible.builtin.file:
-    src: "{{ role_path }}/files/scripts/{{ item }}/{{ item }}"
-    dest: "{{ HOME }}/.local/bin/{{ item }}"
-    state: link
-    force: true
-  # One directory per tool, and the executable inside carries the tool's name, so the
-  # source is <name>/<name>. src stays absolute: ansible.builtin.file does not resolve
-  # it through the role search path the way copy and template do, and a relative one
-  # would be read against ~/.local/bin and written as a dangling link that still
-  # reports changed.
-  loop: "{{ AI_SCRIPTS }}"
-
-# Kura is not in AI_SCRIPTS: the script loop cannot overwrite the pinned release.
-- name: Inspect the command left by the old claude-kit link
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.local/bin/claude-kit"
-    follow: false
-  register: claude_kit_command
-
-# Only the link this role wrote is ours to remove.
-- name: Refuse to remove an unexpected claude-kit symlink
-  ansible.builtin.assert:
-    that:
-      - claude_kit_command.stat.lnk_source == role_path ~ "/files/scripts/claude-kit/claude-kit"
-    fail_msg: "Refusing to remove {{ claude_kit_command.stat.lnk_source }} as claude-kit"
-  when: claude_kit_command.stat.islnk | default(false)
-
-- name: Remove the legacy claude-kit symlink
-  ansible.builtin.file:
-    path: "{{ HOME }}/.local/bin/claude-kit"
-    state: absent
-  when: claude_kit_command.stat.islnk | default(false)
-
-# --- pi -----------------------------------------------------------------------------
-
-# Kura 0.2 and earlier exposed Pi's global skills through Claude's root. Pi reads
-# ~/.agents/skills natively now, and keeping this bridge would load every global skill
-# twice. Refuse an unexpected occupant rather than deleting user-owned content.
-- name: Check for the superseded pi skills link
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.pi/agent/skills"
-    follow: false
-  register: pi_superseded_skills_link
-
-- name: Refuse to remove an unexpected pi skills path
-  ansible.builtin.assert:
-    that:
-      - >-
-        not pi_superseded_skills_link.stat.exists or
-        (pi_superseded_skills_link.stat.islnk | default(false) and
-        pi_superseded_skills_link.stat.lnk_source == HOME ~ "/.claude/skills")
-    fail_msg: "Refusing to remove user-owned {{ HOME }}/.pi/agent/skills"
-
-- name: Remove the superseded pi skills link
-  ansible.builtin.file:
-    path: "{{ HOME }}/.pi/agent/skills"
-    state: absent
-  when: pi_superseded_skills_link.stat.islnk | default(false)
-
-# Pi reads SYSTEM.md as a replacement system prompt; only remove the old role-owned link.
-- name: Check for superseded pi system prompt link
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.pi/agent/SYSTEM.md"
-    follow: false
-  register: pi_superseded_system_prompt
-
-- name: Remove superseded pi system prompt link
-  ansible.builtin.file:
-    path: "{{ HOME }}/.pi/agent/SYSTEM.md"
-    state: absent
-  when:
-    - pi_superseded_system_prompt.stat.islnk | default(false)
-    - pi_superseded_system_prompt.stat.lnk_target is match('^' ~ HARNESS_DIR ~ '/')
-
-# Renaming an auto-discovered extension leaves the old role-owned link dangling. Remove
-# only links so a file written by hand under a superseded name remains the user's.
-- name: Check for superseded pi extension links
-  ansible.builtin.stat:
-    path: "{{ HOME }}/.pi/agent/extensions/{{ item }}"
-    follow: false
-  loop:
-    - activity.ts
-    - claude-ui.ts
-    - context-continuity.ts
-    - cursor-model-policy.ts
-    - footer.ts
-    - guardrails.ts
-    - minion.ts
-    - skill-aliases.ts
-    - skill-model.ts
-    - statusline.ts
-    - velocity.ts
-  register: pi_superseded_extension_links
-
-- name: Remove superseded pi extension links
-  ansible.builtin.file:
-    path: "{{ HOME }}/.pi/agent/extensions/{{ item.item }}"
-    state: absent
-  loop: "{{ pi_superseded_extension_links.results }}"
-  loop_control:
-    label: "{{ item.item }}"
-  when: item.stat.islnk | default(false)
-
-# Each manifest entry is a directory containing index.ts and its documentation. Pi
-# follows the directory link and auto-discovers index.ts; the manifest keeps the
-# disabled claude-ui experiment in the source tree without loading it. A manifest rather
-# than a HARNESS_LINKS glob, because fileglob matches files and these are directories.
-- name: Symlink pi extensions
+# Pi follows each directory link and auto-discovers its index.ts. A manifest rather than
+# a glob, because fileglob matches files and these are directories.
+- name: Link pi extensions
   ansible.builtin.file:
     src: "{{ HARNESS_DIR }}/adapters/pi/extensions/{{ item }}"
     dest: "{{ HOME }}/.pi/agent/extensions/{{ item }}"
@@ -394,30 +121,34 @@
   loop: "{{ PI_EXTENSIONS }}"
   when: "'pi' in HARNESS_ENABLED"
 
-- name: Merge shared MCP servers into Claude's user config
+# Claude and Codex write their own config files, so the policy and shared MCP servers
+# are merged into them rather than linked over them. uv supplies the Python 3.11 the
+# generator needs, as it does for `make harness`.
+- name: Merge the harness policy into each harness's own config
   ansible.builtin.command:
-    argv: "{{ ['uv', 'run', '--no-project', 'python', HARNESS_DIR ~ '/bin/harness-build', 'apply', 'claude'] + (['--check'] if ansible_check_mode else []) }}"
+    argv: "{{ ['uv', 'run', '--no-project', 'python', HARNESS_DIR ~ '/bin/harness-build', 'apply', item] + (['--check'] if ansible_check_mode else []) }}"
   environment:
     PYTHONDONTWRITEBYTECODE: "1"
-  register: claude_mcp_apply
+  loop: "{{ HARNESS_ENABLED | intersect(['claude', 'codex']) }}"
+  register: harness_apply
   check_mode: false
-  changed_when: "'up to date' not in claude_mcp_apply.stdout"
-  failed_when: claude_mcp_apply.rc not in ([0, 1] if ansible_check_mode else [0])
-  when: "'claude' in HARNESS_ENABLED"
+  changed_when: "'up to date' not in harness_apply.stdout"
+  failed_when: harness_apply.rc not in ([0, 1] if ansible_check_mode else [0])
 
-# --- codex ------------------------------------------------------------------------
+# --- herdr --------------------------------------------------------------------------
 #
-# Codex writes its own config.toml, so the policy is merged into it rather than linked
-# over it: only the keys adapters/codex/adapter.toml names are replaced. The rules file
-# is copied beside Codex's own, since its loader skips a symlink. uv supplies the
-# Python 3.11 the generator needs, as it does for `make harness`.
-- name: Merge the harness policy into Codex's config
-  ansible.builtin.command:
-    argv: "{{ ['uv', 'run', '--no-project', 'python', HARNESS_DIR ~ '/bin/harness-build', 'apply', 'codex'] + (['--check'] if ansible_check_mode else []) }}"
-  environment:
-    PYTHONDONTWRITEBYTECODE: "1"
-  register: codex_apply
+# herdr writes its own hook file and settings entry. `integration status` prints
+# `<harness>: current` only when the installed integration matches the herdr version,
+# so an upgrade reinstalls on the next run.
+
+- name: Check the herdr integration status
+  ansible.builtin.command: herdr integration status
+  register: herdr_integration
+  changed_when: false
   check_mode: false
-  changed_when: "'up to date' not in codex_apply.stdout"
-  failed_when: codex_apply.rc not in ([0, 1] if ansible_check_mode else [0])
-  when: "'codex' in HARNESS_ENABLED"
+
+- name: Install the herdr integrations
+  ansible.builtin.command: herdr integration install {{ item }}
+  loop: "{{ HARNESS_ENABLED | intersect(['claude', 'pi']) }}"
+  when: "(item ~ ': current') not in herdr_integration.stdout"
+  changed_when: true

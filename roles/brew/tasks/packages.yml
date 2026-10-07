@@ -1,0 +1,27 @@
+# Installs the calling role's BREW_PACKAGES. Included by path from every installing role,
+# so BREW_PACKAGES resolves against that role's defaults, not this one's.
+---
+
+- name: Add Homebrew taps
+  community.general.homebrew_tap:
+    name: "{{ BREW_PACKAGES.taps }}"
+    state: present
+  when: BREW_PACKAGES.taps is defined
+
+- name: Trust non-official Homebrew taps
+  ansible.builtin.command: brew trust {{ item }}
+  loop: "{{ BREW_PACKAGES.trusted | default([]) }}"
+  register: brew_trust
+  changed_when: brew_trust.stdout is search('^Trusted ')
+
+- name: Install Homebrew formulas
+  community.general.homebrew:
+    name: "{{ BREW_PACKAGES.formulas }}"
+    state: present
+  when: BREW_PACKAGES.formulas is defined
+
+- name: Install Homebrew casks
+  community.general.homebrew_cask:
+    name: "{{ BREW_PACKAGES.casks }}"
+    state: present
+  when: BREW_PACKAGES.casks is defined

@@ -28,8 +28,3 @@
     touch /Private/var/vm/sleepimage
     chflags uchg /Private/var/vm/sleepimage
   changed_when: false  # uchg-locked file is effectively immutable; rerun is a no-op
-
-- name: Disable the sudden motion sensor (not useful for SSDs)
-  become: true
-  ansible.builtin.command: pmset -a sms 0
-  changed_when: false  # pmset re-applies same value as no-op

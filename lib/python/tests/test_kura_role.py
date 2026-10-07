@@ -3,15 +3,14 @@
 kura used to live in `roles/ai/files/scripts/claude-kit/` and its suite ran here. It is
 released separately now, so what remains is the half this repository can break:
 
-  the installer   a pinned release and checksum, machine config, the legacy command and
-                  cross-harness link removals, and the commands the role runs
+  the installer   a pinned release and checksum, machine config and catalog links, and
+                  the `kura sync` the role runs on every play
   the catalog     that the dedicated Kura view exposes skills, agents, bundles and their
                   registries, that every shipped artifact is loadable, that seat routing
                   names every implementer seat, and that `global` means what it should
 
-Kura v0.7 manages skills, standalone agents and bundles. The role hands its old agent
-links off to Kura; the seats and the product pipeline, which used to ship as Claude
-plugins beside the catalog, are bundles inside it. The tool's own behaviour is
+Kura manages skills, standalone agents and bundles, and owns the native roots they are
+linked into; the seats and the product pipeline are bundles inside the catalog. The tool's own behaviour is
 asserted in its own repository against a fixture catalog. Nothing here imports it: the derivations that need its answers ask the
 installed command and skip when it is absent or predates the multi-harness interface.
 """
@@ -40,14 +39,9 @@ COREUTILS_DEFAULTS = REPO / "roles/coreutils/defaults/main.yml"
 SETTINGS = CLAUDE_SETTINGS
 KURA_CATALOG = CATALOG
 
-SYNC_TASK = "Converge global skills for Claude Code and Pi"
-CONVERGE_TASK = "Converge initialized project skill views"
+SYNC_TASK = "Sync global skills and agents with kura"
 INSTALL_TASK = "Install the pinned kura release"
-MACHINE_CONFIG_TASK = "Link kura machine config"
-CATALOG_TASK = "Link the artifact catalog at the fixed path"
-LEGACY_REMOVE_TASK = "Remove the legacy claude-kit symlink"
-LEGACY_PI_SKILLS_CHECK_TASK = "Check for the superseded pi skills link"
-LEGACY_PI_SKILLS_REMOVE_TASK = "Remove the superseded pi skills link"
+CONFIG_TASK = "Link kura's catalog and machine config"
 LINK_TASK = "Link AI scripts into the user bin directory"
 HOSTOF_TASK = "Install the pinned hostof release"
 
@@ -98,40 +92,20 @@ def test_kura_is_not_in_the_script_link_manifest():
     assert "claude-kit" not in role_manifest("ai", "AI_SCRIPTS")
 
 
-def test_the_legacy_symlink_is_removed_rather_than_replaced():
-    """The command was renamed, so the download writes a different path and nothing
-    overwrites the old link. Left in place it would keep a claude-kit on PATH pointing
-    into a deleted directory, which fails as a dangling link rather than as a missing
-    command."""
-    task = role_task("ai", LEGACY_REMOVE_TASK)
+def test_the_role_links_kuras_catalog_and_machine_configuration():
+    task = role_task("ai", CONFIG_TASK)
     assert task["ansible.builtin.file"] == {
-        "path": "{{ HOME }}/.local/bin/claude-kit",
-        "state": "absent",
-    }
-    assert "islnk" in task["when"], "only a symlink this role wrote is ours to remove"
-
-
-def test_the_role_links_kuras_machine_configuration():
-    spec = role_task("ai", MACHINE_CONFIG_TASK)["ansible.builtin.file"]
-    assert spec == {
-        "src": "{{ HARNESS_DIR }}/kura/config.json",
-        "dest": "{{ HOME }}/.config/kura/config.json",
+        "src": "{{ HARNESS_DIR }}/kura/{{ item }}",
+        "dest": "{{ HOME }}/.config/kura/{{ item }}",
         "state": "link",
         "force": True,
-    }
+    }, "force repoints a link naming an older checkout"
+    assert task["loop"] == ["catalog", "config.json"]
     assert json.loads((HARNESS / "kura/config.json").read_text()) == {
         "schemaVersion": 1,
         "globalHarnesses": ["claude", "pi"],
         "pi": {"agents": {"global": "~/.pi/agent/agents", "project": ".pi/agents"}},
     }
-
-
-def test_the_role_links_the_catalog_at_the_fixed_path():
-    spec = role_task("ai", CATALOG_TASK)["ansible.builtin.file"]
-    assert spec["state"] == "link"
-    assert spec["src"] == "{{ HARNESS_DIR }}/kura/catalog"
-    assert spec["dest"] == "{{ HOME }}/.config/kura/catalog"
-    assert spec["force"] is True, "a link naming an older checkout must be repointed"
 
 
 def test_the_catalog_view_exposes_kuras_supported_inputs():
@@ -205,10 +179,22 @@ def test_global_root_policy_is_boolean_and_separate_from_groups(kind, collection
         assert "global" not in entry.get("groups", []), entry
 
 
-def test_kura_convergence_tasks_remain_disabled():
-    names = {task["name"] for task in yaml.safe_load(AI_TASKS.read_text())}
-    assert SYNC_TASK not in names
-    assert CONVERGE_TASK not in names
+def test_the_role_syncs_global_artifacts_after_kura_can_read_the_catalog():
+    """Bare `kura sync` links both skills and agents; `--type skill` would leave agents out.
+    Project convergence stays with the SessionStart hook below, never the play."""
+    task = role_task("ai", SYNC_TASK)
+    argv = task["ansible.builtin.command"]["argv"]
+    assert "[HOME ~ '/.local/bin/kura', 'sync']" in argv
+    assert "['--dry-run'] if ansible_check_mode" in argv
+    assert "--type" not in argv
+    assert task["ansible.builtin.command"]["removes"] == "{{ HOME }}/.local/bin/kura"
+    assert task["check_mode"] is False
+    assert task["changed_when"] == "', 0 changes' not in kura_sync.stdout"
+
+    tasks = yaml.safe_load(AI_TASKS.read_text())
+    names = [t["name"] for t in tasks]
+    assert names.index(INSTALL_TASK) < names.index(CONFIG_TASK) < names.index(SYNC_TASK)
+    assert not any("converge" in str(t.get("ansible.builtin.command", "")) for t in tasks)
 
 
 def test_a_session_start_hook_converges_only_an_initialized_exact_cwd():
@@ -223,32 +209,12 @@ def test_a_session_start_hook_converges_only_an_initialized_exact_cwd():
     ]
 
 
-def test_the_old_cross_harness_skill_link_is_removed_only_when_it_is_ours():
-    check = role_task("ai", LEGACY_PI_SKILLS_CHECK_TASK)["ansible.builtin.stat"]
-    assert check == {"path": "{{ HOME }}/.pi/agent/skills", "follow": False}
-
-    remove = role_task("ai", LEGACY_PI_SKILLS_REMOVE_TASK)
-    assert remove["ansible.builtin.file"] == {
-        "path": "{{ HOME }}/.pi/agent/skills",
-        "state": "absent",
-    }
-    assert "islnk" in remove["when"]
-
-    assertion = next(
-        task for task in yaml.safe_load(AI_TASKS.read_text())
-        if task.get("ansible.builtin.assert")
-        and "pi skills" in task.get("name", "").lower()
-    )["ansible.builtin.assert"]
-    conditions = " ".join(assertion["that"])
-    assert "lnk_source" in conditions
-    assert '.claude/skills' in conditions
-
-
 def test_standalone_agents_are_catalog_owned_and_global():
     links = harness_links()
     assert not any(dest.startswith("~/.claude/agents/") for dest in links)
     assert "~/.pi/agent/agents" not in links
-    assert "{{ HOME }}/.pi/agent/agents" in ai_defaults()["HARNESS_LINKS"]["pi"]["dirs"]
+    assert "{{ HOME }}/.pi/agent/agents" not in ai_defaults()["HARNESS_LINKS"]["pi"]["dirs"]
+    assert "{{ HOME }}/.claude/agents" not in ai_defaults()["HARNESS_LINKS"]["claude"]["dirs"]
 
     registry = json.loads(AGENT_REGISTRY.read_text())
     assert set(registry) == {"$schema", "version", "upstream", "local"}
@@ -266,24 +232,6 @@ def test_agent_and_bundle_schemas_match_the_skill_registry(artifact_type):
     assert registry["$schema"] == skill_registry["$schema"].replace(
         "skill-registry.schema.json", f"{artifact_type}-registry.schema.json"
     )
-
-
-def test_legacy_agent_links_are_removed_only_when_the_role_owns_them():
-    """lnk_source follows the catalog alias; lnk_target preserves the old source."""
-    tasks = yaml.safe_load(AI_TASKS.read_text())
-    names = [task["name"] for task in tasks]
-    assert names.index(INSTALL_TASK) < names.index("Remove the legacy Pi agent bridge")
-    assert names.index(INSTALL_TASK) < names.index("Remove only role-owned Claude agent links")
-    pi_assert = role_task("ai", "Refuse an unexpected Pi agent root")
-    assert "lnk_target" in " ".join(pi_assert["ansible.builtin.assert"]["that"])
-    pi_remove = role_task("ai", "Remove the legacy Pi agent bridge")
-    assert "islnk" in " ".join(pi_remove["when"])
-    claude_remove = role_task("ai", "Remove only role-owned Claude agent links")
-    assert "lnk_target" in " ".join(claude_remove["when"])
-    assert "HARNESS_DIR ~ '/agents/'" in " ".join(claude_remove["when"])
-    assert "{{ HOME }}/.claude/agents" not in {
-        glob["dest"] for glob in ai_defaults()["HARNESS_LINKS"]["claude"]["globs"]
-    }
 
 
 # --- the installers that still link from this checkout ------------------------

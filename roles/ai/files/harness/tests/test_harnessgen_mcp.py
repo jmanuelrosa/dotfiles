@@ -51,15 +51,7 @@ def test_pi_native_config_merges_shared_servers_with_its_overrides():
     ai_role = ROOT.parents[1]
     links = yaml.safe_load((ai_role / "defaults/main.yml").read_text())["HARNESS_LINKS"]["pi"]["files"]
     assert {"src": emit_pi.MCP, "dest": "{{ HOME }}/.pi/agent/mcp.json"} in links
-    assert not any(link["dest"] == "{{ HOME }}/.config/mcp/mcp.json" for link in links)
-    tasks = yaml.safe_load((ai_role / "tasks/main.yml").read_text())
     assert "npm:pi-mcp-adapter" not in json.loads((ROOT / "adapters/pi/settings.json").read_text())["packages"]
-    guard = next(task for task in tasks if task["name"] == "Refuse to replace a user-owned Pi MCP config")
-    assert "adapters/pi/mcp.json" in guard["ansible.builtin.assert"]["that"][0]
-    assert emit_pi.MCP in guard["ansible.builtin.assert"]["that"][0]
-    cleanup = next(task for task in tasks if task["name"] == "Remove the old adapter MCP link")
-    assert "pi_old_mcp_link.stat.islnk | default(false)" in cleanup["when"]
-    assert "pi_old_mcp_link.stat.lnk_target == HARNESS_DIR ~ '/mcp.json'" in cleanup["when"]
 
 
 def test_claude_adds_only_managed_names_and_does_not_rewrite_on_repeat(harness):

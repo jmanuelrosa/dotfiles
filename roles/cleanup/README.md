@@ -5,8 +5,7 @@ Reclaims disk by removing unused Homebrew dependencies and pruning the cache.
 ## What it does
 
 - `brew autoremove` — removes formulae installed only as dependencies that nothing depends on now.
-- `brew cleanup --prune=all` — removes the entire download cache.
-- `brew cleanup` — removes old versions of installed formulae.
+- `brew cleanup --prune=all`: removes old versions of installed formulae and the entire download cache.
 
 ## Vars
 
