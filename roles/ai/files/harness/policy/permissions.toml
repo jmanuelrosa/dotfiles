@@ -28,6 +28,17 @@ allow = [
   "bq *",
   "bunx ctx7 *",
   "npx -y ctx7 *",
+  "kura list *",
+  "kura scout *",
+  "kura doctor *",
+  "kura outdated *",
+  "kura add *",
+  "kura remove *",
+  "kura adopt *",
+  "kura restore *",
+  "kura converge *",
+  "kura sync *",
+  "cf auth whoami",
 ]
 deny = [
   "dd *",
@@ -194,6 +205,9 @@ allow_edit = [
 allow = [
   "WebFetch",
   "WebSearch",
+  "mcp__claude_ai_Slack__slack_read_thread",
+  "mcp__claude_ai_Slack__slack_search_public_and_private",
+  "mcp__claude_ai_Slack__slack_read_channel",
 ]
 deny = [
   "Workflow",
