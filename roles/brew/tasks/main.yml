@@ -1,25 +1,11 @@
 # Ansible role to install HomeBrew and dependencies
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
-- name: Ensure Homebrew is installed
-  ansible.builtin.stat:
-    path: "{{ lookup('pipe', 'which brew') }}"
-  register: homebrew_check
 
-- name: Install Homebrew
-  become: true
-  become_user: "{{ USER }}"
-  become_method: ansible.builtin.sudo
-  ansible.builtin.shell: NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  when: not homebrew_check.stat.exists
-  changed_when: not homebrew_check.stat.exists
-
+# bootstrap.sh installs Homebrew before Ansible exists, so it is always present here.
 - name: Update Homebrew
   community.general.homebrew:
     update_homebrew: true
 
-- name: Install brew-role formulas (mas, ansible, ansible-lint)
-  community.general.homebrew:
-    name: "{{ BREW_PACKAGES.formulas | default([]) }}"
-    state: present
-  when: BREW_PACKAGES.formulas | default([]) | length > 0
+- name: Install brew Homebrew packages
+  ansible.builtin.include_tasks: packages.yml
