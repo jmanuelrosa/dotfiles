@@ -31,11 +31,9 @@ from dotkit.testing import (
 LINK_FILES_TASK = "Link harness files"
 LINK_GLOBS_TASK = "Link harness globs"
 EXPAND_TASK = "Expand the harness link globs"
-FIND_TASK = "Find the links in the harness glob directories"
-INSPECT_TASK = "Inspect the links in the harness glob directories"
-PRUNE_TASK = "Remove harness links the repo no longer ships"
+PRUNE_TASK = "Remove harness links whose source left the repo"
 DIRS_TASK = "Ensure AI config directories exist"
-CODEX_APPLY_TASK = "Merge the harness policy into Codex's config"
+APPLY_TASK = "Merge the harness policy into each harness's own config"
 
 
 def ai_task(name):
@@ -110,10 +108,12 @@ def test_every_hook_is_linked_and_its_tests_are_not(links):
     assert not any("tests" in dest for dest in hooks)
 
 
-def test_agent_roots_belong_to_kura_not_the_link_table(links):
-    assert not any(dest.startswith("~/.claude/agents/") for dest in links)
-    assert "~/.pi/agent/agents" in harness_dirs()
-    assert "~/.pi/agent/agents" not in links
+def test_skill_and_agent_roots_belong_to_kura_not_the_link_table(links):
+    """`kura sync` creates these roots and owns every link in them."""
+    roots = ("~/.claude/skills", "~/.claude/agents", "~/.agents/skills", "~/.pi/agent/agents")
+    for root in roots:
+        assert root not in harness_dirs()
+        assert not any(dest == root or dest.startswith(f"{root}/") for dest in links)
 
 
 def test_the_pi_adapter_files_are_linked(links):
@@ -152,14 +152,14 @@ def test_codex_config_and_rules_are_never_links(links):
     assert not any(dest.startswith("~/.codex/rules") for dest in links)
 
 
-def test_codex_config_is_merged_by_the_generator_on_every_run():
-    task = ai_task(CODEX_APPLY_TASK)
+def test_claude_and_codex_configs_are_merged_by_the_generator_on_every_run():
+    task = ai_task(APPLY_TASK)
     argv = task["ansible.builtin.command"]["argv"]
-    assert "'harness-build'" in argv or "/bin/harness-build" in argv
-    assert "'apply', 'codex'" in argv and "ansible_check_mode" in argv
+    assert "/bin/harness-build" in argv
+    assert "'apply', item" in argv and "ansible_check_mode" in argv
+    assert task["loop"] == "{{ HARNESS_ENABLED | intersect(['claude', 'codex']) }}"
     assert task["check_mode"] is False, "the --check form is how a dry run sees pending changes"
-    assert task["changed_when"] == "'up to date' not in codex_apply.stdout"
-    assert task["when"] == "'codex' in HARNESS_ENABLED"
+    assert task["changed_when"] == "'up to date' not in harness_apply.stdout"
 
 
 def test_rtk_reads_its_config_from_application_support(links):
@@ -193,27 +193,22 @@ def test_the_directories_tasks_create_every_set_and_support_dir():
     assert "map(attribute='dirs')" in loop
 
 
-def test_the_prune_only_removes_symlinks_into_this_role():
+def test_the_prune_only_removes_dangling_symlinks_into_this_role():
     """Everything else in those directories belongs to someone: herdr's real hook file, a
-    rule written by hand, a link into another checkout."""
-    found = ai_task(FIND_TASK)["ansible.builtin.find"]
-    assert found == {"paths": "{{ harness_glob_dirs }}", "file_type": "link"}
-
-    inspect = ai_task(INSPECT_TASK)
-    assert inspect["loop"] == "{{ harness_dir_links.files }}"
-    assert inspect["ansible.builtin.stat"] == {"path": "{{ item.path }}", "follow": False}
-
-    prune = ai_task(PRUNE_TASK)
-    assert prune["loop"] == "{{ harness_dir_link_stats.results }}"
-    conditions = " ".join(prune["when"])
-    assert "item.stat.islnk" in conditions
-    assert "item.stat.lnk_source is match('^' ~ role_path ~ '/files/')" in conditions
+    rule written by hand, a link into another checkout. Under -L, `-type l` matches only
+    links whose target is gone."""
+    task = ai_task(PRUNE_TASK)
+    argv = task["ansible.builtin.command"]["argv"]
+    assert "['find', '-L']" in argv
+    assert "'-type', 'l', '-lname', role_path ~ '/files/*'" in argv
+    assert "'-maxdepth', '1'" in argv
+    assert task["changed_when"] == "harness_prune.stdout | length > 0"
 
 
-def test_the_prune_keeps_exactly_what_the_glob_task_links():
-    """Two lists that drift would delete a link the task above it just made."""
-    conditions = " ".join(ai_task(PRUNE_TASK)["when"])
-    assert "not in (harness_glob_links | map(attribute='dest'))" in conditions
+def test_the_prune_walks_exactly_the_glob_destinations():
+    """A file link's directory is not the role's alone, so only glob destinations are swept."""
+    argv = ai_task(PRUNE_TASK)["ansible.builtin.command"]["argv"]
+    assert "harness_sets | map(attribute='globs') | flatten | map(attribute='dest') | unique" in argv
 
 
 HARNESS_MECHANICS = {

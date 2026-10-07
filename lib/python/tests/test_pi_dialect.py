@@ -163,8 +163,9 @@ def test_architect_bans_the_agent_tool_in_both_dialects():
 
 
 def test_kura_owns_pis_global_agent_root():
-    """pi-subagents reads global agents from ~/.pi/agent/agents, not a bridge."""
-    assert "~/.pi/agent/agents" in harness_dirs()
+    """pi-subagents reads global agents from ~/.pi/agent/agents, which `kura sync` creates
+    and fills, so the link table neither creates nor links it."""
+    assert "~/.pi/agent/agents" not in harness_dirs()
     assert "~/.pi/agent/agents" not in harness_links()
 
 
@@ -189,9 +190,18 @@ def test_the_role_installs_herdr_for_pi_as_well_as_claude():
     read the same register, so a second `herdr integration status` call here would be a
     second source of truth for the same question.
     """
+    install = next(
+        task for task in yaml.safe_load(AI_TASKS.read_text())
+        if task.get("name") == "Install the herdr integrations"
+    )
+    assert install["ansible.builtin.command"] == "herdr integration install {{ item }}"
+    assert install["loop"] == "{{ HARNESS_ENABLED | intersect(['claude', 'pi']) }}", (
+        "a fresh machine gets no pi telemetry"
+    )
+    assert install["when"] == "(item ~ ': current') not in herdr_integration.stdout", (
+        "the install is ungated"
+    )
     tasks = AI_TASKS.read_text()
-    assert "herdr integration install pi" in tasks, "a fresh machine gets no pi telemetry"
-    assert "'pi: current' not in herdr_integration.stdout" in tasks, "the pi install is ungated"
     # Command lines only. Counting occurrences in the file would count the prose above
     # them, which is how this assertion first failed against a comment.
     invocations = [

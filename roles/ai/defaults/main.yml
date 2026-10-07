@@ -2,10 +2,9 @@
 # Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
 ---
 
-# There is no var for the global skill set. Kura derives it from the `global` boolean flag
-# in skill-registry.json, expands declared skill dependencies, and projects independent
-# links into Claude Code and Pi's native global roots. Global standalone agents are
-# selected by the agent registry and linked by Kura, not HARNESS_LINKS.
+# There is no var for the global skill or agent set. `kura sync` derives both from the
+# `global` flag in the catalog registries, expands declared dependencies, and links them
+# into Claude Code and Pi's native global roots, which it also creates.
 
 BREW_PACKAGES:
   formulas:
@@ -75,17 +74,17 @@ HARNESS_ENABLED:
   - pi
   # - codex
 
-# Every link the role writes into a harness's home, as data. Four generic tasks install
-# the table: create `dirs`, link each `files` entry, expand each glob, prune.
+# Every link the role writes into a harness's home, as data. Generic tasks install the
+# table: create `dirs`, link each `files` entry, expand each glob, prune.
 #
 # - files: one link each. `src` is relative to HARNESS_DIR and may be a directory.
 # - globs: every match of `pattern` in `src` is linked into `dest` under its own name.
 #   Matches go through the fileglob lookup, which keeps regular files only, so a
 #   tests/ directory beside the hooks is never linked.
 #
-# A glob `dest` is also pruned: a symlink there that points into this role's files/
-# and that no glob ships any more is removed. Anything else in the directory (a real
-# file herdr writes, a rule written by hand, a kura link) is left alone.
+# A glob `dest` is also pruned: a dangling symlink there that points into this role's
+# files/ is removed. Anything else in the directory (a real file herdr writes, a rule
+# written by hand) is left alone.
 HARNESS_LINKS:
   shared:
     dirs:
@@ -101,8 +100,6 @@ HARNESS_LINKS:
       - "{{ HOME }}/.claude"
       - "{{ HOME }}/.claude/hooks"
       - "{{ HOME }}/.claude/rules"
-      - "{{ HOME }}/.claude/skills"
-      - "{{ HOME }}/.claude/agents"
     files:
       - src: adapters/claude/settings.json
         dest: "{{ HOME }}/.claude/settings.json"
@@ -130,7 +127,6 @@ HARNESS_LINKS:
   pi:
     dirs:
       - "{{ HOME }}/.pi/agent"
-      - "{{ HOME }}/.pi/agent/agents"
       - "{{ HOME }}/.pi/agent/themes"
       - "{{ HOME }}/.pi/agent/extensions"
       # A real directory, never a link into the repo: pi-permission-system writes its
