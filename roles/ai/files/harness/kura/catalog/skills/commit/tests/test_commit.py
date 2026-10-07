@@ -115,3 +115,19 @@ def test_the_default_branch_remains_an_allowed_explicit_choice(repo, tmp_path):
 
     assert result.returncode == 0
     assert commit_count(repo) == 2
+
+
+def test_a_rename_staged_earlier_without_its_edits_is_refused(repo, tmp_path):
+    run_git(repo, "switch", "-q", "-c", "docs/renumber")
+    write(repo, "docs/adr/0065-x.md", "ADR 0065\n")
+    run_git(repo, "add", "docs/adr/0065-x.md")
+    run_git(repo, "commit", "-q", "-m", "docs: add adr")
+    run_git(repo, "mv", "docs/adr/0065-x.md", "docs/adr/0066-x.md")
+    write(repo, "docs/adr/0066-x.md", "ADR 0066\n")
+    before = commit_count(repo)
+
+    result = execute(repo, tmp_path, "main")
+
+    assert result.returncode != 0
+    assert "docs/adr/0066-x.md" in result.stderr
+    assert commit_count(repo) == before

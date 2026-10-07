@@ -16,6 +16,7 @@ commit's files staged.
 
 import fnmatch
 import json
+import os
 import re
 import subprocess
 import sys
@@ -81,6 +82,21 @@ def validate(commits):
                 fail(f"commit {i}: {f} looks like a cleartext secret; drop it from the plan or get explicit user approval")
 
 
+def unplanned(staged, files, prefix=""):
+    """`git commit` takes the whole index, so anything staged beyond the plan rides along.
+
+    The index lists paths from the repo root and the plan from the working directory,
+    so `prefix` is `git rev-parse --show-prefix`.
+    """
+    planned = [os.path.normpath(os.path.join(prefix, f)) for f in files]
+    if "." in planned:
+        return []
+    return [
+        path for path in staged
+        if path and not any(path == p or path.startswith(p + "/") for p in planned)
+    ]
+
+
 def main():
     if len(sys.argv) != 2:
         fail("usage: apply.py <plan.json>")
@@ -101,6 +117,14 @@ def main():
         staged = run(["git", "diff", "--cached", "--name-only"])
         if not staged.stdout.strip():
             fail(f"commit {i}: nothing staged after git add {' '.join(c['files'])}")
+        prefix = run(["git", "rev-parse", "--show-prefix"]).stdout.strip()
+        stray = unplanned(staged.stdout.split("\n"), c["files"], prefix)
+        if stray:
+            fail(
+                f"commit {i}: the index also holds paths outside this commit's plan, staged earlier "
+                f"(a `git mv` stages the rename but not later edits): {', '.join(stray)}. "
+                "Add them to the plan so their content is staged too, or unstage them"
+            )
         with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as tmp:
             tmp.write(c["message"].rstrip("\n") + "\n")
             msg_path = tmp.name

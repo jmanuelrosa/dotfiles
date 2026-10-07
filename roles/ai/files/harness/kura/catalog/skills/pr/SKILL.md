@@ -2,7 +2,7 @@
 name: pr
 description: Generate the PR description from the current branch and open the PR (GitHub) or MR (GitLab), returning the URL
 argument-hint: "[base-branch]"
-model: cursor/composer-latest
+model: haiku
 effort: medium
 disable-model-invocation: true
 allowed-tools:
@@ -12,6 +12,8 @@ allowed-tools:
   - Bash(git diff *)
   - Bash(git log *)
   - Bash(git branch *)
+  - Bash(gh pr checks *)
+  - Bash(gh run view *)
   - Edit(//tmp/claude/**)
   - Edit(//private/tmp/claude/**)
   - Read
@@ -35,14 +37,15 @@ Everything left in this file is judgment: what the description says, whether a c
 
    It resolves the host from `origin`, the base from local `origin/HEAD` (falling back to the host CLI), the GitLab account from live `glab auth status`, and the template, then prints:
 
-   - `== target ==`, one `KEY=value` per line: `HOST` (`gh` or `glab`), `BASE`, `BRANCH`, `BRANCH_CONVENTION`, `TYPE`, `SCOPE`, `SCOPE_CANDIDATES`, `TITLE`, `TITLE_SOURCE` (`derived`, `override` or `unresolved`), `TICKET`, `TICKET_KIND` (`jira`, `github` or `none`), `CLOSES`, and for GitLab `NS`, `GLHOST`, `REPO`.
+   - `== target ==`, one `KEY=value` per line: `HOST` (`gh` or `glab`), `BASE`, `BRANCH`, `BRANCH_CONVENTION`, `WORKTREE` (`clean` or `dirty`, tracked files only), `TYPE`, `SCOPE`, `SCOPE_CANDIDATES`, `TITLE`, `TITLE_SOURCE` (`derived`, `override` or `unresolved`), `TICKET`, `TICKET_KIND` (`jira`, `github` or `none`), `CLOSES`, and for GitLab `NS`, `GLHOST`, `REPO`.
    - `== template ==`, the discovered PR/MR template inline, or `PATH=<none>` when the repo has none.
    - `== commits ==`, `== changed files (stat) ==`, `== diff (noisy paths excluded, capped per file) ==`. Excluded and capped files still show in the stat: mention them in the description when they matter, and only run `git diff -- <path>` when one genuinely does.
 
    `TITLE` is final. It already applies the branch-type map, the ticket split, the scope precedence and the `(<TICKET>)` suffix rule; don't recompute or rewrite it.
    `SCOPE_CANDIDATES` is informational: when several areas are equally plausible, the deterministic title remains repo-wide rather than asking the model or user to rewrite it.
-   Two lines need a decision rather than a read:
+   Three lines need a decision rather than a read:
 
+   - `WORKTREE=dirty`: stop and tell the user to run `/commit` first, then `/pr` on its own. Never run both skills in one turn, even when both were asked for together: the `git-skill-gate` hook attributes a git call to one skill, and two in flight collide.
    - `BRANCH_CONVENTION=nonstandard` (so `TITLE_SOURCE=unresolved`): do not push. Propose two valid names based on the branch's commits and diff, ask the user to choose one, validate it against `^(feature|fix|chore|docs|refactor|test|perf|ci|build|style|revert)\/([A-Z]+-[0-9]+-|gh-[0-9]+-)?[a-z0-9][a-z0-9-]*$`, rename with `git branch -m "$NEW_BRANCH"`, then rerun this context step. There is no title-only bypass.
    - `GLHOST_CANDIDATES` (GitLab only, when one server backs more than one authenticated account): `AskUserQuestion` with `header: "GitLab account"`, `multiSelect: false`, one option per candidate labelled `<host> (<account>)`, defaulting to the account matching `GIT_EMAIL`. Use `<chosen host>/<NS>` as the plan's `repo` in step 4. `NOT_LOGGED_IN=<host>` instead means leave `repo` out and let glab auto-detect; if the create then fails, tell the user to run `glab auth login`.
 
@@ -69,9 +72,11 @@ Everything left in this file is judgment: what the description says, whether a c
    Then run `python3 ~/.claude/skills/pr/scripts/apply.py /tmp/claude/pr-plan-<repo>-<suffix>.json`. It validates the title and body (attribution lines, em/en dashes) and the branch (`.claude/tasks/` state, cleartext secrets), pushes with `-u`, then creates the PR/MR self-assigned to `@me` and prints the URL.
 
    - Never `--no-verify`. On a real pre-push failure (lint, types, tests), surface the full output and stop.
-   - A push that fails on auth or on a pre-push hook needing the network is the sandbox, not the branch: the sandbox only runs a command unsandboxed when its leading token is `git`, and the push `apply.py` spawns does not qualify. It prints the exact standalone `git …` command for that case. Run that command verbatim as a top-level command, then rerun `apply.py` with `--skip-push`.
+   - A push that fails on auth or on a pre-push hook needing the network is the sandbox, not the branch: a harness that exempts only leading-token `git` from its sandbox confines the push `apply.py` spawns unless `apply.py` itself is exempt. It prints the exact standalone `git …` command for that case. Run that command verbatim as its own call, never chained, then rerun `apply.py` with `--skip-push`.
 
-5. **Print only the `Created: <url>` line** that `apply.py` wrote to stdout.
+5. **Print the `Created: <url>` line** that `apply.py` wrote to stdout.
+
+6. **Watch CI** (GitHub only, one call): `gh pr checks <url> --watch --fail-fast`. On green, print nothing more. On a failure, name the failing check and pull its log with `gh run view <run-id> --log-failed | tail -n 80`, then report the cause; the work is not done until checks pass. On GitLab, or when the repo has no checks, skip this step.
 
 ## Humanization (required)
 
