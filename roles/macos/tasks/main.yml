@@ -11,20 +11,33 @@
     state: "{{ item.state }}"
   loop: "{{ OSX_DEFAULTS }}"
 
+- name: Read firmware and power state
+  ansible.builtin.command: "{{ item }}"
+  loop:
+    - nvram SystemAudioVolume
+    - pmset -g custom
+    - stat -f %Sf /private/var/vm/sleepimage
+  register: macos_firmware_state
+  changed_when: false
+  failed_when: false
+
 - name: Mute boot sound  # noqa: command-instead-of-shell
   become: true
   ansible.builtin.shell: nvram SystemAudioVolume=" "
-  changed_when: false  # nvram set is idempotent at the firmware level
+  when: macos_firmware_state.results[0].stdout != 'SystemAudioVolume\t '
+  changed_when: true
 
 - name: Disable hibernation (speeds up entering sleep mode)
   become: true
   ansible.builtin.command: pmset -a hibernatemode 0
-  changed_when: false  # pmset re-applies same value as no-op
+  when: macos_firmware_state.results[1].stdout is search('hibernatemode\\s+[1-9]')
+  changed_when: true
 
 - name: Remove the sleep image file and prevent recreation
   become: true
   ansible.builtin.shell: |
-    rm -f /Private/var/vm/sleepimage
-    touch /Private/var/vm/sleepimage
-    chflags uchg /Private/var/vm/sleepimage
-  changed_when: false  # uchg-locked file is effectively immutable; rerun is a no-op
+    rm -f /private/var/vm/sleepimage
+    touch /private/var/vm/sleepimage
+    chflags uchg /private/var/vm/sleepimage
+  when: "'uchg' not in macos_firmware_state.results[2].stdout"
+  changed_when: true
