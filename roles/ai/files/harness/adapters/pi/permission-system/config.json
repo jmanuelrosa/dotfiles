@@ -43,6 +43,17 @@
       "bq *": "allow",
       "bunx ctx7 *": "allow",
       "npx -y ctx7 *": "allow",
+      "kura list *": "allow",
+      "kura scout *": "allow",
+      "kura doctor *": "allow",
+      "kura outdated *": "allow",
+      "kura add *": "allow",
+      "kura remove *": "allow",
+      "kura adopt *": "allow",
+      "kura restore *": "allow",
+      "kura converge *": "allow",
+      "kura sync *": "allow",
+      "cf auth whoami": "allow",
       "dd *": {
         "action": "deny",
         "reason": "denied by Claude Code policy: Bash(dd *)"
