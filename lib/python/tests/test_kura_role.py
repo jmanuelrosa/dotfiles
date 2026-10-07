@@ -179,11 +179,16 @@ def test_every_shipped_bundle_has_one_registry_entry():
         assert manifest["name"] == name
 
 
-def test_bundles_have_no_unsupported_registry_policy():
+def test_bundle_groups_are_descriptive_and_project_scoped():
     registry = json.loads((KURA_CATALOG / "bundle-registry.json").read_text())
-    unsupported = {"groups", "global", "dependencies", "dependency_only"}
+    unsupported = {"global", "dependencies", "dependency_only"}
     for entry in registry["local"]:
         assert not unsupported.intersection(entry), entry["name"]
+        groups = entry["groups"]
+        assert isinstance(groups, list) and groups, entry["name"]
+        assert all(isinstance(group, str) and group for group in groups), entry["name"]
+        assert len(groups) == len(set(groups)), entry["name"]
+        assert "global" not in groups, entry["name"]
         manifest = json.loads((BUNDLES / entry["name"] / "bundle.json").read_text())
         assert "groups" not in manifest, entry["name"]
         assert "global" not in manifest, entry["name"]

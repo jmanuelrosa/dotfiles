@@ -55,8 +55,8 @@ AI_SCRIPTS:
 # rollback are the same two-line edit in opposite directions.
 KURA:
   repository: https://github.com/jmanuelrosa/kura
-  release: v0.8.0
-  checksum: sha256:f368c822a5f9a2fcb3e875357fe684251db803e5e64f86e0b70259a139cce126
+  release: v0.9.0
+  checksum: sha256:9f113da52ada5ef5d7180a5af929df230c2eba9ab7165aca74f276cf8c71c4ca
 
 # The harness-neutral payload. Everything every harness shares sits at the top of this
 # tree; what only one harness reads sits under adapters/<harness>/. Lifting the tree

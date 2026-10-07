@@ -2,7 +2,7 @@
 
 
 Staff-engineer seats are one of two bundle classes here (the other is [product-team](product-team.md)). Each ships at `roles/ai/files/harness/kura/catalog/bundles/<discipline>/` as `bundle.json`, `agents/<discipline>-staff-engineer.md`, and `skills/<discipline>-failure-modes/SKILL.md` with a `references/` directory of 8-10 checklists. Fifteen ship today: analytics, backend, cloud, data, database, design, desktop, dx, frontend, gtm, mobile, platform, qa, security, sre. **These carry no `agent-registry.json` or `skill-registry.json` rows**: `bundle.json` holds `name`, `description`, `version`, `author`, and optional `requires.skills` for catalog skills the seat expects (for example `frontend-design` on the design bundle).
-Each bundle has a name-only `bundle-registry.json` entry; Kura rejects bundle `groups` and `global` fields, and seats remain project-scoped.
+Each bundle has a `bundle-registry.json` entry with its name and descriptive `groups`; Kura rejects bundle `global` policy, and seats remain project-scoped.
 With a compatible Kura executable, projects install them with `kura add <discipline> --type bundle` in an initialized repo; see the [catalog cutover](skill-registry.md).
 
 **A seat's frontmatter pins `model`, `effort` and `memory`, and all three are identity rather than preference.**

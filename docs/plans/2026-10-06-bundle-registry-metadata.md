@@ -2,18 +2,18 @@
 
 ## Current status
 
-The user approved full compliance with [Kura's merged explicit-global schema](https://github.com/jmanuelrosa/kura/pull/19), superseding the staged bundle-group proposal below.
-Skill and standalone-agent rows now use boolean `global: true` instead of the retired group tag, preserving their existing roots and dependencies.
-Bundle registry groups were removed because Kura rejects `groups`, `global`, `dependencies`, and `dependency_only` on bundle rows; all bundles remain project-scoped, and manifests are unchanged.
-The previous tags remain recoverable from git history.
-Kura v0.8.0 is now published and pinned with its release checksum; it supports explicit global flags and all three registry schemas, but still rejects bundle registry groups.
-Run `make run-role ROLE=ai` to replace the installed v0.7.0 before using the new global policy.
-Restoring bundle groups remains blocked on Kura schema and runtime support; no live catalog mutations are part of this upgrade.
+[Kura v0.9.0](https://github.com/jmanuelrosa/kura/releases/tag/v0.9.0) is now pinned with its verified release checksum and supports descriptive groups in local and upstream bundle registry rows.
+All 17 historical bundle group arrays are restored in `bundle-registry.json` without changing tags, identities, or requirements.
+Groups support filtering, grouping, and project selection; they are not inherited by bundle-owned artifacts and do not select install scope.
+Bundle rows still omit `global`, `dependencies`, and `dependency_only`, and the retired `global` group tag remains forbidden.
+All bundles stay project-scoped; the original global-bundle proposal below is superseded.
+Skill and standalone-agent global roots and dependencies are unchanged.
+Run `make run-role ROLE=ai` to install v0.9.0 before using this catalog; no live catalog mutations are part of this update.
 
-Decisions: replace obsolete agent-writer packaging guidance in place; skill-writer description optimization and new maintenance artifacts are unnecessary because the skill's trigger, layout, and scope are unchanged.
+Decisions: skill-writer requested description optimization and maintenance artifacts; Tier 2 satisfies the trigger and contract checks with unchanged `SKILL.md` and registration, replacing only obsolete packaging guidance in the existing references.
 The skill-writer completion template is overridden by the harness output contract; no extra report sections are added.
 
-## Original decisions
+## Original decisions (superseded)
 
 Bundle catalog policy belongs in `roles/ai/files/harness/kura/catalog/bundle-registry.json`, matching the skill and agent registries.
 Each entry carries `groups`; append `global` last to select machine scope, with no separate boolean.
@@ -27,21 +27,17 @@ The skill-writer description-optimization and new maintenance-artifact steps are
 
 ## Ordered tasks
 
-- [x] Move the 17 bundle group arrays into their existing registry entries without changing tags, identities, or requirements.
-- [x] Update registry documentation and the agent-writer packaging template and verification guidance.
-- [x] Add catalog tests for registry coverage, exclusive group ownership, valid tags, and unchanged project scope; run `make test`.
-- [ ] In the Kura repository, accept and validate bundle registry `groups`, expose them through group browsing, and derive scope from the final `global` tag.
-- [ ] In Kura, resolve global bundles as their owned agents and skills plus required catalog artifacts and transitive skill dependencies; verify shared members, pruning, and idempotent convergence.
-- [ ] Release Kura support, update `KURA.release` and its checksum here, and add the bundle registry schema reference once its schema supports `groups`.
-- [ ] Validate live bundle listing and group filters with that release; verify global bundle convergence in isolated fixtures before using machine views.
+- [x] Pin Kura v0.9.0 and its verified checksum.
+- [x] Preserve the 17 restored historical group arrays in the registry, leaving bundle manifests unchanged.
+- [x] Update registry documentation, agent-writer packaging templates, and catalog assertions for descriptive groups and project-only scope.
+- [x] Validate all registry schemas and read-only bundle listing and group filters with v0.9.0.
+- [x] Run the agent-writer structural validator, focused Kura-role tests, and full suite through `make test`.
 
 ## Original compatibility boundary
 
-The then-pinned Kura v0.7.0 did not consume bundle registry metadata and reports empty bundle groups and `global: false`.
-The newer local Kura checkout currently rejects `groups` in bundle registry entries.
-This migration is staged, not a usable Kura feature yet.
-Do not run catalog commands with that registry-enforcing build until its support lands.
-Do not change the release pin or run live `sync` or `converge` as part of this preparation.
+Kura v0.7.0 did not consume bundle registry metadata and reported empty bundle groups and `global: false`.
+Kura v0.8.0 supported explicit global flags but rejected bundle registry groups, so the earlier staged tags were removed.
+Kura v0.9.0 supports descriptive bundle groups, closing that compatibility boundary without adding global bundles.
 
 ## Verification
 
@@ -54,9 +50,10 @@ A passing dotfiles suite verifies catalog structure, not Kura runtime support.
 
 ## Validation results
 
-The focused Kura-role suite passed: 30 tests.
-A before/after comparison confirmed all 17 tag arrays and all remaining manifest metadata are unchanged.
-The agent-writer structural validator passed with no warnings.
-Tests used cached dependencies with `UV_OFFLINE=1` after the default invocation could not reach PyPI.
-The full suite stopped after 346 passes at `test_detached_sdk_runner_records_terminal_goal_outcomes[responses2-4-blocked-2]`: its minion runner remained `running` instead of reaching `blocked` within the test's deadline.
-No minion files were changed, and debugging that failure is outside this metadata preparation.
+The release asset matches the pinned v0.9.0 checksum, and all three registries validate against its schemas.
+All 17 group arrays match their historical values; bundle manifests are unchanged.
+Read-only listing loads all 17 project-scoped bundles with matching group membership, and filters for all 25 tags match the registry.
+The skill and standalone-agent catalogs also load successfully with v0.9.0.
+The agent-writer structural validator passed with no errors or warnings.
+The focused Kura-role suite passed: 33 tests.
+The full suite passed: 1,418 tests, with 2 skipped.
