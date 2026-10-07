@@ -27,11 +27,13 @@ kura outdated --type skill                       Report which skills are behind 
 kura trust                                       Show or change selected harness trust
 ```
 
+The catalog now requires an executable supporting explicit `global` booleans; the pinned v0.7.0 ignores them, so upgrade before running catalog mutations.
+
 Artifact commands accept `--type skill`, `--type agent`, and `--type bundle`. `add` and `remove` also take `--group <tag>` instead of names, and `--global` for temporary machine-wide links. A project is the exact directory containing root `kura.json`; Kura never searches Git or ancestors and `$HOME` is not a project. Full reference, migration behavior and the corner-case FAQ live in Kura's own README.
 
 ## Agents and bundles
 
-Kura links `global`-tagged standalone agents from `../../kura/catalog/agents/` into each harness's native agent root with bare `kura sync`, including their required skills. The AI role removes only its own former agent links and Pi bridge. Use `kura add <name> --type agent` for an initialized project's standalone agent.
+Kura links standalone agents with `global: true` from `../../kura/catalog/agents/` into each harness's native agent root with bare `kura sync`, including their required skills. The AI role removes only its own former agent links and Pi bridge. Use `kura add <name> --type agent` for an initialized project's standalone agent.
 
 Seat and product bundles live under `../../kura/catalog/bundles/`. Install them per project with `kura add <name> --type bundle` after `kura init`.
 
@@ -277,12 +279,12 @@ Authoring guidance for all three lives with the generators, and they are the fil
 2. Declare it in `local` in [agent-registry.json](../../kura/catalog/agent-registry.json) with its groups and a note:
 
    ```json
-   { "name": "my-agent", "groups": ["quality", "global"], "note": "Locally authored" }
+   { "name": "my-agent", "global": true, "groups": ["quality"], "note": "Locally authored" }
    ```
 
    Common notes: `"Locally authored"`, `"Consolidated from multiple sources"`, `"No external source"`.
 
-3. Keep the `global` tag for agents needed machine-wide; Kura also supports project-scoped standalone agents. Set `effort:` from the [Model and effort policy](#model-and-effort-policy) tiers; a delegated agent should never be left on the session default. Add `memory: project` if the agent benefits from carrying stack facts between dispatches, and pair it with a boundary bullet telling the agent to write there. A seat goes through `/agent-writer` instead, which owns the whole frontmatter contract.
+3. Set `global: true` for agents needed machine-wide; Kura also supports project-scoped standalone agents. Set `effort:` from the [Model and effort policy](#model-and-effort-policy) tiers; a delegated agent should never be left on the session default. Add `memory: project` if the agent benefits from carrying stack facts between dispatches, and pair it with a boundary bullet telling the agent to write there. A seat goes through `/agent-writer` instead, which owns the whole frontmatter contract.
 
 ### Option B — Track from an upstream repo
 
@@ -335,12 +337,13 @@ Authoring guidance for all three lives with the generators, and they are the fil
   "version": 3,
   "upstream": {},
   "local": [
-    { "name": "agent-name", "groups": ["quality", "global"], "note": "Locally authored" }
+    { "name": "agent-name", "global": true, "groups": ["quality"], "note": "Locally authored" }
   ]
 }
 ```
 
-The `local` array records metadata for catalog agents. The `global` group opts an agent and its required skills into bare `kura sync`; omit it for project-only agents.
+The `local` array records metadata for catalog agents. The boolean `global: true` opts an agent and its required skills into bare `kura sync`; omit it or use `false` for project-only agents.
+The retired `global` group tag is rejected.
 
 ## Directory Structure
 

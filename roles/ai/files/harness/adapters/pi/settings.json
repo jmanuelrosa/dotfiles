@@ -62,7 +62,10 @@
     "git:github.com/earendil-works/pi-review",
     "npm:pi-cc-patch",
     "npm:pi-cursor-sdk",
-    "npm:pi-sandbox",
+    {
+      "source": "npm:pi-sandbox",
+      "extensions": []
+    },
     "npm:@gotgenes/pi-permission-system@27.1.1",
     "npm:pi-ask-user",
     "npm:pi-subagents"

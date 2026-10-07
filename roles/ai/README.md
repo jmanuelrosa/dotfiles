@@ -43,12 +43,14 @@ The rules, the per-harness translations and what each one loses are in [harnesse
 
 ## Kura, by hand
 
-Bundle groups now live in `files/harness/kura/catalog/bundle-registry.json`, with a final `global` tag reserved for machine scope.
-All shipped bundles remain project-scoped.
-This metadata migration is staged: the pinned Kura v0.7.0 ignores it, and the newer registry-enforcing checkout rejects bundle `groups` until support lands.
-Implement and release that Kura support before updating the pin or using the staged catalog with that build; see the [migration plan](../../docs/plans/2026-10-06-bundle-registry-metadata.md).
+Skills and standalone agents declare machine roots with `global: true`; their `groups` are descriptive only.
+Bundle registry rows carry names, not groups or global policy, and all shipped bundles remain project-scoped.
+The catalog matches the merged explicit-global schema, but the pinned Kura v0.7.0 ignores the new flags.
+Do not run catalog mutations with that executable; first upgrade to a compatible release and update the pin and checksum.
+No compatible release was published at this cutover; the [migration plan](../../docs/plans/2026-10-06-bundle-registry-metadata.md) records the removed staged metadata and outstanding executable upgrade.
 
-The role provisions kura but never runs it. After a play that changed the catalog or a `global` tag:
+The role provisions kura but never runs it.
+With a compatible executable, after a play that changed the catalog or a `global` flag:
 
 ```bash
 kura sync                              # project global skills and agents into both native harness views
@@ -63,7 +65,7 @@ Claude's SessionStart hook runs `kura converge --quiet` when the cwd holds a `ku
 - `BREW_PACKAGES`: formulas and casks, as above.
 - `HARNESS_DIR`, `HARNESS_ENABLED`, `HARNESS_LINKS`: where the payload is, which harnesses a machine gets, and what each one links.
 - `PI_EXTENSIONS`, `AI_SCRIPTS`, `KURA`: the Pi extension manifest, the linked scripts, and the pinned kura release.
-- **There is no var for the global artifact set.** `kura sync` derives it from the `global` tags in both registries and expands declared skill dependencies.
+- **There is no var for the global artifact set.** `kura sync` derives it from `global: true` in both registries and expands declared skill dependencies.
 
 ## Notes
 

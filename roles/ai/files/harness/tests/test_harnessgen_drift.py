@@ -47,11 +47,13 @@ def test_a_second_build_writes_nothing(harness):
 
 def test_pi_sandbox_reads_prompt_limits_and_extra_paths_from_its_adapter(harness):
     (harness / "adapters/pi/adapter.toml").write_text(
-        "[sandbox]\npermissionPromptTimeoutSeconds = 30\npermissionPromptMaxAttempts = 1\n"
+        '[sandbox]\nexcludedCommands = ["bq"]\n'
+        "permissionPromptTimeoutSeconds = 30\npermissionPromptMaxAttempts = 1\n"
         '[sandbox.filesystem]\nallowRead = ["~/package-skills"]\n'
     )
     policy = manifest.load(harness)
     config = emit_pi.sandbox(policy)
+    assert config["excludedCommands"] == ["bq"]
     assert config["permissionPromptTimeoutSeconds"] == 30
     assert config["permissionPromptMaxAttempts"] == 1
     assert config["filesystem"]["allowRead"] == [

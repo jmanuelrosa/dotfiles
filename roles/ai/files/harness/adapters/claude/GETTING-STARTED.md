@@ -37,7 +37,8 @@ Three rules hold across both halves, and they are the ones to remember:
 
 ## What you already have in every repo
 
-`kura sync` links globally tagged skills independently into `~/.claude/skills` and `~/.agents/skills`. The AI role provisions the standalone agents below into `~/.claude/agents` and exposes the same agent set to Pi. These need no per-project install:
+With a compatible executable, `kura sync` links skills rooted at `global: true` and their dependencies independently into `~/.claude/skills` and `~/.agents/skills`, and installs standalone global agents into both harnesses.
+The pinned v0.7.0 ignores the new flags: upgrade before running catalog mutations. These need no per-project install:
 
 | Command or agent | Use it for |
 |---|---|
@@ -294,7 +295,7 @@ No pipeline, no architect, often no seat.
 
 **Plugins.** These legacy catalog bundles are not in the Kura catalog. Existing project links remain legacy state and still require workspace trust plus a relaunch before Claude loads them. The plugin name is the discipline (`qa`), while the agent inside carries the namespace (`qa:qa-staff-engineer`).
 
-**Global skills have two owned roots.** `kura add --global` on a skill not tagged `global` is a scratch change in both enabled harnesses: it survives until the next `kura sync` and no longer. To make a skill durably global, tag it `global` in the registry. Removing either native global link by hand is undone the same way.
+**Global skills have two owned roots.** `kura add --global` on a skill outside the registry-global dependency closure is a scratch change in both enabled harnesses: it survives until the next `kura sync` and no longer. To make a skill a durable global root, set `global: true` in its registry row, separate from `groups`. Removing either native global link by hand is undone the same way.
 
 **Worktrees.** A parallel wave runs in `.claude/worktrees/`, branched from committed HEAD. Uncommitted work in the feature's blast radius is invisible to it, so `/feature-team` checks `git status --porcelain` first and offers `/commit` or `--no-isolate`. This needs `worktree.baseRef: "head"` in [settings.json](settings.json), which is set. The `wt` fish helper is deliberately not wired in: its sibling worktrees fall outside the sandbox write root.
 

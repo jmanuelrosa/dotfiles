@@ -28,7 +28,7 @@ Coherence rules, apply from the start:
 
 Locked decisions, do not re-ask:
 - New skill `<SEAT-SHORT>-failure-modes`: thin-router SKILL.md + ~8 references (~40-55 lines each) with the exact section template ("When to read", "Failure modes to rule out" with the two intro sentences, bold name + `Check:` pairs, "Escalation triggers (`needs-decision`)", "What good looks like").
-- Package as a catalog bundle: `git mv` the agent and skill into `roles/ai/files/harness/kura/catalog/bundles/<DISCIPLINE>/agents/` and `.../skills/`, and write `bundle.json` (name <DISCIPLINE>, description, version 0.1.0, author). Add a `bundle-registry.json` local entry with the same name and groups ["<DISCIPLINE-TAG>", "<PERSONA>"], omitting `global` for project scope. No standalone agent or skill registry rows, no `dependency_only`. <TAG-COINING CLAUSE IF THE PERSONA TAG IS NEW, INCLUDING THE CLAUDE.MD VOCABULARY UPDATE>.
+- Package as a catalog bundle: `git mv` the agent and skill into `roles/ai/files/harness/kura/catalog/bundles/<DISCIPLINE>/agents/` and `.../skills/`, and write `bundle.json` (name <DISCIPLINE>, description, version 0.1.0, author). Add a name-only `bundle-registry.json` local entry. No bundle `groups`, `global`, `dependencies`, or `dependency_only`; Kura rejects them, and bundles remain project-scoped. No standalone agent or skill registry rows.
 - Agent edits: insert Step 3 "Open the failure-mode checklists" with the trigger table; renumber the loop and add the blast-radius clause to step 1 (<WHAT THE BLAST RADIUS ENUMERATES FOR THIS SEAT>); self-check gains a first item gating on the opened references; the "Skills used" report line mentions failure-mode references read; the rationalizations intro carries the letter-vs-spirit clause. Hard cap ~200-205 lines; pay for additions by consolidating.
 - Demarcation with the sibling skills: <THE SHARPEST OVERLAP AND THE VERB THAT SPLITS IT>. <INSTALLED ADJACENT SKILLS THAT STAY AUTHORITATIVE>; <SKILLS NAMED IN STEP 2 THAT ARE NOT REGISTERED: name them as gaps, not coverage>.
 - Keep `model: opus` and per-project scope. Commit nothing (I drive /commit). No research doc is committed.
@@ -45,8 +45,8 @@ Process:
     - zero em/en dashes in every touched file (grep -rnP '[\x{2013}\x{2014}]')
     - frontmatter of the agent and SKILL.md uses `description: >-` and parses under strict YAML (awk-extract the frontmatter block, pipe to ruby -ryaml)
     - ANSIBLE_LOCAL_TEMP="$TMPDIR/ansible-tmp" ansible-lint exits 0
-    - bundle.json and bundle-registry.json parse; their names match `<DISCIPLINE>`, and only the registry entry carries groups
-    - after upgrading to a Kura release that supports bundle registry groups, `kura list --type bundle --json` includes `<DISCIPLINE>` with its groups
+    - bundle.json and bundle-registry.json parse; their names match `<DISCIPLINE>`, neither carries groups or global, and the registry row omits dependencies and dependency_only
+    - with an executable supporting explicit global flags, `kura list --type bundle --json` includes `<DISCIPLINE>` with its expected agent and failure-modes skill
 6. Final message: what shipped with paths and line counts, research evidence adopted vs rejected, audit findings and fixes, verification results, git status. Remind me nothing was committed.
 
 Style, non-negotiable: no em or en dashes anywhere; semantic line breaks (one sentence per line, no hard wrap); reference content is checks against a diff, never tutorials; checks stay stack-agnostic because tool-specific guidance belongs to the installed stack skills.

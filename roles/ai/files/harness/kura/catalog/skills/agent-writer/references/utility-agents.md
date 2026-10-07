@@ -22,7 +22,9 @@ The whole job is usually under 80 lines of agent file.
 A utility agent keeps the flat-file-plus-registry model; only seats moved to plugins.
 `agent-registry.json` entry with `groups` (agent vocabulary: discipline plus domain) and `note: "Locally authored"`.
 `dependencies` only if the agent genuinely invokes a skill at runtime.
-Add `"global"` to its `groups` only if every project needs it, which is what makes `kura sync` link it into `~/.claude/agents/`; utility agents owned by one skill pipeline usually ship globally with that pipeline, so check where the calling skill lives.
+Set boolean `global: true`, separate from `groups`, only if every project needs it; `kura sync` then links it into both native global agent roots with its required skills.
+Omission or `false` leaves the agent project-scoped, and the retired `global` group tag is rejected.
+Utility agents owned by one skill pipeline usually ship globally with that pipeline, so check where the calling skill lives.
 
 ## Boundary with seats
 

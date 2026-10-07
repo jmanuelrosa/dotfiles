@@ -32,12 +32,12 @@
         },
         {
           "upstream_path": "skills/planning-and-task-breakdown",
+          "global": true,
           "groups": [
             "product",
             "pm",
             "planning",
-            "addy:product-02",
-            "global"
+            "addy:product-02"
           ],
           "updated_at": "2026-09-23T18:45:17Z"
         },
@@ -79,11 +79,11 @@
         },
         {
           "upstream_path": "skills/documentation-and-adrs",
+          "global": true,
           "groups": [
             "product",
             "pm",
-            "documentation",
-            "global"
+            "documentation"
           ],
           "updated_at": "2026-10-05T18:49:02Z"
         },
@@ -141,22 +141,22 @@
       "skills": [
         {
           "upstream_path": "skills/productivity/handoff",
+          "global": true,
           "groups": [
             "product",
             "pm",
-            "workflow",
-            "global"
+            "workflow"
           ],
           "updated_at": "2026-10-05T18:49:17Z"
         },
         {
           "upstream_path": "skills/productivity/grill-me",
+          "global": true,
           "groups": [
             "product",
             "pm",
             "idea-refinement",
-            "planning",
-            "global"
+            "planning"
           ],
           "dependencies": [
             "grilling"
@@ -165,12 +165,12 @@
         },
         {
           "upstream_path": "skills/engineering/grill-with-docs",
+          "global": true,
           "groups": [
             "product",
             "pm",
             "idea-refinement",
-            "planning",
-            "global"
+            "planning"
           ],
           "dependencies": [
             "grilling",
@@ -612,11 +612,11 @@
       "skills": [
         {
           "upstream_path": "skills/skill-writer",
+          "global": true,
           "groups": [
             "ai",
             "prompt engineering",
-            "claude",
-            "global"
+            "claude"
           ],
           "updated_at": "2026-09-23T18:45:30Z"
         }
@@ -787,41 +787,41 @@
   "local": [
     {
       "name": "agent-writer",
+      "global": true,
       "groups": [
         "ai",
         "prompt engineering",
-        "claude",
-        "global"
+        "claude"
       ],
       "note": "Locally authored"
     },
     {
       "name": "humanizer",
+      "global": true,
       "groups": [
         "ai",
         "prompt engineering",
-        "claude",
-        "global"
+        "claude"
       ],
       "note": "No external source"
     },
     {
       "name": "commit",
+      "global": true,
       "groups": [
         "productivity",
         "workflow",
-        "git",
-        "global"
+        "git"
       ],
       "note": "Locally authored"
     },
     {
       "name": "pr",
+      "global": true,
       "groups": [
         "productivity",
         "workflow",
-        "git",
-        "global"
+        "git"
       ],
       "note": "Locally authored"
     },
@@ -845,12 +845,12 @@
     },
     {
       "name": "to-plan",
+      "global": true,
       "groups": [
         "engineering",
         "architecture",
         "planning",
-        "workflow",
-        "global"
+        "workflow"
       ],
       "dependencies": [
         "research",
@@ -860,10 +860,10 @@
     },
     {
       "name": "ac",
+      "global": true,
       "groups": [
         "productivity",
-        "workflow",
-        "global"
+        "workflow"
       ],
       "dependencies": [
         "jira"
@@ -872,13 +872,13 @@
     },
     {
       "name": "research",
+      "global": true,
       "groups": [
         "engineering",
         "research",
         "documentation",
         "architecture",
-        "workflow",
-        "global"
+        "workflow"
       ],
       "dependencies": [
         "jira"
@@ -887,21 +887,21 @@
     },
     {
       "name": "review-mechanics",
+      "global": true,
       "groups": [
         "review",
         "quality",
-        "workflow",
-        "global"
+        "workflow"
       ],
       "note": "Locally authored, the deferred half of ~/.claude/rules/code-review.md"
     },
     {
       "name": "setup-review",
+      "global": true,
       "groups": [
         "quality",
         "review",
-        "ai",
-        "global"
+        "ai"
       ],
       "dependencies": [
         "skill-writer"
@@ -910,51 +910,51 @@
     },
     {
       "name": "setup-review-mechanics",
+      "global": true,
       "groups": [
         "quality",
         "review",
-        "ai",
-        "global"
+        "ai"
       ],
       "note": "Locally authored; shared method for harness-specific setup reviewers"
     },
     {
       "name": "agent-audit",
+      "global": true,
       "groups": [
         "ai",
         "prompt engineering",
-        "claude",
-        "global"
+        "claude"
       ],
       "note": "Locally authored"
     },
     {
       "name": "feature-team",
+      "global": true,
       "groups": [
         "engineering",
         "workflow",
-        "ai",
-        "global"
+        "ai"
       ],
       "note": "Locally authored"
     },
     {
       "name": "cloudflare",
+      "global": true,
       "groups": [
         "engineering",
         "devops",
-        "deployment",
-        "global"
+        "deployment"
       ],
       "note": "Locally authored; drives cf and wrangler instead of an MCP server"
     },
     {
       "name": "product-lead",
+      "global": true,
       "groups": [
         "product",
         "pm",
-        "workflow",
-        "global"
+        "workflow"
       ],
       "note": "Locally authored; global signpost to the product-team plugin"
     }

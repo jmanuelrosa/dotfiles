@@ -2,8 +2,8 @@
 
 
 Staff-engineer seats are one of two bundle classes here (the other is [product-team](product-team.md)). Each ships at `roles/ai/files/harness/kura/catalog/bundles/<discipline>/` as `bundle.json`, `agents/<discipline>-staff-engineer.md`, and `skills/<discipline>-failure-modes/SKILL.md` with a `references/` directory of 8-10 checklists. Fifteen ship today: analytics, backend, cloud, data, database, design, desktop, dx, frontend, gtm, mobile, platform, qa, security, sre. **These carry no `agent-registry.json` or `skill-registry.json` rows**: `bundle.json` holds `name`, `description`, `version`, `author`, and optional `requires.skills` for catalog skills the seat expects (for example `frontend-design` on the design bundle).
-Each bundle has a `bundle-registry.json` entry for its name and groups, without `global` because seats remain project-scoped.
-Registry group and global bundle support are staged pending a Kura release; see [registry metadata](skill-registry.md). Projects install them with `kura add <discipline> --type bundle` in an initialized repo.
+Each bundle has a name-only `bundle-registry.json` entry; Kura rejects bundle `groups` and `global` fields, and seats remain project-scoped.
+With a compatible Kura executable, projects install them with `kura add <discipline> --type bundle` in an initialized repo; see the [catalog cutover](skill-registry.md).
 
 **A seat's frontmatter pins `model`, `effort` and `memory`, and all three are identity rather than preference.**
 Seats pin Claude-native models, so one frontmatter means the same thing in both harnesses: `fable` serves security, and `opus` serves every other seat.

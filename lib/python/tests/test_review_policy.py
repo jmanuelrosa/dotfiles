@@ -213,10 +213,10 @@ def test_the_resident_policy_routes_to_the_mechanics_skill():
     )
 
 
-def test_the_mechanics_skill_is_tagged_global():
-    """Untagged it never links into ~/.claude/skills, so the stub points at nothing.
+def test_the_mechanics_skill_is_a_global_root():
+    """Without global root policy it never links, so the stub points at nothing.
 
-    `kura sync` derives the user-scope set from the `global` tag, and prunes anything
+    `kura sync` derives the user-scope set from the `global` flag, and prunes anything
     in that tree it cannot derive.
     """
     entries = [
@@ -225,8 +225,8 @@ def test_the_mechanics_skill_is_tagged_global():
         if skill["name"] == "review-mechanics"
     ]
     assert len(entries) == 1, f"expected one local entry, found {len(entries)}"
-    assert "global" in entries[0]["groups"], (
-        "`review-mechanics` is not tagged `global`, so it never reaches ~/.claude/skills"
+    assert entries[0]["global"] is True, (
+        "`review-mechanics` is not a global root, so it never reaches ~/.claude/skills"
     )
 
 

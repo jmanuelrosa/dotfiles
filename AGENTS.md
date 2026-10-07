@@ -61,7 +61,7 @@ Open the one you are working in, and only that one.
 | Open this | When you are |
 |---|---|
 | [The ai role](roles/ai/README.md) | Changing how the pinned `kura` release is installed or what catalog it is pointed at. `kura` itself lives in its own repository now, and its commands, scopes, provenance manifest, dependency resolution, `sync` pruning and workspace trust are documented there |
-| [Skill registry & dependencies](docs/internals/skill-registry.md) | Adding or retagging a skill or agent, touching `skill-registry.json` / `agent-registry.json`, the `groups` vocabulary, or the `global` scope tag |
+| [Skill registry & dependencies](docs/internals/skill-registry.md) | Adding or retagging a skill or agent, touching `skill-registry.json` / `agent-registry.json`, the `groups` vocabulary, or the `global` root flag |
 | [Seat bundles](docs/internals/seat-plugins.md) | Authoring or upgrading a staff-engineer seat, its failure-mode references, or the design-versus-frontend boundary |
 | [The product-team bundle](docs/internals/product-team.md) | Working on the two-gate product pipeline, its stages, `pt.py`, or `docs/initiatives/` artifacts |
 | [Code review policy](docs/internals/code-review-policy.md) | Changing the review bar, its severities or axes, or anything under `roles/ai/files/harness/rules/` |
@@ -73,7 +73,7 @@ Open the one you are working in, and only that one.
 | [Harnesses](docs/internals/harnesses.md) | Changing `policy/` or the `harnessgen` generator; working on Pi (the shared payload, the translated guardrail hooks, the derived `pi-sandbox` permission config, the two trust stores, the footer, `tokencost --pi`); or working on Codex (the merged `config.toml`, the rules copy, hook trust) |
 | [Context hygiene](docs/internals/context-hygiene.md) | Investigating token or usage spend, or deciding where a piece of documentation should live |
 
-Two rules that apply without opening anything: a **name must mean one artifact** across `skill-registry.json`, `agent-registry.json`, and `kura/catalog/bundles/`, and the global skill and agent directories are **owned and pruned**: `kura sync` deletes a link under `~/.claude/skills/` or `~/.agents/skills/` that is not derived from the `global` tag, and the ai role deletes a link under `~/.claude/agents/` (or any other harness glob directory) that points into the role but no longer matches a shipped file.
+Two rules that apply without opening anything: a **name must mean one artifact** across `skill-registry.json`, `agent-registry.json`, and `kura/catalog/bundles/`, and the global skill and agent directories are **owned and pruned**: `kura sync` deletes a link under `~/.claude/skills/` or `~/.agents/skills/` that is not derived from `global: true` and its dependency closure, and the ai role deletes a link under `~/.claude/agents/` (or any other harness glob directory) that points into the role but no longer matches a shipped file.
 
 ## Conventions
 
