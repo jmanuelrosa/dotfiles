@@ -4,4 +4,5 @@
 # AI
 **/.claude/settings.local.json
 **/.claude/.cc-writes/
+**/.claude/state/
 **/.claude/claude-kit.json
