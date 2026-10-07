@@ -3,13 +3,7 @@ from dotkit.testing import REPO
 
 APPS = REPO / "roles/apps"
 CONFIG = APPS / "files/colima/colima.yaml"
-TASKS = yaml.safe_load((APPS / "tasks/infrastructure.yml").read_text())
-
-
-def role_task(name):
-    matching = [task for task in TASKS if task.get("name") == name]
-    assert len(matching) == 1
-    return matching[0]
+DEFAULTS = yaml.safe_load((APPS / "defaults/main.yml").read_text())
 
 
 def test_colima_profile_uses_native_virtualization_and_balanced_resources():
@@ -50,52 +44,9 @@ def test_colima_profile_retains_commented_configuration_examples():
         assert example in source
 
 
-def test_colima_config_and_backup_paths_keep_the_existing_profile_location():
-    defaults = yaml.safe_load((APPS / "defaults/main.yml").read_text())
-    assert defaults["COLIMA_CONFIG_PATH"] == "{{ HOME }}/.colima/default/colima.yaml"
-    assert defaults["COLIMA_CONFIG_BACKUP_PATH"] == (
-        "{{ CURRENT_DIR }}/backups/.colima/default/colima.yaml"
-    )
-    directories = role_task("Ensure Colima config and backup directories exist")
-    assert directories["ansible.builtin.file"]["state"] == "directory"
-    assert directories["loop"] == [
-        "{{ COLIMA_CONFIG_PATH | dirname }}",
-        "{{ COLIMA_CONFIG_BACKUP_PATH | dirname }}",
-    ]
-
-
-def test_colima_backup_preserves_original_and_skips_the_managed_symlink():
-    inspect = role_task("Inspect existing Colima config")
-    assert inspect["ansible.builtin.stat"] == {
-        "path": "{{ COLIMA_CONFIG_PATH }}",
-        "follow": False,
-    }
-    assert inspect["register"] == "colima_config"
-    backup = role_task("Back up existing Colima config")
-    assert backup["ansible.builtin.copy"] == {
-        "src": "{{ COLIMA_CONFIG_PATH }}",
-        "dest": "{{ COLIMA_CONFIG_BACKUP_PATH }}",
-        "remote_src": True,
-        "force": False,
-        "mode": "0644",
-    }
-    assert backup["when"] == [
-        "colima_config.stat.exists",
-        "colima_config.stat.lnk_source | default('') != role_path ~ '/files/colima/colima.yaml'",
-    ]
-
-
-def test_colima_symlink_is_created_only_after_inspection_and_backup():
-    names = [task["name"] for task in TASKS]
-    assert (
-        names.index("Ensure Colima config and backup directories exist")
-        < names.index("Inspect existing Colima config")
-        < names.index("Back up existing Colima config")
-        < names.index("Symlink Colima config")
-    )
-    assert role_task("Symlink Colima config")["ansible.builtin.file"] == {
-        "src": "{{ role_path }}/files/colima/colima.yaml",
-        "dest": "{{ COLIMA_CONFIG_PATH }}",
-        "state": "link",
-        "force": True,
-    }
+def test_colima_config_is_linked_into_the_default_profile():
+    assert "{{ HOME }}/.colima/default" in DEFAULTS["APPS_DIRS"]
+    assert {
+        "src": "colima/colima.yaml",
+        "dest": "{{ HOME }}/.colima/default/colima.yaml",
+    } in DEFAULTS["APPS_LINKS"]
