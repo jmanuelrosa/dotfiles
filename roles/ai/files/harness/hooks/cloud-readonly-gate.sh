@@ -29,6 +29,11 @@ the primary guardrail on what they may do, in three tiers:
     gcloud; ls/stat/cat for gsutil; ls/show/head for bq) pass through to
     the Bash(<cli>:*) allow rule and run without a prompt.
 
+Under Claude it also adds context, never a decision, when a CLI that
+sandbox.excludedCommands lets out appears in a call whose shape keeps it
+confined (pipe, chain, redirect, substitution, env prefix, `cd`), since
+the credential failure that follows reads like a broken sandbox config.
+
 Segment splitting on |, ;, &, && and || is naive about quoting, so a
 quoted string containing those tokens can produce a spurious ask/block,
 never a spurious allow. block beats ask beats allow when a compound
@@ -39,8 +44,10 @@ plus the sandbox around every OTHER command are the layers beside it.
 """
 
 import json
+import os
 import re
 import sys
+from pathlib import Path
 
 CLOUD_WORD_RE = re.compile(r"(?<![\w-])(?:aws|gcloud|gsutil|bq)(?![\w-])")
 
@@ -168,6 +175,46 @@ def decide(command):
     return verdict, reason
 
 
+QUOTED_RE = re.compile(r"'[^']*'|\"(?:\\.|[^\"\\])*\"")
+SHELL_SHAPE_RE = re.compile(r"\|\||&&|[|;&<>\n`]|\$\(|^\s*[A-Za-z_][A-Za-z0-9_]*=|^\s*cd\s")
+
+
+def excluded_prefixes():
+    """The leading words Claude's sandbox lets out, read from the live settings."""
+    config_dir = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
+    try:
+        settings = json.loads((config_dir / "settings.json").read_text())
+    except (OSError, ValueError):
+        return []
+    patterns = (settings.get("sandbox") or {}).get("excludedCommands") or []
+    return [p.removesuffix(" *").strip() for p in patterns if p.strip()]
+
+
+def sandbox_shape_hint(command):
+    """Why an excluded CLI will still run sandboxed, or None when it will not.
+
+    The exemption only holds when the CLI leads the whole call, so a pipe, chain,
+    redirect, substitution, env prefix or `cd` keeps it confined, and the failure
+    that follows reads like a broken sandbox config rather than the call's shape.
+    """
+    bare = QUOTED_RE.sub("''", command)
+    if not SHELL_SHAPE_RE.search(bare):
+        return None
+    for prefix in excluded_prefixes():
+        if re.search(rf"(?<![\w/.-]){re.escape(prefix)}(?![\w-])", bare):
+            return (
+                f"sandbox: `{prefix}` is only exempt from the sandbox as the leading token of the whole call. "
+                "This call pipes, chains, redirects, substitutes, sets an env prefix or uses `cd`, so it runs "
+                f"sandboxed. If it fails on credentials or network, rerun `{prefix}` as its own call and "
+                "post-process its output in a second one; the sandbox config is not the cause."
+            )
+    return None
+
+
+def is_claude(data):
+    return "/.claude/projects/" in (data.get("transcript_path") or "")
+
+
 def main():
     try:
         data = json.load(sys.stdin)
@@ -194,18 +241,21 @@ def main():
             file=sys.stderr,
         )
         sys.exit(2)
+    output = {"hookEventName": "PreToolUse"}
     if verdict == ASK:
-        print(
-            json.dumps(
-                {
-                    "hookSpecificOutput": {
-                        "hookEventName": "PreToolUse",
-                        "permissionDecision": "ask",
-                        "permissionDecisionReason": f"cloud-readonly-gate: command contains {reason}",
-                    }
-                }
-            )
-        )
+        output.update({
+            "permissionDecision": "ask",
+            "permissionDecisionReason": f"cloud-readonly-gate: command contains {reason}",
+        })
+    if is_claude(data):
+        try:
+            hint = sandbox_shape_hint(command)
+        except Exception:
+            hint = None
+        if hint:
+            output["additionalContext"] = hint
+    if len(output) > 1:
+        print(json.dumps({"hookSpecificOutput": output}))
     sys.exit(0)
 
 

@@ -1,7 +1,7 @@
 ---
 name: to-plan
 description: Plans a task through code and external research, a decision-tree interview, and an actionable implementation plan in docs/plans/. Use explicitly to plan a feature, refactor, architecture change, or unfamiliar task before implementation. Internally composes research and grilling; reuses existing evidence and waits for explicit implementation authorization.
-model: openai-codex/gpt-5.6-sol
+model: opus
 disable-model-invocation: true
 ---
 

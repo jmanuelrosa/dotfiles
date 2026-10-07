@@ -14,17 +14,17 @@ Model assignments follow the approved subscription routing rather than a fleet-w
 | `pm-red-team`, `strategy-checker` | `opus` | Adversarial reasoning and strategic contradictions |
 | `adr-scribe` | `sonnet` | Extract decisions already made, without designing alternatives |
 | `ac-writer` | `sonnet` | Precise acceptance-criteria writing, consistent with the local `ac` skill |
-| `1-research`, `4-tech-shape`, `5-decompose` | `openai-codex/gpt-5.6-sol` | Cross-artifact synthesis, technical planning and decomposition |
+| `1-research`, `4-tech-shape`, `5-decompose` | `opus` | Cross-artifact synthesis, technical planning and decomposition |
 | `2-write-prd` | `anthropic/claude-opus-5` | Requirements synthesis and trade-offs |
 | `setup-strategy`, `0-refine-idea`, `3-red-team`, `6-verify`, `8-living-spec` | `anthropic/claude-sonnet-5` | Interviews, constrained writing and stage coordination |
-| `product-lead`, `7-push-to-board` | `cursor/composer-latest` | Pipeline dispatch and board operations |
+| `product-lead` | `opus` | Pipeline dispatch across stages and gates |
+| `7-push-to-board` | `haiku` | Mechanical board operations |
 
 These are workload-based choices, not comparative benchmark results.
 Agent pins are Claude-native, so they mean the same thing in Claude Code; in Pi they run through the [model-routing redirects](harnesses.md).
-The provider-qualified skill pins are Pi-first, not portable Claude Code model selections; that compatibility trade was accepted when choosing the routes.
+The `opus`, `sonnet` and `haiku` pins are Claude-native and Pi translates them through its redirects; the two `anthropic/*` pins are Pi-first, and Claude Code ignores them because they sit outside its `availableModels`.
 Existing effort/thinking pins, tool allowlists and artifact contracts remain unchanged.
 In pi, Anthropic skill and agent pins run through the [model-routing redirects](harnesses.md): skills through `skill-model`, and agents such as `ac-writer` through `subagents.agentOverrides`.
-Cursor on-demand billing must still be disabled to bound Composer charges.
 
 `product-lead` lives *inside* the bundle because it owns the pipeline's shared library: `references/conventions.md` (gates, gate medium, deferrals, profiles), twelve templates, and `scripts/pt.py`, which every stage reaches via `../product-lead/`.
 A thin signpost skill of the same name stays at `skills/product-lead/` and carries the bundle's only registry row: it holds no mechanics, points at `/product-lead` and `kura add product-team --type bundle`, and explains what to do when the bundle is not installed yet.

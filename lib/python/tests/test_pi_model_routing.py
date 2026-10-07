@@ -187,6 +187,14 @@ def test_local_skill_pins_use_selected_providers():
         "ac": "sonnet",
         "agent-writer": "opus",
         "coderabbit": "sonnet",
+        "commit": "haiku",
+        "pr": "haiku",
+        "jira": "haiku",
+        "cloudflare": "sonnet",
+        "product-lead": "opus",
+        "research": "opus",
+        "to-plan": "opus",
+        "agent-audit": "opus",
     }
     for entry in local_skills:
         name = entry["name"]
@@ -222,12 +230,12 @@ def test_bundle_agents_use_workload_routes():
 
 def test_product_team_skills_use_direct_workload_routes():
     groups = {
-        "openai-codex/gpt-5.6-sol": {"1-research", "4-tech-shape", "5-decompose"},
+        "opus": {"1-research", "4-tech-shape", "5-decompose", "product-lead"},
         "anthropic/claude-opus-5": {"2-write-prd"},
         "anthropic/claude-sonnet-5": {
             "setup-strategy", "0-refine-idea", "3-red-team", "6-verify", "8-living-spec",
         },
-        "cursor/composer-latest": {"product-lead", "7-push-to-board"},
+        "haiku": {"7-push-to-board"},
     }
     expected = {name: model for model, names in groups.items() for name in names}
     actual = {}

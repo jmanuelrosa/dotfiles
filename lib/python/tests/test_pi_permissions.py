@@ -154,11 +154,18 @@ def test_the_allowlisted_commands_stay_allowed():
 
 
 def test_a_command_claude_both_allows_and_denies_comes_out_denied():
-    """`Bash(pgcli:*)` and `Bash(pgcli *)` translate to one key, and Claude's answer is deny."""
-    bash = policy()["bash"]
-    assert resolve(bash, "pgcli") == "deny"
-    assert resolve(bash, "pgcli --dsn x") == "deny"
-    assert bash["pgcli *"] != "allow"
+    """An allow and a deny that translate to one key resolve to Claude's answer, deny.
+
+    Built from a synthetic surface, since the live policy no longer holds such a pair
+    and a test riding on one would go quiet the day it was removed.
+    """
+    bash = emit_pi.surface("ask", ["tool *"], [("tool *", "Bash(tool *)")])
+    assert resolve(bash, "tool --flag x") == "deny"
+    assert bash["tool *"] != "allow"
+
+
+def test_pgcli_is_allowed():
+    assert resolve(policy()["bash"], "pgcli --dsn x") == "allow"
 
 
 def test_the_credential_paths_claude_hides_are_denied_to_every_tool():

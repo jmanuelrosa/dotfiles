@@ -332,12 +332,6 @@ prefix_rule(
 )
 
 prefix_rule(
-    pattern = ["pgcli"],
-    decision = "forbidden",
-    justification = "denied by dotfiles policy: pgcli",
-)
-
-prefix_rule(
     pattern = ["lazydocker"],
     decision = "forbidden",
     justification = "denied by dotfiles policy: lazydocker",

@@ -163,7 +163,7 @@ To add a pair, edit `redirects`, run `make test`, and paste the `agentOverrides`
 An unpinned run whose session model is a redirect key also runs on the target, in sessions that load this extension.
 The selected model and thinking level are restored when the run settles.
 
-The local assignments keep the largest Codex model for research, planning and agent audits, Terra for the default session, Luna for handoffs, Composer for commit/PR/Jira/Cloudflare/product-lead workflows, Sonnet for CodeRabbit fixes, acceptance criteria and prose cleanup, and Opus for agent authoring.
+The skill pins are Claude-native: `opus` for research, planning, agent audits, agent authoring and product-lead, `sonnet` for Cloudflare, CodeRabbit fixes, acceptance criteria and prose cleanup, and `haiku` for commit, PR, Jira and board pushes. In Pi the redirects turn those into Codex Sol, Sol and Luna; Terra stays the default session and Luna runs handoffs.
 Unpinned skills inherit the session model.
 There is no automatic failover: a provider error, including a rate or spend limit, stays on pi's normal retry path and the extension never switches models mid-run. When a provider runs out, the remedy is a redirect for its model, which moves the next run for skills and agents alike.
 

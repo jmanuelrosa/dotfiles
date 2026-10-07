@@ -391,6 +391,7 @@ def main():
     emit("BASE", base)
     emit("BRANCH", branch)
     emit("BRANCH_CONVENTION", "ok" if derived["conventional"] else "nonstandard")
+    emit("WORKTREE", "dirty" if git("status", "--porcelain", "--untracked-files=no") else "clean")
     emit("TYPE", derived["type"])
     emit("SCOPE", derived["scope"])
     emit("SCOPE_CANDIDATES", ", ".join(derived["scope_candidates"]))

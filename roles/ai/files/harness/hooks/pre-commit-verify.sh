@@ -51,6 +51,11 @@ OPTIONS_WITH_SEPARATE_ARG = {
 
 SHELL_SEPARATORS = {";", "&&", "||", "|", "&"}
 
+# The commit skill commits through this script, so a commit made by /commit never
+# shows up as `git commit` on the command line.
+COMMIT_WRAPPER = re.compile(r"(^|/)skills/commit/scripts/apply\.py$")
+INTERPRETERS = {"bash", "sh", "zsh", "python", "python3"}
+
 
 def split_subcommands(line):
     padded = re.sub(r"(\|\||&&|;|\||&)", r" \1 ", line)
@@ -75,6 +80,10 @@ def is_git_commit(tokens):
     i = 0
     while i < len(tokens) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", tokens[i]):
         i += 1
+    if i < len(tokens) and Path(tokens[i]).name in INTERPRETERS:
+        i += 1
+    if i < len(tokens) and COMMIT_WRAPPER.search(tokens[i]):
+        return True
     if i >= len(tokens) or tokens[i] != "git":
         return False
     i += 1
@@ -200,7 +209,7 @@ def main():
     command = (data.get("tool_input") or {}).get("command", "") or ""
     cwd = data.get("cwd", "") or "."
 
-    if not command or "git" not in command:
+    if not command or ("git" not in command and "apply.py" not in command):
         sys.exit(0)
 
     if not any(is_git_commit(c) for c in split_subcommands(command)):

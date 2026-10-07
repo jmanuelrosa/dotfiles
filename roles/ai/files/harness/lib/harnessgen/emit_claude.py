@@ -80,7 +80,9 @@ def sandbox(policy, knobs):
             "allowLocalBinding": network["allow_local_binding"],
         },
         "filesystem": {
-            "allowWrite": list(filesystem["allow_write"]),
+            # In user settings "." resolves to ~/.claude, not the project, and the
+            # working directory is already writable without it.
+            "allowWrite": [p for p in filesystem["allow_write"] if p != "."],
             "denyRead": list(filesystem["deny_read"]),
             "allowRead": list(filesystem["allow_read"]),
         },

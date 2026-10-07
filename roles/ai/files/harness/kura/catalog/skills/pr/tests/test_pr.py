@@ -629,3 +629,14 @@ def test_an_incomplete_plan_is_a_usage_error(stubs, branch_ready, tmp_path, over
     result = execute(stubs, branch_ready, plan_file(branch_ready, tmp_path, **overrides))
     assert result.returncode == apply_pr.EXIT_USAGE
     assert stubs.calls() == []
+
+
+def test_uncommitted_tracked_changes_mark_the_worktree_dirty(stubs, pr_repo):
+    assert target(gather(stubs, pr_repo).stdout)["WORKTREE"] == "clean"
+    write(pr_repo, "README.md", "# changed\n")
+    assert target(gather(stubs, pr_repo).stdout)["WORKTREE"] == "dirty"
+
+
+def test_an_untracked_file_leaves_the_worktree_clean(stubs, pr_repo):
+    write(pr_repo, "scratch.txt")
+    assert target(gather(stubs, pr_repo).stdout)["WORKTREE"] == "clean"

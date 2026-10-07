@@ -6,7 +6,7 @@ description: >-
   Workers metadata, Zero Trust) and `wrangler` for the Workers project loop (dev, deploy, tail,
   secrets). Use when adding or editing DNS records, deploying or tailing a Worker, inspecting a
   binding's stored data, or auditing what a Cloudflare account currently holds.
-model: cursor/composer-latest
+model: sonnet
 effort: medium
 # Reads only. Every mutating command is deliberately absent so it still hits the
 # permission prompt, which is the same confirmation the "Before any write" section
@@ -72,7 +72,7 @@ When a read comes back with plausible data for the wrong account, `cf auth whoam
 `wrangler` has no profile system.
 It has the single OAuth session from `wrangler login`, and it takes the account from `account_id` in the project's `wrangler.jsonc`.
 Set that field in any project outside the default account rather than exporting `CLOUDFLARE_ACCOUNT_ID`, and switch accounts with `wrangler logout` then `wrangler login`.
-Both tools store this under `~/Library/Preferences/.wrangler`, which the agent sandbox denies reading, so credentials stay out of anything an agent can see.
+Both tools store this under `~/Library/Preferences/.wrangler`, which the agent sandbox denies reading, so credentials stay out of anything an agent can see. Under Claude Code `wrangler` and `cf` are exempt from the sandbox as the leading token of a call, so they read those credentials natively; that exemption carries no allow rule, so every call still asks. Run each as its own call: piped or chained, it is sandboxed and fails to authenticate.
 
 Scope failures read differently under OAuth.
 A `403` on one subcommand while others work still means missing permission rather than broken auth, but with a profile it is the account's role, not a token scope, so say which one you think it is instead of retrying the same call.
