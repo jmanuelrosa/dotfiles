@@ -38,9 +38,9 @@ Roles live in `roles/<name>/` with the usual `tasks/main.yml`, `files/`, `defaul
 What is not obvious from the tree:
 
 - **Profiles gate roles.** `personal` (default) and `work`. Each role in [dotfiles.yml](dotfiles.yml) is gated `when: '<role>' in profile_roles[profile]`, mapped in [group_vars/all.yml](group_vars/all.yml). Per-profile overrides go in `host_vars/<profile>.yml`, loaded by `pre_tasks`. The `reboot` role is intentionally ungated, because it prompts and that prompt is the opt-in.
-- **Homebrew is per-role.** Each installing role defines `BREW_PACKAGES` in its `defaults/main.yml` with optional `taps`, `formulas`, `casks`, `trusted` keys. There is no central package list, so adding a tool means editing the role it belongs to.
+- **Homebrew is per-role.** Each installing role defines `BREW_PACKAGES` in its `defaults/main.yml` with optional `taps`, `formulas`, `casks`, `trusted` keys. There is no central package list, so adding a tool means editing the role it belongs to. The install itself is the shared [roles/brew/tasks/packages.yml](roles/brew/tasks/packages.yml), which each role includes by path.
 - **Role execution order is load-bearing.** `brew` runs first so every later role can assume Homebrew is on PATH. Control sequencing through the order in [dotfiles.yml](dotfiles.yml) and **never add `meta/main.yml` deps**.
-- **Configs are symlinks, not copies.** Linked with `ansible.builtin.file state=link force=true`, so editing a file under `roles/<x>/files/` takes effect in `$HOME` immediately without re-running the playbook. Pre-existing targets are backed up to [backups/](backups/).
+- **Configs are symlinks, not copies.** Linked with `ansible.builtin.file state=link force=true`, so editing a file under `roles/<x>/files/` takes effect in `$HOME` immediately without re-running the playbook.
 - **Secrets** are vault-encrypted in `vars/secrets.yml` (personal) and `vars/work.yml` (work), both loaded unconditionally. Config files reference `${NAME}` and resolve at runtime. [vars/work.yml.example](vars/work.yml.example) lists the keys a fork must provide.
 
 Roles whose name does not tell you what is inside:
@@ -73,7 +73,7 @@ Open the one you are working in, and only that one.
 | [Harnesses](docs/internals/harnesses.md) | Changing `policy/` or the `harnessgen` generator; working on Pi (the shared payload, the translated guardrail hooks, the derived `pi-sandbox` permission config, the two trust stores, the footer, `tokencost --pi`); or working on Codex (the merged `config.toml`, the rules copy, hook trust) |
 | [Context hygiene](docs/internals/context-hygiene.md) | Investigating token or usage spend, or deciding where a piece of documentation should live |
 
-Two rules that apply without opening anything: a **name must mean one artifact** across `skill-registry.json`, `agent-registry.json`, and `kura/catalog/bundles/`, and the global skill and agent directories are **owned and pruned**: `kura sync` deletes a link under `~/.claude/skills/` or `~/.agents/skills/` that is not derived from `global: true` and its dependency closure, and the ai role deletes a link under `~/.claude/agents/` (or any other harness glob directory) that points into the role but no longer matches a shipped file.
+Two rules that apply without opening anything: a **name must mean one artifact** across `skill-registry.json`, `agent-registry.json`, and `kura/catalog/bundles/`, and the global skill and agent directories are **owned and pruned**: `kura sync` deletes a link under `~/.claude/skills/` or `~/.agents/skills/` that is not derived from `global: true` and its dependency closure, and the ai role deletes a dangling link in any harness glob directory that points into the role.
 
 ## Conventions
 
