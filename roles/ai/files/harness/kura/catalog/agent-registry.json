@@ -4,9 +4,9 @@
   "local": [
     {
       "name": "cc-staff-reviewer",
+      "global": true,
       "groups": [
-        "productivity",
-        "global"
+        "productivity"
       ],
       "note": "No external source",
       "dependencies": [
@@ -15,9 +15,9 @@
     },
     {
       "name": "pi-staff-reviewer",
+      "global": true,
       "groups": [
-        "productivity",
-        "global"
+        "productivity"
       ],
       "note": "No external source",
       "dependencies": [
@@ -26,10 +26,10 @@
     },
     {
       "name": "architect",
+      "global": true,
       "groups": [
         "engineering",
-        "architecture",
-        "global"
+        "architecture"
       ],
       "note": "Locally authored",
       "dependencies": [
@@ -40,12 +40,12 @@
     },
     {
       "name": "ux-shaper",
+      "global": true,
       "groups": [
         "product",
         "designer",
         "ui",
-        "planning",
-        "global"
+        "planning"
       ],
       "note": "Locally authored",
       "dependencies": [

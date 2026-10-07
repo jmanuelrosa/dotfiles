@@ -1,6 +1,18 @@
 # Bundle registry metadata
 
-## Decisions
+## Current status
+
+The user approved full compliance with [Kura's merged explicit-global schema](https://github.com/jmanuelrosa/kura/pull/19), superseding the staged bundle-group proposal below.
+Skill and standalone-agent rows now use boolean `global: true` instead of the retired group tag, preserving their existing roots and dependencies.
+Bundle registry groups were removed because Kura rejects `groups`, `global`, `dependencies`, and `dependency_only` on bundle rows; all bundles remain project-scoped, and manifests are unchanged.
+The previous tags remain recoverable from git history.
+The installed and pinned Kura v0.7.0 does not understand the flags, and no compatible release is published yet.
+Leave the release pin and checksum unchanged and do not run live catalog mutations until a compatible executable is installed.
+
+Decisions: replace obsolete agent-writer packaging guidance in place; skill-writer description optimization and new maintenance artifacts are unnecessary because the skill's trigger, layout, and scope are unchanged.
+The skill-writer completion template is overridden by the harness output contract; no extra report sections are added.
+
+## Original decisions
 
 Bundle catalog policy belongs in `roles/ai/files/harness/kura/catalog/bundle-registry.json`, matching the skill and agent registries.
 Each entry carries `groups`; append `global` last to select machine scope, with no separate boolean.

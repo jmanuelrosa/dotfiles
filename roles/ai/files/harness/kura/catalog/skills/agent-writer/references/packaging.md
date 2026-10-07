@@ -37,14 +37,13 @@ Add a `local` entry in `kura/catalog/bundle-registry.json`:
 
 ```json
 {
-  "name": "<discipline>",
-  "groups": ["<discipline-tag>", "<persona-or-topic>"]
+  "name": "<discipline>"
 }
 ```
 
 A seat carries no `agent-registry.json` or `skill-registry.json` entry and no `dependency_only` flag: the skill ships with the agent because they share the folder, not because a resolver pulls it.
-Keep seats per-project by omitting `global` from their registry groups.
-A machine-scoped bundle uses a final `global` tag, not a separate boolean, once Kura supports global bundles.
+Keep seats project-scoped: bundle registry rows must omit `groups`, `global`, `dependencies`, and `dependency_only`.
+Kura rejects these fields, including `global: false`; declare required catalog artifacts in `bundle.json` under `requires`.
 
 ### How it loads and is provisioned
 
@@ -65,16 +64,17 @@ A utility agent (no paired skill) is a flat file with a registry entry:
 }
 ```
 
-Add `dependencies: ["<skill>"]` only if it invokes a skill at runtime. Add `"global"` to its groups if it belongs in both harnesses' global agent views; bare `kura sync` also projects its skill dependencies.
+Add `dependencies: ["<skill>"]` only if it invokes a skill at runtime.
+Set `global: true`, separate from `groups`, if it belongs in both native global agent views; bare `kura sync` also projects its skill dependencies.
+Omission or `false` leaves the agent project-scoped; never put the retired `global` tag in `groups`.
 Always edit the registry via a python3 round-trip with `json.dump(..., indent=2)`; never hand-edit.
 
 ## Groups vocabulary
 
-Tags come from the controlled vocabulary in the repo CLAUDE.md's groups paragraph, in facet order: discipline, persona, technology, topic.
+Standalone artifact tags come from the controlled vocabulary in `docs/internals/skill-registry.md`, in facet order: discipline, persona, technology, topic.
 Reuse an existing tag before coining one; the tooling treats groups as opaque, so no code change is needed either way.
-Coining is legitimate when the fleet already carries the tag (that is how `data` and `security` were coined): add the new tag to the matching facet list in CLAUDE.md as part of the same change.
-Keep seat groups in `bundle-registry.json`, in the same facet order as standalone artifacts.
-The paired skill carries no separate group list, since it is not browsable on its own.
+Coining is legitimate when the fleet already carries the tag: add it to the matching facet list in the registry documentation as part of the same change.
+Bundles and their paired skills carry no group list.
 
 ## Agent frontmatter gotcha
 

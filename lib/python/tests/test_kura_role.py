@@ -179,22 +179,25 @@ def test_every_shipped_bundle_has_one_registry_entry():
         assert manifest["name"] == name
 
 
-def test_bundle_groups_and_scope_live_only_in_the_registry():
+def test_bundles_have_no_unsupported_registry_policy():
     registry = json.loads((KURA_CATALOG / "bundle-registry.json").read_text())
+    unsupported = {"groups", "global", "dependencies", "dependency_only"}
     for entry in registry["local"]:
-        groups = entry["groups"]
-        assert isinstance(groups, list) and groups, entry["name"]
-        assert all(isinstance(group, str) and group for group in groups), entry["name"]
-        assert len(groups) == len(set(groups)), entry["name"]
-        assert "global" not in entry, entry["name"]
+        assert not unsupported.intersection(entry), entry["name"]
         manifest = json.loads((BUNDLES / entry["name"] / "bundle.json").read_text())
         assert "groups" not in manifest, entry["name"]
         assert "global" not in manifest, entry["name"]
 
 
-def test_shipped_bundles_remain_project_scoped():
-    registry = json.loads((KURA_CATALOG / "bundle-registry.json").read_text())
-    assert all("global" not in entry["groups"] for entry in registry["local"])
+@pytest.mark.parametrize(("kind", "collection"), [("skill", "skills"), ("agent", "agents")])
+def test_global_root_policy_is_boolean_and_separate_from_groups(kind, collection):
+    registry = json.loads((KURA_CATALOG / f"{kind}-registry.json").read_text())
+    entries = registry["local"] + [
+        entry for repo in registry["upstream"].values() for entry in repo[collection]
+    ]
+    for entry in entries:
+        assert type(entry.get("global", False)) is bool, entry
+        assert "global" not in entry.get("groups", []), entry
 
 
 def test_kura_convergence_tasks_remain_disabled():
@@ -248,7 +251,7 @@ def test_standalone_agents_are_catalog_owned_and_global():
     registered = {entry["name"] for entry in registry["local"]}
     shipped = {path.stem for path in AGENTS.glob("*.md")}
     assert registered == shipped
-    assert all("global" in entry["groups"] for entry in registry["local"])
+    assert all(entry["global"] is True for entry in registry["local"])
 
 
 def test_legacy_agent_links_are_removed_only_when_the_role_owns_them():
@@ -452,16 +455,16 @@ def test_to_plan_dependencies_have_registered_sources():
 
 
 def test_the_global_set_holds_exactly_the_documented_membership():
-    """A registry retag changes the global set even while sync is disabled."""
+    """Registry root policy changes the global set even while sync is disabled."""
     registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
-    tagged = {entry["name"] for entry in registry["local"] if "global" in entry["groups"]}
-    tagged.update(
+    global_roots = {entry["name"] for entry in registry["local"] if entry.get("global", False)}
+    global_roots.update(
         entry["upstream_path"].rstrip("/").rsplit("/", 1)[-1]
         for repo in registry["upstream"].values()
         for entry in repo["skills"]
-        if "global" in entry["groups"]
+        if entry.get("global", False)
     )
-    assert tagged == {
+    assert global_roots == {
         "ac",
         "agent-audit",
         "agent-writer",
