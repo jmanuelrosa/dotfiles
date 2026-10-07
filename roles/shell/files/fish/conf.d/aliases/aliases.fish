@@ -8,7 +8,7 @@ alias rm='rm -i'
 alias grep=rg
 alias cat=bat
 alias less=bat
-alias find=fd
+alias find='fd --hidden --follow --exclude .git --exclude node_modules --no-ignore'
 
 # fish
 alias please-clean-history='history clear'
