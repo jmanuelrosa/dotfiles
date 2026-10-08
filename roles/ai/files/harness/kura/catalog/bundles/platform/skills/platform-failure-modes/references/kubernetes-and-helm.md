@@ -11,8 +11,8 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
   Check: readiness and liveness probes exist, are distinct, and test something meaningful; slow-booting services get a startup probe instead of inflated delays.
 - **Unsized workload.** Containers without resource requests cannot be scheduled sensibly and evict neighbors; a surprise limit OOM-kills the service under normal load.
   Check: every container declares requests; limits are a deliberate, stated choice, not a copy-paste.
-- **Workload with default privileges.** A container running as root with a writable filesystem hands any process compromise the whole pod, and cluster defaults will not stop it.
-  Check: the security context drops to non-root with a read-only root filesystem where the app allows, and every exception is stated.
+- **Workload with default privileges.** A container running as root with a writable filesystem, an auto-mounted service account token, and unrestricted pod-to-pod reach hands any process compromise the pod, the cluster API, and its neighbors, and cluster defaults will not stop it.
+  Check: the security context runs non-root, disallows privilege escalation, drops all capabilities, shares no host namespaces, and keeps a read-only root filesystem where the app allows; each workload has its own service account with token automount off unless it calls the API; the namespace carries default-deny network policies with explicit allows (enforced only where the cluster's network plugin supports them); every exception is stated.
 - **Template that renders wrong instead of failing.** A missing values key renders as an empty string; the manifest applies cleanly with silently wrong config.
   Check: required values fail the render explicitly (required functions or a values schema); string values are quoted so numeric-looking and boolean-looking values do not coerce; the rendered output is inspected, not assumed.
 - **Values drift across environments.** Per-environment values files that diverge structurally let a key renamed in one environment silently keep its stale default in another.

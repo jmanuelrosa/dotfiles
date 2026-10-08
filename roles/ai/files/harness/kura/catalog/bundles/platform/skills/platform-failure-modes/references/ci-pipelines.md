@@ -23,6 +23,8 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
   Check: retries are bounded and annotated with the known cause; an unexplained flake is investigated or quarantined visibly, not retried harder.
 - **Flaky check gating merges.** A nondeterministic check in the required set ejects work from the merge queue and cascades re-runs across everything queued behind it.
   Check: checks added to the required set are deterministic; known flakes are quarantined out of the gate, never blanket-retried inside it.
+- **Pipeline and agent config outside code ownership.** Workflow definitions, the ownership file itself, and agent rules files (agent instruction files and agent config directories) decide what runs with secrets and what coding agents do, so an unreviewed edit to them is an edit to the security posture.
+  Check: a diff that adds or moves pipeline config or agent rules files keeps them under an ownership rule with required review; adding or widening that rule is a merge-gate change and escalates.
 - **Raw commands drifting from local.** A step that invokes raw tool commands instead of the project's own script names diverges from local behavior on the first script change.
   Check: steps call the project's lint, test, and build entry points; new logic lands in the script, not in pipeline YAML.
 

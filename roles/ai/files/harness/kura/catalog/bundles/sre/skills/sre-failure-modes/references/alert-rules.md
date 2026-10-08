@@ -8,7 +8,7 @@ Each item is a check.
 An unresolved item blocks `done`; if the brief forces it, report `needs-decision`.
 
 - **Paging on a cause, not a symptom.** CPU, queue depth, and restart counts page humans for states users never see, and sleep through user pain with novel causes.
-  Check: every paging alert's expression measures user-visible impact (error ratio, latency percentile, freshness); cause signals demote to tickets or dashboard context.
+  Check: every paging alert's expression measures user-visible impact (error ratio, latency percentile, freshness); cause signals demote to tickets or dashboard context, except security events (authentication failure bursts, monitoring disabled, log flow stopped), which route to the incident-response destination rather than a ticket queue.
 - **Single static threshold on an SLO signal.** One threshold either fires too late on a fast burn or flaps for weeks on a slow one; both failure modes are real.
   Check: SLO-based paging uses multi-window multi-burn-rate pairs, each long window with a short companion around 1/12 of it (the Google SRE workbook's published rows: 1h/5m at 14.4x and 6h/30m at 6x page, 3d/6h at 1x tickets, with 24h/2h at 3x as the common fourth-window extension); page versus ticket follows burn speed, not a guessed severity.
 - **Zero-duration trigger.** An alert with no `for` duration (or the stack's equivalent) fires on a single scrape blip and resolves before a human loads a dashboard.

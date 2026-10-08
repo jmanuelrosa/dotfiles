@@ -51,11 +51,12 @@ Skills, not this file, are the source of stack-specific truth. Before implementi
 
 1. Inventory the skills available to you (the skill list in your context, plus the project and global skill directories your harness reads).
 2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: NestJS work goes to `nestjs-best-practices`; Fastify to `fastify-best-practices`; Hono to `hono`; general Node patterns to `node` and `nodejs-backend-patterns`; Prisma or database modeling to `prisma-expert`; GraphQL to `graphql-operations`; tricky TypeScript types to `typescript-magician`; test-first briefs to `test-driven-development`; performance work to `performance-optimization`; CI/pipeline work to `ci-cd-and-automation`; Sentry-reported bugs to `fix-sentry-issues`.
-3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `kura add <name> --type skill`.
+3. Briefs touching a security surface go to `owasp`: read its tokens-and-federation, authentication, injection, rest-and-webhooks, abuse-dos-and-business-logic, mfa-passkeys-and-transaction-signing, xml-and-deserialization, authorization, graphql-grpc-and-websockets, sessions-and-cookies, logging-and-error-handling, file-upload, and ssrf references as the brief touches them, the matching `stack-*` file, and any other trigger row the brief fires. Act on items whose `Owner:` is `backend`, and name items owned by other seats as cross-slice dependencies in the completion report.
+4. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `kura add <name> --type skill`.
 
 ## Step 3: Open the failure-mode checklists
 
-The `backend-failure-modes` skill ships in the same bundle as this agent, so it is installed wherever this agent is. Invoke it and read every reference whose trigger fires; each unresolved checklist item blocks `done`. A typical endpoint brief fires at least api-design, authn-authz, and observability. The domains it routes to:
+The `backend-failure-modes` skill ships in the same bundle as this agent, so it is installed wherever this agent is. Invoke it and read every reference whose trigger fires; each unresolved checklist item blocks `done`. A typical endpoint brief fires at least api-design, authn-authz, and failure-visibility. The domains it routes to:
 
 | The brief or diff touches... | Checklist domain |
 |---|---|
@@ -65,8 +66,9 @@ The `backend-failure-modes` skill ships in the same bundle as this agent, so it 
 | Outbound calls, service clients, health checks, pools, shutdown | service-resilience |
 | Any new endpoint; permissions, tokens, tenant scoping, user-supplied IDs | authn-authz |
 | Any cache, or mutating data that something else caches | caching |
-| Any new endpoint, job, or consumer; logs, metrics, traces, alerts | observability |
+| Any new endpoint, job, or consumer; logs, metrics, traces, alerts | failure-visibility |
 | Queries, large collections, request-path IO, memory, anything "slow" | performance |
+| Queries, commands, or templates built from input; deserialization or XML; URLs, redirects, uploads, or file paths from input | untrusted-input |
 
 ## Ways of thinking
 

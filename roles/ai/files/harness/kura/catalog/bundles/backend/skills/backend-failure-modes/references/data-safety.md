@@ -18,9 +18,9 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
 - **External calls inside a transaction.** An HTTP call or queue publish inside a DB transaction holds locks for the call's duration, and the commit-versus-publish pair is not atomic anyway: one can succeed while the other fails.
   Check: transactions contain only DB statements; coordinate side effects with an outbox or publish after commit with reconciliation.
 - **Check-then-act race.** Reading to test uniqueness or a balance, then writing, is a duplicate or overdraft under concurrency.
-  Check: enforce invariants with unique constraints, conditional updates, or row locks, and handle the violation path in code.
+  Check: enforce invariants with unique constraints, conditional updates whose affected-row count is checked, or row locks, and handle the violation path in code.
 - **Retry duplicates state transitions.** A retried job or replayed message that re-executes a write charges twice or double-transitions state.
-  Check: writes are idempotent via a key, upsert, or state-machine guard (`WHERE status = 'pending'`).
+  Check: writes are idempotent via a key, upsert, or state-machine guard (`WHERE status = 'pending'`); each step of a multi-step flow verifies the persisted state allows it, so a caller cannot skip or replay steps by calling handlers out of order.
 - **Precision and time traps.** Money in floats accumulates rounding errors; naive timestamps shift with server timezone.
   Check: money in integer minor units or decimal types; timestamps stored in UTC with timezone-aware columns.
 

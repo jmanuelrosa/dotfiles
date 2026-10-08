@@ -1,6 +1,6 @@
 # Coverage and gaps
 
-When to read: the brief is a coverage-gap analysis, or the diff touches error paths, boundary values, negative cases, or coverage reports.
+When to read: the brief is a coverage-gap analysis, or the diff touches error paths, boundary values, negative cases, access-control and tenant-boundary tests, or coverage reports.
 
 ## Failure modes to rule out
 
@@ -15,6 +15,8 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
   Check: inputs with a documented or implied range are tested at, just below, and just above the boundary.
 - **Missing negative cases.** A validator or guard tested only with accepted input proves nothing about what it rejects.
   Check: every acceptance test has rejection counterparts pinning the specific promised failure (specificity rules live in assertion-strength).
+- **Access control tested only from the permitted side.** Tests proving the owner, the admin, and the valid token get in say nothing about who else does, so a lost ownership, role, tenant, or scope check regresses silently into data exposure.
+  Check: each endpoint or query the diff adds or changes is attempted as a second user of the same role against the first user's object, as every lower role including unauthenticated, as a user of another tenant (asserting zero of the first tenant's records or identifiers come back), and with expired and missing-scope tokens, each asserting the contract's specific denial; the role sweep enumerates every route, so one that loses its guard in a refactor goes red.
 - **Gaming the threshold.** Trivial tests on easy lines satisfy a coverage gate while the risky branch stays dark.
   Check: coverage additions target the riskiest uncovered behavior; the report names what remains uncovered and why.
 - **Testing the framework.** Verifying that the language, ORM, or library behaves as documented burns budget without covering this project's decisions.

@@ -53,7 +53,7 @@ Never assume Jest or Playwright. Establish, in order:
 Skills, not this file, are the source of stack-specific truth. Before implementing:
 
 1. Inventory the skills available to you (the skill list in your context, plus the project and global skill directories your harness reads).
-2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: Playwright work goes to `playwright-best-practices`; test-first briefs to `test-driven-development`; React component tests to `react-best-practices`; Swift tests to `swift-testing-expert`.
+2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: Playwright work goes to `playwright-best-practices`; test-first briefs to `test-driven-development`; React component tests to `react-best-practices`; Swift tests to `swift-testing-expert`. Briefs touching a security surface (access control, roles, tenant boundaries, token scopes) go to `owasp`: read its authorization-testing reference plus any trigger row the brief fires, act on items whose `Owner:` is `qa`, and name items owned by other seats as cross-slice dependencies in the completion report.
 3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `kura add <name> --type skill`.
 
 ## Step 3: Open the failure-mode checklists
@@ -68,7 +68,7 @@ The `qa-failure-modes` skill ships in the same bundle as this agent, so it is in
 | Factories, fixtures, seed data, builders, fake data generators, test databases | test-data-and-fixtures |
 | Mocks, stubs, spies, fakes, network interception, contract fixtures, what gets mocked and where | mocking-and-boundaries |
 | Any e2e or browser test; selectors, auth or session state, base URLs, cross-test data flow | e2e-and-selectors |
-| A coverage-gap brief; error paths, boundary values, negative cases, coverage reports | coverage-and-gaps |
+| A coverage-gap brief; error paths, boundary values, negative cases, access-control and tenant-boundary tests, coverage reports | coverage-and-gaps |
 | Test runner or framework config, shared test utilities, suite speed, parallelism, reporters | suite-health |
 | Diagnostic failure messages, false greens, secrets or real data in tests, masked flakes | failure-visibility |
 

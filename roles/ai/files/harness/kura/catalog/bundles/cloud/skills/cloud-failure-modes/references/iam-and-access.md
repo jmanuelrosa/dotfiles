@@ -8,13 +8,15 @@ Each item is a check.
 An unresolved item blocks `done`; if the brief forces it, report `needs-decision`.
 
 - **Wildcard scope "temporarily".** A `*` action or resource grows silently as the provider adds new actions, and temporary wildcards are never narrowed once things work.
-  Check: actions and resources are explicit lists scoped to what the workload does today; any wildcard that remains carries a written justification in the report.
+  Check: actions and resources are explicit lists scoped to what the workload does today, and each workload (each function included) has its own role instead of a shared one accumulating everyone's grants; any wildcard that remains carries a written justification in the report.
 - **Trust policy anyone can assume.** A wildcard principal lets anything that learns the role identifier assume it (role ARNs are not secrets), and trusting an entire account root delegates the decision to every principal that account's admins ever authorize.
   Check: trust policies name exact principals; a wildcard principal exists only when paired with a condition that bounds it (organization, source account, source resource).
 - **Third-party trust without an external ID.** A vendor-facing role missing its external-id condition is the confused deputy: another customer of the same vendor can point the vendor's systems at your role.
   Check: cross-account roles for third parties require the vendor-supplied external id in the trust condition; service principals carry source-account or source-resource conditions.
-- **Static keys where federation fits.** A long-lived access key for automation is a standing compromise in waiting, and CI runners are where keys leak.
-  Check: automation authenticates through OIDC federation or workload identity, scoped by repository, branch, or environment claims; a new static credential is an escalation, not a default.
+- **Static keys where federation fits.** A long-lived access key for automation is a standing compromise in waiting, CI runners are where keys leak, and a federated trust that matches only the CI provider's shared issuer admits every repository on that provider.
+  Check: automation authenticates through OIDC federation or workload identity, and the trust condition pins the exact issuer, audience, and subject (repository, branch, or environment, by immutable identifier where the issuer offers one) with no wildcard subject; a new static credential is an escalation, not a default.
+- **Instance credentials one unauthenticated request away.** A compute instance whose metadata service answers plain requests hands its role credentials to any server-side request forgery in the workload.
+  Check: instances and launch templates require the metadata service's session-token mode wherever the provider offers a weaker one, and metadata access is disabled where the workload does not use it.
 - **Policy attached to a user.** Permissions granted directly to users scatter access outside group and role governance and survive team changes invisibly.
   Check: permissions attach to roles or groups; a direct user attachment is a finding.
 - **Privilege that mints privilege.** A role that can create or attach policies, or pass a more privileged role to a service, is an administrator with extra steps; escalation paths hide in innocuous-looking grants.

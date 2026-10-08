@@ -25,6 +25,8 @@ An item you could not verify goes in the Not assessed section; silence is never 
   Check: trace aggregate and export queries for the same ownership and tenant scoping the single-object paths carry.
 - **Non-ID references acting as capabilities.** Filenames, storage keys, and signed URLs fetched on the caller's behalf skip the object-level check the ID path has.
   Check: trace file and object-storage access for authorization on the referenced object itself, not just on the route that serves it.
+- **Business rules enforced by the happy path.** Amounts accepted from the client, workflow steps reachable out of order, and check-then-act sequences outside one atomic operation let a caller pay less, skip an approval, or redeem a one-time grant twice, with every single request authorized.
+  Check: trace each value-bearing or one-time flow (checkout, refunds, coupons, approvals, quota grants): amounts are recomputed server-side, each step handler re-reads persisted workflow state, and limits hold atomically (a unique constraint, a conditional update with its row count checked, or a lock) rather than as a read followed by a write.
 
 ## Escalation triggers (report immediately)
 

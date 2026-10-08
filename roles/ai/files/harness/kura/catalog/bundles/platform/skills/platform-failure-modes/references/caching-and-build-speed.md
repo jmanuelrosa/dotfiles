@@ -10,7 +10,7 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
 - **Cache key missing its inputs.** A key that omits the lockfile or content hash it derives from restores stale dependencies; the build passes against yesterday's tree.
   Check: the key derives from the exact files that define the cached content, so a changed input changes the key; fallback keys are for restore speed only and never stand in for an exact match.
 - **Cache crossing a trust boundary.** A cache writable from untrusted context (forked PRs) and restored in trusted context (default branch, releases) lets an attacker inject build inputs into your artifacts.
-  Check: caches are partitioned by trust level; nothing written by untrusted runs is restored by privileged ones, including through fallback key prefixes.
+  Check: caches are partitioned by trust level; nothing written by untrusted runs is restored by privileged ones, including through fallback key prefixes; release, publish, and deploy jobs restore no cache at all, including the built-in caching of setup steps.
 - **Cache as accidental source of truth.** Cached build outputs keyed loosely become the artifact; a wrong hit ships a wrong build under a green check.
   Check: everything cached is re-derivable and keyed on every input that affects it, or it is not cached.
 - **Expensive checks first.** A pipeline that runs the slow suite before the thirty-second lint charges the full pipeline price for every trivial mistake.

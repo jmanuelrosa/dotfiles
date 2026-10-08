@@ -17,8 +17,8 @@ An item you could not verify goes in the Not assessed section; silence is never 
   Check: read the bundler config and env usage: server-only variables referenced from client-reachable code are findings; when only the source is available, name bundle inspection as the next step in Not assessed.
 - **Tokens and personal data in URLs.** Query strings are logged by every proxy, kept in history, and leaked through referrers.
   Check: trace whether tokens, session identifiers, or personal data travel in URLs anywhere in the assessed flows.
-- **Encryption asserted, not located.** "Encrypted at rest" is a claim until the mechanism is found.
-  Check: for each store holding inventoried data, locate the encryption control in config or code (platform encryption settings, key management wiring, field-level crypto); an unlocatable claim goes to Not assessed, not into the posture summary.
+- **Encryption asserted, not located.** "Encrypted at rest" is a claim until the mechanism is found, and a found mechanism using a broken or unauthenticated mode, a non-cryptographic random source, or a key stored beside the data it protects is encryption in name only.
+  Check: for each store holding inventoried data, locate the encryption control in config or code (platform encryption settings, key management wiring, field-level crypto) and read it: an authenticated mode from a maintained library, keys held apart from the data, and keys and security tokens drawn from a CSPRNG; an unlocatable claim goes to Not assessed, not into the posture summary.
 - **Backups, exports, and caches as the soft copy.** Data guarded in the primary store leaks through CSV exports, report files, object-storage copies, and caches with weaker access control.
   Check: trace export, report, backup, and cache paths for inventoried fields and read the access control on each destination.
 - **No deletion story.** Sensitive data with no retention or deletion path contradicts stated policy and grows breach impact monotonically.

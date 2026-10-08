@@ -12,7 +12,9 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
 - **Stampede on expiry.** A hot key expiring under load sends every concurrent request to the origin at once; the cache made peak load worse, not better.
   Check: hot keys get TTL jitter plus single-flight locking or stale-while-revalidate; the origin survives a cold cache at peak (that is the sizing question, not the warm case).
 - **Missing key dimension.** A cache key that omits tenant, user, locale, or version serves one caller's data to another; this is a security incident, not staleness.
-  Check: the key contains every input that changes the value, tenant and identity first; review the key construction character by character.
+  Check: the key contains every input that changes the value, tenant and identity first; review the key construction character by character; the authorization check runs before the cache lookup, so a hit never skips it.
+- **Shared HTTP cache stores a private or poisoned response.** A CDN or reverse proxy caches whatever it is allowed to: a response carrying user data goes to the next caller, a response shaped by a header the cache does not key on is served poisoned to everyone, and a route that also answers `/account/x.css` invites the CDN to cache a private page as a static asset.
+  Check: responses carrying user or tenant data send `Cache-Control: no-store` (or `private`) explicitly; cacheable handlers read no header, cookie, or parameter absent from the cache key; authenticated routes match strictly, with no catch-all trailing segment.
 - **Undefined staleness budget.** How stale user-visible data may be is a product decision; a silently chosen TTL becomes an invisible contract.
   Check: the acceptable staleness window is stated in the brief or confirmed via `needs-decision`, then the TTL is derived from it.
 - **Miss and null conflated.** Storing nothing for "known absent" makes every request for a missing entity hammer the origin; storing null accidentally can mask real data.

@@ -17,8 +17,8 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
   Check: shared dependencies are single-versioned across the workspace, enforced by a catalog or a consistency check.
 - **Internal versioning by hand.** Bumping internal package versions and changelogs manually drifts and misses transitive bumps, so a consumer ships against an unreleased change.
   Check: internal versioning and changelog are tool-driven; a change to a package others depend on records the bump that fans out to them.
-- **Private package publishable.** An internal-only package with no publish guard can leak to a public registry on a mis-run release.
-  Check: internal packages are marked private or scoped and access-controlled; only intentionally public packages can publish.
+- **Internal package name exposed to the public registry.** An internal-only package with no publish guard can leak to a public registry on a mis-run release, and an unscoped internal name lets anyone publish a higher version publicly that installs in its place (dependency confusion).
+  Check: internal packages are marked private and live under a scope the organization owns, and the committed package-manager config maps that scope to the private registry; only intentionally public packages can publish, and no internal name resolves from the public registry.
 - **Workspace protocol leaked on publish.** A published package that still carries a `workspace:` specifier installs nothing for external consumers.
   Check: workspace-protocol specifiers are rewritten to real ranges at publish time; a published package resolves standalone.
 - **Shared-package change without consumer migration.** Changing a shared package's public API and only deprecating the old shape strands every in-repo consumer, forfeiting the monorepo's atomic-change advantage.

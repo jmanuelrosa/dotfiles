@@ -4,8 +4,9 @@ description: >-
   Failure-mode checklists for database implementation work, split by domain.
   Use when implementing or reviewing changes that touch schema migrations and deploy ordering,
   locks and online DDL, indexes and query plans, constraints and integrity, column types and
-  semantics, backfills and large tables, transactions and connection poolers, or ORM schema
-  artifacts and drift. Read only the reference files whose triggers match the change.
+  semantics, backfills and large tables, transactions and connection poolers, ORM schema
+  artifacts and drift, or roles, grants, and row-level security.
+  Read only the reference files whose triggers match the change.
 ---
 
 # Database failure modes
@@ -26,6 +27,7 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | Backfills, mass UPDATE or DELETE, moving data between columns or tables | [references/backfills-and-large-tables.md](references/backfills-and-large-tables.md) |
 | Transaction wrapping of migrations, isolation assumptions, locking reads, connection poolers | [references/transactions-and-concurrency.md](references/transactions-and-concurrency.md) |
 | ORM schema files, generated clients or types, migration state, multiple heads, drift | [references/schema-drift-and-artifacts.md](references/schema-drift-and-artifacts.md) |
+| Roles, grants, object ownership, row-level security policies, stored routine bodies, the accounts application or agent code connects as | [references/privileges-and-row-security.md](references/privileges-and-row-security.md) |
 | Migration and backfill failure legibility, progress and resume signals, slow-query and lock visibility | [references/failure-visibility.md](references/failure-visibility.md) |
 
 Most real changes fire two or three rows (a typical schema-change brief fires at least migrations-and-deploy-ordering, locks-and-online-ddl, and schema-drift-and-artifacts).
@@ -38,4 +40,5 @@ Read all of them; skip the rest.
 - **What good looks like**: the positive pattern, for calibration.
 
 The checks are engine-agnostic on purpose: engine behavior is named only where the failure mode is engine-defined (transactional DDL, `CONCURRENTLY` semantics); ORM- and tool-specific guidance belongs to the stack skills the caller has installed, not here.
+The exhaustive per-recommendation depth for security surfaces (database privileges, row-level security, injection in stored routines, vector store access) lives in `owasp`, which these checklists summarize rather than replace.
 Transaction semantics and data safety inside application code belong to the backend seat's data-safety reference; lakehouse and analytical tables belong to the data seat: these files own OLTP DDL mechanics, migration ordering, lock behavior, and plan evidence.

@@ -14,15 +14,17 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
 - **Range too loose or too tight.** A wildcard range pulls a breaking major on a clean install; an over-pinned range blocks security patches and fragments the tree.
   Check: ranges express real compatibility, consistent across the workspace; neither wildcard nor needlessly exact.
 - **Exports map incorrect.** A package whose `exports` omits a subpath, or points `types`/`import`/`require` at the wrong file, fails for external consumers even though it works in-repo.
-  Check: the `exports` map is validated against the packed tarball (what actually publishes), not the source tree, and types resolve under the consumer's module setting; in-repo success is not proof it resolves when installed.
+  Check: the `exports` map is validated against the packed tarball (what actually publishes), not the source tree, and types resolve under the consumer's module setting; in-repo success is not proof it resolves when installed; the packed file list comes from an explicit allowlist and holds no env files, credentials, or local artifacts.
 - **Types-runtime skew.** Shipped types that do not match the shipped runtime (wrong condition, ESM-versus-CJS mismatch) type-check green and crash at import.
   Check: the package resolves and type-checks from a consumer in every module system it claims to support.
 - **Upgrade automation unbatched or unpinned.** Automation that opens one PR per package, or auto-merges majors, either buries the signal or ships breakage unattended.
   Check: upgrade automation groups related deps, separates majors for review, and resolves to a pinned range; nothing majors without review.
 - **Lockfile out of sync or hand-edited.** A lockfile edited by hand, or not regenerated with its manifest, installs a different tree than declared, so CI and local diverge.
   Check: the lockfile is tool-regenerated and committed, and a frozen or immutable install succeeds from clean.
-- **Supply-chain surface ignored.** A new dependency with an install script, or a typosquatted name, runs arbitrary code at install with no review.
-  Check: a new dependency is reviewed for necessity, name, and install scripts; adding one is a deliberate decision, not a reflex.
+- **Supply-chain surface ignored.** A new dependency with an install script, or a typosquatted or AI-hallucinated name, runs arbitrary code at install with no review.
+  Check: a new dependency is reviewed for necessity and install scripts, and its exact name matches the established project's registry entry and source repository; third-party lifecycle scripts run only for packages on an explicit allowlist where the package manager supports it; adding one is a deliberate decision, not a reflex.
+- **Vulnerability fix asserted, not proven.** A version override, in-place patch of a transitive dependency, or scanner suppression claimed as remediation silences the alert while the vulnerable path stays reachable.
+  Check: a security override or patch ships with a test that exercises the vulnerable path, and a scanner suppression names exactly one advisory with a stated reason and a review date, never a package or severity wildcard.
 
 ## Escalation triggers (`needs-decision`)
 

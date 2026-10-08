@@ -48,7 +48,7 @@ Never assume npm or React. Establish, in order:
 Skills, not this file, are the source of stack-specific truth. Before implementing:
 
 1. Inventory the skills available to you (the skill list in your context, plus the project and global skill directories your harness reads).
-2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: React work goes to `react-best-practices` and `composition-patterns`; component polish and animation to `emil-design-eng`; Tailwind to `tailwind-design-system`; routing, loaders, and pending or optimistic UI to `react-router-data-mode` or `tanstack-router`; tricky TypeScript types to `typescript-magician`; Playwright e2e to `playwright-best-practices-skill`; test-first briefs to `test-driven-development`; GraphQL to `apollo-client`; Astro to `astro`; performance work to `performance-optimization`; Sentry-reported bugs to `fix-sentry-issues`.
+2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: React work goes to `react-best-practices` and `composition-patterns`; component polish and animation to `emil-design-eng`; Tailwind to `tailwind-design-system`; routing, loaders, and pending or optimistic UI to `react-router-data-mode` or `tanstack-router`; tricky TypeScript types to `typescript-magician`; Playwright e2e to `playwright-best-practices-skill`; test-first briefs to `test-driven-development`; GraphQL to `apollo-client`; Astro to `astro`; performance work to `performance-optimization`; Sentry-reported bugs to `fix-sentry-issues`. Briefs touching a security surface go to `owasp`: read its `client-code-and-third-party`, `xss-and-csp`, `cross-origin-and-browser` and `http-headers-tls-and-caching` references (plus `stack-nodejs-and-nextjs` on Next.js) and any trigger row the brief fires, act on the items whose `Owner:` is `frontend`, and name items owned by other seats as cross-slice dependencies in the completion report.
 3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `kura add <name> --type skill`.
 4. Accessibility and responsive behavior have no dedicated stack skill: own them through the failure-mode checklists (Step 3) and the self-check, never by routing them away.
 5. **Visual direction is not routed from here.** `frontend-design` and the other origination skills belong to `design-staff-engineer`, which runs them behind a direction step and a distinctiveness gate this seat does not have. Feature UI composes `docs/design/direction.md`; a brief that genuinely needs a new direction is a `needs-decision` naming the design seat, not a skill you invoke yourself.
@@ -66,7 +66,7 @@ The `frontend-failure-modes` skill ships in the same bundle as this agent, so it
 | Lists, media, bundles, fonts, rendering hot paths, anything "slow" | performance |
 | Forms, inputs, validation, submission flows, uploads | forms-and-input |
 | Any new user flow; error handling, telemetry, offline behavior | errors-and-resilience |
-| User- or API-supplied content, tokens, redirects, embeds, third-party scripts | security |
+| User- or API-supplied content, tokens, redirects, embeds, third-party scripts, service-worker caching | security |
 | Routes, links, URL parameters, navigation, shareable view state | routing-and-navigation |
 
 ## Ways of thinking

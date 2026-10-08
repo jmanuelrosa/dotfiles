@@ -1,32 +1,32 @@
 # Browser-side security
 
-When to read: the brief or diff touches rendering of user- or API-supplied content, authentication state or tokens, redirects, embeds and third-party scripts, or cross-window messaging.
+When to read: the brief or diff touches rendering of user- or API-supplied content, authentication state or tokens, redirects, embeds and third-party scripts, cross-window messaging, or service-worker caching.
 
 ## Failure modes to rule out
 
 Each item is a check.
 An unresolved item blocks `done`; if the brief forces it, report `needs-decision`.
 
-- **Injected HTML.** `dangerouslySetInnerHTML`, `v-html`, or `innerHTML` with anything not statically authored is XSS; sanitizer bypasses are rediscovered every year.
-  Check: user- and API-supplied content renders as text through the framework's escaping; any raw-HTML path goes through the project's sanctioned sanitizer with an allowlist and a stated reason.
+- **Injected HTML or code.** `dangerouslySetInnerHTML`, `v-html`, `innerHTML`, `outerHTML`, or `document.write` with anything not statically authored is XSS, and so is a string handed to `eval`, `new Function`, or a string-argument timer; sanitizer bypasses are rediscovered every year.
+  Check: user-, API-, URL- (`location`, `document.referrer`), storage-, and message-supplied content renders as text through the framework's escaping; any raw-HTML path goes through the project's sanctioned sanitizer with an allowlist and a stated reason; no input-derived string reaches a code-evaluating API.
 - **Tokens where scripts can read them.** Long-lived tokens in localStorage are exfiltrated by any XSS on any page; auth material in URLs leaks through history, referrers, and logs.
   Check: follow the project's existing auth storage pattern exactly; never move tokens into storage, query strings, or client-readable state for convenience.
 - **Client-side authorization theater.** Hiding a button while leaving the route and API callable, or trusting a client-held role flag, protects nothing.
   Check: UI hiding is UX, not security; every privileged action is enforced server-side, and the UI handles the 403 as a designed state.
-- **Open redirect.** Navigating to a URL taken from a query parameter or API response without validation turns your login flow into a phishing vector.
-  Check: redirect targets validate against an allowlist or same-origin relative paths only, and dangerous protocols like `javascript:` are rejected.
+- **Open redirect and script URLs.** Navigating to a URL taken from a query parameter or API response without validation turns your login flow into a phishing vector, and the same URL bound to an `href` or `src` runs `javascript:` in your origin.
+  Check: redirect targets validate against an allowlist or same-origin relative paths only; any whole URL from data rendered into `href` or `src` is parsed and restricted to `http`/`https`, and a framework's built-in `javascript:` blocking does not count as that validation.
 - **Tabnabbing through new tabs.** A link to user-supplied or third-party destinations opened in a new tab without `rel` protection hands the target window a handle on yours.
   Check: `target="_blank"` carries `rel="noopener noreferrer"` whenever the destination is not fully trusted.
-- **Input interpolated into requests.** User input concatenated into request URLs or query documents breaks or gets weaponized on the first special character.
-  Check: parameters go through URL and search-params APIs; GraphQL uses variables, never string interpolation.
+- **Input interpolated into requests.** User input concatenated into request URLs or query documents breaks or gets weaponized on the first special character, and a request whose endpoint, method, or path the URL, `document.referrer`, or message data chooses rides the user's own cookies and CSRF token (client-side CSRF).
+  Check: parameters go through URL and search-params APIs and path segments are encoded; GraphQL uses variables, never string interpolation; no request endpoint or method derives from location, referrer, or message data except by selection from a fixed table.
 - **Secrets in the bundle.** Anything in client code or client-exposed env vars is public the moment it ships; public-prefix env conventions make this easy to do by accident.
   Check: nothing secret enters client code or env; keys the client genuinely needs are scoped as public by design; everything else proxies through the backend.
 - **Third-party code with full authority.** A new script tag or embed runs with the page's whole authority: reading storage, watching input.
-  Check: third-party additions are ask-first; iframes carry `sandbox` and minimal `allow`; static third-party scripts get integrity attributes where feasible.
-- **postMessage without origin checks.** A message listener that accepts any origin lets any page that can reach yours drive it.
-  Check: every listener validates `event.origin` against an allowlist and validates the payload shape before acting.
-- **PII in client persistence and telemetry.** Personal data in localStorage, analytics payloads, or session replay outlives the session and violates policy silently.
-  Check: nothing sensitive persists client-side without an explicit decision; analytics carry IDs, not personal data; replay masking survives your change.
+  Check: third-party additions are ask-first; iframes carry `sandbox` and minimal `allow`; static third-party scripts carry `integrity` and `crossorigin`, or are self-hosted.
+- **postMessage without origin checks.** A message listener that accepts any origin lets any page that can reach yours drive it, and a substring origin test (`.example.org`) also matches `www.example.org.attacker.com`.
+  Check: every listener compares `event.origin` by equality against an allowlist before parsing, validates the payload shape before acting, and never passes message data to an HTML or code sink.
+- **PII in client persistence and telemetry.** Personal data in localStorage, service-worker caches, analytics payloads, or session replay outlives the session and violates policy silently; the Cache API ignores `Cache-Control` and never expires entries.
+  Check: nothing sensitive persists client-side without an explicit decision; service-worker caching excludes authenticated or personal responses and clears them on logout; analytics carry IDs, not personal data; replay masking survives your change.
 
 ## Escalation triggers (`needs-decision`)
 

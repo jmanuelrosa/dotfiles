@@ -1,6 +1,6 @@
 ---
 name: backend-failure-modes
-description: Failure-mode checklists for backend implementation work, split by domain. Use when implementing or reviewing backend changes that touch API contracts, schema migrations, queues and background jobs, cross-service calls, authn/authz, caching, telemetry, or query performance. Read only the reference files whose triggers match the change.
+description: Failure-mode checklists for backend implementation work, split by domain. Use when implementing or reviewing backend changes that touch API contracts, schema migrations, queues and background jobs, cross-service calls, authn/authz, caching, telemetry, query performance, or untrusted input reaching interpreters, parsers, fetchers, and file storage. Read only the reference files whose triggers match the change.
 ---
 
 # Backend failure modes
@@ -21,8 +21,9 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | Adding or touching any cache layer, or mutating data that something else caches | [references/caching.md](references/caching.md) |
 | Any new endpoint, job, or consumer; logging, metrics, tracing, alerts, error tracking | [references/failure-visibility.md](references/failure-visibility.md) |
 | Queries, serialization of large collections, request-path IO, long-lived memory, anything labeled "slow" | [references/performance.md](references/performance.md) |
+| Queries, shell commands, or templates built from input; deserialization or XML parsing; URLs, redirects, uploads, or file paths taken from input | [references/untrusted-input.md](references/untrusted-input.md) |
 
-Most real changes fire two or three rows (a new endpoint fires at least api-design, authn-authz, and observability).
+Most real changes fire two or three rows (a new endpoint fires at least api-design, authn-authz, and failure-visibility).
 Read all of them; skip the rest.
 
 ## How each reference is structured
@@ -32,3 +33,4 @@ Read all of them; skip the rest.
 - **What good looks like**: the positive pattern, for calibration.
 
 The checks are stack-agnostic on purpose: framework- and library-specific guidance belongs to the stack skills the caller has installed, not here.
+The exhaustive per-recommendation depth for security surfaces lives in `owasp`, which these checklists summarize rather than replace.

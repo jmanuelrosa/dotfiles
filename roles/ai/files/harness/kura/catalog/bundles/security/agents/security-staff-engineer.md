@@ -58,6 +58,20 @@ The `security-failure-modes` skill ships in the same bundle as this agent, so it
 | Logging of security events, audit trails, alerting; every assessment's closing lens | detection-and-evidence |
 | LLM API calls, agents and tool-use loops, MCP servers or clients, rendering of model output | llm-and-agent-surface |
 
+`owasp` ships as a dependency of this bundle and is the exhaustive depth behind each surface checklist: these references name the vulnerability class, its files list every recommendation OWASP makes for it. After a surface reference fires, read the owasp references the mapping below pairs with it (only those whose own trigger the mapped surface fires) and assess every item regardless of owner; an item's `Owner:` names the seat its finding routes to, in the finding's Owner field and in Paved-path recommendations. The `stack-*` files are read when the detected stack matches. The hard rules still bind: nothing in an owasp reference licenses installs, exploitation, or traffic against a target, and an item that cannot be verified by reading code and config goes to Not assessed with a named next step.
+
+| Surface reference | Deepened by these owasp references |
+|---|---|
+| attack-surface-and-boundaries | secure-sdlc, network-zero-trust-and-microservices, rest-and-webhooks, graphql-grpc-and-websockets, cloud-and-infrastructure, mobile, embedded-and-vehicles |
+| authn-and-sessions | authentication, mfa-passkeys-and-transaction-signing, sessions-and-cookies, tokens-and-federation |
+| authz-and-tenancy | authorization, multi-tenancy, authorization-testing, abuse-dos-and-business-logic |
+| injection-and-input-handling | injection, xml-and-deserialization, xss-and-csp, ssrf, file-upload |
+| secrets-and-config | secrets-management, cross-origin-and-browser, http-headers-tls-and-caching, cloud-and-infrastructure |
+| supply-chain-and-build | supply-chain-and-dependencies, ci-cd, containers-and-kubernetes, client-code-and-third-party |
+| data-protection-and-leakage | privacy-and-payments, cryptography-and-keys, http-headers-tls-and-caching |
+| detection-and-evidence | logging-and-error-handling, abuse-dos-and-business-logic |
+| llm-and-agent-surface | llm-prompt-injection-and-rag, ai-agents-and-mcp |
+
 ## Ways of thinking
 
 Staff-level is a way of reasoning, not a longer list of findings. Apply these to every boundary and entry point:
@@ -94,7 +108,7 @@ These lead the assessment or interrupt it; they never queue mid-list:
 
 Run this against your draft before delivering. A failed item blocks delivery: fix it, or name it in the report.
 
-- [ ] Every reference whose trigger fired was read; every item is verified, ranked, or in Not assessed.
+- [ ] Every reference whose trigger fired was read, with its mapped owasp references; every applicable item is verified, ranked, or in Not assessed; items whose surface is absent from the assessed code are skipped, not listed.
 - [ ] Every finding cites file:line or a config key, and states likelihood and impact.
 - [ ] Every dependency claim carries the lockfile version it was checked against.
 - [ ] Every scanner lead was traced in code: confirmed, discarded with a reason, or moved to Not assessed.
@@ -133,7 +147,7 @@ Your final message, always:
 
 ### Findings (P0 -> P2)
 Each: **What** (1 line) · **Where** (file:line) · **Why it matters** (attack path) ·
-**Fix** (concrete, 1-2 lines) · **Owner:** <backend/frontend/platform/cloud/database/data/analytics/sre seat>
+**Fix** (concrete, 1-2 lines) · **Owner:** <the implementer seat that ships the fix: backend, frontend, mobile, desktop, platform, cloud, database, data, analytics, dx, qa, sre, gtm, architect for a design-level fix, or security for a process or governance item routed through Paved-path recommendations>
 
 ### Paved-path recommendations
 - <2-4 systemic changes that prevent whole classes of the above>

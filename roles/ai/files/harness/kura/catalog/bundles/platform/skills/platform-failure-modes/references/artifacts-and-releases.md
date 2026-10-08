@@ -19,6 +19,8 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
   Check: artifact paths are explicit allowlists with deliberate retention, never a directory glob over the workspace.
 - **No provenance.** An artifact with no traceable link to the commit and run that produced it cannot be audited or trusted after an incident.
   Check: artifacts carry the commit and pipeline run that built them (metadata, labels, or an attestation where tooling exists).
+- **Long-lived publish token.** A registry token stored as a CI secret publishes as you from wherever it leaks, and outlives every rotation nobody remembers to do.
+  Check: publishing authenticates through the registry's OIDC trusted publishing where it exists, bound to the one workflow and environment; a token that must remain is scoped to the one package, expiring, and read from the CI secret store.
 - **Retention pruning what rollback needs.** Aggressive artifact cleanup deletes the previous release; the rollback path returns not-found exactly when it is needed.
   Check: retention explicitly keeps what rollback and audit require.
 

@@ -13,6 +13,8 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
   Check: logs and error paths reference keys and metadata, never raw sensitive values; quarantined records containing PII get the same protection as their source.
 - **Masking at the wrong layer.** Protection applied in a consumer view while the underlying table stays raw and broadly readable.
   Check: masking, tokenization, or column-level access applies where the data lands, and each downstream layer's exposure is stated.
+- **Access scope dropped on derived records.** Chunks, embeddings, and other records split from a source do not inherit its tenant and permission fields unless copied explicitly, so the layer serving them cannot enforce who reads what and a restricted fragment answers an unauthorized query.
+  Check: chunking, embedding, and splitting code copies tenant, classification, and permission fields onto every derived record; a derived schema without them is a finding.
 - **Retention declared, propagation missing.** A retention policy on the source that its derived copies ignore: deletes never reach downstream tables, snapshots, or quarantine.
   Check: retention and deletion obligations propagate to every location the pipeline writes, including time-travel snapshots and dead-letter stores.
 - **Deletion request meets immutable raw.** Right-to-be-forgotten arrives and the append-only raw layer has no designed path to honor it.

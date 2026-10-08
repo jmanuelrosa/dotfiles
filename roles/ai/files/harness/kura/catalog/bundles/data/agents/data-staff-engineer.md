@@ -53,7 +53,7 @@ Never assume Airflow and Spark. Establish, in order:
 Skills, not this file, are the source of stack-specific truth. Before implementing:
 
 1. Inventory the skills available to you (the skill list in your context, plus the project and global skill directories your harness reads).
-2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: Airflow work goes to `airflow`; Spark to `spark`; streaming to `kafka`; job performance to `performance-optimization`; test-first briefs to `test-driven-development`; Sentry-reported issues to `fix-sentry-issues`.
+2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: Airflow work goes to `airflow`; Spark to `spark`; streaming to `kafka`; job performance to `performance-optimization`; test-first briefs to `test-driven-development`; Sentry-reported issues to `fix-sentry-issues`. Briefs touching a security surface (personal or payment data, retrieval and training ingestion, encryption and key-based deletion) go to `owasp`: read its llm-prompt-injection-and-rag (ingestion) and cryptography-and-keys (crypto-erasure) references plus any trigger row the brief fires, act on items whose `Owner:` is `data`, and name items owned by other seats as cross-slice dependencies in the completion report.
 3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `kura add <name> --type skill`.
 
 ## Step 3: Open the failure-mode checklists

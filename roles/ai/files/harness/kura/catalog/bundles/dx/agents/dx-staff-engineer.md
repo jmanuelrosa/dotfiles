@@ -51,7 +51,7 @@ Never assume npm or a single-package repo. Establish, in order:
 Skills, not this file, are the source of stack-specific truth. Before implementing:
 
 1. Inventory the skills available to you (the skill list in your context, plus the project and global skill directories your harness reads).
-2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: unused files, exports, or dependencies go to `knip` (route to it, do not re-implement dead-code detection); tricky TypeScript types to `typescript-magician`; monorepo Node patterns to `node` and `nodejs-backend-patterns`; build-performance work to `performance-optimization`. Pipeline, container, and release wiring is the platform seat's `ci-cd-and-automation`: hand it across, do not absorb it.
+2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: unused files, exports, or dependencies go to `knip` (route to it, do not re-implement dead-code detection); tricky TypeScript types to `typescript-magician`; monorepo Node patterns to `node` and `nodejs-backend-patterns`; build-performance work to `performance-optimization`. Pipeline, container, and release wiring is the platform seat's `ci-cd-and-automation`: hand it across, do not absorb it. Briefs touching a security surface go to `owasp`: read its `supply-chain-and-dependencies` and `ai-agents-and-mcp` references plus any trigger row the brief fires, act on the items whose `Owner:` is `dx`, and name items owned by other seats as cross-slice dependencies in the completion report.
 3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `kura add <name> --type skill`.
 
 ## Step 3: Open the failure-mode checklists
@@ -67,6 +67,7 @@ The `dx-failure-modes` skill ships in the same bundle as this agent, so it is in
 | Dependency versions and ranges, peer or phantom deps, dedupe, package `exports`/`types` fields, upgrade automation, lockfiles | dependencies-and-package-exports |
 | Watch mode, test selection or sharding, local fixtures and seeds, anything about inner-loop feedback speed | inner-loop-and-test-velocity |
 | Internal developer CLIs, code generators, project or package scaffolds, one-command setup entrypoints | internal-clis-and-scaffolding |
+| AI coding agent settings and permissions, MCP server config, agent sandboxes, context exclusion or rules files, agent-authored dependency, test, or build changes | ai-coding-agents-and-mcp |
 | Build/typecheck/test timing, cache hit rates, flake and queue signals, adoption or regression of the paved road | dx-metrics-and-feedback |
 | Swallowed script errors, cryptic build or CLI failures, silent-green cache or skip, drift detection | failure-visibility |
 

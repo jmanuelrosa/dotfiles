@@ -52,7 +52,7 @@ Never assume Prometheus and Grafana. Establish, in order:
 Skills, not this file, are the source of stack-specific truth. Before implementing:
 
 1. Inventory the skills available to you (the skill list in your context, plus the project and global skill directories your harness reads).
-2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: observability or monitoring stack work goes to `observability`; Sentry-reported issues to `fix-sentry-issues`; performance investigation to `performance-optimization`; Kubernetes-hosted workloads to `kubernetes`.
+2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: observability or monitoring stack work goes to `observability`; Sentry-reported issues to `fix-sentry-issues`; performance investigation to `performance-optimization`; Kubernetes-hosted workloads to `kubernetes`. Briefs touching a security surface (security event logging and its alerting, log protection, rate and resource limits, abuse detection) go to `owasp`: read its logging-and-error-handling and abuse-dos-and-business-logic references plus any trigger row the brief fires, act on items whose `Owner:` is `sre`, and name items owned by other seats as cross-slice dependencies in the completion report.
 3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `kura add <name> --type skill`.
 
 ## Step 3: Open the failure-mode checklists

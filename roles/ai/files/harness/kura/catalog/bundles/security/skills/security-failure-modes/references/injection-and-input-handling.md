@@ -16,15 +16,15 @@ An item you could not verify goes in the Not assessed section; silence is never 
 - **Path traversal through file APIs.** User-controlled names joined onto base paths walk out of the intended directory, and uploads stored under attacker-chosen names or types land executable content where it gets served.
   Check: trace file reads, writes, and deletes that take external names: the path is canonicalized and containment against the intended root is checked before use; uploads get server-generated names and validated types.
 - **SSRF in the "internal" fetcher.** Server-side fetches of user-supplied URLs (webhooks, importers, previewers, renderers) reach cloud metadata endpoints and internal services.
-  Check: find every outbound request whose destination derives from external input; confirm allowlist validation and internal-range blocking in the code, not in a comment.
+  Check: find every outbound request whose destination derives from external input; confirm allowlist validation and internal-range blocking in the code, not in a comment, applied to the resolved address at connect time and again on every redirect.
 - **Deserialization of untrusted bytes.** Native deserializers on external data execute code by design in several ecosystems.
   Check: locate deserialization of external input and confirm it uses a data-only format and parser; a native object deserializer fed external bytes is a finding regardless of intent.
 - **Template injection.** External input concatenated into template source, not passed as context, executes in the template engine.
   Check: confirm external input enters rendering only as data or context variables, never as part of the template string itself.
 - **Validation at the edge, sinks fed from the middle.** Input validated at the HTTP layer protects nothing when the sink is fed by a queue, a job, or a database read.
   Check: trace each sink's inputs to their true origin; validation must sit on the path the sink actually receives, second-order sources included.
-- **Output encoding assumed from the framework.** Server-rendered HTML, emails, CSV exports, and response headers each need their own encoding; frameworks cover only some.
-  Check: for each output channel that composes external input, confirm encoding appropriate to that channel at the write site (HTML escaping, header sanitization, spreadsheet formula neutralization).
+- **Output encoding assumed from the framework.** Server-rendered HTML, emails, CSV exports, response headers, and client-side DOM writes each need their own encoding; frameworks cover only some, and their raw-HTML escape hatches cover none.
+  Check: for each output channel that composes external input, confirm encoding appropriate to that channel at the write site (HTML escaping, header sanitization, spreadsheet formula neutralization); in client code, trace URL-, storage-, and message-derived values into HTML-parsing sinks, raw-HTML escape hatches, string-evaluating APIs, and link or source attributes, and confirm each receives a constant, a text-only assignment, sanitizer output, or (for URLs) a scheme allowlist.
 
 ## Escalation triggers (report immediately)
 

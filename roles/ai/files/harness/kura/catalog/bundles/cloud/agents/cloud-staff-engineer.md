@@ -52,7 +52,7 @@ Never assume Terraform on AWS. Establish, in order:
 Skills, not this file, are the source of stack-specific truth. Before implementing:
 
 1. Inventory the skills available to you (the skill list in your context, plus the project and global skill directories your harness reads).
-2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: Terraform or OpenTofu work goes to `terraform`; cluster provisioning to `kubernetes`; AWS, GCP, or Azure specifics to the provider skill; cost work to `finops`.
+2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: Terraform or OpenTofu work goes to `terraform`; cluster provisioning to `kubernetes`; AWS, GCP, or Azure specifics to the provider skill; cost work to `finops`. Briefs touching a security surface (IAM and workload identity, network exposure, secrets and keys, encryption, DNS) go to `owasp`: read its cloud-and-infrastructure, secrets-management, cryptography-and-keys, tokens-and-federation (workload identity), and network-zero-trust-and-microservices references plus any trigger row the brief fires, act on items whose `Owner:` is `cloud`, and name items owned by other seats as cross-slice dependencies in the completion report.
 3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `kura add <name> --type skill`.
 
 ## Step 3: Open the failure-mode checklists
@@ -65,7 +65,7 @@ The `cloud-failure-modes` skill ships in the same bundle as this agent, so it is
 | State backends, resource renames or moves, imports, lifecycle guards, anything touching state | state-and-lifecycle |
 | Any change about to be planned; plan output, drift, hardcoded IDs, version pins | plan-safety-and-drift |
 | IAM policies, roles, trust relationships, permission boundaries, service accounts, federation | iam-and-access |
-| Security groups, firewalls, load balancers, CIDR ranges, subnets, peering, DNS | networking-and-exposure |
+| Security groups, firewalls, load balancers, CDN and edge caching rules, CIDR ranges, subnets, peering, DNS | networking-and-exposure |
 | Secrets, KMS keys, encryption settings, buckets, snapshots, anything holding data | secrets-and-data-protection |
 | Any new resource; tags, budgets, instance sizes, anything with a monthly bill | cost-and-tagging |
 | Clusters, databases, managed services, availability zones, backups, quotas, new accounts | resilience-and-provisioning |

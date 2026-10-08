@@ -16,7 +16,7 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
 - **Mutable third-party refs.** A step referenced by tag or branch re-resolves later; a compromised or moved tag runs someone else's code with your secrets.
   Check: third-party steps are pinned to an immutable ref (commit SHA or digest) with a human-readable version comment, and the ref verifiably belongs to the named upstream (a fork's commit or a typosquatted name passes a naive pin); upgrades are deliberate diffs.
 - **Secrets in logs and artifacts.** Secrets echoed by debug output, dumped environments, or verbose tools escape masking, and values derived from a secret are not masked at all.
-  Check: nothing prints the environment wholesale; artifact contents are explicit allowlists; masking is never the only line of defense.
+  Check: nothing prints the environment wholesale or traces commands (shell tracing, debug modes) while a secret is in scope; artifact contents are explicit allowlists; masking is never the only line of defense.
 - **Secrets handed to jobs that do not need them.** Passing whole secret sets to jobs or reusable workflows that use one value widens every compromise to all of them.
   Check: each job receives exactly the secrets it uses, by name; deploy-grade secrets are bound to the platform's environment scoping where it exists.
 - **Privilege gated on a spoofable identity.** A condition granting privileged behavior because of who appears to have triggered the event trusts a display name an attacker can imitate.
@@ -25,8 +25,8 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
   Check: checkout does not persist credentials it does not need; uploaded paths are enumerated, never the whole workspace.
 - **Untrusted code on self-hosted runners.** A forked PR executing on a self-hosted runner runs arbitrary code inside your network with the runner's reach.
   Check: untrusted events run only on ephemeral, isolated runners; anything else is an escalation, not a default.
-- **Standing credentials for automation.** A bot or coding agent wired into CI with a long-lived token and broad write access is a permanent compromise in waiting, and it acts faster than a human can notice.
-  Check: automation identities get short-lived, narrowly scoped credentials (workload identity over static tokens), and merges or writes stay behind human approval unless the brief explicitly grants otherwise.
+- **Standing credentials for pipelines and automation.** A deploy key, secrets-manager login, or bot or coding-agent token stored as a long-lived CI secret with broad access is a permanent compromise in waiting, and automation acts faster than a human can notice.
+  Check: pipeline and automation identities get short-lived credentials through workload identity federation rather than stored static tokens, scoped per pipeline to the environments and secret paths they use and attributable to the triggering run; AI agents in CI hold no deploy keys or org-wide secrets, and merges or writes by bots and agents stay behind human approval unless the brief explicitly grants otherwise.
 
 ## Escalation triggers (`needs-decision`)
 
