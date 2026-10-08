@@ -19,7 +19,7 @@ here takes effect without re-running the playbook.
 - `s-task <ref>`: creates a git branch from an issue, off an up-to-date default branch, and pushes it so the issue links back to it. It is dual-provider and infers which from the reference shape: `PROJ-123` goes to Jira via `acli`, while `456`, `#456`, or a GitHub issue URL goes to GitHub via `gh` (installed by the `apps` role). Force either with `--jira` / `--github`. Branch names are `<type>/PROJ-123-<slug>` for Jira and `<type>/gh-456-<slug>` for GitHub, capped at 50 chars to stay under commitlint's `header-max-length`, truncating the slug at a hyphen boundary. The branch type comes from the Jira issue type, or for GitHub from the issue's native type first and its labels second; `--type` overrides it and `--dry` prints the branch name without creating anything. The `commit` and `pr` skills parse both ticket shapes back out of the branch name, so keep the three in sync. See [Issue linking](#issue-linking) for the push behavior and `--no-push`, and [Worktrees](#worktrees) for `--worktree`.
 - `s-db [production|staging|local]`: connects to cloud-sql-proxy for the given environment. Three subcommands
   work on the databases themselves rather than on the connection: `s-db dump [ENV]` writes a custom-format dump
-  into `backups/`, `s-db restore [FILE]` loads one into local (with no `FILE` it lists what is there and you pick),
+  into `.local/backups/`, `s-db restore [FILE]` loads one into local (with no `FILE` it lists what is there and you pick),
   and `s-db dumps` prints that listing. `--dry` prints the exact `pg_dump` / `pg_restore` command without running
   it. Anything that is not a subcommand is still the connect call, so `s-db staging` and `s-db -d prod` are
   unchanged. See [Database dumps](#database-dumps).
@@ -82,13 +82,14 @@ Four decisions carry the design, and the first two are the ones not to weaken:
 - **No `--password`.** Per the same manual it "is never essential, since pg_dump will automatically prompt for a password if the server demands password authentication"; it only saves a round trip. Dropping it is what lets a `~/.pgpass` or `PGPASSWORD` be honoured if one ever appears, and changes nothing while none does.
 
 `dump` brings the proxy up detached when the port is quiet and reuses it when it is already serving, so one command is the whole job; the proxy stays up afterwards and the script prints the `kill` for it.
-Dumps land in `$WORK_DIR/backups/` as `addingwell-<env>-<YYYYMMDD-HHMMSS>.dump`, and the time is in there because a second dump on the same day must not silently overwrite the first.
+`s-db` reads the proxy from `$WORK_DIR/.local/bin/cloud-sql-proxy` and writes its logs to `$WORK_DIR/.local/logs/`.
+Dumps land in `$WORK_DIR/.local/backups/` as `addingwell-<env>-<YYYYMMDD-HHMMSS>.dump`, and the time is in there because a second dump on the same day must not silently overwrite the first.
 `--out` overrides the path, and the listing orders by mtime rather than by name so an `--out` file still sorts where it belongs.
 
 `pg_restore` exits non-zero for warnings as well as for failures, so a non-zero exit is reported as a warning naming the code rather than as a `✓`: a half-loaded database looks fine right up until it does not.
 `--clean` (which implies `--if-exists`, since `--clean` alone errors on every object that is not there yet) is what to reach for when the objects are already present, and it prompts before dropping anything.
 
-**`backups/` holds real staging and production data.** It sits in the work directory rather than in any checkout, and nothing here ever commits it.
+**`.local/backups/` holds real staging and production data.** It sits in the work directory rather than in any checkout, and nothing here ever commits it.
 
 ### Release PRs
 
