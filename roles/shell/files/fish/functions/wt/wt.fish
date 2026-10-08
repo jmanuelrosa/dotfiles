@@ -29,7 +29,7 @@ function _wt_help
   echo "                           to <dir>; pass -b/--branch to override (created from"
   echo "                           develop > main > master). Copies root/nested .env* files"
   echo "                           and .vscode/.claude/.agents from the main checkout,"
-  echo "                           skipping Git metadata and dependency directories."
+  echo "                           skipping Git metadata, dependencies, and .claude/worktrees/."
   echo "                           Installs deps from lockfile (frozen) if present."
   echo "                           Pass -h/--herdr to also open the worktree as a workspace"
   echo "                           in the current herdr session. Pass -f/--focus to move to"
@@ -142,7 +142,7 @@ function _wt_add
     git worktree add -b $branch $target $base; or return 1
   end
 
-  for envfile in (command find $main_wt -type d \( -name .git -o -name node_modules -o -name .venv -o -name venv -o -name vendor \) -prune -o \( -type f -o -type l \) -name '.env*' -print0 | string split0)
+  for envfile in (command find $main_wt -type d \( -name .git -o -name node_modules -o -name .venv -o -name venv -o -name vendor -o -path '*/.claude/worktrees' \) -prune -o \( -type f -o -type l \) -name '.env*' -print0 | string split0)
     set -l relative (string replace -- "$main_wt/" "" $envfile | string collect)
     set -l destination $target/$relative
     _ui step "Copying $relative"
@@ -154,7 +154,12 @@ function _wt_add
     if test -d $main_wt/$config_dir
       _ui step "Copying $config_dir/"
       mkdir -p $target/$config_dir; or return 1
-      cp -R $main_wt/$config_dir/. $target/$config_dir/; or return 1
+      for config_path in (command find -H $main_wt/$config_dir -mindepth 1 -maxdepth 1 -print0 | string split0)
+        if test "$config_path" = "$main_wt/.claude/worktrees"
+          continue
+        end
+        cp -R $config_path $target/$config_dir/; or return 1
+      end
     end
   end
 
