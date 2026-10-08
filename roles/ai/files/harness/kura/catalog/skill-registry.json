@@ -966,6 +966,17 @@
         "review"
       ],
       "note": "Locally authored from the OWASP Cheat Sheet Series (CC BY-SA 4.0)"
+    },
+    {
+      "name": "cc-fewer-permission-prompts",
+      "global": true,
+      "groups": [
+        "productivity",
+        "security",
+        "ai",
+        "workflow"
+      ],
+      "note": "Locally authored; port of Claude Code's /fewer-permission-prompts onto the shared policy"
     }
   ]
 }
