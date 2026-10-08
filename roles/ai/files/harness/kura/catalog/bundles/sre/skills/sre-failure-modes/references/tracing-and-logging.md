@@ -18,7 +18,7 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
 - **Retention set by default, not decision.** Default retention silently discards the data the postmortem needs, or hoards data at a cost and liability nobody approved.
   Check: retention for each signal is a stated choice matching incident and compliance needs; a change that shortens retention or discards data escalates.
 - **Log level policy that pages or spams.** Config that promotes expected conditions to ERROR feeds false pages; DEBUG left on in production drowns the signal and multiplies cost.
-  Check: level configuration matches the project's response contract (ERROR means someone acts), and production defaults are deliberate.
+  Check: level configuration matches the project's response contract (ERROR means someone acts), production defaults are deliberate, and no level setting, flag, or admin toggle can silence security or audit events.
 - **Instrumentation absorbed by this seat.** Adding spans, log statements, or context fields inside application source belongs to the implementer seats.
   Check: SDK configuration, processors, and scrubbers are yours; code-level emission becomes a specified handoff (span names, attributes, log fields), not your edit.
 

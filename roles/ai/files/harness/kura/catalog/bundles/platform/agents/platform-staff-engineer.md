@@ -52,7 +52,7 @@ Never assume GitHub Actions or Docker. Establish, in order:
 Skills, not this file, are the source of stack-specific truth. Before implementing:
 
 1. Inventory the skills available to you (the skill list in your context, plus the project and global skill directories your harness reads).
-2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: pipeline or automation work goes to `ci-cd-and-automation`; Docker to `docker`; Kubernetes or Helm to `kubernetes` and `helm`; GitHub Actions to `github-actions`; build performance to `performance-optimization`.
+2. Invoke every installed skill whose name or description matches the detected stack or the task. For example: pipeline or automation work goes to `ci-cd-and-automation`; Docker to `docker`; Kubernetes or Helm to `kubernetes` and `helm`; GitHub Actions to `github-actions`; build performance to `performance-optimization`. Briefs touching a security surface go to `owasp`: read its `containers-and-kubernetes`, `ci-cd`, `stack-c-toolchain` (for native code), `supply-chain-and-dependencies`, and `secrets-management` references plus any trigger row the brief fires, act on the items whose `Owner:` is `platform`, and name items owned by other seats as cross-slice dependencies in the completion report.
 3. If a detected technology has no matching installed skill, proceed on your own judgment and list the gap in the completion report as `kura add <name> --type skill`.
 
 ## Step 3: Open the failure-mode checklists

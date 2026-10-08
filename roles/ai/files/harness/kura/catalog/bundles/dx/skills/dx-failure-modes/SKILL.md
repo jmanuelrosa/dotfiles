@@ -4,7 +4,8 @@ description: >-
   Failure-mode checklists for developer-experience and developer-productivity work, split by domain.
   Use when implementing or reviewing changes that touch build-graph orchestration and caching,
   generated code, shared lint and TypeScript config, monorepo workspace topology, dependencies and
-  package exports, inner-loop test velocity, internal CLIs and scaffolding, or DX metrics.
+  package exports, inner-loop test velocity, internal CLIs and scaffolding, AI coding agent and MCP
+  config, or DX metrics.
   Read only the reference files whose triggers match the change.
 ---
 
@@ -25,6 +26,7 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | Dependency versions and ranges, peer or phantom deps, dedupe, package `exports`/`types` fields, upgrade automation, lockfiles | [references/dependencies-and-package-exports.md](references/dependencies-and-package-exports.md) |
 | Watch mode, test selection or sharding, local fixtures and seeds, anything about inner-loop feedback speed | [references/inner-loop-and-test-velocity.md](references/inner-loop-and-test-velocity.md) |
 | Internal developer CLIs, code generators, project or package scaffolds, one-command setup entrypoints | [references/internal-clis-and-scaffolding.md](references/internal-clis-and-scaffolding.md) |
+| AI coding agent settings and permissions, MCP server config, agent sandboxes, context exclusion or rules files, agent-authored dependency, test, or build changes | [references/ai-coding-agents-and-mcp.md](references/ai-coding-agents-and-mcp.md) |
 | Build/typecheck/test timing, cache hit rates, flake and queue signals, adoption or regression of the paved road | [references/dx-metrics-and-feedback.md](references/dx-metrics-and-feedback.md) |
 | Swallowed script errors, cryptic build or CLI failures, silent-green cache or skip, drift detection | [references/failure-visibility.md](references/failure-visibility.md) |
 
@@ -38,3 +40,4 @@ Read all of them; skip the rest.
 - **What good looks like**: the positive pattern, for calibration.
 
 The checks are stack-agnostic on purpose: build-tool- and package-manager-specific guidance belongs to the stack skills the caller has installed, not here.
+The exhaustive per-recommendation depth for security surfaces lives in `owasp`, which these checklists summarize rather than replace.

@@ -19,7 +19,7 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | Lists, images and media, bundles and dependencies, fonts, rendering hot paths, anything labeled "slow" | [references/performance.md](references/performance.md) |
 | Forms, inputs, validation, submission flows, file uploads | [references/forms-and-input.md](references/forms-and-input.md) |
 | Any new user flow; error handling, telemetry, offline or flaky-network behavior | [references/errors-and-resilience.md](references/errors-and-resilience.md) |
-| Rendering user- or API-supplied content, auth state and tokens, redirects, embeds, third-party scripts | [references/security.md](references/security.md) |
+| Rendering user- or API-supplied content, auth state and tokens, redirects, embeds, third-party scripts, service-worker caching | [references/security.md](references/security.md) |
 | Routes, links, URL parameters, navigation flows, view state that should survive reload or sharing | [references/routing-and-navigation.md](references/routing-and-navigation.md) |
 
 Most real changes fire two or three rows (a new form fires at least forms-and-input, accessibility, and errors-and-resilience).
@@ -32,3 +32,4 @@ Read all of them; skip the rest.
 - **What good looks like**: the positive pattern, for calibration.
 
 The checks are stack-agnostic on purpose: framework- and library-specific guidance belongs to the stack skills the caller has installed, not here.
+The exhaustive per-recommendation depth for security surfaces lives in `owasp`, which these checklists summarize rather than replace.

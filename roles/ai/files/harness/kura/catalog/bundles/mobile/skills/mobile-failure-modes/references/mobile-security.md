@@ -10,9 +10,9 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
 - **Secrets in the bundle.** A key in code, config, or the script bundle is extractable from any shipped binary in minutes; obfuscation only changes the minutes.
   Check: nothing in the diff embeds a secret the backend should hold; any key the client must carry is treated as public and scoped server-side accordingly.
 - **Sensitive data in plain storage.** Tokens and personal data in plain key-value stores or files are readable on rooted devices and in backups; the platform keystore exists for exactly this (OWASP MASVS-STORAGE).
-  Check: sensitive data at rest uses the platform secure store with a deliberate protection class, and nothing sensitive lands in plain preferences "temporarily".
-- **Sloppy session lifecycle.** Tokens that never rotate, refresh tokens in insecure storage, or an account switch that reuses the previous session's state.
-  Check: token storage, rotation, and invalidation-on-logout follow the project's existing auth pattern, and account switch provably cannot reuse prior session state.
+  Check: sensitive data at rest uses the platform secure store with a deliberate protection class, encryption keys come from the platform keystore rather than a constant or a plain hash of the user's password, and nothing sensitive lands in plain preferences "temporarily".
+- **Sloppy session lifecycle.** Tokens that never rotate, refresh tokens in insecure storage, a user password kept on the device to log in again silently, or an account switch that reuses the previous session's state.
+  Check: no code path persists the user's password after login (the app holds revocable tokens instead), token storage, rotation, and invalidation-on-logout follow the project's existing auth pattern, and account switch provably cannot reuse prior session state.
 - **Webview as a hole.** A webview loading remote content with a script bridge exposed, arbitrary URL loading, or file access enabled is remote code inside your app (OWASP MASVS-PLATFORM).
   Check: webviews load allowlisted origins only, bridges expose the minimal API, and file or universal access stays off unless the brief justifies it.
 - **Exported surfaces by accident.** Components, schemes, and handlers reachable by other apps, with input nobody validates, are a public API you never meant to publish.
@@ -21,8 +21,8 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
   Check: no cleartext or trust-relaxing config reaches release builds; adding or changing certificate pinning is escalated, not decided in-flight, because a botched pin bricks the app until the next store release.
 - **Leaky input surfaces.** Secret fields that allow copy, feed third-party keyboard learning, or echo into logs put credentials in places the app does not control.
   Check: secret fields use secure text entry, exclude sensitive values from logs and autocomplete-learning, and clipboard exposure of secrets is a decision, not a default.
-- **Sensitive data on system surfaces.** Notifications, share sheets, widgets, and search indices render app content outside the app, including on the lock screen.
-  Check: system-visible surfaces show minimal content for sensitive data, and lock-screen visibility is chosen, not inherited.
+- **Sensitive data and actions on system surfaces.** Notifications, share sheets, widgets, and search indices render app content outside the app, and shortcuts, voice-assistant intents, and controls run app actions from the lock screen of a device the owner is not holding.
+  Check: system-visible surfaces show minimal content for sensitive data, lock-screen visibility is chosen, not inherited, and every system-invokable action that does anything sensitive requires device authentication and still passes the app's own session and authorization checks.
 - **Client-side trust.** A security decision enforced only in the app (feature gates, price checks, entitlement checks) is enforced nowhere, because the client is the attacker's machine.
   Check: every trust decision in the diff has a server-side enforcement point; client checks are UX, not security.
 

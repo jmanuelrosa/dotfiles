@@ -21,8 +21,10 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
   Check: cursor boundaries are inclusive or exclusive by design, overlap deliberately with dedup, or use a strictly monotonic source column; the boundary case is tested.
 - **Full re-pull where incremental was implied.** Re-extracting the whole source every run hammers the source system and hides the missing cursor design.
   Check: extraction is incremental where the source allows it; a full pull is a stated decision with source load and cost acknowledged (see cost-and-efficiency).
+- **Untrusted content straight into a serving index.** Documents synced from external sources and made retrievable with no staging step carry hidden instructions or poisoned content directly into what a model reads.
+  Check: retrieval ingestion accepts only allowlisted sources, lands in staging, and scans for hidden instructions and invisible or bidirectional-control characters before content becomes retrievable.
 - **Credentials and sensitive fields at the edge.** New connectors are where credentials leak and sensitive fields first enter the platform.
-  Check: credentials come from the project's secret mechanism, the landed fields are enumerated, and sensitive ones follow pii-and-retention.
+  Check: credentials come from the project's secret mechanism and grant the connector read-only access scoped to what it extracts, never admin over the whole source; the landed fields are enumerated, and sensitive ones follow pii-and-retention.
 
 ## Escalation triggers (`needs-decision`)
 

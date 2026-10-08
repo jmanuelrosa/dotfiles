@@ -8,7 +8,7 @@ Each item is a check.
 An unresolved item blocks `done`; if the brief forces it, report `needs-decision`.
 
 - **Secret literal in configuration.** A password or token in code, a variable file, or a variable default lands in version control and in state, and rotating it becomes a code change.
-  Check: secret values exist only in a secret manager; configuration carries references, and generated secrets flow resource to resource without a literal.
+  Check: secret values exist only in a secret manager; configuration carries references (function and container environment blocks included, since anyone who can read the resource's configuration reads them), and generated secrets flow resource to resource without a literal.
 - **State as an accidental secret store.** Resource attributes and outputs land in state in plaintext; anyone with backend read access reads them.
   Check: outputs derived from secrets are marked sensitive; resources offering write-only or ephemeral secret arguments use them; whatever still lands in state is named in the report.
 - **Encryption left to the default.** Many storage services create unencrypted, or on a provider-default key, unless asked; the resource comes up fine and the finding arrives in the audit.

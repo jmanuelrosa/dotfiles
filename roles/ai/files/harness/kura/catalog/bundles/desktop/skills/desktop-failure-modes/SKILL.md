@@ -43,3 +43,4 @@ Read all of them; skip the rest.
 - **What good looks like**: the positive pattern, for calibration.
 
 The checks are stack-agnostic on purpose: framework- and toolchain-specific guidance belongs to the stack skills the caller has installed, not here.
+The exhaustive per-recommendation depth for security surfaces lives in `owasp`, which these checklists summarize rather than replace.

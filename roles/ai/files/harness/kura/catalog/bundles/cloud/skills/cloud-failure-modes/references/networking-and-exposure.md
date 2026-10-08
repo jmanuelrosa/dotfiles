@@ -1,6 +1,6 @@
 # Networking and exposure
 
-When to read: the brief or diff touches security groups, firewalls, load balancers, CIDR ranges, subnets, peering, or DNS.
+When to read: the brief or diff touches security groups, firewalls, load balancers, CDN and edge caching rules, CIDR ranges, subnets, peering, or DNS.
 
 ## Failure modes to rule out
 
@@ -13,16 +13,18 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
   Check: egress is scoped to what the workload talks to; a workload that genuinely needs broad egress states it.
 - **Default security group doing work.** The default group allows what nobody reviewed; resources that fall into it inherit unaudited reachability.
   Check: the default group is locked down and unused; every workload attaches purpose-built groups.
-- **Public by default.** Data stores and internal services land on public subnets or with public endpoints enabled because that is the shortest path to "it connects".
-  Check: databases, caches, and internal services sit on private subnets with private endpoints; public reachability is an escalation, never a convenience.
+- **Public by default.** Data stores, internal services, and function endpoints land on public subnets or with public, unauthenticated endpoints enabled because that is the shortest path to "it connects".
+  Check: databases, caches, and internal services sit on private subnets with private endpoints, and function or service endpoints require the platform's authentication unless serving the public is their purpose; public reachability is an escalation, never a convenience.
 - **Plaintext on the wire.** A listener terminating HTTP, or a legacy TLS policy, exposes in transit what the storage layer carefully encrypts at rest.
-  Check: public listeners redirect to TLS with a current policy; internal hops follow the project's in-transit convention deliberately.
+  Check: public listeners redirect to TLS with a current policy (TLS 1.2 minimum, 1.3 enabled, no SSL or TLS 1.0/1.1); internal hops follow the project's in-transit convention deliberately.
 - **Peering that assumes connectivity.** A peering connection is not reachability: route tables and security rules still gate it, and peering does not transit to third networks.
   Check: both sides carry routes and rules for the intended flows and nothing more; anything needing transitive reach goes through the project's hub, escalated if none exists.
 - **Overlapping or exhausted address space.** A CIDR that overlaps a peer, even partially, makes peering and transit routing impossible later, and a range packed tight leaves no room to grow; both are one-way doors.
   Check: new ranges are checked against every network they may ever connect to, come from the project's address plan where one exists, and leave deliberate headroom (providers also reserve addresses per subnet).
 - **Dangling DNS.** A record pointing at a released address or a deprovisioned resource is a subdomain takeover waiting for whoever claims the target next.
   Check: records are created and destroyed with the resource they point at; touched zones are scanned for records whose targets no longer exist.
+- **Edge cache overriding the origin.** A CDN rule that caches by file extension or overrides the origin's cache headers stores one user's authenticated response and serves it to whoever requests that path next.
+  Check: edge caching honors the origin's cache headers on authenticated routes, and no extension-based or override rule matches a path that can serve per-user content.
 - **No flow visibility.** A network segment without flow logs cannot support incident forensics or reachability debugging after the fact.
   Check: new networks and subnets follow the project's flow-log convention; if the project has none, flag it as a missing gate.
 

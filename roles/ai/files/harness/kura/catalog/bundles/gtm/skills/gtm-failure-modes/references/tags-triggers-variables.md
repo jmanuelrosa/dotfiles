@@ -13,6 +13,8 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
   Check: data-dependent tags fire on the event that carries the data; element triggers account for async rendering.
 - **Missing exception or blocking trigger.** A tag has no exception for states where it must not fire (consent denied, internal or QA traffic, non-production hostnames), so it fires everywhere.
   Check: exceptions cover consent-denied and internal/QA traffic, and staging hosts where applicable.
+- **Custom HTML with the page's full authority.** A Custom HTML tag or Custom JavaScript variable runs outside the template sandbox with every cookie, input, and network destination in reach, so a pasted vendor snippet, a hijacked vendor host, or a URL or DOM value written into markup becomes site-wide script injection.
+  Check: new tags use a built-in or permission-scoped template; Custom HTML or Custom JavaScript is a last resort with a stated reason, loads no free-form script URL, writes no URL-, cookie-, or DOM-derived variable into markup or script, and never works around a page-level blocklist that bans custom scripts.
 - **Ordering left to luck.** A tag depends on another running first (consent init before measurement, a library before its calls) but ordering rests on trigger timing.
   Check: hard ordering uses tag sequencing (setup/cleanup tags) or a gating trigger, not coincidence.
 - **Double firing.** The same pageview or conversion fires from two tags (a migrated tag left enabled beside its replacement, or gtag alongside a GTM tag), double-counting.

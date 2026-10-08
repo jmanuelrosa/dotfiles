@@ -40,3 +40,4 @@ Read all of them; skip the rest.
 - **What good looks like**: the positive pattern, for calibration.
 
 The checks are stack-agnostic on purpose: orchestrator- and engine-specific guidance belongs to the stack skills the caller has installed, not here.
+The exhaustive per-recommendation depth for security surfaces (personal data, retrieval and training ingestion, key-based deletion) lives in `owasp`, which these checklists summarize rather than replace.

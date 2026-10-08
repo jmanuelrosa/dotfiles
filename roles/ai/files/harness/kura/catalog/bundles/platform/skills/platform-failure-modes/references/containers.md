@@ -11,10 +11,10 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
   Check: bases are pinned to a digest, or at minimum a full version tag, and upgrades are explicit diffs.
 - **Toolchain shipped to production.** A single-stage build carries compilers, package managers, and source into the runtime image: attack surface and size nobody ordered.
   Check: builds are multi-stage; the final stage copies only runtime artifacts.
-- **Root by default.** A container running as root turns any process compromise plus one runtime bug into a host compromise.
-  Check: the final stage sets a non-root user; paths that must be writable are made so explicitly.
+- **Root or host access by default.** A container running as root, privileged, or with the container engine's socket mounted turns any process compromise into a host compromise, the socket in one step.
+  Check: the final stage sets a non-root user and paths that must be writable are made so explicitly; run configs (compose, dev containers, CI service containers) mount no engine socket, set no privileged flag, and drop all capabilities, adding back only named ones.
 - **Unpinned packages inside the image.** OS or language packages installed without versions re-resolve per build, breaking reproducibility invisibly.
-  Check: packages are version-pinned or resolved from a lockfile committed to the repo.
+  Check: packages are version-pinned or installed from a committed lockfile with the package manager's frozen-lockfile mode, in image builds and CI alike, so a manifest that drifted from its lockfile fails instead of re-resolving.
 - **Layer order fighting the cache.** Copying the whole tree before installing dependencies invalidates the dependency layer on every source change.
   Check: dependency manifests are copied and installed before source; the expensive layers change least often.
 - **Context leaking into the image.** A missing or stale `.dockerignore` ships VCS metadata, env files, and local artifacts into the build context: slow builds and accidental secrets.

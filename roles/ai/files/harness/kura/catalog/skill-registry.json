@@ -957,6 +957,15 @@
         "workflow"
       ],
       "note": "Locally authored; global signpost to the product-team plugin"
+    },
+    {
+      "name": "owasp",
+      "groups": [
+        "engineering",
+        "security",
+        "review"
+      ],
+      "note": "Locally authored from the OWASP Cheat Sheet Series (CC BY-SA 4.0)"
     }
   ]
 }

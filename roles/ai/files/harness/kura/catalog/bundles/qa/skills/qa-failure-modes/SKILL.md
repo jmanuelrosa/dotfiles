@@ -23,7 +23,7 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | Factories, fixtures, seed data, builders, fake data generators, test databases | [references/test-data-and-fixtures.md](references/test-data-and-fixtures.md) |
 | Mocks, stubs, spies, fakes, network interception, contract fixtures, what gets mocked and where | [references/mocking-and-boundaries.md](references/mocking-and-boundaries.md) |
 | Any e2e or browser test; selectors, auth or session state, base URLs, cross-test data flow | [references/e2e-and-selectors.md](references/e2e-and-selectors.md) |
-| A coverage-gap brief; error paths, boundary values, negative cases, coverage reports | [references/coverage-and-gaps.md](references/coverage-and-gaps.md) |
+| A coverage-gap brief; error paths, boundary values, negative cases, access-control and tenant-boundary tests, coverage reports | [references/coverage-and-gaps.md](references/coverage-and-gaps.md) |
 | Test runner or framework config, shared test utilities, suite speed, parallelism, reporters | [references/suite-health.md](references/suite-health.md) |
 | Diagnostic failure messages, false greens, secrets or real data in tests, masked flakes | [references/failure-visibility.md](references/failure-visibility.md) |
 
@@ -37,5 +37,6 @@ Read all of them; skip the rest.
 - **What good looks like**: the positive pattern, for calibration.
 
 The checks are stack-agnostic on purpose: runner- and framework-specific guidance belongs to the stack skills the caller has installed, not here.
+The exhaustive per-recommendation depth for security surfaces (authorization and tenant-boundary test suites) lives in `owasp`, which these checklists summarize rather than replace.
 The test-first method belongs to the `test-driven-development` skill; CI pipeline config for flakes (retry settings, merge-gate quarantine) belongs to `platform-failure-modes`.
 These files are checks against a diff: the test code side of the line.

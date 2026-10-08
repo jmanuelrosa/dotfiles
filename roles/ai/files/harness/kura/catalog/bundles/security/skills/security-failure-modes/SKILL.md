@@ -40,4 +40,5 @@ Read all of them; skip the rest.
 - **What good looks like**: the positive pattern, for calibration.
 
 The checks are stack-agnostic on purpose: framework- and scanner-specific guidance belongs to the stack skills the caller has installed, not here.
+The exhaustive per-recommendation depth for each surface lives in `owasp`, which these checklists summarize rather than replace; the agent's mapping names which of its references deepen each file here.
 Every check is performed by reading code and config: nothing here ever requires installing a tool, sending traffic to a live target, or attempting exploitation.

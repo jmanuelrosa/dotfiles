@@ -17,6 +17,8 @@ An unresolved item blocks `done`; if the brief forces it, report `needs-decision
   Check: every new metric label has a small, closed value set; unbounded identifiers go in logs and traces, never labels.
 - **Secrets and PII in telemetry.** Tokens, passwords, and personal data in logs or error-tracker context are a breach with excellent replication.
   Check: redaction covers every new log statement and error context; dump whole objects nowhere.
+- **Security events leave no trail.** Logins, access denials, and privilege or credential changes that go unlogged make an intrusion invisible and impossible to reconstruct; untrusted values concatenated into a log message can forge entries.
+  Check: authentication outcomes, authorization denials, and role, permission, or credential changes the change touches log actor, target, and outcome with no secret in the line; untrusted values go into structured fields, never spliced into the message.
 - **Renamed signal, orphaned alert.** Metrics, log lines, and label values have consumers you cannot see: dashboards, alerts, SLO burn rates, log-based billing.
   Check: renaming or removing any existing signal is a contract change; find its consumers or escalate.
 - **Alert on cause, not symptom.** Alerts on internal mechanics (CPU, queue depth of an internal buffer) page people for non-problems and miss real user impact.

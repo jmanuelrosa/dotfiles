@@ -38,3 +38,4 @@ Read all of them; skip the rest.
 - **What good looks like**: the positive pattern, for calibration.
 
 The checks are stack-agnostic on purpose: monitoring-vendor- and tool-specific guidance belongs to the stack skills the caller has installed, not here.
+The exhaustive per-recommendation depth for security surfaces (security event logging, log protection, abuse and resource-exhaustion defenses) lives in `owasp`, which these checklists summarize rather than replace.

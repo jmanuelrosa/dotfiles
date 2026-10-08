@@ -23,7 +23,7 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | State backends, resource renames or moves, imports, lifecycle guards, anything touching state | [references/state-and-lifecycle.md](references/state-and-lifecycle.md) |
 | Any change about to be planned; plan output, drift, hardcoded IDs, version pins | [references/plan-safety-and-drift.md](references/plan-safety-and-drift.md) |
 | IAM policies, roles, trust relationships, permission boundaries, service accounts, federation | [references/iam-and-access.md](references/iam-and-access.md) |
-| Security groups, firewalls, load balancers, CIDR ranges, subnets, peering, DNS | [references/networking-and-exposure.md](references/networking-and-exposure.md) |
+| Security groups, firewalls, load balancers, CDN and edge caching rules, CIDR ranges, subnets, peering, DNS | [references/networking-and-exposure.md](references/networking-and-exposure.md) |
 | Secrets, KMS keys, encryption settings, buckets, snapshots, anything holding data | [references/secrets-and-data-protection.md](references/secrets-and-data-protection.md) |
 | Any new resource; tags, budgets, instance sizes, anything with a monthly bill | [references/cost-and-tagging.md](references/cost-and-tagging.md) |
 | Clusters, databases, managed services, availability zones, backups, quotas, new accounts | [references/resilience-and-provisioning.md](references/resilience-and-provisioning.md) |
@@ -39,3 +39,4 @@ Read all of them; skip the rest.
 - **What good looks like**: the positive pattern, for calibration.
 
 The checks are stack-agnostic on purpose: IaC-tool- and cloud-provider-specific guidance belongs to the stack skills the caller has installed, not here.
+The exhaustive per-recommendation depth for security surfaces (IAM and workload identity, network exposure, secrets and keys, DNS takeover) lives in `owasp`, which these checklists summarize rather than replace.
