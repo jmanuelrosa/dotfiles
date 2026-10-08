@@ -180,7 +180,11 @@ def dotkit_links():
     """Every `dotkit` entry in the repo that is a symlink rather than the real thing."""
     return sorted(
         path
-        for pattern in ("roles/*/files/scripts/**/dotkit", "roles/*/files/harness/kura/catalog/bundles/**/dotkit")
+        for pattern in (
+            "roles/*/files/scripts/**/dotkit",
+            "roles/*/files/harness/kura/catalog/bundles/**/dotkit",
+            "roles/*/files/harness/kura/catalog/skills/*/scripts/dotkit",
+        )
         for path in REPO.glob(pattern)
         if path.is_symlink()
     )

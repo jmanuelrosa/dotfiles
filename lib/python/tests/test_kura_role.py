@@ -432,6 +432,7 @@ def test_the_global_set_holds_exactly_the_documented_membership():
         "agent-writer",
         "setup-review",
         "setup-review-mechanics",
+        "cc-fewer-permission-prompts",
         "cloudflare",
         "commit",
         "documentation-and-adrs",
