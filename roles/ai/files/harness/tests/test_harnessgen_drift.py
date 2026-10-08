@@ -21,7 +21,8 @@ ADAPTERS = [str(p.relative_to(ROOT)) for p in ROOT.glob("adapters/*/adapter.toml
 @pytest.fixture
 def harness(tmp_path):
     """The inputs and outputs of one build, copied somewhere a test may write."""
-    for relative in ["harness.toml", "policy", "mcp.json", "adapters/pi/mcp.json", *ADAPTERS, *RENDERED]:
+    inputs = ["harness.toml", "policy", "mcp.json", "adapters/pi/mcp.json", manifest.SKILL_REGISTRY]
+    for relative in [*inputs, *ADAPTERS, *RENDERED]:
         source, target = ROOT / relative, tmp_path / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         (shutil.copytree if source.is_dir() else shutil.copy)(source, target)

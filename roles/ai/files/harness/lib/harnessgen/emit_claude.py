@@ -1,6 +1,7 @@
-"""Claude Code's `permissions`, `sandbox`, `pluginConfigs` and `hooks` keys, from the neutral policy."""
+"""Claude Code's `permissions`, `sandbox`, `pluginConfigs`, `skillOverrides` and `hooks` keys, from the neutral policy."""
 
 import re
+from pathlib import PurePosixPath
 
 from harnessgen import merge
 
@@ -17,6 +18,9 @@ EVENTS = {
 TOOLS = {"bash": "Bash", "write": "Write", "edit": "Edit", "exit_plan_mode": "ExitPlanMode"}
 # SessionStart takes a source matcher rather than a tool one; Stop and UserPromptSubmit take none.
 MATCH_EVERY_SOURCE = "*"
+# Not `off` or `user-invocable-only`: the parent skill still loads its dependency through
+# the Skill tool, so the dependency must stay invocable and only lose its description.
+DEPENDENCY_ONLY_STATE = "name-only"
 
 
 def allow_command_rule(pattern):
@@ -189,12 +193,30 @@ def merge_hooks(block, rendered):
     return out
 
 
+def skill_name(entry):
+    """The name kura installs a registry entry under: its rename, else its upstream directory."""
+    return entry.get("name") or PurePosixPath(entry["upstream_path"]).name
+
+
+def dependency_only_skills(registry):
+    entries = [skill for repo in registry["upstream"].values() for skill in repo["skills"]]
+    entries += registry.get("local", [])
+    return [skill_name(entry) for entry in entries if entry.get("dependency_only")]
+
+
+def skill_overrides(registry, adapter_overrides):
+    """Every dependency-only skill reduced to its name, with the adapter's own entries winning."""
+    derived = {name: DEPENDENCY_ONLY_STATE for name in dependency_only_skills(registry)}
+    return {**derived, **adapter_overrides}
+
+
 def owned(manifest):
     """Dotted settings path to value, for every key this generator replaces whole."""
     adapter = manifest.adapter(NAME)
     rendered = {
         "permissions": permissions(manifest.permissions),
         "sandbox": sandbox(manifest.sandbox, adapter["sandbox"]),
+        "skillOverrides": skill_overrides(manifest.skill_registry(), adapter.get("skill_overrides", {})),
     }
     for plugin, config in adapter.get("plugin_configs", {}).items():
         rendered[f"pluginConfigs.{plugin}"] = config

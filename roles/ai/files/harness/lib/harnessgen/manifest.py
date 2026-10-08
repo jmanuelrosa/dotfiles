@@ -1,5 +1,6 @@
 """The neutral policy and each adapter's own knobs, as plain data."""
 
+import json
 import os
 import tomllib
 from dataclasses import dataclass
@@ -8,6 +9,7 @@ from pathlib import Path
 MARKER = "harness.toml"
 HARNESS_PLACEHOLDER = "{harness}"
 RENDER_ROOT_ENV = "HARNESS_RENDER_ROOT"
+SKILL_REGISTRY = "kura/catalog/skill-registry.json"
 
 
 def find_root(start=None):
@@ -62,6 +64,9 @@ class Manifest:
 
     def hooks_for(self, harness):
         return [hook for hook in self.hooks if harness in hook["harnesses"]]
+
+    def skill_registry(self):
+        return json.loads((self.root / SKILL_REGISTRY).read_text())
 
 
 def load(root=None):
