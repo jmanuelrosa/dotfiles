@@ -19,6 +19,9 @@ def run_db(tmp_path):
     home = tmp_path / "home"
     work = home / "Developer/work/addingwell"
     work.mkdir(parents=True)
+    local = work / ".local"
+    (local / "bin").mkdir(parents=True)
+    (local / "logs").mkdir()
     functions = home / ".config/fish/functions"
     functions.mkdir(parents=True)
     (functions / "_ui.fish").symlink_to(FISH_FUNCTIONS / "ui/_ui.fish")
@@ -29,7 +32,7 @@ def run_db(tmp_path):
     cloud_call = tmp_path / "cloud-call"
 
     stubs = {
-        work / "cloud-sql-proxy": """#!/bin/sh
+        local / "bin/cloud-sql-proxy": """#!/bin/sh
 printf '%s\\n' "$CLOUDSDK_ACTIVE_CONFIG_NAME" "$@" > "$PROXY_CALL"
 if [ "$PROXY_BACKGROUND" = 1 ]; then
     exec sleep 2
@@ -127,9 +130,11 @@ def test_foreground_proxy_selects_named_configuration(run_db, command, selection
 
 @pytest.mark.parametrize("selection", [[], ["--account", "pentla"]])
 @pytest.mark.parametrize("command", [["production", "--detach"], ["dump", "production"]])
-def test_background_proxy_selects_named_configuration(run_db, selection, command):
+def test_background_proxy_selects_named_configuration(run_db, tmp_path, selection, command):
     result, calls = run_db(*command, *selection, background=True)
     assert result.returncode == 0, result.stderr
+    log = tmp_path / "home/Developer/work/addingwell/.local/logs/cloud-sql-proxy-production.log"
+    assert log.is_file()
     assert calls["proxy"] == [
         "pentla" if selection else "didomi",
         "--gcloud-auth",
@@ -148,6 +153,15 @@ def test_local_operations_need_no_cloud_credentials(run_db, command):
     assert result.returncode == 0, result.stderr
     assert calls["proxy"] == []
     assert "Account:" not in result.stdout
+
+
+def test_dump_writes_to_local_backups(run_db, tmp_path):
+    result, calls = run_db("dump", "local")
+    assert result.returncode == 0, result.stderr
+    file_argument = next(arg for arg in calls["pg"] if arg.startswith("--file="))
+    dump = Path(file_argument.removeprefix("--file="))
+    assert dump.parent == tmp_path / "home/Developer/work/addingwell/.local/backups"
+    assert dump.is_file()
 
 
 def test_dump_dry_run_shows_selection_without_starting_proxy(run_db):

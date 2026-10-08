@@ -15,9 +15,9 @@
 # heading or on the closing summary.
 
 set -g WORK_DIR "$HOME/Developer/work/addingwell"
-set -g PROXY_BIN "./cloud-sql-proxy"
+set -g PROXY_BIN "./.local/bin/cloud-sql-proxy"
 set -g GCLOUD_CONFIG didomi
-set -g DUMP_DIR "$WORK_DIR/backups"
+set -g DUMP_DIR "$WORK_DIR/.local/backups"
 
 # Hardcoded for the same reason the Cloud SQL instances below are, and s-release's ORG:
 # one org, and a layout that changes rarely enough that a config file would only be a
@@ -150,7 +150,7 @@ function normalise_environment
 end
 
 function proxy_log
-    echo "$WORK_DIR/cloud-sql-proxy-$argv[1].log"
+    echo "$WORK_DIR/.local/logs/cloud-sql-proxy-$argv[1].log"
 end
 
 # ============================================================================
