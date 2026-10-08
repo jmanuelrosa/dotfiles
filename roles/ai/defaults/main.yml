@@ -24,6 +24,7 @@ BREW_PACKAGES:
 # Directories symlinked into Pi's global extension root. Every entry contains the
 # auto-discovered index.ts and a README; claude-ui is deliberately not active.
 PI_EXTENSIONS:
+  - cc-batch
   - cc-loop
   - context-continuity
   - cursor-model-policy

@@ -301,7 +301,7 @@ def test_the_package_is_declared_in_the_packages_pi_loads():
 def test_the_package_is_pinned():
     """Four breaking releases so far have been fail-closed corrections.
 
-    Every other entry in `packages` rides latest, which is right for a footer or an
+    Most entries in `packages` ride latest, which is right for a footer or an
     editor. This one decides what the shell may run, so an unattended `pi update` is
     not allowed to change it. `pi update` skips a versioned spec.
 

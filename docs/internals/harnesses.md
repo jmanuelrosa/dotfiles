@@ -57,7 +57,37 @@ The entries are derived data: [test_pi_model_routing.py](../../lib/python/tests/
 
 **The review policy reaches pi now.** `pi-review` (in `settings.json` `packages`) appends a `REVIEW_GUIDELINES.md` to its review prompt and its rubric defers to project guidelines, so the repo root carries a relative symlink to `rules/code-review.md` and the four severities arrive intact. It only reads that file from a directory that also holds a `.pi` directory, which is why one exists at the root with only a `.gitkeep` to preserve it in clones; [code-review-policy.md](code-review-policy.md) has the detail and the reason this is not the `REVIEW.md` decision reversed.
 
+**`/supi-insights` is Claude's `/insights`, adopted rather than built.**
+`@mrclrchtr/supi-insights` scans the Pi session history, asks the current model for per-session facets and narrative sections through `modelRegistry.complete`, and writes an HTML report to `~/.pi/agent/supi/insights/` with mode `0600`.
+It registers that one command and no tool, and it reads and writes from the extension process rather than through `bash`, `write` or `edit`, so neither permission layer below has anything to match and it needs no rule.
+It is pinned because it has shipped more than eighty versions and `pi update` skips a versioned spec, so a report can only change shape when the pin is moved on purpose.
+The report page loads its typeface from Google Fonts, so opening it sends a request to `fonts.googleapis.com`.
+
 **Setup review is shared by method, not by inventory.** `/skill:setup-review` detects pi from `PI_SESSION_ID` and delegates to `pi-staff-reviewer`; Claude Code exposes the same skill as `/setup-review` and delegates to `cc-staff-reviewer`. Both reviewers load `setup-review-mechanics` for evidence thresholds, dependency safety, proposal discipline and the P0-P2 report contract, while each owns the paths, precedence rules, current-source lookup and customization vocabulary of its harness. This avoids the old state where pi could invoke `cc-review` successfully and receive a confident audit of `~/.claude`.
+
+### Claude built-ins and their Pi counterparts
+
+Claude Code ships slash commands Pi has no equivalent for, so each one gets a counterpart, adopted from a vetted package where one exists and built here otherwise.
+
+| Claude | Pi | Source | What differs |
+|---|---|---|---|
+| `/loop` | `/cc-loop` | Pi extension | Fixed interval or self-paced through a `schedule_wakeup` tool, with list and stop; a bare call falls back to `loop.md`, including Claude's own `loop.md` files. There is no Monitor-style background watcher, so a wait on a condition is polling. Timers live with the Pi session rather than a cron scheduler, so they end when it does |
+| `/batch` | `/cc-batch` | Pi extension | An orchestration prompt over `pi-subagents`' worktree-isolated async runs. Pi has no plan mode, so the plan is a file and approval goes through `pi-ask-user` |
+| `/insights` | `/supi-insights` | `@mrclrchtr/supi-insights`, pinned | An LLM facet report written as HTML under `~/.pi/agent/supi/insights/`. It reads Pi sessions only, so Claude work never appears in it |
+| `/fewer-permission-prompts` | `/cc-fewer-permission-prompts` | Catalog skill plus a Pi alias extension | Mines both Claude and Pi transcripts and proposes read-only rules into `policy/permissions.toml`, the source every harness's permissions are rendered from |
+| `/design` | none | | It wraps Claude's `DesignSync` tool, which exists only on claude.ai, so there is nothing to port |
+
+**A port we build is named `cc-<command>`.**
+The prefix keeps it from ever colliding with a Claude built-in or bundled skill, which matters because a shared catalog skill is visible inside Claude too.
+The separator is a hyphen, not a colon: Agent Skills names allow only lowercase letters, digits and hyphens, and a colon already means a plugin namespace in Claude and the skill invoker (`/skill:<name>`) in Pi.
+
+**In this repo Claude users should prefer `/cc-fewer-permission-prompts` over the built-in.**
+The built-in writes its allowlist into `.claude/settings.json`, which bypasses `policy/` as the single source, so the rules never reach Pi or Codex and `make harness-check` cannot see them.
+
+**A third-party Pi package is vetted before anything is built, and pinned when adopted.**
+The bar is install scripts, network calls, child processes, writes outside `~/.pi`, adoption (weekly downloads and release history) and a reachable source repository.
+An adopted package is pinned to an exact version, for the reason given for the permission package below: `pi update` skips a versioned spec.
+A loop package failed this bar on roughly 125 downloads a week and a source repository that returned 404, which is why `/cc-loop` is built here.
 
 ### Permissions: two layers, like Claude's
 
@@ -84,7 +114,7 @@ The `external_directory` surface therefore keeps its `ask` fallback and allows `
 The permission package matches both the referenced and symlink-resolved forms, while pi-sandbox grants those payload trees read access but not write access, so this decision-layer exception does not make the installed skills mutable.
 `piInfrastructureReadPaths` cannot carry the exception because that package knob applies only to read-only file tools and deliberately excludes bash.
 
-The package is the only entry in `packages` carrying a version. It has shipped four breaking releases, all of them fail-closed corrections that turn a silent allow into a prompt or a block, and `pi update` skips a versioned spec, so an unattended update cannot change what the shell may run. Its config also does not live beside the others: the package expects `config.json` inside a directory named after itself, and it writes a review log holding unredacted bash command strings into that same directory, so the play creates a real directory there and links only the one file into it.
+The package is pinned in `packages`, as `supi-insights` above is. It has shipped four breaking releases, all of them fail-closed corrections that turn a silent allow into a prompt or a block, and `pi update` skips a versioned spec, so an unattended update cannot change what the shell may run. Its config also does not live beside the others: the package expects `config.json` inside a directory named after itself, and it writes a review log holding unredacted bash command strings into that same directory, so the play creates a real directory there and links only the one file into it.
 
 Two things bound which version the pin may name. `~/.npmrc` sets `min-release-age=7`, npm's supply-chain cooldown, so a version published in the last week cannot be resolved at all and `pi install` fails with `ETARGET` rather than anything mentioning a cooldown: pick the newest version that has aged past the window, not the registry's `latest`. And the config has to be revalidated against the version being moved to, because the package ships the schema it validates against and a rejected global scope enforces none of these rules rather than falling back to the last good one. That failure is quiet from inside the repo, since a drift test can agree with a derivation that produces a file the package will not load, so validation is part of moving the pin and not an optional check:
 
