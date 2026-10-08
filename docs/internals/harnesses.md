@@ -59,6 +59,30 @@ The entries are derived data: [test_pi_model_routing.py](../../lib/python/tests/
 
 **Setup review is shared by method, not by inventory.** `/skill:setup-review` detects pi from `PI_SESSION_ID` and delegates to `pi-staff-reviewer`; Claude Code exposes the same skill as `/setup-review` and delegates to `cc-staff-reviewer`. Both reviewers load `setup-review-mechanics` for evidence thresholds, dependency safety, proposal discipline and the P0-P2 report contract, while each owns the paths, precedence rules, current-source lookup and customization vocabulary of its harness. This avoids the old state where pi could invoke `cc-review` successfully and receive a confident audit of `~/.claude`.
 
+### Claude built-ins and their Pi counterparts
+
+Claude Code ships slash commands Pi has no equivalent for, so each one gets a counterpart, adopted from a vetted package where one exists and built here otherwise.
+
+| Claude | Pi | Source | What differs |
+|---|---|---|---|
+| `/loop` | `/cc-loop` | Pi extension | Fixed interval or self-paced through a `schedule_wakeup` tool, with list and stop; a bare call falls back to `loop.md`, including Claude's own `loop.md` files. There is no Monitor-style background watcher, so a wait on a condition is polling. Timers live with the Pi session rather than a cron scheduler, so they end when it does |
+| `/batch` | `/cc-batch` | Pi extension | An orchestration prompt over `pi-subagents`' worktree-isolated async runs. Pi has no plan mode, so the plan is a file and approval goes through `pi-ask-user` |
+| `/insights` | `/supi-insights` | `@mrclrchtr/supi-insights`, pinned | An LLM facet report written as HTML under `~/.pi/agent/supi/insights/`. It reads Pi sessions only, so Claude work never appears in it |
+| `/fewer-permission-prompts` | `/cc-fewer-permission-prompts` | Catalog skill plus a Pi alias extension | Mines both Claude and Pi transcripts and proposes read-only rules into `policy/permissions.toml`, the source every harness's permissions are rendered from |
+| `/design` | none | | It wraps Claude's `DesignSync` tool, which exists only on claude.ai, so there is nothing to port |
+
+**A port we build is named `cc-<command>`.**
+The prefix keeps it from ever colliding with a Claude built-in or bundled skill, which matters because a shared catalog skill is visible inside Claude too.
+The separator is a hyphen, not a colon: Agent Skills names allow only lowercase letters, digits and hyphens, and a colon already means a plugin namespace in Claude and the skill invoker (`/skill:<name>`) in Pi.
+
+**In this repo Claude users should prefer `/cc-fewer-permission-prompts` over the built-in.**
+The built-in writes its allowlist into `.claude/settings.json`, which bypasses `policy/` as the single source, so the rules never reach Pi or Codex and `make harness-check` cannot see them.
+
+**A third-party Pi package is vetted before anything is built, and pinned when adopted.**
+The bar is install scripts, network calls, child processes, writes outside `~/.pi`, adoption (weekly downloads and release history) and a reachable source repository.
+An adopted package is pinned to an exact version, for the reason given for the permission package below: `pi update` skips a versioned spec.
+A loop package failed this bar on roughly 125 downloads a week and a source repository that returned 404, which is why `/cc-loop` is built here.
+
 ### Permissions: two layers, like Claude's
 
 Claude Code is hard to talk into a destructive command because it runs two independent layers, and its `settings.json` has a block for each. `sandbox` decides which paths and domains a subprocess can reach at the OS level. `permissions` decides whether an action is permitted at all, across 182 rules. Neither subsumes the other: the sandbox would let `git push --force` through, because force-pushing touches only paths the agent already owns, and a rule list only ever blocks what somebody enumerated.
