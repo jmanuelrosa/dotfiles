@@ -10,6 +10,7 @@ slash-command flow.
 """
 
 import json
+import os
 import subprocess
 import sys
 
@@ -31,8 +32,48 @@ PR_WRAPPER = "~/.claude/skills/pr/scripts/apply.py"
 EM_DASH = chr(0x2014)
 
 
+# The risky shapes roles/apps/files/.gitconfig ships, copied rather than read so
+# a case means the same thing however that file changes.
+SHIPPED_ALIASES = {
+    "a": "commit --amend --no-edit",
+    "c": "commit",
+    "ca": "!git add --all && git commit -am",
+    "wip": "!git add --all; git c -m WIP",
+    "p": "push",
+    "up": "push",
+    "pf": "push --force-with-lease",
+    "apf": "!git amend --no-verify --no-edit && git push --force",
+    "res": "reset --hard HEAD",
+    "rh": "reset --hard HEAD",
+    "st": "status",
+    "dw": '!git -c color.diff=always diff --word-diff=color "$@" | less -RFX #',
+}
+
+# Shapes git allows that the shipped file does not use yet.
+OTHER_ALIASES = {
+    "cm": "commit -m",
+    "pp": "p",
+    "fp": '!f() { git push "$@"; }; f',
+    "loop": "loop",
+    "status": "push",
+}
+
+
 @pytest.fixture
-def gate(tmp_path):
+def git_env(tmp_path):
+    """An environment where git reads a throwaway global config holding the
+    aliases above, never the real one, so the user's own aliases cannot change
+    what a case means."""
+    gitconfig = tmp_path / "gitconfig"
+    aliases = {**SHIPPED_ALIASES, **OTHER_ALIASES}
+    gitconfig.write_text(
+        "[alias]\n" + "".join(f"\t{name} = {json.dumps(body)}\n" for name, body in aliases.items())
+    )
+    return {**os.environ, "GIT_CONFIG_GLOBAL": str(gitconfig), "GIT_CONFIG_NOSYSTEM": "1"}
+
+
+@pytest.fixture
+def gate(tmp_path, git_env):
     """Run the hook. gate("git push", skills=["pr"]) -> exit code."""
     transcript = tmp_path / "transcript.jsonl"
 
@@ -50,6 +91,8 @@ def gate(tmp_path):
             input=json.dumps(event),
             capture_output=True,
             text=True,
+            env=git_env,
+            cwd=tmp_path,
         ).returncode
 
     return run
@@ -170,6 +213,89 @@ def test_s_release_is_deliberately_not_gated(gate):
 def test_an_unrelated_git_command_is_never_gated(gate):
     """Given a read-only git command, When it runs with no skill, Then it is allowed."""
     assert gate("git status --porcelain") == ALLOW
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git p",
+        "git up -u origin feature/x",
+        "git pf",
+        "git -C . p",
+        "git pp",
+        "git fp origin x",
+        "git -c alias.zz=push zz",
+    ],
+)
+def test_an_alias_that_expands_to_a_push_is_gated_like_one(gate, command):
+    """Given an alias whose expansion is a push, directly, through another alias,
+    via a function-style `!` line or defined on the command line,
+    When it runs outside /pr, Then it is blocked."""
+    assert gate(command) == BLOCK
+
+
+def test_an_alias_that_expands_to_a_push_is_allowed_inside_the_pr_skill(gate):
+    """Given /pr is active, When a push alias runs, Then it is allowed."""
+    assert gate("git p -u origin feature/x", skills=["pr"]) == ALLOW
+
+
+def test_an_alias_in_another_repos_config_is_found_through_git_dir(gate, git_env, tmp_path):
+    """Given a push alias defined only in a repo named by --git-dir,
+    When it runs outside /pr, Then it is blocked."""
+    other = tmp_path / "other"
+    for args in (["init", "-q", str(other)], ["-C", str(other), "config", "alias.lp", "push"]):
+        subprocess.run(["git", *args], env=git_env, check=True, capture_output=True)
+    assert gate(f"git --git-dir={other}/.git lp") == BLOCK
+
+
+@pytest.mark.parametrize("command", ["git c -m 'feat: x'", "git ca 'feat: x'", "git wip", "git a"])
+def test_an_alias_that_expands_to_a_commit_needs_the_commit_skill(gate, command):
+    """Given a commit alias, plain, `!` chained or nested, When it runs outside
+    /commit, Then it is blocked."""
+    assert gate(command) == BLOCK
+
+
+def test_no_verify_inside_an_alias_is_blocked_even_inside_the_owning_skills(gate):
+    """Given an alias whose expansion carries --no-verify, When it runs inside
+    /commit and /pr, Then it is blocked, as the literal flag would be."""
+    assert gate("git apf", skills=["commit", "pr"]) == BLOCK
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        f"git cm 'feat: a {EM_DASH} b'",
+        f"git ca 'feat: a {EM_DASH} b'",
+        "git ca 'feat: a\n\nCo-Authored-By: Claude <noreply@anthropic.com>'",
+    ],
+)
+def test_a_commit_message_passed_to_an_alias_is_still_checked(gate, command):
+    """Given a commit alias that supplies -m or -am itself, When the message the
+    caller appends breaks house style inside /commit, Then it is blocked."""
+    assert gate(command, skills=["commit"]) == BLOCK
+
+
+@pytest.mark.parametrize(
+    "command", ["git st", "git dw", "git rh", "git res", "git loop", "git nope", "git status"]
+)
+def test_an_alias_that_expands_to_no_gated_command_is_not_gated(gate, command):
+    """Given an alias that neither commits nor pushes, a self-referencing one, an
+    unknown name, or an alias git ignores because a real command owns the name,
+    When it runs with no skill, Then the gate allows it.
+
+    A `reset --hard` alias is the deny list's to refuse, not this gate's.
+    """
+    assert gate(command) == ALLOW
+
+
+def test_a_shell_alias_is_matched_but_never_executed(gate, tmp_path):
+    """Given a `!` alias that would write a file, When the gate inspects it,
+    Then the file is never written."""
+    marker = tmp_path / "ran"
+    gitconfig = tmp_path / "gitconfig"
+    gitconfig.write_text(gitconfig.read_text() + f"\ttouchit = \"!touch {marker}\"\n")
+    assert gate("git touchit") == ALLOW
+    assert not marker.exists()
 
 
 def test_a_missing_transcript_fails_open(gate):

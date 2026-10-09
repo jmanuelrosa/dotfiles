@@ -124,7 +124,13 @@ prefix_rule(
 prefix_rule(
     pattern = ["gh", "pr", "merge"],
     decision = "forbidden",
-    justification = "denied by dotfiles policy: gh pr merge *",
+    justification = "denied by dotfiles policy: gh pr merge",
+)
+
+prefix_rule(
+    pattern = ["git", "apf"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git apf",
 )
 
 prefix_rule(
@@ -148,25 +154,49 @@ prefix_rule(
 prefix_rule(
     pattern = ["git", "clean", "-f"],
     decision = "forbidden",
-    justification = "denied by dotfiles policy: git clean -f *",
+    justification = "denied by dotfiles policy: git clean -f",
 )
 
 prefix_rule(
     pattern = ["git", "clean", "-fd"],
     decision = "forbidden",
-    justification = "denied by dotfiles policy: git clean -fd *",
+    justification = "denied by dotfiles policy: git clean -fd",
 )
 
 prefix_rule(
     pattern = ["git", "filter-branch"],
     decision = "forbidden",
-    justification = "denied by dotfiles policy: git filter-branch *",
+    justification = "denied by dotfiles policy: git filter-branch",
 )
 
 prefix_rule(
     pattern = ["git", "filter-repo"],
     decision = "forbidden",
-    justification = "denied by dotfiles policy: git filter-repo *",
+    justification = "denied by dotfiles policy: git filter-repo",
+)
+
+prefix_rule(
+    pattern = ["git", "p", "--force"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git p --force",
+)
+
+prefix_rule(
+    pattern = ["git", "p", "--force-with-lease"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git p --force-with-lease",
+)
+
+prefix_rule(
+    pattern = ["git", "p", "-f"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git p -f",
+)
+
+prefix_rule(
+    pattern = ["git", "pf"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git pf",
 )
 
 prefix_rule(
@@ -178,19 +208,19 @@ prefix_rule(
 prefix_rule(
     pattern = ["git", "push", "--force"],
     decision = "forbidden",
-    justification = "denied by dotfiles policy: git push --force *",
+    justification = "denied by dotfiles policy: git push --force",
 )
 
 prefix_rule(
     pattern = ["git", "push", "--force-with-lease"],
     decision = "forbidden",
-    justification = "denied by dotfiles policy: git push --force-with-lease *",
+    justification = "denied by dotfiles policy: git push --force-with-lease",
 )
 
 prefix_rule(
     pattern = ["git", "push", "-f"],
     decision = "forbidden",
-    justification = "denied by dotfiles policy: git push -f *",
+    justification = "denied by dotfiles policy: git push -f",
 )
 
 prefix_rule(
@@ -208,13 +238,19 @@ prefix_rule(
 prefix_rule(
     pattern = ["git", "reflog", "expire"],
     decision = "forbidden",
-    justification = "denied by dotfiles policy: git reflog expire *",
+    justification = "denied by dotfiles policy: git reflog expire",
+)
+
+prefix_rule(
+    pattern = ["git", "res"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git res",
 )
 
 prefix_rule(
     pattern = ["git", "reset", "--hard"],
     decision = "forbidden",
-    justification = "denied by dotfiles policy: git reset --hard *",
+    justification = "denied by dotfiles policy: git reset --hard",
 )
 
 prefix_rule(
@@ -230,6 +266,12 @@ prefix_rule(
 )
 
 prefix_rule(
+    pattern = ["git", "rh"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git rh",
+)
+
+prefix_rule(
     pattern = ["git", "stash", "clear"],
     decision = "forbidden",
     justification = "denied by dotfiles policy: git stash clear",
@@ -238,13 +280,31 @@ prefix_rule(
 prefix_rule(
     pattern = ["git", "stash", "drop"],
     decision = "forbidden",
-    justification = "denied by dotfiles policy: git stash drop *",
+    justification = "denied by dotfiles policy: git stash drop",
 )
 
 prefix_rule(
     pattern = ["git", "switch", "--discard-changes"],
     decision = "forbidden",
     justification = "denied by dotfiles policy: git switch --discard-changes *",
+)
+
+prefix_rule(
+    pattern = ["git", "up", "--force"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git up --force",
+)
+
+prefix_rule(
+    pattern = ["git", "up", "--force-with-lease"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git up --force-with-lease",
+)
+
+prefix_rule(
+    pattern = ["git", "up", "-f"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: git up -f",
 )
 
 prefix_rule(

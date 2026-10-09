@@ -63,6 +63,13 @@ can open neither an empty one nor a duplicate; and it never merges, which
 is the step that actually deploys. So /pr stays the only path that opens
 a pull request for code someone wrote.
 
+Git aliases are expanded before any check, by asking `git config --get
+alias.<name>` in the command's cwd, so `git p` is gated the same as `git
+push` when `p = push`, and `--no-verify` or a commit message inside an
+alias is seen. A `!` alias is parsed as the shell line it names and never
+executed. Destructive aliases that are not a commit or a push (`reset
+--hard`) are left to the deny list in policy/permissions.toml.
+
 Acknowledged limitations: the matcher does not parse subshells, command
 substitution, `eval`, or shell aliases, and for gh/glab it does not
 recognize flags placed before the subcommand (`gh -R o/r pr create`).
@@ -100,7 +107,15 @@ OPTIONS_WITH_SEPARATE_ARG = {
     "--super-prefix", "--exec-path",
 }
 
+CONFIG_LOCATING_OPTIONS = {"-C", "--git-dir", "--work-tree"}
+
 SHELL_SEPARATORS = {";", "&&", "||", "|", "&"}
+
+ENV_ASSIGNMENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+
+COMBINED_MESSAGE_FLAG_RE = re.compile(r"^-[A-Za-z]+m$")
+
+SHELL_FUNCTION_SYNTAX_RE =re.compile(r"^(\{|\}|\(|\)|[A-Za-z_][A-Za-z0-9_-]*\(\))$")
 
 TASKS_PATH_RE = re.compile(r"(^|/)\.claude/tasks/")
 
@@ -135,9 +150,113 @@ def wrapper_subcommand(token):
     return None
 
 
+def git_subcommand_index(tokens):
+    i = 1
+    while i < len(tokens):
+        tok = tokens[i]
+        if not tok.startswith("-"):
+            break
+        i += 2 if tok in OPTIONS_WITH_SEPARATE_ARG else 1
+    return i
+
+
+def lookup_options(global_options):
+    """The global options that choose which config an alias is read from.
+
+    `-c` is forwarded only for `alias.*`, so nothing the command sets can change
+    what the lookup itself does."""
+    forwarded = []
+    i = 0
+    while i < len(global_options):
+        tok = global_options[i]
+        nxt = global_options[i + 1] if i + 1 < len(global_options) else None
+        if "=" in tok and tok.split("=", 1)[0] in CONFIG_LOCATING_OPTIONS:
+            forwarded.append(tok)
+        elif tok in OPTIONS_WITH_SEPARATE_ARG and nxt is not None:
+            if tok in CONFIG_LOCATING_OPTIONS or (tok == "-c" and nxt.startswith("alias.")):
+                forwarded += [tok, nxt]
+            i += 1
+        i += 1
+    return forwarded
+
+
+def run_git(args, cwd):
+    """stdout of a read-only git call, or None on any failure (fail-open)."""
+    try:
+        out = subprocess.run(
+            ["git", *args],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            cwd=cwd if cwd and Path(cwd).is_dir() else None,
+        )
+    except Exception:
+        return None
+    return out.stdout if out.returncode == 0 else None
+
+
+def git_alias(name, global_options, cwd):
+    """The body git would expand `name` to, or None when it is not an alias.
+
+    Git runs a real command over an alias of the same name, so a name it lists
+    as a command is never expanded."""
+    options = lookup_options(global_options)
+    body = (run_git([*options, "config", "--get", f"alias.{name}"], cwd) or "").strip()
+    if not body:
+        return None
+    commands = run_git([*options, "--list-cmds=builtins,main,others"], cwd)
+    if commands and name in commands.split():
+        return None
+    return body
+
+
+def shell_alias_chunks(line):
+    """A `!` alias line as command chunks, with a function-style wrapper peeled off."""
+    chunks = []
+    for chunk in split_subcommands(line):
+        while chunk and SHELL_FUNCTION_SYNTAX_RE.match(chunk[0]):
+            chunk = chunk[1:]
+        if chunk:
+            chunks.append(chunk)
+    return chunks
+
+
+def expand_git_aliases(tokens, cwd, seen_aliases=frozenset()):
+    """The command chunks a chunk really runs, with git aliases expanded as git would.
+
+    A `!` alias is a shell line: it is parsed, never run. Git appends the
+    caller's arguments to that line, so they land on its last chunk."""
+    start = 0
+    while start < len(tokens) and ENV_ASSIGNMENT_RE.match(tokens[start]):
+        start += 1
+    if start >= len(tokens) or tokens[start] != "git":
+        return [tokens]
+    i = start + git_subcommand_index(tokens[start:])
+    if i >= len(tokens):
+        return [tokens]
+    name = tokens[i]
+    if f"git {name}" in SKILLS_FOR_SUBCOMMAND or name in seen_aliases:
+        return [tokens]
+    body = git_alias(name, tokens[start + 1:i], cwd)
+    if body is None:
+        return [tokens]
+    seen = seen_aliases | {name}
+    rest = tokens[i + 1:]
+    if body.startswith("!"):
+        chunks = shell_alias_chunks(body[1:])
+        if chunks:
+            chunks[-1] = chunks[-1] + rest
+        return [expanded for chunk in chunks for expanded in expand_git_aliases(chunk, cwd, seen)]
+    try:
+        expansion = shlex.split(body)
+    except ValueError:
+        expansion = body.split()
+    return expand_git_aliases([*tokens[:i], *expansion, *rest], cwd, seen)
+
+
 def gated_subcommand(tokens):
     i = 0
-    while i < len(tokens) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", tokens[i]):
+    while i < len(tokens) and ENV_ASSIGNMENT_RE.match(tokens[i]):
         i += 1
     if i >= len(tokens):
         return None
@@ -154,15 +273,7 @@ def gated_subcommand(tokens):
                 return wrapper
             break
     if binary == "git":
-        i += 1
-        while i < len(tokens):
-            tok = tokens[i]
-            if not tok.startswith("-"):
-                break
-            if tok in OPTIONS_WITH_SEPARATE_ARG:
-                i += 2
-            else:
-                i += 1
+        i += git_subcommand_index(tokens[i:])
         if i < len(tokens):
             key = f"git {tokens[i]}"
             if key in SKILLS_FOR_SUBCOMMAND:
@@ -234,7 +345,7 @@ def commit_message_texts(tokens, cwd):
     while i < len(tokens):
         tok = tokens[i]
         nxt = tokens[i + 1] if i + 1 < len(tokens) else None
-        if tok in ("-m", "--message") and nxt is not None:
+        if (tok in ("-m", "--message") or COMBINED_MESSAGE_FLAG_RE.match(tok)) and nxt is not None:
             texts.append(nxt)
             i += 2
         elif tok in ("-F", "--file") and nxt is not None:
@@ -270,7 +381,13 @@ def main():
     if not command:
         sys.exit(0)
 
-    if "--no-verify" in command:
+    chunks = [
+        expanded
+        for chunk in split_subcommands(command)
+        for expanded in expand_git_aliases(chunk, cwd)
+    ]
+
+    if "--no-verify" in command or any("--no-verify" in tok for chunk in chunks for tok in chunk):
         print(
             "--no-verify is blocked. Pre-commit hooks exist for a reason.\n"
             "If a hook is failing, fix the underlying issue or disable the hook\n"
@@ -279,14 +396,14 @@ def main():
         )
         sys.exit(2)
 
-    chunks = split_subcommands(command)
-    gated = [s for s in (gated_subcommand(c) for c in chunks) if s]
+    keyed = [(chunk, gated_subcommand(chunk)) for chunk in chunks]
+    gated = [key for _, key in keyed if key]
     if not gated:
         sys.exit(0)
 
     if "git commit" in gated:
-        for chunk in chunks:
-            if gated_subcommand(chunk) != "git commit":
+        for chunk, key in keyed:
+            if key != "git commit":
                 continue
             for text in commit_message_texts(chunk, cwd):
                 if ATTRIBUTION_RE.search(text):
