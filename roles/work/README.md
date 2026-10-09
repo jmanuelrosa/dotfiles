@@ -5,7 +5,8 @@ Work-only role. Runs only when `profile=work`.
 ## What it does
 
 - Installs the `acli` (Atlassian) formula from `BREW_PACKAGES` (with the `atlassian/homebrew-acli` tap) through the shared `roles/brew/tasks/packages.yml`. Relies on `shell` / `coreutils` (which run before `work` in `profile_roles[work]`) for `fish` and `television`.
-- Renders `~/.config/fish/conf.d/work-secrets.fish` from `templates/exports.fish.j2` (work tokens, mode 0600).
+- Renders `~/.config/fish/conf.d/work-secrets.fish` from `templates/exports.fish.j2` (vault values that are safe to export, mode 0600). It holds no token. See [npm token](#npm-token).
+- Stores `DID_NPM_TOKEN` from the vault in the login keychain for the shell role's `npm_token` fish wrappers. See [npm token](#npm-token).
 - Symlinks each tool named in `WORK_SCRIPTS` into `~/.local/bin/`. See [Scripts](#scripts).
 - Renders `~/Library/Application Support/glab-cli/config.yml` from `templates/glab/config.yml.j2` (personal + work GitLab hosts) and verifies each host is authenticated. See [GitLab auth (glab)](#gitlab-auth-glab).
 - Symlinks the Jira Television cable (`files/television/cable/jira.toml`) and its helper fish function (`files/fish/functions/_tv_jira.fish`) into `~/.config/`. Both depend on `acli` so they live here rather than in `shell`.
@@ -105,9 +106,23 @@ Three deliberate choices worth knowing:
 
 It needs no clone: both refs are already on the remote, so `--repo` and `--head` are enough and the script never looks at a working tree. That also sidesteps the fact that the local directory names do not match the repo names (`~/Developer/work/addingwell/front` is `aw-front`).
 
+## npm token
+
+`~/.npmrc` (from the `apps` role) expands `${DID_NPM_TOKEN}` for the Didomi GitLab package registry.
+Exporting the token from `conf.d` would hand it to every process the shell starts, agent tool calls included, so it lives in the login keychain instead and only a package-manager call sees it.
+The mechanism belongs to the `shell` role, which does the same for the personal `NPM_TOKEN`; this role only supplies its own token to it:
+
+- It includes the shell role's [keychain_token.yml](../shell/tasks/keychain_token.yml) with `DID_NPM_TOKEN` and the `DID_NPM_TOKEN_KEYCHAIN` names. That file writes the item only when it differs from the vault, so a re-run reports no change, and it writes through `security -i` on stdin so the token never shows in `ps`. Every `security` call in it carries `no_log: true`, and it fails with a named error when the keychain is locked rather than writing blind.
+- `work-secrets.fish` appends the item to `NPM_TOKEN_KEYCHAIN_ITEMS`, the list the shell role's [npm_token](../shell/files/fish/functions/npm_token/README.md) wrappers (`npm`, `npx`, `pnpm`, `pnpx`, `bun`, `bunx`, `yarn`) read per call. That README covers the failure behaviour and what the wrappers do not reach.
+- The `work-secrets.fish` render carries `diff: false` because the copy on disk from before this move still holds the token. The glab config render carries it because glab writes a token into that file for a host logged in without `--use-keyring`.
+
+An empty `DID_NPM_TOKEN` in the vault deletes the keychain item and leaves it out of the list.
+Rotating the token is a vault edit followed by `make run-role ROLE=work PROFILE=work`.
+
 ## Vars
 
 - `BREW_PACKAGES` (defaults/main.yml) — taps/formulas/casks for the work tooling.
+- `DID_NPM_TOKEN_KEYCHAIN` (defaults/main.yml): the login keychain `service` and `account` the npm token is stored under.
 - Vault-encrypted secrets live in `vars/work.yml`. See `vars/work.yml.example` for the full key list.
 
 ## SSH keys

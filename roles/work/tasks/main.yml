@@ -20,6 +20,15 @@
     src: exports.fish.j2
     dest: "{{ HOME }}/.config/fish/conf.d/work-secrets.fish"
     mode: "0600"
+  # The copy on disk from before the keychain move still holds the token, and a diff would print it.
+  diff: false
+
+- name: Mirror DID_NPM_TOKEN into the login keychain
+  ansible.builtin.include_tasks: "{{ CURRENT_DIR }}/roles/shell/tasks/keychain_token.yml"
+  vars:
+    keychain_token_value: "{{ DID_NPM_TOKEN }}"
+    keychain_token_service: "{{ DID_NPM_TOKEN_KEYCHAIN.service }}"
+    keychain_token_account: "{{ DID_NPM_TOKEN_KEYCHAIN.account }}"
 
 # ~/.local/bin is created by the coreutils role, which runs first.
 - name: Link work scripts into the user bin directory
@@ -42,6 +51,8 @@
     dest: "{{ HOME }}/Library/Application Support/glab-cli/config.yml"
     mode: "0600"
     force: true
+  # glab writes tokens into this file when a host was authenticated without --use-keyring.
+  diff: false
 
 - name: Verify glab is authenticated for each gitlab host
   ansible.builtin.command: glab auth status --hostname {{ item }}
