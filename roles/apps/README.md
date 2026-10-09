@@ -24,9 +24,10 @@ Caddy is never started or registered at boot: `lokl start` and `lokl stop` run i
 ## Colima
 
 [The managed profile](files/colima/colima.yaml) preserves Colima 0.10.3's template comments and examples.
-It uses 6 CPUs and 8 GiB RAM on the 14-core, 24 GB M4 Pro, leaving room for host apps, and keeps the default 100 GiB container disk.
-The native `host` architecture, Apple's `vz` backend and `virtiofs` suit Apple Silicon; `mountInotify` keeps the existing file-event propagation enabled for development, although Colima marks it experimental.
-Other settings retain the template defaults, including disabled Kubernetes and Rosetta, without adding an installation dependency.
+It uses 6 CPUs and 8 GiB RAM on the 14-core, 24 GB M4 Pro, leaving room for host apps, with a 30 GiB container disk.
+The profile uses `aarch64` on Apple's `vz` backend, with `sshfs` mounts and `mountInotify` disabled.
+Colima warns that `sshfs` is its least reliable mount option under concurrent I/O.
+Kubernetes and Rosetta remain disabled, without adding an installation dependency.
 
 It does not start, stop or recreate the VM.
 CPU and memory changes take effect after a stop/start; Colima marks architecture, VM type and mount type as immutable after creation, so changing those on an existing VM requires a deliberate migration with container data backed up first.
