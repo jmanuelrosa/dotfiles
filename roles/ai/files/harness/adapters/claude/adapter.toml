@@ -11,7 +11,9 @@ mcp_state = "~/.claude/.harness-mcp-owned.json"
 enabled = true
 autoAllowBashIfSandboxed = true
 allowUnsandboxedCommands = false
-enableWeakerNetworkIsolation = true
+# Opening com.apple.trustd.agent is only needed behind a MITM proxy with a custom CA
+# (network.httpProxyPort), which this config does not set, and it is an exfiltration path.
+enableWeakerNetworkIsolation = false
 excludedCommands = [
   "git *",
   "gh *",
