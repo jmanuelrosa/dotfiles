@@ -17,6 +17,14 @@
       "script": "cloud-readonly-gate.sh"
     },
     {
+      "id": "cli-egress-gate",
+      "tools": [
+        "bash"
+      ],
+      "kind": "gate",
+      "script": "cli-egress-gate.sh"
+    },
+    {
       "id": "pre-commit-verify",
       "tools": [
         "bash"

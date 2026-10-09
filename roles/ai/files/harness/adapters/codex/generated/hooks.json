@@ -10,6 +10,10 @@
           },
           {
             "type": "command",
+            "command": "~/.codex/hooks/cli-egress-gate.sh"
+          },
+          {
+            "type": "command",
             "command": "~/.codex/hooks/pre-commit-verify.sh",
             "timeout": 180
           }

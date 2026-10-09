@@ -63,10 +63,10 @@ GATES = tuple(e["script"] for e in PRE_TOOL if e["kind"] == "gate" and "bash" in
 # direction is what matters: a key a hook reads and the extension never sends is a field the
 # hook finds empty, which reads to it as a call with nothing to object to.
 #
-# Two of the four read `tool_name`: the em dash gate, which routes Write from Edit, and the
-# cloud gate, which checks it rather than trusting a matcher. git-skill-gate and
+# Three of the five read `tool_name`: the em dash gate, which routes Write from Edit, and the
+# cloud and CLI egress gates, which check it rather than trusting a matcher. git-skill-gate and
 # pre-commit-verify are routed by a `matcher` in settings.json and never see a tool they were
-# not meant for. The extension sends every field to all four anyway, since the payload is a
+# not meant for. The extension sends every field to all five anyway, since the payload is a
 # claude PreToolUse event and a faithful one costs nothing, but a field nobody reads is not a
 # contract and is not listed here.
 CONTRACTS = {
@@ -77,6 +77,7 @@ CONTRACTS = {
     # Reads `tool_name` like the em dash gate, because in claude it is matched on Bash but
     # routed unconditionally, so it checks the tool itself. It never reads `cwd`.
     "cloud-readonly-gate.sh": ("tool_name", "tool_input", "command"),
+    "cli-egress-gate.sh": ("tool_name", "tool_input", "command"),
 }
 
 # The fingerprints of each hook's own logic. Written as escapes for the two dash characters so
