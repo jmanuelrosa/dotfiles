@@ -850,7 +850,7 @@
       "~/.agents/skills/*": "allow"
     },
     "mcp": {
-      "*": "allow",
+      "*": "ask",
       "notion*": {
         "action": "deny",
         "reason": "denied by Claude Code policy: mcp__notion"
@@ -864,6 +864,34 @@
         "reason": "denied by Claude Code policy: mcp__supabase"
       },
       "Supabase*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: mcp__Supabase"
+      }
+    },
+    "mcp__*__*": "ask",
+    "mcp__slack__slack_read_thread": "allow",
+    "mcp__slack__slack_search_public_and_private": "allow",
+    "mcp__slack__slack_read_channel": "allow",
+    "mcp__notion__*": {
+      "*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: mcp__notion"
+      }
+    },
+    "mcp__Notion__*": {
+      "*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: mcp__Notion"
+      }
+    },
+    "mcp__supabase__*": {
+      "*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: mcp__supabase"
+      }
+    },
+    "mcp__Supabase__*": {
+      "*": {
         "action": "deny",
         "reason": "denied by Claude Code policy: mcp__Supabase"
       }
