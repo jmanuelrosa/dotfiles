@@ -15,12 +15,14 @@ SHOO:
 
 FISH_PATH: /opt/homebrew/bin/fish
 
+# Each plugin is pinned as `owner/repo@ref`, which fisher fetches as that GitHub tarball.
+# fish-ssh-agent publishes no tags, so it is pinned to a commit instead.
 FISH_PLUGINS:
-  - danhper/fish-ssh-agent
-  - franciscolourenco/done
-  - jorgebucaran/autopair.fish
-  - jorgebucaran/replay.fish
-  - nickeb96/puffer-fish
+  - danhper/fish-ssh-agent@f10d95775352931796fd17f54e6bf2f910163d1b
+  - franciscolourenco/done@1.21.1
+  - jorgebucaran/autopair.fish@1.0.4
+  - jorgebucaran/replay.fish@1.2.1
+  - nickeb96/puffer-fish@v1.1.0
 
 BREW_PACKAGES:
   formulas:
