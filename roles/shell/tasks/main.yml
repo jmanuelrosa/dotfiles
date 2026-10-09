@@ -19,13 +19,31 @@
     shell: "{{ FISH_PATH }}"
     state: present
 
-- name: Install fish plugins
-  ansible.builtin.shell: "fisher install {{ item }}"
+- name: List installed fish plugins
+  ansible.builtin.shell: fisher list
   args:
     executable: "{{ FISH_PATH }}"
+  register: fisher_installed
+  changed_when: false
+  failed_when: not ansible_check_mode and fisher_installed.rc not in [0, 1]
+  check_mode: false
+
+# fisher keys a plugin by its whole `owner/repo@ref` string, so the same repo installed at
+# another ref must go first: installing the new pin beside it conflicts on its files. Each
+# swap happens right before its own install, so a failed fetch costs one plugin, not all.
+- name: Install fish plugins at their pinned ref
+  ansible.builtin.shell: |
+    for stale in (fisher list '^{{ plugin_repo }}(@.*)?$')
+        fisher remove $stale
+    end
+    fisher install {{ item }}
+  args:
+    executable: "{{ FISH_PATH }}"
+  vars:
+    plugin_repo: "{{ item | lower | split('@') | first | regex_escape }}"
   loop: "{{ FISH_PLUGINS }}"
-  register: fisher_result
-  changed_when: "'Installing' in fisher_result.stdout or 'Updating' in fisher_result.stdout"
+  changed_when: true
+  when: (item | lower) not in (fisher_installed.stdout_lines | default([]))
 
 - name: Ensure shell config directories exist
   ansible.builtin.file:

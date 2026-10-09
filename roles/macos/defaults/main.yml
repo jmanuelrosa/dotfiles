@@ -206,12 +206,12 @@ OSX_DEFAULTS:
     value: false
     state: present
 
-  # Disable the 'Are you sure you want to open this application?' dialog
+  # Deleting the key, rather than leaving it out, re-enables quarantine on machines an
+  # earlier run set it to false on, so Gatekeeper checks downloads on first launch again
   - domain: com.apple.LaunchServices
     key: LSQuarantine
     type: bool
-    value: false
-    state: present
+    state: absent
 
   # Disable the crash reporter
   - domain: com.apple.CrashReporter

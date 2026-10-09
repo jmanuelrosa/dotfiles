@@ -57,18 +57,44 @@
       Then re-run the playbook.
   when: gh_auth_check.rc != 0
 
-- name: Install gh extensions
-  ansible.builtin.command: gh extension install {{ item }}
-  args:
-    creates: "{{ HOME }}/.local/share/gh/extensions/{{ item | basename }}"
-  loop: "{{ GH_EXTENSIONS }}"
+- name: List installed gh extensions
+  ansible.builtin.command: gh extension list
+  register: gh_extensions_installed
+  changed_when: false
+  failed_when: gh_extensions_installed.rc not in [0, 1]
+  check_mode: false
 
-# Cloudflare publishes `cf` on npm only. `creates` keeps this to a first-run install:
-# `cf` is a technical preview, so moving to a newer one is a deliberate `bun add -g cf`.
-- name: Install the cf Cloudflare CLI
+# gh refuses to install over an existing copy of the same extension, so one installed at
+# another release is removed right before the pinned one goes in.
+- name: Install gh extensions at their pinned release
+  ansible.builtin.shell: |
+    {% if item.repository in gh_extensions_installed.stdout %}
+    gh extension remove {{ item.repository | basename | regex_replace('^gh-', '') }} || exit 1
+    {% endif %}
+    gh extension install {{ item.repository }} --pin {{ item.release }}
+  loop: "{{ GH_EXTENSIONS }}"
+  changed_when: true
+  when: >-
+    gh_extensions_installed.stdout_lines
+    | select('search', '\s' ~ (item.repository | regex_escape) ~ '\s+' ~ (item.release | regex_escape) ~ '(\s|$)')
+    | list | length == 0
+
+- name: Read the installed cf Cloudflare CLI manifest
+  ansible.builtin.slurp:
+    src: "{{ bun_global_dir }}/node_modules/{{ CF_CLI.package }}/package.json"
+  register: cf_cli_manifest
+  failed_when: false
+  vars:
+    bun_install: "{{ ansible_facts['env']['BUN_INSTALL'] | default(HOME ~ '/.bun', true) }}"
+    bun_global_dir: "{{ ansible_facts['env']['BUN_INSTALL_GLOBAL_DIR'] | default(bun_install ~ '/install/global', true) }}"
+
+- name: Install the pinned cf Cloudflare CLI
   ansible.builtin.command:
-    cmd: bun add -g cf
-    creates: "{{ HOME }}/.bun/bin/cf"
+    cmd: bun add -g {{ CF_CLI.package }}@{{ CF_CLI.version }}
+  changed_when: true
+  when: >-
+    cf_cli_manifest.content is not defined
+    or (cf_cli_manifest.content | b64decode | from_json).version != CF_CLI.version
 
 - name: List installed VSCode extensions
   ansible.builtin.command: code --list-extensions
