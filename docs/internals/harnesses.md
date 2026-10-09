@@ -22,6 +22,18 @@ A hook reaches a harness only if its `harnesses` list in `hooks.toml` names it, 
 `HARNESS_RENDER_ROOT` overrides it; CI sets it to the checkout the committed renders are for, since its own clone lives elsewhere and every drift test would otherwise fail on the path alone.
 Claude's `settings.json` cannot be written from inside a Claude session, so policy changes that reach it are rendered by hand with no session open. The same applies to shared MCP updates to `~/.claude.json`.
 
+### Whose lint `pre-commit-verify` runs
+
+A hook runs outside every harness's sandbox and asks no permission, so running a repo's own `lint` script, `make lint` or `cargo check` executes code the repo's author wrote, with the user's full access.
+`pre-commit-verify.sh` therefore runs those checks only when the repo's `origin` sits under a namespace listed in `trusted-remotes.json` at the harness root, and otherwise allows the commit with a one-line stderr note naming the skipped command.
+The list is read at runtime through the hook's realpath, the way `statusline.json` is, so it is not part of `policy/` and needs no render.
+Entries are `host/namespace` or `host/namespace/repo`, matched per path segment after the scp, `https://` and `ssh://` spellings are normalised, and the host is the one in the remote, so a work clone through the `gitlab.com-work` SSH alias needs its own entry.
+A repo with no `origin` is untrusted, local-only ones included: a downloaded archive given a fresh `git init` is indistinguishable from a repo the user started, so a local repo gets its checks back by gaining a trusted origin.
+An unreadable list trusts nothing.
+The note names the origin by host and path only, because a remote URL can carry a token.
+Trust follows the namespace, not the author, so two cases stay exposed: a fork of a third-party project kept under a trusted namespace, and a branch from someone else checked out inside a trusted repo, such as a fork's pull request.
+The note is stderr on an allowed call, which Claude only feeds the model on a block and Pi's guardrails drops unless it blocks, so a skip is quiet by design rather than a prompt on every commit.
+
 ## Shared MCP servers
 
 `mcp.json` is the committed user-global server inventory, separate from `policy/permissions.toml`: connecting a server does not grant permission to call its tools. Pi's built-in MCP support reads `~/.pi/agent/mcp.json`, linked to the rendered `adapters/pi/generated/mcp.json`. The renderer merges the shared inventory with Pi-only overrides from `adapters/pi/mcp.json`; Notion is disabled in Pi so its tasks use `ntn`, while Slack keeps its Pi-specific client ID, callback URL and scopes. Provisioning refuses to replace a user-owned Pi config and removes only the old role-owned `~/.config/mcp/mcp.json` link. Project configurations are not scanned or changed.
