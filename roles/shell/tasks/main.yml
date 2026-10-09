@@ -206,3 +206,12 @@
     src: secrets.fish.j2
     dest: "{{ HOME }}/.config/fish/conf.d/secrets.fish"
     mode: "0600"
+  # The copy on disk from before the keychain move still holds the token, and a diff would print it.
+  diff: false
+
+- name: Mirror NPM_TOKEN into the login keychain
+  ansible.builtin.include_tasks: keychain_token.yml
+  vars:
+    keychain_token_value: "{{ NPM_TOKEN }}"
+    keychain_token_service: "{{ NPM_TOKEN_KEYCHAIN.service }}"
+    keychain_token_account: "{{ NPM_TOKEN_KEYCHAIN.account }}"

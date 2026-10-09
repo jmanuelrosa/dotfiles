@@ -1,0 +1,63 @@
+# Mirrors one vault token into the login keychain, where the npm_token fish wrappers read
+# it back per call. Included by path from the shell and work roles with
+# keychain_token_value, keychain_token_service and keychain_token_account.
+---
+
+- name: Read the token stored in the login keychain
+  ansible.builtin.command:
+    argv:
+      - security
+      - find-generic-password
+      - -s
+      - "{{ keychain_token_service }}"
+      - -a
+      - "{{ keychain_token_account }}"
+      - -w
+  register: keychain_token_stored
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  no_log: true
+
+# 44 is security's exit status for an item that does not exist yet; anything else means
+# the keychain itself could not be read, and the write below would fail behind no_log.
+- name: Fail loudly when the login keychain cannot be read
+  ansible.builtin.fail:
+    msg: >-
+      security exited {{ keychain_token_stored.rc }} reading '{{ keychain_token_service }}'
+      from the login keychain. A run over SSH starts with it locked: unlock it with
+      `security unlock-keychain` and re-run.
+  when: keychain_token_stored.rc not in [0, 44]
+
+# security -i reads the command from stdin, which keeps the token out of argv and ps.
+- name: Store the vault token in the login keychain
+  ansible.builtin.command:
+    argv:
+      - security
+      - -i
+    stdin: >-
+      add-generic-password -U
+      -s "{{ keychain_token_service }}"
+      -a "{{ keychain_token_account }}"
+      -w "{{ keychain_token_value | replace('\\', '\\\\') | replace('"', '\\"') }}"
+  when:
+    - keychain_token_value | length > 0
+    - keychain_token_stored.rc != 0 or keychain_token_stored.stdout != keychain_token_value
+  changed_when: true
+  no_log: true
+  diff: false
+
+- name: Remove the token from the login keychain once the vault value is empty
+  ansible.builtin.command:
+    argv:
+      - security
+      - delete-generic-password
+      - -s
+      - "{{ keychain_token_service }}"
+      - -a
+      - "{{ keychain_token_account }}"
+  when:
+    - keychain_token_value | length == 0
+    - keychain_token_stored.rc == 0
+  changed_when: true
+  no_log: true

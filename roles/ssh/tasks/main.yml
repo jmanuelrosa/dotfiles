@@ -19,6 +19,7 @@
   loop_control:
     label: "{{ item.name }}"
   no_log: true
+  diff: false
 
 - name: Install SSH public keys
   ansible.builtin.copy:

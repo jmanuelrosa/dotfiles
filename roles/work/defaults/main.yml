@@ -20,3 +20,9 @@ WORK_SCRIPTS:
   - s-release
   - s-task
   - weekly-recap
+
+# Login keychain item holding DID_NPM_TOKEN. The role writes it from the vault and the
+# npm_token fish wrappers read it back per call, so the token is never exported.
+DID_NPM_TOKEN_KEYCHAIN:
+  service: dotfiles-did-npm-token
+  account: "{{ USER }}"

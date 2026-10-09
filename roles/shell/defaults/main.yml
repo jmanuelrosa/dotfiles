@@ -45,3 +45,9 @@ TV_CABLE_ALLOWLIST:
   - files
   - fish-history
   - git-worktrees
+
+# Login keychain item holding NPM_TOKEN. The role writes it from the vault and the npm_token
+# fish wrappers read it back per call, so the token is never exported.
+NPM_TOKEN_KEYCHAIN:
+  service: dotfiles-npm-token
+  account: "{{ USER }}"
