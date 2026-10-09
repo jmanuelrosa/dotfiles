@@ -320,6 +320,10 @@
           },
           {
             "type": "command",
+            "command": "~/.claude/hooks/cli-egress-gate.sh"
+          },
+          {
+            "type": "command",
             "command": "~/.claude/hooks/pre-commit-verify.sh",
             "if": "Bash(git *)",
             "timeout": 180
@@ -461,7 +465,7 @@
         "~/Developer/dotfiles/roles/ai/files/harness/adapters/claude/settings.json"
       ]
     },
-    "enableWeakerNetworkIsolation": true,
+    "enableWeakerNetworkIsolation": false,
     "excludedCommands": [
       "git *",
       "gh *",

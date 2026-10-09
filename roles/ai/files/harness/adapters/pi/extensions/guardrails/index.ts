@@ -19,8 +19,9 @@
  *   thing deciding what a gated command is.
  * - The hook's refusal names Claude's /commit skill and ~/.claude/settings.json. Pi exposes
  *   /commit as an alias, so the actionable message gets the explicit /skill spelling appended.
- * - Claude has three answers to a PreToolUse hook and Pi has two. cloud-readonly-gate's `ask`
- *   tier becomes a refusal, for the reasons at `askedForPermission`.
+ * - Claude has three answers to a PreToolUse hook and Pi has two. The `ask` tier of
+ *   cloud-readonly-gate and cli-egress-gate becomes a refusal, for the reasons at
+ *   `askedForPermission`.
  *
  * Which hooks run, on which tools and in what order, is not decided here. It is read from
  * generated/hooks.json, which harness-build renders from policy/hooks.toml, the same table
@@ -193,8 +194,8 @@ interface HookPayload {
 interface HookVerdict {
   blocked: boolean;
   message: string;
-  // Only cloud-readonly-gate writes anything here: its middle tier is an `ask`
-  // decision on stdout with exit 0, which `blocked` alone cannot represent.
+  // Only cloud-readonly-gate and cli-egress-gate write anything here: their middle
+  // tier is an `ask` decision on stdout with exit 0, which `blocked` alone cannot represent.
   stdout?: string;
 }
 

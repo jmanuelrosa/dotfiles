@@ -33,6 +33,16 @@ tools = ["bash"]
 script = "cloud-readonly-gate.sh"
 harnesses = ["claude", "pi", "codex"]
 
+# gh, glab, ntn and bru-cli. No claude_if, like the cloud gate: a call chained after
+# `cd` or hidden in a wrapper must still reach it. Pi turns its ask tier into a refusal,
+# so there a mutating verb of those four runs from a real terminal; Codex keeps only its blocks.
+[[hook]]
+id = "cli-egress-gate"
+event = "pre_tool"
+tools = ["bash"]
+script = "cli-egress-gate.sh"
+harnesses = ["claude", "pi", "codex"]
+
 [[hook]]
 id = "pre-commit-verify"
 event = "pre_tool"
