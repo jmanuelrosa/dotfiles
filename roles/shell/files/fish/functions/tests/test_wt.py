@@ -139,6 +139,28 @@ def test_copies_project_skills_and_converges_in_new_worktree(worktree, directory
     assert converge_log.read_text().splitlines() == [str(target), "converge", "--quiet"]
 
 
+def test_excludes_claude_worktrees(worktree):
+    source, _, add = worktree
+    files = {
+        ".claude/worktrees/old checkout/.env.example": "SOURCE=old-worktree\n",
+        ".claude/worktrees/old checkout/.claude/settings.json": "{}\n",
+        ".claude/settings.local.json": "{}\n",
+        ".claude/.gitignore": "worktrees/\n",
+        ".claude/skills/worktrees/SKILL.md": "# Worktree skill\n",
+    }
+    for relative, content in files.items():
+        path = source / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+
+    target, _ = add()
+
+    assert not (target / ".claude/worktrees").exists()
+    for relative, content in files.items():
+        if not relative.startswith(".claude/worktrees/"):
+            assert (target / relative).read_text() == content
+
+
 def test_merges_local_configuration_into_tracked_directories(worktree):
     source, git, add = worktree
     directories = (".vscode", ".claude", ".agents")
@@ -146,16 +168,22 @@ def test_merges_local_configuration_into_tracked_directories(worktree):
         config = source / directory / "tracked.json"
         config.parent.mkdir()
         config.write_text('{"source": "tracked"}\n')
+        nested = source / directory / "nested/tracked.json"
+        nested.parent.mkdir()
+        nested.write_text('{"source": "tracked"}\n')
     git("add", *directories)
     git("commit", "-m", "Track project configuration")
     for directory in directories:
         (source / directory / "local.json").write_text('{"source": "local"}\n')
+        (source / directory / "nested/local.json").write_text('{"source": "local"}\n')
 
     target, _ = add()
 
     for directory in directories:
         assert (target / directory / "tracked.json").read_text() == '{"source": "tracked"}\n'
         assert (target / directory / "local.json").read_text() == '{"source": "local"}\n'
+        assert (target / directory / "nested/tracked.json").read_text() == '{"source": "tracked"}\n'
+        assert (target / directory / "nested/local.json").read_text() == '{"source": "local"}\n'
         assert not (target / directory / directory).exists()
 
 
