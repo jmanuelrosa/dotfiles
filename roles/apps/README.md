@@ -16,7 +16,8 @@ Caddy is never started or registered at boot: `lokl start` and `lokl stop` run i
 
 - `BREW_PACKAGES`: taps, formulas, casks for browsers, dev tools, databases, infra, multimedia, system, and other apps.
 - `APPS_DIRS`, `APPS_LINKS`: the directories to create and the configs to link, `src` relative to `files/`.
-- `APPS_SCRIPTS`, `GH_EXTENSIONS`, `VSCODE_EXTENSIONS`: linked tools, gh extensions, VSCode extension IDs.
+- `APPS_SCRIPTS`, `GH_EXTENSIONS`, `VSCODE_EXTENSIONS`: linked tools, gh extensions as `repository` plus pinned `release` tag, VSCode extension IDs.
+- `CF_CLI`: the npm package and exact version of Cloudflare's `cf`, reinstalled whenever the installed version differs.
 - `CADDYFILE_PATH`: where Homebrew's caddy reads its config; the site directory is linked beside it.
 
 > **Convention**: prefer brew when a formula exists. There's no `NPM_PACKAGES` mechanism here today: if a future tool only ships via npm with no brew alternative, re-add a thin `tasks/npm-packages.yml` driven by an `NPM_PACKAGES` list.

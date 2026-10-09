@@ -17,8 +17,16 @@ VSCODE_EXTENSIONS:
   - Prisma.prisma
   - bradlc.vscode-tailwindcss
 
+# Pinned to a release tag, which also keeps `gh extension upgrade --all` from moving them.
 GH_EXTENSIONS:
-  - dlvhdr/gh-dash
+  - repository: dlvhdr/gh-dash
+    release: v4.26.1
+
+# Cloudflare publishes `cf` on npm only, as a technical preview, so moving to a newer one
+# stays a deliberate edit of this version rather than whatever `latest` points at today.
+CF_CLI:
+  package: cf
+  version: 1.0.0-beta.13
 
 APPS_SCRIPTS:
   - lokl
