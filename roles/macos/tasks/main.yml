@@ -7,7 +7,7 @@
     domain: "{{ item.domain }}"
     key: "{{ item.key }}"
     type: "{{ item.type }}"
-    value: "{{ item.value }}"
+    value: "{{ item.value | default(omit) }}"
     state: "{{ item.state }}"
   loop: "{{ OSX_DEFAULTS }}"
 
