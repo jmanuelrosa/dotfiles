@@ -200,7 +200,7 @@ nestedVirtualization: false
 #
 # NOTE: value cannot be changed after virtual machine is created.
 # Default: virtiofs (for vz), sshfs (for qemu)
-mountType: virtiofs
+mountType: sshfs
 
 # Propagate inotify file events to the VM.
 # NOTE: this is experimental.

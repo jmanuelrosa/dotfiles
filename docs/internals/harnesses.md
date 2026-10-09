@@ -2,6 +2,7 @@
 
 Claude Code, Pi and Codex CLI run over one payload, `roles/ai/files/harness/`.
 Content is shared by link; policy is written once and rendered into each harness's own spelling.
+At the repo root, `AGENTS.md` owns the shared instructions and `CLAUDE.md` contains only `@AGENTS.md`, so the forwarding file cannot drift into a second copy.
 What each harness cannot carry is recorded rather than approximated, because a rule that silently stops applying reads exactly like a rule that is being obeyed.
 
 ## One policy, three renderings

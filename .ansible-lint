@@ -11,3 +11,4 @@ exclude_paths:
   - vars/work.yml
   - roles/work/files/  # static config files, not Ansible YAML
   - roles/ai/files/  # vendored skills/agents and Claude config, not Ansible YAML
+  - .claude/  # agent worktrees are full repo copies, so their vendored files dodge the root-relative excludes above
