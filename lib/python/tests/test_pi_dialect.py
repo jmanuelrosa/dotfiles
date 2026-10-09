@@ -224,17 +224,10 @@ def test_the_settings_pi_loads_are_parseable():
     assert isinstance(json.loads(PI_SETTINGS.read_text()), dict)
 
 
-def test_the_repo_root_agents_md_is_the_claude_md_pi_would_otherwise_miss():
-    """pi and Claude Code both read the root AGENTS.md as their harness-specific fallback.
-
-    Harnesses discover context files per directory as `AGENTS.md` (pi, Codex, opencode)
-    or `AGENTS.md` then `CLAUDE.md` (Claude Code), preferring the first if both exist.
-    One real file, read by all harnesses under the same name, is the arrangement that
-    cannot drift.
-    """
+def test_the_repo_root_claude_md_imports_the_shared_agents_md():
     agents = REPO / "AGENTS.md"
     assert agents.is_file() and not agents.is_symlink(), "root AGENTS.md must be a real file"
-    assert not (REPO / "CLAUDE.md").exists(), "no root CLAUDE.md; it was replaced by AGENTS.md"
+    assert (REPO / "CLAUDE.md").read_text().strip() == "@AGENTS.md"
     assert not (REPO / ".claude" / "CLAUDE.md").exists() or \
            (REPO / ".claude" / "CLAUDE.md").is_symlink(), \
            ".claude/CLAUDE.md must be a link (to ~/.claude/CLAUDE.md), not a file"
