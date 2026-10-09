@@ -22,6 +22,14 @@ code review. Detection ladder, first match wins:
   6. ruff config + ruff → ruff check .
   7. .ansible-lint + ansible-lint → ansible-lint
 
+Only a repo whose `origin` sits under a namespace listed in
+trusted-remotes.json, beside hooks/, has its checks run. A hook runs
+outside the agent sandbox, so in a stranger's clone a lint script that
+pipes curl into sh would run with the user's full access the moment a
+commit is attempted. Elsewhere, including a repo with no origin at all
+(a downloaded archive given a fresh `git init` looks exactly like a repo
+the user started), the checks are skipped with a one-line note.
+
 Check-only commands, never fixers: a `lint:fix` would mutate the tree
 mid-commit and diverge staged content from what was verified.
 
@@ -39,6 +47,7 @@ import subprocess
 import sys
 from pathlib import Path
 from shutil import which
+from urllib.parse import urlsplit
 
 SUBPROCESS_TIMEOUT = 150
 OUTPUT_TAIL_LINES = 60
@@ -55,6 +64,12 @@ SHELL_SEPARATORS = {";", "&&", "||", "|", "&"}
 # shows up as `git commit` on the command line.
 COMMIT_WRAPPER = re.compile(r"(^|/)skills/commit/scripts/apply\.py$")
 INTERPRETERS = {"bash", "sh", "zsh", "python", "python3"}
+
+# Every harness reaches this hook through a symlink, and only the link's target has the
+# harness root as its grandparent.
+TRUSTED_REMOTES = Path(os.path.realpath(__file__)).parent.parent / "trusted-remotes.json"
+REMOTE_SCHEMES = {"ssh", "git", "http", "https", "git+ssh", "ssh+git"}
+GIT_PROBE_TIMEOUT = 5
 
 
 def split_subcommands(line):
@@ -98,19 +113,103 @@ def is_git_commit(tokens):
     return i < len(tokens) and tokens[i] == "commit"
 
 
-def repo_root(cwd):
+def git_output(root, *args):
     try:
         out = subprocess.run(
-            ["git", "-C", cwd, "rev-parse", "--show-toplevel"],
+            ["git", "-C", root, *args],
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=GIT_PROBE_TIMEOUT,
         )
     except Exception:
         return None
-    if out.returncode != 0:
+    return out.stdout.strip() if out.returncode == 0 else None
+
+
+def repo_root(cwd):
+    return git_output(cwd, "rev-parse", "--show-toplevel") or None
+
+
+def split_location(path):
+    segments = [s.lower() for s in path.strip("/").removesuffix(".git").split("/") if s]
+    if any(s in {".", ".."} for s in segments):
+        return ()
+    return tuple(segments)
+
+
+def remote_location(url):
+    """(host, path segments) of a remote URL, or None for a local path or anything unparseable.
+
+    The host is taken after the last `@`, so userinfo spelled like a trusted host
+    does not pass for one.
+    """
+    url = url.strip()
+    if "://" in url:
+        try:
+            parts = urlsplit(url)
+            host = parts.hostname or ""
+        except ValueError:
+            return None
+        if parts.scheme.lower() not in REMOTE_SCHEMES:
+            return None
+        path = parts.path
+    else:
+        head, sep, path = url.partition(":")
+        if not sep or "/" in head:
+            return None
+        host = head.rpartition("@")[2].lower()
+    segments = split_location(path)
+    if not host or not segments:
         return None
-    return out.stdout.strip() or None
+    return host, segments
+
+
+def load_trusted(path):
+    try:
+        data = json.loads(Path(path).read_text())
+    except (OSError, ValueError):
+        return None
+    entries = data.get("remotes") if isinstance(data, dict) else None
+    if not isinstance(entries, list):
+        return None
+    trusted = []
+    for entry in entries:
+        if not isinstance(entry, str):
+            continue
+        host, _, namespace = entry.strip().partition("/")
+        segments = split_location(namespace)
+        if host and segments:
+            trusted.append((host.lower(), segments))
+    return trusted
+
+
+def is_trusted(url, trusted):
+    location = remote_location(url)
+    if not location:
+        return False
+    host, segments = location
+    return any(
+        host == trusted_host and segments[: len(namespace)] == namespace
+        for trusted_host, namespace in trusted
+    )
+
+
+def untrusted_reason(root, trusted_path=TRUSTED_REMOTES):
+    """None when the repo's checks may run, else why they may not.
+
+    The origin is named by host and path only, since a URL can carry a token in its userinfo.
+    """
+    url = git_output(root, "remote", "get-url", "origin")
+    if not url:
+        return "the repo has no origin remote to check against the trusted list"
+    trusted = load_trusted(trusted_path)
+    if trusted is None:
+        return f"the trusted list {trusted_path} could not be read"
+    if is_trusted(url, trusted):
+        return None
+    location = remote_location(url)
+    shown = "/".join((location[0], *location[1])) if location else "a local path"
+    return f"origin {shown} is not under a namespace in {Path(trusted_path).name}"
 
 
 def has_own_precommit(root):
@@ -125,18 +224,7 @@ def has_own_precommit(root):
     hook = r / ".git" / "hooks" / "pre-commit"
     if hook.is_file() and os.access(hook, os.X_OK):
         return True
-    try:
-        out = subprocess.run(
-            ["git", "-C", root, "config", "core.hooksPath"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        if out.returncode == 0 and out.stdout.strip():
-            return True
-    except Exception:
-        pass
-    return False
+    return bool(git_output(root, "config", "core.hooksPath"))
 
 
 def package_manager(root):
@@ -222,7 +310,17 @@ def main():
     if has_own_precommit(root):
         sys.exit(0)
 
-    for cmd in detect_commands(root):
+    commands = detect_commands(root)
+    if not commands:
+        sys.exit(0)
+
+    reason = untrusted_reason(root)
+    if reason:
+        skipped = ", ".join(f"`{' '.join(cmd)}`" for cmd in commands)
+        print(f"pre-commit-verify: skipped {skipped} because {reason}", file=sys.stderr)
+        sys.exit(0)
+
+    for cmd in commands:
         pretty = " ".join(cmd)
         try:
             out = subprocess.run(
