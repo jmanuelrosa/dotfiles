@@ -2,7 +2,7 @@
 
 `pi-sandbox` confines what a command may touch. It does not look at what the command
 is, so every `Bash(...)` rule Claude carries, every bare tool name and every `mcp__*`
-entry reaches pi as nothing at all. That is 98 of Claude's 182 rules this layer carries
+entry reaches pi as nothing at all. That is 101 of Claude's 182 rules this layer carries
 and pi-sandbox could not, including the ones that matter when the agent is wrong rather
 than malicious: `git push --force *`, `git reset --hard *`, `rm -rf *`, `sudo *`.
 
@@ -210,6 +210,65 @@ def test_the_denied_mcp_servers_cover_their_tools_and_not_only_the_server():
     mcp = policy()["mcp"]
     for value in ("notion", "notion_search", "Supabase", "supabase_query"):
         assert resolve(mcp, value) == "deny", f"{value} is reachable"
+
+
+def decide_tool(permission, tool):
+    """The verdict for a tool with no pattern-bearing input, as the package composes it.
+
+    Surface keys are wildcards too, every surface flattens into one ordered rule list,
+    and the last rule whose surface and pattern both match wins.
+    """
+    surfaces = {
+        name: resolve(value, "*") if isinstance(value, dict) else value
+        for name, value in permission.items()
+    }
+    return resolve(surfaces, tool)
+
+
+def test_native_mcp_tools_ask_unless_claude_allows_them():
+    """pi registers each MCP tool as `mcp__<server>__<tool>`, so that name is the surface.
+
+    A write such as posting to a channel must prompt, or injected content can make the
+    agent send repo or environment contents to Slack without anyone seeing it.
+    """
+    permission = policy()
+    for tool in ("slack_read_thread", "slack_search_public_and_private", "slack_read_channel"):
+        assert decide_tool(permission, f"mcp__slack__{tool}") == "allow", f"{tool} prompts"
+    for tool in ("mcp__slack__slack_send_message", "mcp__slack__slack_add_reaction", "mcp__unknown__anything"):
+        assert decide_tool(permission, tool) == "ask", f"{tool} runs unprompted"
+
+
+def test_native_mcp_tools_of_a_denied_server_are_denied():
+    permission = policy()
+    for tool in ("mcp__notion__notion_search", "mcp__Supabase__execute_sql"):
+        assert decide_tool(permission, tool) == "deny", f"{tool} is reachable"
+
+
+def test_the_legacy_mcp_proxy_surface_asks_by_default():
+    assert resolve(policy()["mcp"], "slack_slack_send_message") == "ask"
+
+
+def test_a_claude_connector_rule_lands_on_the_shared_server_it_names():
+    servers = ["notion", "slack", "drive"]
+    assert emit_pi.native_mcp_tools("mcp__claude_ai_Slack__slack_read_thread", servers) == [
+        "mcp__slack__slack_read_thread"
+    ]
+    assert emit_pi.native_mcp_tools("mcp__slack__slack_read_channel", servers) == [
+        "mcp__slack__slack_read_channel"
+    ]
+    assert emit_pi.native_mcp_tools("mcp__claude_ai_Slack", servers) == ["mcp__slack__*"]
+
+
+def test_a_claude_rule_for_a_server_pi_lacks_places_nothing():
+    """Placing it on a server whose name merely overlaps would grant what Claude never did."""
+    servers = ["notion", "slack", "drive"]
+    assert emit_pi.native_mcp_tools("mcp__claude_ai_Google_Drive__search", servers) == []
+    assert emit_pi.native_mcp_tools("mcp__claude_ai_Linear__list_issues", servers) == []
+
+
+def test_a_native_mcp_name_is_spelled_the_way_pi_registers_it():
+    assert emit_pi.native_mcp_tool("google-drive", "get.file") == "mcp__google_drive__get_file"
+    assert emit_pi.native_mcp_tool("google-drive") == "mcp__google_drive__*"
 
 
 def test_the_bare_tool_denies_reach_their_own_surface():

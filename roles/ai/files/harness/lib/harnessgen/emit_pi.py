@@ -9,6 +9,7 @@ own; test_pi_guardrails.py pins what it does with each entry.
 """
 
 import json
+import re
 
 from harnessgen import emit_claude, mcp
 
@@ -46,6 +47,8 @@ SILENT_TOOLS = ("read", "grep", "find", "ls", "write", "edit")
 # What `$TMPDIR` resolves to on Darwin. pi-sandbox expands only a leading `~`, so a
 # literal `$TMPDIR` entry would match nothing.
 DARWIN_TEMP_ROOT = "/var/folders"
+
+CLAUDE_CONNECTOR_PREFIX = "claude_ai_"
 
 
 def to_sandbox_pattern(pattern):
@@ -112,6 +115,37 @@ def surface(fallback, allows, denies, trailing_allows=()):
     return out
 
 
+def native_mcp_tool(server, tool="*"):
+    """pi's registered name for an MCP tool, which is also its permission surface.
+
+    pi's built-in MCP support registers each tool as `mcp__<server>__<tool>`, with any
+    character outside letters, digits and `_` replaced by `_`, and runs it through the
+    ordinary tool pipeline. The package's `mcp` surface is evaluated only for a proxy
+    tool literally named `mcp`, so rules written there reach nothing.
+    """
+    return re.sub(r"[^A-Za-z0-9_*]", "_", f"mcp__{server}__{tool}")
+
+
+def shared_servers(name, servers):
+    """The shared servers a Claude MCP server name refers to.
+
+    Claude names a claude.ai connector `claude_ai_Slack`, while pi reaches the same
+    service through the shared inventory's bare `slack`.
+    """
+    wanted = name.lower().removeprefix(CLAUDE_CONNECTOR_PREFIX)
+    return [server for server in servers if server.lower() == wanted]
+
+
+def native_mcp_tools(rule, servers):
+    """A Claude `mcp__<server>[__<tool>]` rule, renamed onto the shared servers pi connects.
+
+    A rule that names no shared server yields nothing, so an allow pi cannot place stays
+    at the `ask` fallback rather than widening onto a server it was not written for.
+    """
+    server, _, tool = rule.removeprefix("mcp__").partition("__")
+    return [native_mcp_tool(shared, tool or "*") for shared in shared_servers(server, servers)]
+
+
 def sandbox(manifest):
     network = manifest.sandbox["network"]
     filesystem = manifest.sandbox["filesystem"]
@@ -162,13 +196,26 @@ def permissions(manifest):
         ),
         "external_directory": surface("ask", SHARED_SKILL_PATHS, []),
         "mcp": surface(
-            "allow",
+            "ask",
             [],
             [(f"{server}*", emit_claude.mcp_rule(server)) for server in policy["mcp"]["deny"]],
         ),
+        native_mcp_tool("*"): "ask",
     }
+    servers = mcp.load(manifest.root)
+    for rule in policy["tools"]["allow"]:
+        if rule.startswith("mcp__"):
+            for name in native_mcp_tools(rule, servers):
+                rules[name] = "allow"
+    for server in policy["mcp"]["deny"]:
+        rule = emit_claude.mcp_rule(server)
+        for name in unique([native_mcp_tool(server), *native_mcp_tools(rule, servers)]):
+            if not isinstance(rules.get(name), dict):
+                rules[name] = {"*": denial(rule)}
     for name in policy["tools"]["deny"]:
-        rules[name] = {"*": denial(name)}
+        native = native_mcp_tools(name, servers) if name.startswith("mcp__") else []
+        for target in unique([name, *native]):
+            rules[target] = {"*": denial(name)}
 
     return {
         "debugLog": False,
