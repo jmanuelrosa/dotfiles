@@ -36,7 +36,7 @@
       "acli *": "allow",
       "pgcli *": "allow",
       "sentry *": "allow",
-      "bru-cli *": "allow",
+      "bru *": "allow",
       "ntn *": "allow",
       "aws *": "allow",
       "gcloud *": "allow",

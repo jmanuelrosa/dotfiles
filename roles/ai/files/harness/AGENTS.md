@@ -15,7 +15,7 @@ If a CLI is missing or auth-broken, say so; don't silently fall back.
 | GitHub | `gh` |
 | GitLab | `glab` |
 | Sentry | `sentry` |
-| Bruno API tests | `bru-cli` |
+| Bruno API tests | `bru` |
 | Notion | `ntn` |
 | Library / framework / SDK / API / CLI / cloud service docs | `bunx ctx7` |
 

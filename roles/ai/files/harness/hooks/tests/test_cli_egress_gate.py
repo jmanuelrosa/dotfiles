@@ -1,4 +1,4 @@
-"""`cli-egress-gate.sh` keeps gh, glab, ntn and bru-cli from publishing local data unasked.
+"""`cli-egress-gate.sh` keeps gh, glab, ntn and bru from publishing local data unasked.
 
 All four run outside Claude's sandbox and are allowlisted, so this hook is what
 stands between an agent and a gist, snippet, release asset, secret, Notion upload,
@@ -160,9 +160,15 @@ def test_a_read_is_allowed(command):
     "git switch -c fix/gh-4-x",
     "rg 'gh gist create' roles/",
     "python3 ~/.claude/skills/pr/scripts/apply.py plan.json",
+    "brew list",
+    "brew install bruno-cli",
+    "brew upgrade && brew cleanup",
+    "bruno run requests",
+    "cat collections/bru.json",
+    "ls bru-collections/",
 ])
 def test_a_command_that_runs_no_forge_cli_is_untouched(command):
-    """Given no gh or glab invocation, including the /pr skill's own apply.py, Then nothing is said."""
+    """Given no gated CLI invocation, including the /pr skill's own apply.py or a word that only starts with bru, Then nothing is said."""
     assert tier(command) == ALLOW
 
 
@@ -207,14 +213,17 @@ def test_ntn_uploads_and_deploys_are_blocked_and_reads_pass(command, expected):
 
 
 @pytest.mark.parametrize("command, expected", [
-    ("bru-cli run", ASK),
-    ("bru-cli run requests/users --env prod", ASK),
-    ("bru-cli import openapi --source https://example.invalid/spec.json --output out", ASK),
-    ("bru-cli", ASK),
-    ("bru-cli --version", ALLOW),
-    ("bru-cli --help", ALLOW),
+    ("bru run", ASK),
+    ("bru run requests/users --env prod", ASK),
+    ("bru import openapi --source https://example.invalid/spec.json --output out", ASK),
+    ("bru", ASK),
+    ("bru --version", ALLOW),
+    ("bru --help", ALLOW),
+    ("bru -h", ALLOW),
+    ("/opt/homebrew/bin/bru run", ASK),
+    ("cd collection && bru run --env prod", ASK),
 ])
-def test_bru_cli_asks_because_a_collection_names_its_own_hosts(command, expected):
+def test_bru_asks_because_a_collection_names_its_own_hosts(command, expected):
     """Given any Bruno run, Then the user decides, since the collection picks the hosts."""
     assert tier(command) == expected
 
