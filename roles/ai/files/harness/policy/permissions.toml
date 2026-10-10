@@ -20,7 +20,7 @@ allow = [
   "acli *",
   "pgcli *",
   "sentry *",
-  "bru-cli *",
+  "bru *",
   "ntn *",
   "aws *",
   "gcloud *",

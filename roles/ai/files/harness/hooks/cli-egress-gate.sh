@@ -4,7 +4,7 @@
 # settings.json (hooks.PreToolUse) and symlinked into ~/.claude/hooks.
 """cli-egress-gate.sh - PreToolUse hook for the allowlisted CLIs that can publish.
 
-gh, glab, ntn and bru-cli run OUTSIDE Claude's sandbox
+gh, glab, ntn and bru run OUTSIDE Claude's sandbox
 (sandbox.excludedCommands) so they can reach their own credential stores,
 and all four are allowlisted, so neither the network allowlist nor a
 permission prompt stands between an agent and the service. That makes
@@ -12,7 +12,7 @@ them an egress channel: a gist, snippet, release asset, secret, CI
 variable, Notion file upload, worker deploy or API body publishes
 whatever local file the agent names, and a Bruno collection reaches any
 host it lists. This hook is the guardrail on what they may do, in three
-tiers. The gh and glab rules come first; ntn and bru-cli follow them.
+tiers. The gh and glab rules come first; ntn and bru follow them.
 
   block (exit 2): uploads and writes with no review step between the
     agent and a published copy. `gh gist create/edit`, `glab snippet
@@ -41,7 +41,7 @@ tiers. The gh and glab rules come first; ntn and bru-cli follow them.
     Notion exposes (`search`, `.../query`). Asks on everything else,
     which includes `pages create/edit`, the research skill's delivery path.
 
-  bru-cli: asks on everything but help and version. A collection is a
+  bru: asks on everything but help and version. A collection is a
     file the agent can write, and a run sends whatever requests it
     lists to whatever hosts they name, so no `run` shape is read-only.
 
@@ -64,7 +64,7 @@ import shlex
 import sys
 
 FORGES = ("gh", "glab")
-NOTION, BRUNO = "ntn", "bru-cli"
+NOTION, BRUNO = "ntn", "bru"
 CLIS = (*FORGES, NOTION, BRUNO)
 CLI_ALTERNATION = "|".join(re.escape(cli) for cli in CLIS)
 
@@ -454,7 +454,7 @@ def notion_verdict(cli, args, stdin_fed=False):
 def bruno_verdict(cli, args, stdin_fed=False):
     if args and all(t in BRUNO_READS for t in args):
         return ALLOWED
-    return ASK, "a bru-cli call, which sends whatever requests a collection lists to the hosts it names"
+    return ASK, "a bru call, which sends whatever requests a collection lists to the hosts it names"
 
 
 def cli_verdict(cli, args, stdin_fed=False):
