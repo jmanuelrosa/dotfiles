@@ -64,9 +64,12 @@ deny = [
   "gh pr merge",
   "gh pr merge *",
   # A rule matches the command as written, so `git -C <dir> push --force` slips past
-  # `git push --force *`; these cover a global option before the subcommand. The alias
-  # spellings (apf, pf, res, rh, and p/up with a force flag) are the ones
-  # roles/apps/files/.gitconfig ships.
+  # `git push --force *`, and `git push origin main --force` slips past both. The `-*`
+  # forms cover a global option before the subcommand; the `push|p|up * <force>` forms
+  # cover a force flag or a `+` refspec after the remote. The alias spellings (apf, pf,
+  # res, rh, and p/up with a force flag) are the ones roles/apps/files/.gitconfig ships.
+  # `git -* p|up * <force>` is deliberately absent: two free stars around a word that
+  # short deny `git -C x commit -m "wire up the + button"`, with no allow to undo it.
   "git -* apf",
   "git -* apf *",
   "git -* p --force*",
@@ -74,6 +77,10 @@ deny = [
   "git -* p -f *",
   "git -* pf",
   "git -* pf *",
+  "git -* push * +*",
+  "git -* push * --force*",
+  "git -* push * -f",
+  "git -* push * -f *",
   "git -* push --force*",
   "git -* push -f",
   "git -* push -f *",
@@ -98,6 +105,10 @@ deny = [
   "git filter-branch *",
   "git filter-repo",
   "git filter-repo *",
+  "git p * +*",
+  "git p * --force*",
+  "git p * -f",
+  "git p * -f *",
   "git p --force",
   "git p --force *",
   "git p --force-with-lease",
@@ -106,6 +117,10 @@ deny = [
   "git p -f *",
   "git pf",
   "git pf *",
+  "git push * +*",
+  "git push * --force*",
+  "git push * -f",
+  "git push * -f *",
   "git push --delete *",
   "git push --force",
   "git push --force *",
@@ -129,6 +144,10 @@ deny = [
   "git stash drop",
   "git stash drop *",
   "git switch --discard-changes *",
+  "git up * +*",
+  "git up * --force*",
+  "git up * -f",
+  "git up * -f *",
   "git up --force",
   "git up --force *",
   "git up --force-with-lease",
