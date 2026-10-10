@@ -316,6 +316,16 @@
           },
           {
             "type": "command",
+            "command": "~/.claude/hooks/git-skill-gate.sh",
+            "if": "Bash(python3 *skills/commit/scripts/apply.py *)"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/git-skill-gate.sh",
+            "if": "Bash(python3 *skills/pr/scripts/apply.py *)"
+          },
+          {
+            "type": "command",
             "command": "~/.claude/hooks/cloud-readonly-gate.sh"
           },
           {

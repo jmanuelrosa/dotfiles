@@ -163,21 +163,57 @@ def test_the_pr_wrapper_script_is_gated_when_run_without_an_interpreter(gate):
     assert gate(f"{PR_WRAPPER} plan.json") == BLOCK
 
 
-@pytest.mark.parametrize(
-    "wrapper,wrong_skill",
-    [(PR_WRAPPER, "commit"), (COMMIT_WRAPPER, "pr")],
-)
-def test_one_skill_does_not_authorize_the_other_skills_wrapper(gate, wrapper, wrong_skill):
-    """Given the wrong owning skill is active, When a wrapper script runs, Then it is blocked.
+def test_the_commit_skill_does_not_authorize_the_pr_wrapper(gate):
+    """Given /commit is active, When pr's apply.py runs, Then it is blocked.
 
-    /commit must not buy a push, and /pr must not buy a commit.
+    /commit must not buy a push.
     """
-    assert gate(f"python3 {wrapper} plan.json", skills=[wrong_skill]) == BLOCK
+    assert gate(f"python3 {PR_WRAPPER} plan.json", skills=["commit"]) == BLOCK
 
 
 def test_the_commit_wrapper_script_is_allowed_inside_the_commit_skill(gate):
     """Given /commit is active, When commit's apply.py runs, Then it is allowed."""
     assert gate(f"python3 {COMMIT_WRAPPER} plan.json", skills=["commit"]) == ALLOW
+
+
+def test_the_commit_wrapper_script_is_allowed_inside_the_pr_skill(gate):
+    """Given /pr is active, When commit's apply.py runs, Then it is allowed.
+
+    When /commit and /pr are invoked back to back, the turns that run this
+    script are stamped `pr`, the later of the two, so a /commit-only gate
+    refused real commit flows. The script re-implements the commit hard blocks.
+    """
+    assert gate(f"python3 {COMMIT_WRAPPER} plan.json", skills=["pr"]) == ALLOW
+
+
+@pytest.mark.parametrize("command", [f"python3 {COMMIT_WRAPPER} plan.json", f"{COMMIT_WRAPPER} plan.json"])
+def test_the_commit_wrapper_script_outside_any_skill_is_blocked(gate, command):
+    """Given no skill attribution, When commit's apply.py runs, Then it is blocked."""
+    assert gate(command) == BLOCK
+
+
+@pytest.mark.parametrize("command", ["git commit -m x", f"python3 {COMMIT_WRAPPER} plan.json"])
+def test_staged_task_state_blocks_every_commit_path_even_inside_the_commit_skill(gate, git_env, tmp_path, command):
+    """Given a file under .claude/tasks/ is staged, When either commit path runs inside /commit,
+    Then it is blocked.
+
+    The commit script got a key of its own, and that key must still reach the
+    unconditional staged-state check.
+    """
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True, env=git_env)
+    task = tmp_path / ".claude" / "tasks" / "state.json"
+    task.parent.mkdir(parents=True)
+    task.write_text("{}")
+    subprocess.run(["git", "-C", str(tmp_path), "add", "-f", str(task)], check=True, env=git_env)
+    assert gate(command, skills=["commit"]) == BLOCK
+
+
+def test_a_raw_commit_inside_the_pr_skill_is_blocked(gate):
+    """Given /pr is active, When a raw git commit runs, Then it is blocked.
+
+    /pr buys only the validated commit script, never a hand-written commit.
+    """
+    assert gate("git commit -m x", skills=["pr"]) == BLOCK
 
 
 @pytest.mark.parametrize("wrapper", [PR_WRAPPER, COMMIT_WRAPPER])

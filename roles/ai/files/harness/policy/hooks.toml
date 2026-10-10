@@ -21,7 +21,7 @@ id = "git-skill-gate"
 event = "pre_tool"
 tools = ["bash"]
 script = "git-skill-gate.sh"
-claude_if = ["Bash(git *)", "Bash(gh *)", "Bash(glab *)"]
+claude_if = ["Bash(git *)", "Bash(gh *)", "Bash(glab *)", "Bash(python3 *skills/commit/scripts/apply.py *)", "Bash(python3 *skills/pr/scripts/apply.py *)"]
 harnesses = ["claude", "pi"]
 
 # Codex refuses this gate's `ask` answer and runs the command anyway, so there only its
