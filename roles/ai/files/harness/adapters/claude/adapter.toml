@@ -21,7 +21,7 @@ excludedCommands = [
   "pgcli *",
   "acli *",
   "sentry *",
-  "bru-cli *",
+  "bru *",
   "ntn *",
   "wrangler *",
   "cf *",

@@ -35,7 +35,7 @@ GATED = {
     "gh *": ("cli-egress-gate", "gh gist create notes.txt"),
     "glab *": ("cli-egress-gate", "glab snippet create -t notes notes.txt"),
     "ntn *": ("cli-egress-gate", "ntn files create"),
-    "bru-cli *": ("cli-egress-gate", "bru-cli run"),
+    "bru *": ("cli-egress-gate", "bru run"),
     "aws *": ("cloud-readonly-gate", "aws s3 rm s3://bucket/key"),
     "gcloud *": ("cloud-readonly-gate", "gcloud auth print-access-token"),
     "gsutil *": ("cloud-readonly-gate", "gsutil rm gs://bucket/key"),
