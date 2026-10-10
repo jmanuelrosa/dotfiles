@@ -171,6 +171,22 @@
         "action": "deny",
         "reason": "denied by Claude Code policy: Bash(git -* pf *)"
       },
+      "git -* push * +*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git -* push * +*)"
+      },
+      "git -* push * --force*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git -* push * --force*)"
+      },
+      "git -* push * -f": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git -* push * -f)"
+      },
+      "git -* push * -f *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git -* push * -f *)"
+      },
       "git -* push --force*": {
         "action": "deny",
         "reason": "denied by Claude Code policy: Bash(git -* push --force*)"
@@ -267,6 +283,22 @@
         "action": "deny",
         "reason": "denied by Claude Code policy: Bash(git filter-repo *)"
       },
+      "git p * +*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git p * +*)"
+      },
+      "git p * --force*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git p * --force*)"
+      },
+      "git p * -f": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git p * -f)"
+      },
+      "git p * -f *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git p * -f *)"
+      },
       "git p --force": {
         "action": "deny",
         "reason": "denied by Claude Code policy: Bash(git p --force)"
@@ -298,6 +330,22 @@
       "git pf *": {
         "action": "deny",
         "reason": "denied by Claude Code policy: Bash(git pf *)"
+      },
+      "git push * +*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git push * +*)"
+      },
+      "git push * --force*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git push * --force*)"
+      },
+      "git push * -f": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git push * -f)"
+      },
+      "git push * -f *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git push * -f *)"
       },
       "git push --delete *": {
         "action": "deny",
@@ -390,6 +438,22 @@
       "git switch --discard-changes *": {
         "action": "deny",
         "reason": "denied by Claude Code policy: Bash(git switch --discard-changes *)"
+      },
+      "git up * +*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git up * +*)"
+      },
+      "git up * --force*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git up * --force*)"
+      },
+      "git up * -f": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git up * -f)"
+      },
+      "git up * -f *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(git up * -f *)"
       },
       "git up --force": {
         "action": "deny",

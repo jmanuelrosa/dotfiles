@@ -146,6 +146,47 @@ def test_the_destructive_commands_resolve_to_deny_and_not_merely_appear():
         assert resolve(bash, command) == "deny", f"{command} is not denied"
 
 
+FORCE_AFTER_THE_REMOTE = (
+    "git push origin main --force",
+    "git push origin feature -f",
+    "git push origin +main",
+    "git -C x push origin main --force-with-lease",
+    "git p origin feature --force",
+    "git up origin +feature",
+)
+
+
+def test_a_force_written_after_the_remote_resolves_to_deny():
+    """A rule matches the command as written, so a force flag or `+` refspec trailing the remote needs its own rule."""
+    bash = policy()["bash"]
+    for command in FORCE_AFTER_THE_REMOTE:
+        assert resolve(bash, command) == "deny", f"{command} is not denied"
+
+
+def test_claude_carries_the_force_after_the_remote_denies():
+    deny = claude_settings()["permissions"]["deny"]
+    for verb in ("git push", "git p", "git up", "git -* push"):
+        for tail in ("+*", "--force*", "-f", "-f *"):
+            assert f"Bash({verb} * {tail})" in deny
+
+
+def test_a_plain_push_to_a_feature_branch_is_not_denied():
+    bash = policy()["bash"]
+    for command in ("git push origin feature", "git push -u origin feature", "git -C x push origin feature"):
+        assert resolve(bash, command) != "deny", f"{command} is denied"
+
+
+def test_a_short_alias_word_later_in_a_global_option_command_is_not_a_push():
+    """A deny has no allow to undo it, so `git -* up * +*` would hard-deny ordinary prose."""
+    bash = policy()["bash"]
+    for command in (
+        'git -C repo commit -m "wire up the + button"',
+        'git -C repo commit -m "drop p and the -f flag"',
+        "git -C repo status && cd up && rm -f stale.lock",
+    ):
+        assert resolve(bash, command) != "deny", f"{command} is denied"
+
+
 def test_the_allowlisted_commands_stay_allowed():
     """The allow half has to survive the band ordering too, or every read command prompts."""
     bash = policy()["bash"]
