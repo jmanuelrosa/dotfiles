@@ -16,7 +16,7 @@ def test_colima_profile_uses_native_virtualization_and_balanced_resources():
     assert config["arch"] == "aarch64"
     assert config["runtime"] == "docker"
     assert config["vmType"] == "vz"
-    assert config["mountType"] == "sshfs"
+    assert config["mountType"] == "virtiofs"
     assert config["mountInotify"] is False
     assert config["portForwarder"] == "grpc"
     assert config["network"]["address"] is True
