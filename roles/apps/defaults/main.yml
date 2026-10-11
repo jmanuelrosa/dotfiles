@@ -30,6 +30,23 @@ CF_CLI:
 
 APPS_SCRIPTS:
   - lokl
+  - sentry
+
+SENTRY_ACCOUNTS_DIR: "{{ HOME }}/.config/sentry"
+
+# The `sentry` wrapper picks the account whose root is the longest prefix of the
+# working directory.
+SENTRY_ACCOUNTS:
+  - name: personal
+    roots:
+      - "{{ HOME }}/Developer/personal"
+      - "{{ HOME }}/Developer/projects"
+  - name: 3bitslost
+    roots:
+      - "{{ HOME }}/Developer/3bitslost"
+  - name: didomi
+    roots:
+      - "{{ HOME }}/Developer/work"
 
 # Where Homebrew's caddy reads its config from: `caddy run --config <this>`.
 CADDYFILE_PATH: /opt/homebrew/etc/Caddyfile
