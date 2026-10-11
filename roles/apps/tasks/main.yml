@@ -32,6 +32,19 @@
     force: true
   loop: "{{ APPS_SCRIPTS }}"
 
+- name: Ensure a private Sentry config dir per account
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0700"
+  loop: "{{ [SENTRY_ACCOUNTS_DIR] + SENTRY_ACCOUNTS | map(attribute='name') | map('regex_replace', '^', SENTRY_ACCOUNTS_DIR ~ '/') | list }}"
+
+- name: Map working directories to Sentry accounts
+  ansible.builtin.copy:
+    dest: "{{ SENTRY_ACCOUNTS_DIR }}/accounts"
+    mode: "0600"
+    content: "{% for account in SENTRY_ACCOUNTS %}{% for root in account.roots %}{{ account.name }} {{ root }}\n{% endfor %}{% endfor %}"
+
 - name: Verify gh is authenticated for github.com
   ansible.builtin.command: gh auth status --hostname github.com
   environment:

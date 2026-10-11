@@ -53,4 +53,6 @@ deny_read = [
   "~/.config/gcloud",
   "~/.terraform.d/credentials.tfrc.json",
   "~/Library/Preferences/.wrangler",
+  "~/.sentry",
+  "~/.config/sentry",
 ]

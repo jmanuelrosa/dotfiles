@@ -562,6 +562,38 @@
       "lazydocker *": {
         "action": "deny",
         "reason": "denied by Claude Code policy: Bash(lazydocker *)"
+      },
+      "sentry auth": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(sentry auth)"
+      },
+      "sentry auth -*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(sentry auth -*)"
+      },
+      "sentry auth login": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(sentry auth login)"
+      },
+      "sentry auth login *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(sentry auth login *)"
+      },
+      "sentry auth logout": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(sentry auth logout)"
+      },
+      "sentry auth logout *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(sentry auth logout *)"
+      },
+      "sentry auth token": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(sentry auth token)"
+      },
+      "sentry auth token *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(sentry auth token *)"
       }
     },
     "path_read": {
@@ -685,6 +717,14 @@
       "~/.config/gcloud/*": {
         "action": "deny",
         "reason": "denied by Claude Code policy: Read(~/.config/gcloud/**)"
+      },
+      "~/.sentry/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.sentry/**)"
+      },
+      "~/.config/sentry/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Read(~/.config/sentry/**)"
       },
       "~/.config/terraform/*": {
         "action": "deny",
@@ -860,6 +900,14 @@
       "~/.config/gcloud/*": {
         "action": "deny",
         "reason": "denied by Claude Code policy: Edit(~/.config/gcloud/**)"
+      },
+      "~/.sentry/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.sentry/**)"
+      },
+      "~/.config/sentry/*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Edit(~/.config/sentry/**)"
       },
       "~/.config/acli/*": {
         "action": "deny",

@@ -1,0 +1,66 @@
+#!/usr/bin/env -S fish --no-config
+# A login stored for one org must never answer for another org's repository, so the
+# account comes from the working directory, and a directory no account claims gets
+# no credential at all instead of whatever sits in the default ~/.sentry.
+
+set -g fish_function_path $__fish_config_dir/functions
+
+set -l self (path resolve (status filename))
+set -l binary
+for candidate in (command -a -s sentry)
+    if test (path resolve $candidate) != $self
+        set binary $candidate
+        break
+    end
+end
+if test -z "$binary"
+    _ui err "No sentry binary on PATH besides this wrapper"
+    exit 127
+end
+
+# An explicit config dir is a deliberate choice, such as a throwaway login for a write.
+if set -q SENTRY_CONFIG_DIR
+    exec $binary $argv
+end
+
+set -l accounts_dir $HOME/.config/sentry
+set -l names
+set -l account
+set -l longest 0
+if test -r $accounts_dir/accounts
+    while read -l name root
+        contains -- $name $names; or set -a names $name
+        if set -q SENTRY_ACCOUNT
+            continue
+        end
+        set -l real_root (path resolve -- $root)
+        for dir in $PWD (pwd -P)
+            for candidate in $root $real_root
+                if test "$dir" = "$candidate"; or string match -q -- "$candidate/*" "$dir"
+                    if test (string length -- $real_root) -gt $longest
+                        set longest (string length -- $real_root)
+                        set account $name
+                    end
+                end
+            end
+        end
+    end <$accounts_dir/accounts
+end
+
+if set -q SENTRY_ACCOUNT
+    if not contains -- $SENTRY_ACCOUNT $names
+        _ui err "Unknown Sentry account '$SENTRY_ACCOUNT'"
+        _ui note "known accounts: "(string join ', ' -- $names) >&2
+        exit 1
+    end
+    set account $SENTRY_ACCOUNT
+end
+
+if test -z "$account"
+    _ui err "No Sentry account claims "(_ui path $PWD)
+    _ui note "run it inside a mapped directory, or set SENTRY_ACCOUNT to one of: "(string join ', ' -- $names) >&2
+    exit 1
+end
+
+set -gx SENTRY_CONFIG_DIR $accounts_dir/$account
+exec $binary $argv
