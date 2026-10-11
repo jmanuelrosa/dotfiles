@@ -131,3 +131,32 @@ def test_a_rename_staged_earlier_without_its_edits_is_refused(repo, tmp_path):
     assert result.returncode != 0
     assert "docs/adr/0066-x.md" in result.stderr
     assert commit_count(repo) == before
+
+
+def commit_file(project, tmp_path, path):
+    run_git(project, "switch", "-q", "-c", "fix/env-files")
+    write(project, path, "KEY=value\n")
+    plan = tmp_path / "plan.json"
+    plan.write_text(json.dumps({"commits": [{"files": [path], "message": "fix(app): add env file"}]}))
+    return subprocess.run(
+        [sys.executable, str(SCRIPTS / "apply.py"), str(plan)],
+        cwd=project,
+        env=GIT_ENV,
+        capture_output=True,
+        text=True,
+    )
+
+
+@pytest.mark.parametrize("path", [".env.sample", "config/.env.example", ".env.template", ".env.dist"])
+def test_a_sample_env_file_a_repo_tracks_on_purpose_commits(repo, tmp_path, path):
+    assert commit_file(repo, tmp_path, path).returncode == 0
+    assert commit_count(repo) == 2
+
+
+@pytest.mark.parametrize("path", [".env", ".env.local", "certs/server.pem", "gcp-key.json", "credentials.json"])
+def test_a_cleartext_secret_is_refused_before_staging(repo, tmp_path, path):
+    result = commit_file(repo, tmp_path, path)
+
+    assert result.returncode != 0
+    assert commit_count(repo) == 1
+    assert run_git(repo, "diff", "--cached", "--name-only").stdout == ""

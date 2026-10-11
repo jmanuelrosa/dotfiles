@@ -32,6 +32,8 @@ ATTRIBUTION_RE = re.compile(r"(?i)co-authored-by:.*claude|generated with.*\bclau
 DASH_RE = re.compile("[\u2014\u2013]")
 TASKS_PATH_RE = re.compile(r"(^|/)\.claude/tasks/")
 SECRET_BASENAME_GLOBS = (".env", ".env.*", "*.pem", "*-key.json", "credentials*")
+# `.env.*` also matches the sample files a repo deliberately tracks.
+SECRET_EXEMPT_SUFFIXES = (".example", ".sample", ".template", ".dist")
 
 
 def fail(msg):
@@ -78,7 +80,7 @@ def validate(commits):
             if TASKS_PATH_RE.search(f):
                 fail(f"commit {i}: {f} is local-only agent state (.claude/tasks/) and must never be committed")
             base = f.rsplit("/", 1)[-1]
-            if any(fnmatch.fnmatch(base, g) for g in SECRET_BASENAME_GLOBS):
+            if not base.endswith(SECRET_EXEMPT_SUFFIXES) and any(fnmatch.fnmatch(base, g) for g in SECRET_BASENAME_GLOBS):
                 fail(f"commit {i}: {f} looks like a cleartext secret; drop it from the plan or get explicit user approval")
 
 
