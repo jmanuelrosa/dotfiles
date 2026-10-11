@@ -156,6 +156,14 @@ deny = [
   "nnn *",
   "lazydocker",
   "lazydocker *",
+  "sentry auth",
+  "sentry auth -*",
+  "sentry auth login",
+  "sentry auth login *",
+  "sentry auth logout",
+  "sentry auth logout *",
+  "sentry auth token",
+  "sentry auth token *",
 ]
 
 [paths]
@@ -190,6 +198,8 @@ deny_read = [
   "~/.gitconfig",
   "~/.aws/**",
   "~/.config/gcloud/**",
+  "~/.sentry/**",
+  "~/.config/sentry/**",
   "~/.config/terraform/**",
   "~/.terraform.d/**",
   "**/.terraform.tfstate*",
@@ -235,6 +245,8 @@ deny_edit = [
   "~/.gitconfig",
   "~/.aws/**",
   "~/.config/gcloud/**",
+  "~/.sentry/**",
+  "~/.config/sentry/**",
   "~/.config/acli/**",
   "~/.config/terraform/**",
   "~/.terraform.d/**",
