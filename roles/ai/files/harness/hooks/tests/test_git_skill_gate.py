@@ -77,7 +77,7 @@ def gate(tmp_path, git_env):
     """Run the hook. gate("git push", skills=["pr"]) -> exit code."""
     transcript = tmp_path / "transcript.jsonl"
 
-    def run(command, skills=(), cwd=None, with_transcript=True):
+    def run(command, skills=(), cwd=None, with_transcript=True, args=()):
         transcript.write_text(
             "".join(json.dumps({"attributionSkill": s}) + "\n" for s in skills)
         )
@@ -87,7 +87,7 @@ def gate(tmp_path, git_env):
             "cwd": str(cwd or tmp_path),
         }
         return subprocess.run(
-            [sys.executable, str(HOOK)],
+            [sys.executable, str(HOOK), *args],
             input=json.dumps(event),
             capture_output=True,
             text=True,
@@ -193,6 +193,33 @@ def test_a_push_that_names_no_branch_is_allowed_on_a_feature_branch(gate, repo_o
 def test_a_push_to_the_remotes_own_default_branch_is_blocked(gate, repo_on):
     """Given origin defaults to develop, When a push targets develop, Then it is blocked like main."""
     assert gate("git push origin develop", skills=["pr"], cwd=repo_on("feature/x", default="develop")) == BLOCK
+
+
+SKIP_SKILL_ROUTE = ("--skip-skill-route",)
+
+
+@pytest.mark.parametrize("command", [
+    "git commit -m 'feat: a thing'",
+    "git push -u origin feature/x",
+    "gh pr create --fill",
+    f"python3 {PR_WRAPPER} plan.json",
+])
+def test_without_the_skill_route_an_unattributed_command_is_allowed(gate, command):
+    """Given Codex, which writes no attribution, When a gated command runs, Then the route does not refuse it."""
+    assert gate(command, args=SKIP_SKILL_ROUTE) == ALLOW
+
+
+@pytest.mark.parametrize("command", [
+    "git push origin main --force",
+    "git push -uf origin feature/x",
+    "git push origin HEAD:main",
+    "git push origin --delete feature/x",
+    "git commit --no-verify -m 'x'",
+    f"git commit -m 'feat: a {EM_DASH} thing'",
+])
+def test_without_the_skill_route_every_other_block_still_holds(gate, command):
+    """Given Codex, When a destructive push or a bad commit runs, Then it is blocked as under Claude."""
+    assert gate(command, args=SKIP_SKILL_ROUTE) == BLOCK
 
 
 @pytest.mark.parametrize("command", ["gh pr create --fill", "glab mr create --yes"])

@@ -6,6 +6,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "~/.codex/hooks/git-skill-gate.sh --skip-skill-route"
+          },
+          {
+            "type": "command",
             "command": "~/.codex/hooks/cloud-readonly-gate.sh"
           },
           {
