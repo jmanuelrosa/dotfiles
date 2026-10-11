@@ -119,7 +119,6 @@ def test_a_blocked_form_cannot_hide_behind_flags_chains_or_wrappers(command):
     'glab api --hostname "$H" "search?scope=merge_requests"',
     "gh pr view $(git branch --show-current)",
     "GH_HOST=example.invalid gh api /x",
-    "which gh",
     "G=gh; $G gist create f",
     "export GH_HOST=example.invalid; gh api user",
     "gh up",
@@ -166,6 +165,12 @@ def test_a_read_is_allowed(command):
     "bruno run requests",
     "cat collections/bru.json",
     "ls bru-collections/",
+    "rg bru src",
+    "rg -n gh roles/",
+    "grep -rn bru .",
+    "which bru",
+    "man gh",
+    "echo bru",
 ])
 def test_a_command_that_runs_no_forge_cli_is_untouched(command):
     """Given no gated CLI invocation, including the /pr skill's own apply.py or a word that only starts with bru, Then nothing is said."""
@@ -222,6 +227,10 @@ def test_ntn_uploads_and_deploys_are_blocked_and_reads_pass(command, expected):
     ("bru -h", ALLOW),
     ("/opt/homebrew/bin/bru run", ASK),
     ("cd collection && bru run --env prod", ASK),
+    ("rg --pre bru x src", ASK),
+    ("rg --pre=bru x src", ASK),
+    ('echo "$(bru run)"', ASK),
+    ("xargs bru run", ASK),
 ])
 def test_bru_asks_because_a_collection_names_its_own_hosts(command, expected):
     """Given any Bruno run, Then the user decides, since the collection picks the hosts."""

@@ -89,6 +89,12 @@ EVALUATORS = {"bash", "sh", "zsh", "fish", "dash", "ksh", "eval"}
 
 INTERPRETERS = {"python", "python3", "node", "perl", "ruby", "osascript"}
 
+# Commands that only ever read their later words as data, so `rg bru src` searches for
+# the word rather than running it. rg is here only while `--pre`, which runs a command
+# per file, is absent from the call.
+ARGUMENT_ONLY = {"rg", "grep", "egrep", "fgrep", "echo", "printf", "man", "which", "whereis", "type", "tldr"}
+RUNS_A_COMMAND_FLAG_RE = re.compile(r"^--pre(?:=|$)")
+
 ARG_FLAGS = {"-R", "--repo", "-g", "--group"}
 
 READ_VERBS = {"list", "ls", "view", "status", "diff", "checks", "watch", "item-list", "field-list"}
@@ -535,9 +541,14 @@ def segment_verdict(text, expands, piped, depth):
         return ASK, "a command name taken from a variable or substitution beside a gated CLI"
     wrapped = (ASK, "a gated CLI invoked through a wrapper, interpreter, or substitution instead of directly")
     verdict = ALLOWED
+    argument_only = os.path.basename(tokens[i]) in ARGUMENT_ONLY and not any(
+        RUNS_A_COMMAND_FLAG_RE.match(t) for t in tokens[i + 1:]
+    )
     for j in range(i + 1, len(tokens)):
         token = tokens[j]
-        if runs_cli(token):
+        if RUNS_A_COMMAND_FLAG_RE.match(token):
+            token = token.partition("=")[2] or token
+        if runs_cli(token) and not argument_only:
             return worst(verdict, wrapped, cli_verdict(os.path.basename(token), tokens[j + 1:], stdin_fed))
         if not mentions_cli(token):
             continue

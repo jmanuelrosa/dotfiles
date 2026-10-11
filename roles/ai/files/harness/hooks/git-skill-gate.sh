@@ -76,6 +76,11 @@ alias is seen. A `!` alias is parsed as the shell line it names and never
 executed. Destructive aliases that are not a commit or a push (`reset
 --hard`) are left to the deny list in policy/permissions.toml.
 
+A raw push that forces, deletes a remote branch, or targets main, master or
+the remote's default branch is blocked even inside /pr. The deny list
+matches text, so `git -C x p --force`, `git push -uf` and `git push origin
+HEAD:main` slip past it; this parses the push after alias expansion.
+
 Acknowledged limitations: the matcher does not parse subshells, command
 substitution, `eval`, or shell aliases, and for gh/glab it does not
 recognize flags placed before the subcommand (`gh -R o/r pr create`).
@@ -131,6 +136,12 @@ TASKS_PATH_RE = re.compile(r"(^|/)\.claude/tasks/")
 ATTRIBUTION_RE = re.compile(r"(?i)co-authored-by:.*claude|generated with.*\bclaude\b|🤖")
 
 DASH_RE = re.compile("[\u2014\u2013]")
+
+PUSH_OPTIONS_WITH_SEPARATE_ARG = {"-o", "--push-option", "--repo", "--receive-pack", "--exec"}
+FORCE_PUSH_OPTIONS = {"--force", "--force-with-lease"}
+DELETING_PUSH_OPTIONS = {"--delete", "--mirror", "--prune"}
+FALLBACK_PROTECTED_BRANCHES = {"main", "master"}
+FORCE_PUSH, DELETING_PUSH = "a force push", "a push that deletes remote branches"
 
 
 def split_subcommands(line):
@@ -295,6 +306,72 @@ def gated_subcommand(tokens):
     return None
 
 
+def protected_branches(remote, lookup, cwd):
+    """The remote's default branch beside main and master, since a repo that
+    defaults to develop can still deploy from master."""
+    head = run_git([*lookup, "symbolic-ref", "--short", f"refs/remotes/{remote}/HEAD"], cwd)
+    default = head.strip().split("/", 1)[-1] if head else None
+    return FALLBACK_PROTECTED_BRANCHES | ({default} if default else set())
+
+
+def destructive_push_reason(tokens, cwd):
+    """Why a raw `git push` must never run, or None.
+
+    Parsed rather than globbed, so a force flag after the remote, a bundled
+    `-uf`, a `:branch` or `HEAD:main` refspec, and a global option before the
+    subcommand are all seen. Aliases are already expanded by the caller."""
+    start = 0
+    while start < len(tokens) and ENV_ASSIGNMENT_RE.match(tokens[start]):
+        start += 1
+    if start >= len(tokens) or tokens[start] != "git":
+        return None
+    i = start + git_subcommand_index(tokens[start:])
+    lookup = lookup_options(tokens[start + 1:i])
+    args, positionals, j = tokens[i + 1:], [], 0
+    while j < len(args):
+        tok = args[j]
+        if tok == "--":
+            positionals += args[j + 1:]
+            break
+        if tok.startswith("--"):
+            name = tok.split("=", 1)[0]
+            if name in FORCE_PUSH_OPTIONS:
+                return FORCE_PUSH
+            if name in DELETING_PUSH_OPTIONS:
+                return DELETING_PUSH
+            if name in PUSH_OPTIONS_WITH_SEPARATE_ARG and "=" not in tok:
+                j += 1
+        elif tok.startswith("-") and len(tok) > 1:
+            for k, letter in enumerate(tok[1:], start=2):
+                if letter == "f":
+                    return FORCE_PUSH
+                if letter == "d":
+                    return DELETING_PUSH
+                if letter == "o":
+                    j += 1 if k == len(tok) else 0
+                    break
+        else:
+            positionals.append(tok)
+        j += 1
+
+    remote = positionals[0] if positionals and not re.search(r"[/:@]", positionals[0]) else "origin"
+    current = (run_git([*lookup, "symbolic-ref", "--short", "HEAD"], cwd) or "").strip()
+    protected = protected_branches(remote, lookup, cwd)
+    refspecs = positionals[1:] or [current]
+    for spec in refspecs:
+        if spec.startswith("+"):
+            return FORCE_PUSH
+        source, colon, destination = spec.partition(":")
+        if colon and not source:
+            return DELETING_PUSH
+        target = (destination if colon else source).removeprefix("refs/heads/")
+        if target == "HEAD":
+            target = current
+        if target in protected:
+            return f"a push to {target}"
+    return None
+
+
 def skills_in_window(transcript_path):
     if not transcript_path:
         return None
@@ -409,6 +486,16 @@ def main():
     gated = [key for _, key in keyed if key]
     if not gated:
         sys.exit(0)
+
+    for chunk, key in keyed:
+        reason = destructive_push_reason(chunk, cwd) if key == "git push" else None
+        if reason:
+            print(
+                f"{reason[0].upper()}{reason[1:]} is blocked for agents, even inside /pr.\n"
+                "Hand the user the exact command to run in their own terminal.",
+                file=sys.stderr,
+            )
+            sys.exit(2)
 
     if COMMITTING.intersection(gated):
         for chunk, key in keyed:

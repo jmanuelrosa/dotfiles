@@ -123,6 +123,78 @@ def test_a_push_inside_the_pr_skill_is_allowed(gate):
     assert gate("git push -u origin feature/x", skills=["pr"]) == ALLOW
 
 
+@pytest.mark.parametrize("command", [
+    "git push origin main --force",
+    "git push origin feature/x -f",
+    "git push -uf origin feature/x",
+    "git push -fu origin feature/x",
+    "git push origin +feature/x",
+    "git push --force-with-lease=feature/x origin feature/x",
+    "git -C . p --force origin feature/x",
+    "git -C . up -f",
+    "git pf origin feature/x",
+    "git push origin --delete feature/x",
+    "git push origin -d feature/x",
+    "git push origin :feature/x",
+    "git push --mirror origin",
+    "git push --prune origin",
+    "git push -u origin main",
+    "git push origin HEAD:main",
+    "git push origin feature/x:refs/heads/master",
+    "cd repo && git push origin main -f",
+])
+def test_a_destructive_push_is_blocked_even_inside_the_pr_skill(gate, command):
+    """Given a push that forces, deletes a branch or lands on main or master, in any
+    spelling the deny list's globs miss, When it runs under /pr, Then it is blocked."""
+    assert gate(command, skills=["pr"]) == BLOCK
+
+
+@pytest.mark.parametrize("command", [
+    "git push -u origin feature/x",
+    "git push -o ci.skip origin feature/x",
+    "git push -odeploy origin feature/x",
+    "git push --force-if-includes origin feature/x",
+    "git push origin feature/main-fix",
+    "git push origin feature/x:feature/x",
+])
+def test_an_ordinary_push_inside_the_pr_skill_is_allowed(gate, command):
+    """Given a feature-branch push whose option values or names only contain a
+    risky letter or word, When it runs under /pr, Then it is allowed."""
+    assert gate(command, skills=["pr"]) == ALLOW
+
+
+@pytest.fixture
+def repo_on(tmp_path, git_env):
+    """A repo checked out on `branch` whose origin defaults to `default`."""
+
+    def make(branch, default="main"):
+        repo = tmp_path / "repo"
+        for args in (
+            ["init", "-q", "-b", branch, str(repo)],
+            ["-C", str(repo), "symbolic-ref", "refs/remotes/origin/HEAD", f"refs/remotes/origin/{default}"],
+        ):
+            subprocess.run(["git", *args], check=True, env=git_env)
+        return repo
+
+    return make
+
+
+@pytest.mark.parametrize("command", ["git push", "git push origin", "git push origin HEAD", "git push -u origin HEAD"])
+def test_a_push_that_names_no_branch_is_blocked_on_main(gate, repo_on, command):
+    """Given the checkout is on main, When a push leaves the branch implicit, Then it is blocked."""
+    assert gate(command, skills=["pr"], cwd=repo_on("main")) == BLOCK
+
+
+def test_a_push_that_names_no_branch_is_allowed_on_a_feature_branch(gate, repo_on):
+    """Given the checkout is on a feature branch, When a push leaves the branch implicit, Then it is allowed."""
+    assert gate("git push -u origin HEAD", skills=["pr"], cwd=repo_on("feature/x")) == ALLOW
+
+
+def test_a_push_to_the_remotes_own_default_branch_is_blocked(gate, repo_on):
+    """Given origin defaults to develop, When a push targets develop, Then it is blocked like main."""
+    assert gate("git push origin develop", skills=["pr"], cwd=repo_on("feature/x", default="develop")) == BLOCK
+
+
 @pytest.mark.parametrize("command", ["gh pr create --fill", "glab mr create --yes"])
 def test_opening_a_pull_request_outside_the_pr_skill_is_blocked(gate, command):
     """Given no skill attribution, When a PR/MR is opened, Then it is blocked."""
