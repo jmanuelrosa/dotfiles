@@ -6,6 +6,7 @@ report` prints it.
 """
 
 import json
+import shlex
 
 from harnessgen import emit_claude, tomlw
 
@@ -83,7 +84,11 @@ def rules(manifest):
 
 
 def hook_entry(hook, hooks_dir):
-    entry = {"type": "command", "command": hook.get("command") or f"{hooks_dir}/{hook['script']}"}
+    command = hook.get("command")
+    if not command:
+        # The path stays unquoted so the shell still expands the hooks dir's `~`.
+        command = " ".join([f"{hooks_dir}/{hook['script']}", *map(shlex.quote, hook.get("codex_args", []))])
+    entry = {"type": "command", "command": command}
     if "timeout" in hook:
         entry["timeout"] = hook["timeout"]
     return entry

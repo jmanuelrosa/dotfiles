@@ -81,6 +81,10 @@ the remote's default branch is blocked even inside /pr. The deny list
 matches text, so `git -C x p --force`, `git push -uf` and `git push origin
 HEAD:main` slip past it; this parses the push after alias expansion.
 
+Codex never writes `attributionSkill`, so there the skill route would refuse
+every commit. Codex runs this hook with SKIP_SKILL_ROUTE_FLAG, which keeps
+every check above and drops only the skill route.
+
 Acknowledged limitations: the matcher does not parse subshells, command
 substitution, `eval`, or shell aliases, and for gh/glab it does not
 recognize flags placed before the subcommand (`gh -R o/r pr create`).
@@ -95,6 +99,7 @@ import sys
 from pathlib import Path
 
 WINDOW_EVENTS = 30
+SKIP_SKILL_ROUTE_FLAG = "--skip-skill-route"
 COMMIT_SCRIPT = "skills/commit/scripts/apply.py"
 SKILLS_FOR_SUBCOMMAND = {
     "git commit": {"commit"},
@@ -534,6 +539,9 @@ def main():
                 file=sys.stderr,
             )
             sys.exit(2)
+
+    if SKIP_SKILL_ROUTE_FLAG in sys.argv[1:]:
+        sys.exit(0)
 
     active = skills_in_window(transcript_path)
     if active is None:

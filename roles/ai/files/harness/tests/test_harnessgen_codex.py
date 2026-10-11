@@ -150,7 +150,19 @@ def test_codex_is_given_only_the_hooks_its_harness_list_names():
     policy = manifest.load(ROOT)
     commands = [h["command"] for g in emit_codex.hooks(policy)["hooks"]["PreToolUse"] for h in g["hooks"]]
     listed = [h["script"] for h in policy.hooks if emit_codex.NAME in h["harnesses"]]
-    assert commands == [f"~/.codex/hooks/{script}" for script in listed]
+    assert [command.split()[0] for command in commands] == [f"~/.codex/hooks/{script}" for script in listed]
+
+
+def test_codex_runs_git_skill_gate_without_the_skill_route():
+    """Codex never writes the transcript field the route reads, so with it every commit would be refused."""
+    policy = manifest.load(ROOT)
+    commands = [h["command"] for g in emit_codex.hooks(policy)["hooks"]["PreToolUse"] for h in g["hooks"]]
+    assert "~/.codex/hooks/git-skill-gate.sh --skip-skill-route" in commands
+
+
+def test_codex_args_are_quoted_and_the_hooks_dir_is_not():
+    entry = emit_codex.hook_entry({"script": "gate.sh", "codex_args": ["--a", "b c"]}, "~/.codex/hooks")
+    assert entry["command"] == "~/.codex/hooks/gate.sh --a 'b c'"
 
 
 def test_a_hook_matcher_is_anchored_to_the_one_tool():
