@@ -131,6 +131,10 @@
       "Edit(~/.aws/**)",
       "Read(~/.config/gcloud/**)",
       "Edit(~/.config/gcloud/**)",
+      "Read(~/.sentry/**)",
+      "Edit(~/.sentry/**)",
+      "Read(~/.config/sentry/**)",
+      "Edit(~/.config/sentry/**)",
       "Edit(~/.config/acli/**)",
       "Read(~/.config/terraform/**)",
       "Edit(~/.config/terraform/**)",
@@ -263,6 +267,14 @@
       "Bash(nnn *)",
       "Bash(lazydocker)",
       "Bash(lazydocker *)",
+      "Bash(sentry auth)",
+      "Bash(sentry auth -*)",
+      "Bash(sentry auth login)",
+      "Bash(sentry auth login *)",
+      "Bash(sentry auth logout)",
+      "Bash(sentry auth logout *)",
+      "Bash(sentry auth token)",
+      "Bash(sentry auth token *)",
       "mcp__notion",
       "mcp__Notion",
       "mcp__supabase",
@@ -450,7 +462,9 @@
         "~/.netrc",
         "~/.config/gcloud",
         "~/.terraform.d/credentials.tfrc.json",
-        "~/Library/Preferences/.wrangler"
+        "~/Library/Preferences/.wrangler",
+        "~/.sentry",
+        "~/.config/sentry"
       ],
       "allowRead": [
         "~/.config/gh",
@@ -459,10 +473,10 @@
         "~/.ssh/known_hosts",
         "/etc/ssl/cert.pem",
         "~/.config/acli",
-        "~/Developer/dotfiles/roles/ai/files/harness/kura/catalog/skills",
-        "~/Developer/dotfiles/roles/ai/files/harness/hooks",
-        "~/Developer/dotfiles/roles/ai/files/harness/kura/catalog/bundles",
-        "~/Developer/dotfiles/roles/ai/files/harness/adapters/claude/settings.json"
+        "~/Developer/dot-sentry/roles/ai/files/harness/kura/catalog/skills",
+        "~/Developer/dot-sentry/roles/ai/files/harness/hooks",
+        "~/Developer/dot-sentry/roles/ai/files/harness/kura/catalog/bundles",
+        "~/Developer/dot-sentry/roles/ai/files/harness/adapters/claude/settings.json"
       ]
     },
     "enableWeakerNetworkIsolation": false,

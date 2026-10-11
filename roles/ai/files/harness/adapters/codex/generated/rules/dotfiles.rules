@@ -396,3 +396,27 @@ prefix_rule(
     decision = "forbidden",
     justification = "denied by dotfiles policy: lazydocker",
 )
+
+prefix_rule(
+    pattern = ["sentry", "auth"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: sentry auth",
+)
+
+prefix_rule(
+    pattern = ["sentry", "auth", "login"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: sentry auth login",
+)
+
+prefix_rule(
+    pattern = ["sentry", "auth", "logout"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: sentry auth logout",
+)
+
+prefix_rule(
+    pattern = ["sentry", "auth", "token"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: sentry auth token",
+)
