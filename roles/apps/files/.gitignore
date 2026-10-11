@@ -6,3 +6,13 @@
 **/.claude/.cc-writes/
 **/.claude/state/
 **/.claude/claude-kit.json
+
+# Secrets
+.env
+.env.*
+!.env.sample
+!.env.example
+!.env.template
+!.env.dist
+*.pem
+*-key.json

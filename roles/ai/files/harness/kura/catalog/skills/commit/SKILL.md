@@ -70,7 +70,7 @@ Two bundled scripts do the mechanical work in one call each; don't re-run git fo
    ```json
    {"commits": [{"files": ["src/a.ts", "src/b.ts"], "message": "feat(x): subject\n\n- why bullet"}]}
    ```
-   Newlines inside `message` are `\n` escapes; keep entries in plan order. Then run `python3 ~/.claude/skills/commit/scripts/apply.py <plan path>`. It validates every entry up front (attribution lines, em/en dashes, `.claude/tasks/`, secret-looking files, header length), then stages each file group and commits it with `-F`, stops on the first failure leaving that group staged, and prints the final log.
+   Newlines inside `message` are `\n` escapes; keep entries in plan order. Then run `python3 ~/.claude/skills/commit/scripts/apply.py <plan path>`. It validates every entry up front (attribution lines, em/en dashes, `.claude/tasks/`, secret-looking files other than `.sample`/`.example`/`.template`/`.dist`, header length), then stages each file group and commits it with `-F`, stops on the first failure leaving that group staged, and prints the final log.
    - **Hunk splits**: `apply.py` stages whole files only. Commit a mixed-concern entry manually instead: `git add -p <file>`, **Write** the message to `/tmp/claude/commit-msg-<repo>-<suffix>.txt`, then `git commit -F <that file>`. Never inline `-m` and never a HEREDOC (the harness escapes `!` and other shell-special chars; the Write tool bypasses the shell).
    - **Never** `--no-verify`. On a pre-commit hook failure, surface the full output and stop: don't retry, don't continue until it's resolved.
    - **Never** `--amend` unless the user explicitly typed the word "amend".
@@ -78,5 +78,5 @@ Two bundled scripts do the mechanical work in one call each; don't re-run git fo
 ## Rules
 
 - Subject prefixes follow `@commitlint/config-conventional` (`feat`, not `feature`; lower-case type and scope; non-empty type + subject; no trailing full-stop; header ≤ 100).
-- Never stage *cleartext* secrets (`.env`, `*.pem`, `*-key.json`, `credentials*`): warn and exclude by default. Vault-encrypted files (e.g. `vars/secrets.yml`) are meant to be committed and are fine.
+- Never stage *cleartext* secrets (`.env`, `*.pem`, `*-key.json`, `credentials*`): warn and exclude by default. The global gitignore makes `git add` refuse most of them; never answer that refusal with `git add -f`, ask the user. Vault-encrypted files (e.g. `vars/secrets.yml`) are meant to be committed and are fine.
 - Never stage local-only Claude state (`.claude/tasks/` above all; hook and `apply.py` both hard-block it).
