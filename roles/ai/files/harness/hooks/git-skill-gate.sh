@@ -37,8 +37,14 @@ and they are not all handled in the same direction.
 
 `skills/commit/scripts/apply.py` commits and `skills/pr/scripts/apply.py`
 pushes, neither carrying the token that would name it, so both are gated
-by path (WRAPPER_SCRIPTS) and need their owning skill like any other
-commit or push.
+by path (WRAPPER_SCRIPTS). The pr script needs /pr like any other push.
+The commit script has its own key, allowed under /commit or /pr: when
+/commit and /pr are invoked back to back, the turns that run the commit
+script are stamped `pr`, the later of the two, so a /commit-only key
+refused real commit flows. A raw `git commit` still needs /commit, so /pr
+buys only the validated commit path. The staged `.claude/tasks/` block
+covers the commit script too; its plan's messages are checked by the
+script itself, since the hook never sees them on the command line.
 
 `s-task` (~/.local/bin/s-task, from this repo's `work` role) pushes, and
 that push is deliberately allowed rather than gated. It exists so a
@@ -84,8 +90,10 @@ import sys
 from pathlib import Path
 
 WINDOW_EVENTS = 30
+COMMIT_SCRIPT = "skills/commit/scripts/apply.py"
 SKILLS_FOR_SUBCOMMAND = {
     "git commit": {"commit"},
+    COMMIT_SCRIPT: {"commit", "pr"},
     "git push": {"pr"},
     "gh pr create": {"pr"},
     "glab mr create": {"pr"},
@@ -96,9 +104,10 @@ SKILLS_FOR_SUBCOMMAND = {
 # via an interpreter) gets the same gate by path. Only execution positions
 # are checked: a `wc -c .../apply.py` must not trip the gate.
 WRAPPER_SCRIPTS = (
-    (re.compile(r"(^|/)skills/commit/scripts/apply\.py$"), "git commit"),
+    (re.compile(r"(^|/)skills/commit/scripts/apply\.py$"), COMMIT_SCRIPT),
     (re.compile(r"(^|/)skills/pr/scripts/apply\.py$"), "git push"),
 )
+COMMITTING = {"git commit", COMMIT_SCRIPT}
 INTERPRETERS = {"bash", "sh", "zsh", "python", "python3"}
 
 OPTIONS_WITH_SEPARATE_ARG = {
@@ -401,7 +410,7 @@ def main():
     if not gated:
         sys.exit(0)
 
-    if "git commit" in gated:
+    if COMMITTING.intersection(gated):
         for chunk, key in keyed:
             if key != "git commit":
                 continue

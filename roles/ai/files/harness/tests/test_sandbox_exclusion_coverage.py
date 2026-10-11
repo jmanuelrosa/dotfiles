@@ -26,6 +26,12 @@ CLAUDE_RULE_RE = re.compile(r"^Bash\((.*)\)$")
 
 GATED = {
     "git *": ("git-skill-gate", "git push origin main"),
+    "python3 ~/.claude/skills/commit/scripts/apply.py *": (
+        "git-skill-gate", "python3 ~/.claude/skills/commit/scripts/apply.py plan.json",
+    ),
+    "python3 ~/.claude/skills/pr/scripts/apply.py *": (
+        "git-skill-gate", "python3 ~/.claude/skills/pr/scripts/apply.py plan.json",
+    ),
     "gh *": ("cli-egress-gate", "gh gist create notes.txt"),
     "glab *": ("cli-egress-gate", "glab snippet create -t notes notes.txt"),
     "ntn *": ("cli-egress-gate", "ntn files create"),
@@ -36,17 +42,7 @@ GATED = {
     "bq *": ("cloud-readonly-gate", "bq rm -f dataset.table"),
 }
 
-SKILL_SCRIPT_GAP = (
-    "The skill's own script, which commits or pushes and opens the PR/MR in a subprocess no hook sees. "
-    "git-skill-gate matches it by path, but its claude_if routes only git, gh and glab to it, so "
-    "under Claude the path match never runs. Widening claude_if is not safe yet: across past "
-    "sessions, 39 of 136 real runs had no owning-skill attribution in the gate's window, most of "
-    "them /pr running the commit script, so the widened gate would have refused them."
-)
-
 EXEMPT = {
-    "python3 ~/.claude/skills/commit/scripts/apply.py *": SKILL_SCRIPT_GAP,
-    "python3 ~/.claude/skills/pr/scripts/apply.py *": SKILL_SCRIPT_GAP,
     "pgcli *": "Reaches only the database a connection names and publishes nothing beyond it.",
     "acli *": "Writes land in the user's own Atlassian site, readable by its members, not the public.",
     "sentry *": "Reads and resolves issues in the user's own Sentry org; nothing it writes is public.",
