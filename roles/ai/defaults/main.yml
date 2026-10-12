@@ -19,7 +19,6 @@ BREW_PACKAGES:
     - claude-code@latest
     # - codex
     - cursor
-    - ollama-app
 
 # Directories symlinked into Pi's global extension root. Every entry contains the
 # auto-discovered index.ts and a README; claude-ui is deliberately not active.
