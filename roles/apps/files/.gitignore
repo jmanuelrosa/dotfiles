@@ -16,3 +16,7 @@
 !.env.dist
 *.pem
 *-key.json
+# Exact names only: `credentials*` would also hide source files like credentials.ts in every repo.
+credentials
+credentials.json
+credentials.csv
