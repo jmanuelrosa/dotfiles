@@ -28,6 +28,7 @@ Most plays prompt for the vault password (decrypts `vars/secrets.yml` / `vars/wo
 | `make harness-check` | Name the rendered files or owned keys that drifted from the policy |
 | `make harness-apply` | Merge the policy into `~/.codex/config.toml` and install the Codex rules; `CHECK=1` only reports |
 | `make harness-report` | List the policy rules each harness cannot carry |
+| `make skill-drift` | List the upstream commits since each pinned skill SHA that touch a vendored skill. Read-only, but needs a `gh` login and the network |
 | `make deps` | Install pinned collections from [requirements.yml](requirements.yml) |
 
 VM-based fresh-install testing uses [Tart](https://github.com/cirruslabs/tart): `make vm-create`, `make vm-start`, `make vm-ssh`, `make vm-destroy`.

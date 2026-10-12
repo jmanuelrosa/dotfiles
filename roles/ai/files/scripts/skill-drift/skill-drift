@@ -1,0 +1,251 @@
+#!/usr/bin/env python3
+"""Which upstream commits a pinned skill would pick up, before anyone bumps the pin.
+
+skill-registry.json pins every upstream repository to a commit SHA in its `branch` field,
+so `kura update` never pulls an upstream HEAD nobody reviewed. The price is that kura can
+no longer tell a pinned repository has moved: `kura outdated` compares the vendored bytes
+against that same SHA. This closes the gap, read-only. For each upstream it compares the
+pin with the tip of the branch the repository tracks, and lists only the new commits that
+touch a vendored `upstream_path`, since most commits to a skills monorepo are for skills
+nobody here vendors.
+
+    skill-drift                                  every upstream in the registry
+    skill-drift --registry R --tracks T          against other files
+
+The tracked branch comes from the table in docs/internals/skill-registry.md, because the
+registry schema forbids an extra key on an upstream entry. An upstream with no row there
+is an error rather than a silent `main`.
+
+Every request goes through `gh api`, so it needs a logged-in gh and the network.
+"""
+
+import argparse
+import json
+import re
+import shutil
+import subprocess
+import sys
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field
+from pathlib import Path
+from urllib.parse import urlencode
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dotkit import ui  # noqa: E402
+
+# This file sits at roles/ai/files/scripts/skill-drift/, and resolve() follows the
+# ~/.local/bin link back into the checkout.
+HERE = Path(__file__).resolve().parent
+REGISTRY = HERE.parents[1] / "harness/kura/catalog/skill-registry.json"
+TRACKS = HERE.parents[4] / "docs/internals/skill-registry.md"
+
+TRACKS_HEADER = re.compile(r"^\|\s*Upstream\s*\|\s*Tracks\s*\|\s*$")
+TRACKS_ROW = re.compile(r"^\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|\s*$")
+FULL_SHA = re.compile(r"[0-9a-f]{40}")
+
+# GitHub's largest page. The compare endpoint names at most this many changed files for
+# the whole comparison, so a list that long may be truncated and cannot rule a path out.
+PAGE = 100
+FILES_CAP = 300
+SHORT_SHA = 7
+WORKERS = 8
+
+EXIT_OK = 0
+EXIT_FAILED = 1
+EXIT_USAGE = 2
+
+
+class GhError(Exception):
+    pass
+
+
+@dataclass
+class Upstream:
+    repo: str
+    pin: str
+    branch: str
+    paths: list
+
+
+@dataclass
+class Commit:
+    sha: str
+    subject: str
+    paths: list
+
+
+@dataclass
+class Drift:
+    upstream: Upstream
+    ahead: int = 0
+    behind: int = 0
+    relevant: list = field(default_factory=list)
+    error: str = ""
+
+
+def gh(endpoint):
+    """Every page of a GET, as a list of pages, whatever shape each page has."""
+    result = subprocess.run(
+        ["gh", "api", endpoint, "--paginate", "--slurp"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode:
+        lines = result.stderr.strip().splitlines()
+        raise GhError(lines[-1] if lines else f"gh exited {result.returncode}")
+    return json.loads(result.stdout)
+
+
+def repo_name(key):
+    return key.rstrip("/")
+
+
+def read_tracks(path):
+    """The Upstream | Tracks table, as {repo: branch}."""
+    tracks = {}
+    in_table = False
+    for line in path.read_text().splitlines():
+        if TRACKS_HEADER.match(line):
+            in_table = True
+            continue
+        if not in_table:
+            continue
+        if not line.startswith("|"):
+            break
+        row = TRACKS_ROW.match(line)
+        if row:
+            tracks[repo_name(row.group(1))] = row.group(2)
+    return tracks
+
+
+def read_upstreams(registry, tracks):
+    data = json.loads(registry.read_text())
+    upstreams, untracked = [], []
+    for key, entry in data.get("upstream", {}).items():
+        repo = repo_name(key)
+        if repo not in tracks:
+            untracked.append(repo)
+            continue
+        paths = [skill["upstream_path"].strip("/") for skill in entry.get("skills", [])]
+        upstreams.append(Upstream(repo, entry["branch"], tracks[repo], paths))
+    return upstreams, untracked
+
+
+def within(filename, path):
+    return filename == path or filename.startswith(path + "/")
+
+
+def touched_paths(paths, files):
+    """The vendored paths a comparison's changed files reach, renames included."""
+    if len(files) >= FILES_CAP:
+        return list(paths)
+    names = {f["filename"] for f in files}
+    names |= {f["previous_filename"] for f in files if f.get("previous_filename")}
+    return [p for p in paths if any(within(name, p) for name in names)]
+
+
+def path_history(upstream, path):
+    query = urlencode({"sha": upstream.branch, "path": path, "per_page": PAGE})
+    pages = gh(f"repos/{upstream.repo}/commits?{query}")
+    return {commit["sha"] for page in pages for commit in page}
+
+
+def drift(upstream):
+    report = Drift(upstream)
+    try:
+        pages = gh(
+            f"repos/{upstream.repo}/compare/{upstream.pin}...{upstream.branch}?per_page={PAGE}"
+        )
+        first = pages[0]
+        report.ahead = first.get("ahead_by", 0)
+        report.behind = first.get("behind_by", 0)
+        if not report.ahead:
+            return report
+        commits = [commit for page in pages for commit in page.get("commits", [])]
+        reached = {}
+        for path in touched_paths(upstream.paths, first.get("files", [])):
+            for sha in path_history(upstream, path):
+                reached.setdefault(sha, []).append(path)
+    except GhError as error:
+        report.error = str(error)
+        return report
+    for commit in commits:
+        if commit["sha"] in reached:
+            subject = commit["commit"]["message"].splitlines()[0]
+            report.relevant.append(Commit(commit["sha"], subject, reached[commit["sha"]]))
+    return report
+
+
+def plural(count, noun):
+    return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
+
+
+def show(report):
+    upstream = report.upstream
+    name, branch = upstream.repo, upstream.branch
+    if report.error:
+        ui.err(f"{name}: {report.error}")
+        return
+    if report.behind:
+        ui.warn(f"{name}: the pinned commit is not on {branch}")
+        ui.note(f"{plural(report.behind, 'commit')} behind the pin were rewritten or dropped")
+    if not report.ahead:
+        if not report.behind:
+            ui.ok(f"{name}: up to date with {branch}")
+        return
+    new = plural(report.ahead, "new commit")
+    if not report.relevant:
+        ui.ok(f"{name}: {new} on {branch}, none touch a vendored skill")
+        return
+    verb = "touches" if len(report.relevant) == 1 else "touch"
+    ui.warn(f"{name}: {len(report.relevant)} of {new} on {branch} {verb} a vendored skill")
+    for commit in report.relevant:
+        ui.item(f"{commit.sha[:SHORT_SHA]} {commit.subject}")
+        ui.note(", ".join(commit.paths), indent=4)
+    ui.note(f"https://github.com/{name}/compare/{upstream.pin[:SHORT_SHA]}...{branch}")
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        prog="skill-drift",
+        description="List upstream commits since each pinned skill SHA that touch a vendored skill.",
+    )
+    parser.add_argument("--registry", type=Path, default=REGISTRY)
+    parser.add_argument("--tracks", type=Path, default=TRACKS)
+    args = parser.parse_args(argv)
+    # A failed upstream reports on stderr, mid-listing. Piped, stdout would otherwise
+    # hold the listing back and print every failure above the title.
+    sys.stdout.reconfigure(line_buffering=True)
+
+    if not shutil.which("gh"):
+        ui.err("gh is not installed")
+        return EXIT_USAGE
+
+    tracks = read_tracks(args.tracks)
+    upstreams, untracked = read_upstreams(args.registry, tracks)
+    if untracked:
+        for repo in untracked:
+            ui.err(f"{repo}: no row in the Tracks table of {ui.path(args.tracks)}")
+        return EXIT_USAGE
+
+    pinned = [u for u in upstreams if FULL_SHA.fullmatch(u.pin)]
+    ui.title("🔄 Upstream skill drift")
+    for upstream in upstreams:
+        if upstream not in pinned:
+            ui.warn(f"{upstream.repo}: `{upstream.pin}` is not a commit SHA, skipped")
+    with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+        reports = list(pool.map(drift, pinned))
+    for report in reports:
+        show(report)
+
+    failed = sum(1 for r in reports if r.error)
+    moved = sum(1 for r in reports if r.relevant)
+    summary = f"{moved} of {plural(len(upstreams), 'upstream')} with changes to review"
+    if failed:
+        summary += f", {failed} failed"
+    ui.done(summary)
+    return EXIT_FAILED if failed else EXIT_OK
+
+
+if __name__ == "__main__":
+    sys.exit(main())
