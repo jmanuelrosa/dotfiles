@@ -18,7 +18,7 @@
       ]
     },
     "addyosmani/agent-skills": {
-      "branch": "807bba68af6876c8782582947410ebb055c6067a",
+      "branch": "1be8e34187e34647bb83adc3a1323b26ae6f6abe",
       "skills": [
         {
           "upstream_path": "skills/idea-refine",
@@ -85,7 +85,7 @@
             "pm",
             "documentation"
           ],
-          "updated_at": "2026-10-05T18:49:02Z"
+          "updated_at": "2026-10-12T14:42:15Z"
         },
         {
           "upstream_path": "skills/code-simplification",
@@ -202,7 +202,7 @@
       ]
     },
     "cursor/plugins/": {
-      "branch": "b0b9c7a0baf8b6aa1d00bf77d4101e577d4ba411",
+      "branch": "1b6d44ff26d4e242f4e8f68c391e6d2f7ca16def",
       "skills": [
         {
           "upstream_path": "pstack/skills/unslop",
@@ -211,7 +211,7 @@
             "prompt engineering",
             "refactoring"
           ],
-          "updated_at": "2026-09-23T18:45:27Z"
+          "updated_at": "2026-10-12T14:42:18Z"
         }
       ]
     },
@@ -688,7 +688,7 @@
       ]
     },
     "honojs/skills": {
-      "branch": "5becff424255f5d1ec1b4f7b93b6f3480e55783b",
+      "branch": "f8ecd013542968e4e00d5615594ddf6455bd857a",
       "skills": [
         {
           "upstream_path": "skills/hono",
@@ -697,7 +697,7 @@
             "backend",
             "hono"
           ],
-          "updated_at": "2026-10-08T11:08:18Z"
+          "updated_at": "2026-10-12T14:42:18Z"
         }
       ]
     },
