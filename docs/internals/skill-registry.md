@@ -10,6 +10,7 @@ A skill that exists *only* to satisfy another skill's `dependencies` (e.g. `gril
 **Upstream `branch` values are commit SHAs on purpose.**
 Kura only uses `branch` to build `https://github.com/<repo>/archive/<branch>.tar.gz`, so a full 40-character SHA works there, and it means `kura update` can never pull an upstream HEAD nobody reviewed.
 The schema forbids extra keys on an upstream entry, so the SHA replaces the branch name rather than sitting beside it, and the table below records the branch each repo tracks.
+`make skill-drift` says which pins are worth bumping: it compares each pin with the tip of the branch below and lists only the new commits that touch a vendored `upstream_path`.
 To bump one, resolve the tracked branch's current SHA with `gh api repos/<owner>/<repo>/commits/<branch> --jq .sha` (drop any trailing `/` from the registry key), replace the `branch` value, run `kura outdated --type skill`, then `kura update --type skill`, and review the diff before committing.
 `apollo-client` and `graphql-operations` always report as behind, because their `allowed-tools` frontmatter line is stripped locally; re-strip it after any update.
 

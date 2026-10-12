@@ -47,6 +47,7 @@ PI_EXTENSIONS:
 # at all and silently install no tools. Naming them also drops the `when` guard that
 # used to keep the README off PATH, and gates per tool instead of per role.
 AI_SCRIPTS:
+  - skill-drift
   - tokencost
 
 # kura manages skills through harness/kura/catalog and is no longer developed here, so it

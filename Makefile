@@ -1,4 +1,4 @@
-.PHONY: deps lint syntax check check-role run run-role test verify harness harness-check harness-apply harness-report vm-create vm-start vm-ssh vm-destroy
+.PHONY: deps lint syntax check check-role run run-role test verify harness harness-check harness-apply harness-report skill-drift vm-create vm-start vm-ssh vm-destroy
 
 # Active profile. Override at the CLI: `make run PROFILE=work`.
 PROFILE ?= personal
@@ -48,6 +48,11 @@ harness-apply:
 # Every policy rule a harness receives no counterpart for.
 harness-report:
 	PYTHONDONTWRITEBYTECODE=1 $(HARNESS_BUILD) report
+
+# Upstream commits since each pinned skill SHA that touch a vendored skill. Read-only,
+# but it calls the GitHub API through gh, so it needs a login and the network.
+skill-drift:
+	PYTHONDONTWRITEBYTECODE=1 roles/ai/files/scripts/skill-drift/skill-drift
 
 syntax:
 	ansible-playbook --syntax-check --inventory inventory.yml --ask-vault-password --extra-vars "profile=$(PROFILE)" dotfiles.yml
