@@ -271,9 +271,8 @@ def test_the_repo_root_claude_md_imports_the_shared_agents_md():
 SKILL_KEYS_PI_IGNORES = ("allowed-tools", "effort")
 
 CLAUDE_ONLY_SKILL_FRONTMATTER = {
-    "ac", "agent-writer", "apollo-client", "cloudflare", "coderabbit", "commit",
-    "graphql-operations", "humanizer", "jira", "pr", "product-lead", "research",
-    "setup-review",
+    "ac", "agent-writer", "cloudflare", "coderabbit", "commit", "humanizer", "jira",
+    "pr", "product-lead", "research", "setup-review",
     "0-refine-idea", "1-research", "2-write-prd", "3-red-team", "4-tech-shape",
     "5-decompose", "6-verify", "7-push-to-board", "8-living-spec", "setup-strategy",
 }
