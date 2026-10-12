@@ -394,6 +394,31 @@ def test_every_registered_skill_has_a_source_on_disk():
     assert missing == [], f"registered skills with no directory: {missing}"
 
 
+def upstream_skill_dirs():
+    registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
+    for repo in registry["upstream"].values():
+        for entry in repo["skills"]:
+            yield SKILLS / entry.get("name", entry["upstream_path"].rstrip("/").rsplit("/", 1)[-1])
+
+
+def test_no_upstream_skill_grants_itself_bash():
+    """In Claude Code `allowed-tools` runs the listed tools without a prompt for the
+    turn, so a vendored skill naming Bash pre-approves commands nobody here reviewed.
+    `kura update` replaces an upstream tree wholesale, which is how a stripped line
+    comes back."""
+    offenders = []
+    for skill in upstream_skill_dirs():
+        block = frontmatter(skill / "SKILL.md")
+        granted = (yaml.safe_load(block) if block else {}).get("allowed-tools") or []
+        if "Bash" in " ".join(map(str, granted if isinstance(granted, list) else [granted])):
+            offenders.append(skill.name)
+    assert offenders == [], (
+        f"upstream skills granting themselves Bash: {', '.join(offenders)}. "
+        "Upstream reintroduced the line; strip `allowed-tools` from the frontmatter "
+        "again after `kura update`."
+    )
+
+
 def test_to_plan_dependencies_have_registered_sources():
     registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
     entries = {entry["name"]: entry for entry in registry["local"]}
