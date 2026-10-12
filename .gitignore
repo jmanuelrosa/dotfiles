@@ -8,6 +8,11 @@ docs/specs
 docs/research
 /tasks
 
+# Per-checkout harness installs and session state
+/.agents/
+/.claude/
+/.pi/agents/
+
 # logs
 *.log
 .DS_Store
