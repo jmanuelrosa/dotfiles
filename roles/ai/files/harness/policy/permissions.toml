@@ -185,6 +185,24 @@ deny = [
   "sentry auth logout *",
   "sentry auth token",
   "sentry auth token *",
+  # The vendored expo-* skills tell the agent to send its own account of the session
+  # (paths, snippets, errors) to Expo through an unpinned package. Denied here rather
+  # than in the skills so `kura update` cannot bring it back. Claude and Pi enforce the
+  # globs; Codex reads only a token prefix, so the npx and bunx spellings are listed bare.
+  "bunx *submit-expo-feedback*",
+  "npm *submit-expo-feedback*",
+  "npx *submit-expo-feedback*",
+  "pnpm *submit-expo-feedback*",
+  "pnpx *submit-expo-feedback*",
+  "yarn *submit-expo-feedback*",
+  "bunx submit-expo-feedback",
+  "bunx submit-expo-feedback@latest",
+  "npx --yes submit-expo-feedback",
+  "npx --yes submit-expo-feedback@latest",
+  "npx -y submit-expo-feedback",
+  "npx -y submit-expo-feedback@latest",
+  "npx submit-expo-feedback",
+  "npx submit-expo-feedback@latest",
 ]
 
 [paths]

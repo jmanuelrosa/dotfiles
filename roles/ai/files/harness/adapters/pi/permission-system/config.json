@@ -594,6 +594,62 @@
       "sentry auth token *": {
         "action": "deny",
         "reason": "denied by Claude Code policy: Bash(sentry auth token *)"
+      },
+      "bunx *submit-expo-feedback*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(bunx *submit-expo-feedback*)"
+      },
+      "npm *submit-expo-feedback*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(npm *submit-expo-feedback*)"
+      },
+      "npx *submit-expo-feedback*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(npx *submit-expo-feedback*)"
+      },
+      "pnpm *submit-expo-feedback*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(pnpm *submit-expo-feedback*)"
+      },
+      "pnpx *submit-expo-feedback*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(pnpx *submit-expo-feedback*)"
+      },
+      "yarn *submit-expo-feedback*": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(yarn *submit-expo-feedback*)"
+      },
+      "bunx submit-expo-feedback": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(bunx submit-expo-feedback)"
+      },
+      "bunx submit-expo-feedback@latest": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(bunx submit-expo-feedback@latest)"
+      },
+      "npx --yes submit-expo-feedback": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(npx --yes submit-expo-feedback)"
+      },
+      "npx --yes submit-expo-feedback@latest": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(npx --yes submit-expo-feedback@latest)"
+      },
+      "npx -y submit-expo-feedback": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(npx -y submit-expo-feedback)"
+      },
+      "npx -y submit-expo-feedback@latest": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(npx -y submit-expo-feedback@latest)"
+      },
+      "npx submit-expo-feedback": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(npx submit-expo-feedback)"
+      },
+      "npx submit-expo-feedback@latest": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(npx submit-expo-feedback@latest)"
       }
     },
     "path_read": {
