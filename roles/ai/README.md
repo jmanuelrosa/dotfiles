@@ -24,12 +24,11 @@ The rules, the per-harness translations and what each one loses are in [harnesse
 
 ## What it does
 
-- Installs pi-coding-agent, rtk and uv, plus casks for ChatGPT, Claude, Claude Code, Codex, Cursor and Ollama, via `BREW_PACKAGES`.
+- Installs pi-coding-agent, rtk and uv, plus casks for ChatGPT, Claude, Claude Code, Codex and Cursor, via `BREW_PACKAGES`.
 - Links each enabled harness's files from `HARNESS_LINKS`: `~/.claude/` for Claude Code, `~/.pi/agent/` for Pi, `~/.codex/` for Codex. Kura owns the global skill and agent links. The neutral `AGENTS.md` is Claude's `~/.claude/CLAUDE.md`, Pi's `~/.pi/agent/AGENTS.md` and Codex's `~/.codex/AGENTS.md`.
 - Renders the shared `mcp.json` with Pi's Slack OAuth settings into `adapters/pi/generated/mcp.json` and links it to Pi's native `~/.pi/agent/mcp.json`. Claude and Codex receive both shared servers. Notion's existing MCP tool denies remain in force for Claude and Pi. Run `pi mcp list`, sign in with `pi mcp login <server>` as needed, then `/reload` in Pi.
 - Runs `harness-build apply` for each enabled harness among Claude and Codex. For Claude it merges the shared MCP servers into `~/.claude.json`. For Codex it merges owned keys and MCP server names into `~/.codex/config.toml` and writes `~/.codex/rules/dotfiles.rules` as a real file. Neither is a link, because Codex writes both locations itself. After a first run, trust the two hooks once in Codex's `/hooks`.
 - Configures Pi to call Ollama Cloud directly through `models.json`, without `pi-ollama-cloud` or a local Ollama server. `nemotron-3-ultra` and `gpt-oss:120b` are enabled as coding models available on the free account. In Pi, run `/login`, choose API key authentication, select `ollama-cloud`, and paste a key from the Ollama account settings.
-- The Ollama app uses its own account session: run `ollama signin` after provisioning when using the CLI or desktop app.
 - Pi's Cursor models come from the `npm:pi-cursor-sdk` package in `adapters/pi/settings.json`, not from a `cursor` block in `models.json`, which is only for HTTP APIs Pi already speaks. Auth is a Cursor SDK API key saved once with `/login` (or `CURSOR_API_KEY`), then `/cursor-refresh-models` if you logged in after startup. Desktop/CLI login is not reused, and the key stays out of the repo.
 - Cursor-backed tool failures only ever show a canned reason (`missing completion`, `aborted`, `SDK run failed`, `run ended during drain`). `pi_debug` and `pi_last_error`, from the shell role's fish functions, launch pi with the package's debug capture on and print the real error back afterward.
 - Links `adapters/pi/APPEND_SYSTEM.md` rather than a `SYSTEM.md`, because Pi reads the latter as a *replacement* for its own system prompt.
