@@ -420,3 +420,51 @@ prefix_rule(
     decision = "forbidden",
     justification = "denied by dotfiles policy: sentry auth token",
 )
+
+prefix_rule(
+    pattern = ["bunx", "submit-expo-feedback"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: bunx submit-expo-feedback",
+)
+
+prefix_rule(
+    pattern = ["bunx", "submit-expo-feedback@latest"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: bunx submit-expo-feedback@latest",
+)
+
+prefix_rule(
+    pattern = ["npx", "--yes", "submit-expo-feedback"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: npx --yes submit-expo-feedback",
+)
+
+prefix_rule(
+    pattern = ["npx", "--yes", "submit-expo-feedback@latest"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: npx --yes submit-expo-feedback@latest",
+)
+
+prefix_rule(
+    pattern = ["npx", "-y", "submit-expo-feedback"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: npx -y submit-expo-feedback",
+)
+
+prefix_rule(
+    pattern = ["npx", "-y", "submit-expo-feedback@latest"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: npx -y submit-expo-feedback@latest",
+)
+
+prefix_rule(
+    pattern = ["npx", "submit-expo-feedback"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: npx submit-expo-feedback",
+)
+
+prefix_rule(
+    pattern = ["npx", "submit-expo-feedback@latest"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: npx submit-expo-feedback@latest",
+)

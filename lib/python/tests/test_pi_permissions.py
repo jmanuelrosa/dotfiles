@@ -146,6 +146,31 @@ def test_the_destructive_commands_resolve_to_deny_and_not_merely_appear():
         assert resolve(bash, command) == "deny", f"{command} is not denied"
 
 
+EXPO_FEEDBACK_UPLOADS = (
+    'npx --yes submit-expo-feedback@latest --category skills --subject "expo-router" "paths and errors"',
+    "npx -y submit-expo-feedback@1.2.0 --subject x y",
+    "npx submit-expo-feedback y",
+    "bunx submit-expo-feedback@latest y",
+    "pnpm dlx submit-expo-feedback y",
+    "pnpx submit-expo-feedback y",
+    "yarn dlx submit-expo-feedback@latest y",
+    "npm exec --yes -- submit-expo-feedback y",
+)
+
+
+def test_the_expo_feedback_upload_resolves_to_deny_under_every_launcher():
+    """The expo skills are vendored and refreshed by `kura update`, so the policy is what holds."""
+    bash = policy()["bash"]
+    for command in EXPO_FEEDBACK_UPLOADS:
+        assert resolve(bash, command) == "deny", f"{command} is not denied"
+
+
+def test_claude_carries_the_expo_feedback_denies():
+    deny = claude_settings()["permissions"]["deny"]
+    for launcher in ("bunx", "npm", "npx", "pnpm", "pnpx", "yarn"):
+        assert f"Bash({launcher} *submit-expo-feedback*)" in deny
+
+
 FORCE_AFTER_THE_REMOTE = (
     "git push origin main --force",
     "git push origin feature -f",

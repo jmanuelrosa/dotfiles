@@ -126,6 +126,18 @@ def test_every_command_deny_is_a_rule_or_reported():
             assert f"pattern = {json.dumps(tokens)}," in rules
 
 
+def test_codex_forbids_the_expo_feedback_upload_the_skills_spell():
+    """Codex has no glob, so only the bare npx and bunx prefixes reach it."""
+    rules = emit_codex.rules(manifest.load(ROOT))
+    for tokens in (
+        ["npx", "--yes", "submit-expo-feedback@latest"],
+        ["npx", "-y", "submit-expo-feedback"],
+        ["npx", "submit-expo-feedback@latest"],
+        ["bunx", "submit-expo-feedback"],
+    ):
+        assert f"pattern = {json.dumps(tokens)}," in rules
+
+
 def test_a_pattern_and_its_trailing_star_form_are_one_rule():
     policy = manifest.load(ROOT)
     assert emit_codex.rules(policy).count('pattern = ["lazygit"],') == 1
@@ -185,6 +197,7 @@ def test_codex_itself_forbids_what_the_rules_forbid(tmp_path):
 
     assert decision("git", "push", "--force", "origin", "x") == "forbidden"
     assert decision("sudo", "ls") == "forbidden"
+    assert decision("npx", "--yes", "submit-expo-feedback@latest", "--category", "skills") == "forbidden"
     assert decision("git", "push", "origin", "feature") is None
 
 
