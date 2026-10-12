@@ -3,7 +3,7 @@
   "version": 3,
   "upstream": {
     "anthropics/claude-plugins-official": {
-      "branch": "main",
+      "branch": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
       "skills": [
         {
           "upstream_path": "plugins/frontend-design/skills/frontend-design",
@@ -18,7 +18,7 @@
       ]
     },
     "addyosmani/agent-skills": {
-      "branch": "main",
+      "branch": "807bba68af6876c8782582947410ebb055c6067a",
       "skills": [
         {
           "upstream_path": "skills/idea-refine",
@@ -137,7 +137,7 @@
       ]
     },
     "mattpocock/skills": {
-      "branch": "main",
+      "branch": "49dd158d1076134a641b33efb035946536778336",
       "skills": [
         {
           "upstream_path": "skills/productivity/handoff",
@@ -202,7 +202,7 @@
       ]
     },
     "cursor/plugins/": {
-      "branch": "main",
+      "branch": "b0b9c7a0baf8b6aa1d00bf77d4101e577d4ba411",
       "skills": [
         {
           "upstream_path": "pstack/skills/unslop",
@@ -216,7 +216,7 @@
       ]
     },
     "mcollina/skills": {
-      "branch": "main",
+      "branch": "72b72751477157ebda36203eaffac701ac5df5ae",
       "skills": [
         {
           "upstream_path": "skills/fastify",
@@ -250,7 +250,7 @@
       ]
     },
     "vercel-labs/agent-skills": {
-      "branch": "main",
+      "branch": "063bee94c3f4df8453406c830b0a7df0f2860278",
       "skills": [
         {
           "upstream_path": "skills/react-native-skills",
@@ -285,7 +285,7 @@
       ]
     },
     "DietrichGebert/ponytail/": {
-      "branch": "main",
+      "branch": "9b58c1ffb790c075ca32e70a89cf1d80588f4abf",
       "skills": [
         {
           "upstream_path": "skills/ponytail",
@@ -299,7 +299,7 @@
       ]
     },
     "wshobson/agents": {
-      "branch": "main",
+      "branch": "46891e7e60da0e52baf1050b7b6391b64e84c6d9",
       "skills": [
         {
           "upstream_path": "plugins/frontend-mobile-development/skills/tailwind-design-system",
@@ -331,7 +331,7 @@
       ]
     },
     "apollographql/skills": {
-      "branch": "main",
+      "branch": "5f02fcfcebec678e2e55777b639e32346622a963",
       "skills": [
         {
           "upstream_path": "skills/apollo-client",
@@ -354,7 +354,7 @@
       ]
     },
     "astrolicious/agent-skills": {
-      "branch": "main",
+      "branch": "cb4839f3794189ebf35c55d3ba5d3876dff7acf0",
       "skills": [
         {
           "upstream_path": "skills/astro",
@@ -368,7 +368,7 @@
       ]
     },
     "avdlee/swiftui-agent-skill": {
-      "branch": "main",
+      "branch": "204dba7c67256a8b707ee3fbc5759a824191974f",
       "skills": [
         {
           "upstream_path": "swiftui-expert-skill",
@@ -383,7 +383,7 @@
       ]
     },
     "avdlee/swift-concurrency-agent-skill": {
-      "branch": "main",
+      "branch": "d5770817d2622e1585b1f7eaebc791a9cb0959c8",
       "skills": [
         {
           "upstream_path": "swift-concurrency",
@@ -398,7 +398,7 @@
       ]
     },
     "avdlee/swift-testing-agent-skill": {
-      "branch": "main",
+      "branch": "798e9b1a2bcac164d4f0c781908199e754f0bab6",
       "skills": [
         {
           "upstream_path": "swift-testing-expert",
@@ -414,7 +414,7 @@
       ]
     },
     "brianlovin/agent-config": {
-      "branch": "main",
+      "branch": "1a9819ebf3fee811150fc76cbe177ea4e5f747ff",
       "skills": [
         {
           "upstream_path": "skills/knip",
@@ -440,7 +440,7 @@
       ]
     },
     "coreyhaines31/marketingskills": {
-      "branch": "main",
+      "branch": "1efedbc5148b54b2f0f6c6c9fe0be62e151c7fff",
       "skills": [
         {
           "upstream_path": "skills/copywriting",
@@ -477,7 +477,7 @@
       ]
     },
     "currents-dev/playwright-best-practices-skill": {
-      "branch": "main",
+      "branch": "283d5cbc5d11aac1abda058b16ad22c317d54dc0",
       "skills": [
         {
           "upstream_path": "playwright-best-practices",
@@ -492,7 +492,7 @@
       ]
     },
     "DeckardGer/tanstack-agent-skills": {
-      "branch": "main",
+      "branch": "b2fc14c974b2ca09b38de09c28237f240175205b",
       "skills": [
         {
           "upstream_path": "skills/tanstack-router",
@@ -507,7 +507,7 @@
       ]
     },
     "emilkowalski/skill": {
-      "branch": "main",
+      "branch": "2d228630ba1446365f614a108cb8252f1feda202",
       "skills": [
         {
           "upstream_path": "skills/emil-design-eng",
@@ -522,7 +522,7 @@
       ]
     },
     "expo/skills": {
-      "branch": "main",
+      "branch": "d4f484024fec15196bfd3c272e953e3f983972cf",
       "skills": [
         {
           "upstream_path": "plugins/expo/skills/expo-native-ui",
@@ -608,7 +608,7 @@
       ]
     },
     "getsentry/skills": {
-      "branch": "main",
+      "branch": "d18b7aa8ba878354e5c348310230e652f7690f9c",
       "skills": [
         {
           "upstream_path": "skills/skill-writer",
@@ -623,7 +623,7 @@
       ]
     },
     "hashicorp/agent-skills": {
-      "branch": "main",
+      "branch": "f706481af9b8fedb66de909f6243ad29601afa0c",
       "skills": [
         {
           "upstream_path": "plugins/terraform/skills/terraform-style-guide",
@@ -646,7 +646,7 @@
       ]
     },
     "kadajett/agent-nestjs-skills": {
-      "branch": "main",
+      "branch": "3986e0cede33958e000f959031cbee0cd83c2941",
       "skills": [
         {
           "upstream_path": "skills/nestjs-best-practices",
@@ -660,7 +660,7 @@
       ]
     },
     "remix-run/react-router": {
-      "branch": "main",
+      "branch": "dee9ad2dab41889e8fbdc6848b5781255d9f133a",
       "skills": [
         {
           "upstream_path": ".agents/skills/react-router",
@@ -674,7 +674,7 @@
       ]
     },
     "sickn33/antigravity-awesome-skills": {
-      "branch": "main",
+      "branch": "09e94102a5008d4d8066e14bdb8d0b95d365748c",
       "skills": [
         {
           "upstream_path": "skills/prisma-expert",
@@ -688,7 +688,7 @@
       ]
     },
     "honojs/skills": {
-      "branch": "main",
+      "branch": "5becff424255f5d1ec1b4f7b93b6f3480e55783b",
       "skills": [
         {
           "upstream_path": "skills/hono",
@@ -702,7 +702,7 @@
       ]
     },
     "pulumi/agent-skills": {
-      "branch": "main",
+      "branch": "2517e28e4bc029424e9c9ee48016394296be0f6a",
       "skills": [
         {
           "upstream_path": "pulumi/skills/pulumi-best-practices",
@@ -770,7 +770,7 @@
       ]
     },
     "neondatabase/agent-skills": {
-      "branch": "main",
+      "branch": "bfd013c352ed31b57a573e4f60263afc5fdd7f7a",
       "skills": [
         {
           "upstream_path": "skills/neon",
