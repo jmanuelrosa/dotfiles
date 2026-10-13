@@ -310,6 +310,7 @@ Authoring guidance for all three lives with the generators, and they are the fil
   "upstream": {
     "owner/repo": {
       "branch": "main",
+      "commit": "1be8e34187e34647bb83adc3a1323b26ae6f6abe",
       "skills": [
         {
           "upstream_path": "skills/some-skill",

@@ -1,48 +1,17 @@
 # Skill registry & dependencies
 
 
-Skills are tracked in [roles/ai/files/harness/kura/catalog/skill-registry.json](../../roles/ai/files/harness/kura/catalog/skill-registry.json): `upstream`, keyed by GitHub `owner/repo`, whose entries each carry a `branch` and the `skills` synced from it by `upstream_path`, and `local`, the skills authored here. A skill entry may declare `dependencies: [<name>, ...]` — other skills it invokes at runtime (e.g. the dispatcher `grill-me` runs `/grilling`, so it depends on `grilling`). Each named dependency must itself be a registered or on-disk skill.
+Skills are tracked in [roles/ai/files/harness/kura/catalog/skill-registry.json](../../roles/ai/files/harness/kura/catalog/skill-registry.json): `upstream`, keyed by GitHub `owner/repo`, whose entries each carry a `branch`, a pinned `commit` on it, and the `skills` synced from it by `upstream_path`, and `local`, the skills authored here. A skill entry may declare `dependencies: [<name>, ...]` — other skills it invokes at runtime (e.g. the dispatcher `grill-me` runs `/grilling`, so it depends on `grilling`). Each named dependency must itself be a registered or on-disk skill.
 
 `kura add` resolves a skill's transitive dependency closure, downloading and symlinking each into the project, and `kura list` annotates it `(needs: …)`. `kura sync` links the skills with `global: true` plus their declared dependencies, recursively, into `~/.claude/skills/` and `~/.agents/skills/`, so a global dispatcher skill never ships without the skills it calls. Declare dependencies in the registry, not in `SKILL.md` prose — the latter is overwritten on every `kura update --type skill`.
 
 A skill that exists *only* to satisfy another skill's `dependencies` (e.g. `grilling`, `domain-modeling`) carries `dependency_only: true`. It stays a normal tracked entry — synced by `update`/`outdated` and pulled automatically when the skill that needs it is added — but every browsing surface (`kura list`, `list --group`, `add --group`, `scout`, the Television picker) hides it and `kura add <name>` refuses it directly, pointing the user at the parent skill. `cat.visible` is the one implementation of that hiding, and the Television picker inherits it by reading `kura list --json` rather than filtering the registry itself. Resolution paths keep using the unfiltered set, or a dependency could never be installed. In Claude Code, harnessgen renders every `dependency_only` skill into `skillOverrides` as `name-only`: Claude no longer sees its description, so it is not picked up on its own, while the parent can still load it by name. Any other per-skill visibility goes in `[skill_overrides]` in the Claude adapter, never in an upstream `SKILL.md`.
 
-**Upstream `branch` values are commit SHAs on purpose.**
-Kura only uses `branch` to build `https://github.com/<repo>/archive/<branch>.tar.gz`, so a full 40-character SHA works there, and it means `kura update` can never pull an upstream HEAD nobody reviewed.
-The schema forbids extra keys on an upstream entry, so the SHA replaces the branch name rather than sitting beside it, and the table below records the branch each repo tracks.
-`make skill-drift` says which pins are worth bumping: it compares each pin with the tip of the branch below and lists only the new commits that touch a vendored `upstream_path`.
-To bump one, resolve the tracked branch's current SHA with `gh api repos/<owner>/<repo>/commits/<branch> --jq .sha` (drop any trailing `/` from the registry key), replace the `branch` value, run `kura outdated --type skill`, then `kura update --type skill`, and review the diff before committing.
+**Every upstream pins a `commit` beside the `branch` it tracks.**
+Kura fetches `https://github.com/<repo>/archive/<commit>.tar.gz` when `commit` is set, so `kura update` can never pull an upstream HEAD nobody reviewed, and `branch` only records where the pin was taken from.
+`make skill-drift` says which pins are worth bumping: it compares each `commit` with the tip of its `branch` and lists only the new commits that touch a vendored `upstream_path`.
+To bump one, resolve the branch's current SHA with `gh api repos/<owner>/<repo>/commits/<branch> --jq .sha` (drop any trailing `/` from the registry key), replace the `commit` value, run `kura outdated --type skill`, then `kura update --type skill`, and review the diff before committing.
 `apollo-client` and `graphql-operations` always report as behind, because their `allowed-tools` frontmatter line is stripped locally; re-strip it after any update.
-
-| Upstream | Tracks |
-|---|---|
-| `anthropics/claude-plugins-official` | `main` |
-| `addyosmani/agent-skills` | `main` |
-| `mattpocock/skills` | `main` |
-| `cursor/plugins/` | `main` |
-| `mcollina/skills` | `main` |
-| `vercel-labs/agent-skills` | `main` |
-| `DietrichGebert/ponytail/` | `main` |
-| `wshobson/agents` | `main` |
-| `apollographql/skills` | `main` |
-| `astrolicious/agent-skills` | `main` |
-| `avdlee/swiftui-agent-skill` | `main` |
-| `avdlee/swift-concurrency-agent-skill` | `main` |
-| `avdlee/swift-testing-agent-skill` | `main` |
-| `brianlovin/agent-config` | `main` |
-| `coreyhaines31/marketingskills` | `main` |
-| `currents-dev/playwright-best-practices-skill` | `main` |
-| `DeckardGer/tanstack-agent-skills` | `main` |
-| `emilkowalski/skill` | `main` |
-| `expo/skills` | `main` |
-| `getsentry/skills` | `main` |
-| `hashicorp/agent-skills` | `main` |
-| `kadajett/agent-nestjs-skills` | `main` |
-| `remix-run/react-router` | `main` |
-| `sickn33/antigravity-awesome-skills` | `main` |
-| `honojs/skills` | `main` |
-| `pulumi/agent-skills` | `main` |
-| `neondatabase/agent-skills` | `main` |
 
 Agent entries in [roles/ai/files/harness/kura/catalog/agent-registry.json](../../roles/ai/files/harness/kura/catalog/agent-registry.json) use `upstream` and `local` like the skill registry. Kura projects standalone agents with `global: true` and their declared skill dependencies into both harnesses with bare `kura sync`; `kura sync --type skill` leaves agent views unchanged. The AI role removes its old agent links, but never runs sync automatically.
 

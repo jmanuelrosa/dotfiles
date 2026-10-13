@@ -13,15 +13,14 @@ import sys
 
 import pytest
 
-from dotkit.testing import AI_SCRIPTS_DIR, SKILL_REGISTRY, REPO
+from dotkit.testing import AI_SCRIPTS_DIR, SKILL_REGISTRY
 
 SKILL_DRIFT = AI_SCRIPTS_DIR / "skill-drift" / "skill-drift"
-DOC_TRACKS = REPO / "docs/internals/skill-registry.md"
 
 EXIT_OK = 0
 EXIT_FAILED = 1
-EXIT_USAGE = 2
 
+SHORT = 7
 PIN = "a" * 40
 NEW = "b" * 40
 OLD = "c" * 40
@@ -75,18 +74,10 @@ def run(tmp_path):
     fake.chmod(0o755)
     log = tmp_path / "gh.log"
 
-    def invoke(upstreams, answers, tracks=None, registry=None, doc=None):
+    def invoke(upstreams, answers, registry=None):
         if registry is None:
             registry = tmp_path / "skill-registry.json"
             registry.write_text(json.dumps({"upstream": upstreams}))
-        if doc is None:
-            rows = tracks if tracks is not None else {repo: "main" for repo in upstreams}
-            doc = tmp_path / "skill-registry.md"
-            doc.write_text(
-                "Prose.\n\n| Upstream | Tracks |\n|---|---|\n"
-                + "".join(f"| `{repo}` | `{branch}` |\n" for repo, branch in rows.items())
-                + "\nMore prose with | `x/y` | `dev` | that is not the table.\n"
-            )
         table = tmp_path / "gh.json"
         table.write_text(json.dumps(answers))
         log.write_text("")
@@ -98,7 +89,7 @@ def run(tmp_path):
             "NO_COLOR": "1",
         }
         env.pop("FORCE_COLOR", None)
-        command = [sys.executable, str(SKILL_DRIFT), "--registry", str(registry), "--tracks", str(doc)]
+        command = [sys.executable, str(SKILL_DRIFT), "--registry", str(registry)]
         result = subprocess.run(command, capture_output=True, text=True, env=env)
         result.requests = log.read_text().splitlines()
         result.merged = subprocess.run(
@@ -109,8 +100,11 @@ def run(tmp_path):
     return invoke
 
 
-def upstream(*paths, pin=PIN):
-    return {"branch": pin, "skills": [{"upstream_path": p} for p in paths]}
+def upstream(*paths, pin=PIN, branch="main"):
+    entry = {"branch": branch, "skills": [{"upstream_path": p} for p in paths]}
+    if pin is not None:
+        entry["commit"] = pin
+    return entry
 
 
 def test_an_upstream_at_its_pin_is_up_to_date_after_one_request(run):
@@ -230,24 +224,29 @@ def test_a_pin_that_left_the_branch_is_a_warning(run):
     assert "up to date" not in result.stdout
 
 
-def test_the_tracked_branch_comes_from_the_table_and_a_trailing_slash_is_dropped(run):
+def test_the_tracked_branch_comes_from_the_registry_and_a_trailing_slash_is_dropped(run):
     result = run(
-        {"cursor/plugins/": upstream("skills/x")},
+        {"cursor/plugins/": upstream("skills/x", branch="dev")},
         {compare_key("cursor/plugins", "dev"): {"pages": [compare_page()]}},
-        tracks={"cursor/plugins/": "dev"},
     )
     assert result.returncode == EXIT_OK
     assert "✓ cursor/plugins: up to date with dev" in result.stdout
 
 
-def test_an_upstream_missing_from_the_table_stops_before_any_request(run):
+def test_an_upstream_without_a_commit_is_skipped_without_a_request(run):
     result = run(
-        {"a/b": upstream("skills/x"), "c/d": upstream("skills/y")},
-        {"*": {"pages": [compare_page()]}},
-        tracks={"a/b": "main"},
+        {"a/b": upstream("skills/x"), "c/d": upstream("skills/y", pin=None)},
+        {compare_key("a/b"): {"pages": [compare_page()]}},
     )
-    assert result.returncode == EXIT_USAGE
-    assert "✗ c/d: no row in the Tracks table" in result.stderr
+    assert result.returncode == EXIT_OK
+    assert "⚠ c/d: is not pinned to a commit, skipped" in result.stdout
+    assert result.requests == [f"{compare_key('a/b')}?per_page=100"]
+
+
+def test_an_upstream_without_a_branch_is_skipped_without_a_request(run):
+    result = run({"a/b": upstream("skills/x", branch=None)}, {})
+    assert result.returncode == EXIT_OK
+    assert "⚠ a/b: names no branch, skipped" in result.stdout
     assert result.requests == []
 
 
@@ -269,23 +268,17 @@ def test_a_failed_request_fails_that_upstream_and_the_run_but_not_the_others(run
     ), "a failure must print under the title, in registry order"
 
 
-def test_a_branch_name_instead_of_a_sha_is_skipped(run):
-    result = run({"a/b": upstream("skills/x", pin="main")}, {})
+def test_a_commit_that_is_not_a_full_sha_is_skipped(run):
+    result = run({"a/b": upstream("skills/x", pin=PIN[:SHORT])}, {})
     assert result.returncode == EXIT_OK
-    assert "⚠ a/b: `main` is not a commit SHA, skipped" in result.stdout
+    assert "⚠ a/b: is not pinned to a commit, skipped" in result.stdout
     assert result.requests == []
 
 
-def test_the_real_registry_and_tracks_table_agree(run):
-    """Every upstream in the shipped registry has a row, and every pin is a full SHA."""
-    result = run(
-        {},
-        {"*": {"pages": [compare_page()]}},
-        registry=SKILL_REGISTRY,
-        doc=DOC_TRACKS,
-    )
+def test_every_shipped_upstream_names_a_branch_and_a_full_sha_commit(run):
+    result = run({}, {"*": {"pages": [compare_page()]}}, registry=SKILL_REGISTRY)
     assert result.returncode == EXIT_OK, result.stderr
     assert "✗" not in result.stdout + result.stderr
-    assert "not a commit SHA" not in result.stdout
+    assert "skipped" not in result.stdout
     upstreams = json.loads(SKILL_REGISTRY.read_text())["upstream"]
     assert len(result.requests) == len(upstreams)
