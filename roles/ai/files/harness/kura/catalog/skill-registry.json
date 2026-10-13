@@ -3,7 +3,8 @@
   "version": 3,
   "upstream": {
     "anthropics/claude-plugins-official": {
-      "branch": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
+      "branch": "main",
+      "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
       "skills": [
         {
           "upstream_path": "plugins/frontend-design/skills/frontend-design",
@@ -18,7 +19,8 @@
       ]
     },
     "addyosmani/agent-skills": {
-      "branch": "1be8e34187e34647bb83adc3a1323b26ae6f6abe",
+      "branch": "main",
+      "commit": "1be8e34187e34647bb83adc3a1323b26ae6f6abe",
       "skills": [
         {
           "upstream_path": "skills/idea-refine",
@@ -137,7 +139,8 @@
       ]
     },
     "mattpocock/skills": {
-      "branch": "49dd158d1076134a641b33efb035946536778336",
+      "branch": "main",
+      "commit": "49dd158d1076134a641b33efb035946536778336",
       "skills": [
         {
           "upstream_path": "skills/productivity/handoff",
@@ -202,7 +205,8 @@
       ]
     },
     "cursor/plugins/": {
-      "branch": "1b6d44ff26d4e242f4e8f68c391e6d2f7ca16def",
+      "branch": "main",
+      "commit": "1b6d44ff26d4e242f4e8f68c391e6d2f7ca16def",
       "skills": [
         {
           "upstream_path": "pstack/skills/unslop",
@@ -216,7 +220,8 @@
       ]
     },
     "mcollina/skills": {
-      "branch": "72b72751477157ebda36203eaffac701ac5df5ae",
+      "branch": "main",
+      "commit": "72b72751477157ebda36203eaffac701ac5df5ae",
       "skills": [
         {
           "upstream_path": "skills/fastify",
@@ -250,7 +255,8 @@
       ]
     },
     "vercel-labs/agent-skills": {
-      "branch": "063bee94c3f4df8453406c830b0a7df0f2860278",
+      "branch": "main",
+      "commit": "063bee94c3f4df8453406c830b0a7df0f2860278",
       "skills": [
         {
           "upstream_path": "skills/react-native-skills",
@@ -285,7 +291,8 @@
       ]
     },
     "DietrichGebert/ponytail/": {
-      "branch": "9b58c1ffb790c075ca32e70a89cf1d80588f4abf",
+      "branch": "main",
+      "commit": "9b58c1ffb790c075ca32e70a89cf1d80588f4abf",
       "skills": [
         {
           "upstream_path": "skills/ponytail",
@@ -299,7 +306,8 @@
       ]
     },
     "wshobson/agents": {
-      "branch": "46891e7e60da0e52baf1050b7b6391b64e84c6d9",
+      "branch": "main",
+      "commit": "46891e7e60da0e52baf1050b7b6391b64e84c6d9",
       "skills": [
         {
           "upstream_path": "plugins/frontend-mobile-development/skills/tailwind-design-system",
@@ -331,7 +339,8 @@
       ]
     },
     "apollographql/skills": {
-      "branch": "5f02fcfcebec678e2e55777b639e32346622a963",
+      "branch": "main",
+      "commit": "5f02fcfcebec678e2e55777b639e32346622a963",
       "skills": [
         {
           "upstream_path": "skills/apollo-client",
@@ -354,7 +363,8 @@
       ]
     },
     "astrolicious/agent-skills": {
-      "branch": "cb4839f3794189ebf35c55d3ba5d3876dff7acf0",
+      "branch": "main",
+      "commit": "cb4839f3794189ebf35c55d3ba5d3876dff7acf0",
       "skills": [
         {
           "upstream_path": "skills/astro",
@@ -368,7 +378,8 @@
       ]
     },
     "avdlee/swiftui-agent-skill": {
-      "branch": "204dba7c67256a8b707ee3fbc5759a824191974f",
+      "branch": "main",
+      "commit": "204dba7c67256a8b707ee3fbc5759a824191974f",
       "skills": [
         {
           "upstream_path": "swiftui-expert-skill",
@@ -383,7 +394,8 @@
       ]
     },
     "avdlee/swift-concurrency-agent-skill": {
-      "branch": "d5770817d2622e1585b1f7eaebc791a9cb0959c8",
+      "branch": "main",
+      "commit": "d5770817d2622e1585b1f7eaebc791a9cb0959c8",
       "skills": [
         {
           "upstream_path": "swift-concurrency",
@@ -398,7 +410,8 @@
       ]
     },
     "avdlee/swift-testing-agent-skill": {
-      "branch": "798e9b1a2bcac164d4f0c781908199e754f0bab6",
+      "branch": "main",
+      "commit": "798e9b1a2bcac164d4f0c781908199e754f0bab6",
       "skills": [
         {
           "upstream_path": "swift-testing-expert",
@@ -414,7 +427,8 @@
       ]
     },
     "brianlovin/agent-config": {
-      "branch": "1a9819ebf3fee811150fc76cbe177ea4e5f747ff",
+      "branch": "main",
+      "commit": "1a9819ebf3fee811150fc76cbe177ea4e5f747ff",
       "skills": [
         {
           "upstream_path": "skills/knip",
@@ -440,7 +454,8 @@
       ]
     },
     "coreyhaines31/marketingskills": {
-      "branch": "1efedbc5148b54b2f0f6c6c9fe0be62e151c7fff",
+      "branch": "main",
+      "commit": "1efedbc5148b54b2f0f6c6c9fe0be62e151c7fff",
       "skills": [
         {
           "upstream_path": "skills/copywriting",
@@ -477,7 +492,8 @@
       ]
     },
     "currents-dev/playwright-best-practices-skill": {
-      "branch": "283d5cbc5d11aac1abda058b16ad22c317d54dc0",
+      "branch": "main",
+      "commit": "283d5cbc5d11aac1abda058b16ad22c317d54dc0",
       "skills": [
         {
           "upstream_path": "playwright-best-practices",
@@ -492,7 +508,8 @@
       ]
     },
     "DeckardGer/tanstack-agent-skills": {
-      "branch": "b2fc14c974b2ca09b38de09c28237f240175205b",
+      "branch": "main",
+      "commit": "b2fc14c974b2ca09b38de09c28237f240175205b",
       "skills": [
         {
           "upstream_path": "skills/tanstack-router",
@@ -507,7 +524,8 @@
       ]
     },
     "emilkowalski/skill": {
-      "branch": "2d228630ba1446365f614a108cb8252f1feda202",
+      "branch": "main",
+      "commit": "2d228630ba1446365f614a108cb8252f1feda202",
       "skills": [
         {
           "upstream_path": "skills/emil-design-eng",
@@ -522,7 +540,8 @@
       ]
     },
     "expo/skills": {
-      "branch": "d4f484024fec15196bfd3c272e953e3f983972cf",
+      "branch": "main",
+      "commit": "d4f484024fec15196bfd3c272e953e3f983972cf",
       "skills": [
         {
           "upstream_path": "plugins/expo/skills/expo-native-ui",
@@ -608,7 +627,8 @@
       ]
     },
     "getsentry/skills": {
-      "branch": "d18b7aa8ba878354e5c348310230e652f7690f9c",
+      "branch": "main",
+      "commit": "d18b7aa8ba878354e5c348310230e652f7690f9c",
       "skills": [
         {
           "upstream_path": "skills/skill-writer",
@@ -623,7 +643,8 @@
       ]
     },
     "hashicorp/agent-skills": {
-      "branch": "f706481af9b8fedb66de909f6243ad29601afa0c",
+      "branch": "main",
+      "commit": "f706481af9b8fedb66de909f6243ad29601afa0c",
       "skills": [
         {
           "upstream_path": "plugins/terraform/skills/terraform-style-guide",
@@ -646,7 +667,8 @@
       ]
     },
     "kadajett/agent-nestjs-skills": {
-      "branch": "3986e0cede33958e000f959031cbee0cd83c2941",
+      "branch": "main",
+      "commit": "3986e0cede33958e000f959031cbee0cd83c2941",
       "skills": [
         {
           "upstream_path": "skills/nestjs-best-practices",
@@ -660,7 +682,8 @@
       ]
     },
     "remix-run/react-router": {
-      "branch": "dee9ad2dab41889e8fbdc6848b5781255d9f133a",
+      "branch": "main",
+      "commit": "dee9ad2dab41889e8fbdc6848b5781255d9f133a",
       "skills": [
         {
           "upstream_path": ".agents/skills/react-router",
@@ -674,7 +697,8 @@
       ]
     },
     "sickn33/antigravity-awesome-skills": {
-      "branch": "09e94102a5008d4d8066e14bdb8d0b95d365748c",
+      "branch": "main",
+      "commit": "09e94102a5008d4d8066e14bdb8d0b95d365748c",
       "skills": [
         {
           "upstream_path": "skills/prisma-expert",
@@ -688,7 +712,8 @@
       ]
     },
     "honojs/skills": {
-      "branch": "f8ecd013542968e4e00d5615594ddf6455bd857a",
+      "branch": "main",
+      "commit": "f8ecd013542968e4e00d5615594ddf6455bd857a",
       "skills": [
         {
           "upstream_path": "skills/hono",
@@ -702,7 +727,8 @@
       ]
     },
     "pulumi/agent-skills": {
-      "branch": "2517e28e4bc029424e9c9ee48016394296be0f6a",
+      "branch": "main",
+      "commit": "2517e28e4bc029424e9c9ee48016394296be0f6a",
       "skills": [
         {
           "upstream_path": "pulumi/skills/pulumi-best-practices",
@@ -770,7 +796,8 @@
       ]
     },
     "neondatabase/agent-skills": {
-      "branch": "bfd013c352ed31b57a573e4f60263afc5fdd7f7a",
+      "branch": "main",
+      "commit": "bfd013c352ed31b57a573e4f60263afc5fdd7f7a",
       "skills": [
         {
           "upstream_path": "skills/neon",
