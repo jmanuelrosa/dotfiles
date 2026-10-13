@@ -859,6 +859,25 @@
       "note": "Locally authored; composes research and grilling into task plans"
     },
     {
+      "name": "to-rfc",
+      "global": true,
+      "groups": [
+        "engineering",
+        "architecture",
+        "documentation",
+        "writing",
+        "planning",
+        "workflow"
+      ],
+      "dependencies": [
+        "research",
+        "grilling",
+        "domain-modeling",
+        "unslop"
+      ],
+      "note": "Locally authored; composes research, grill-with-docs and unslop into a team RFC"
+    },
+    {
       "name": "ac",
       "global": true,
       "groups": [
