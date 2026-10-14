@@ -595,6 +595,46 @@
         "action": "deny",
         "reason": "denied by Claude Code policy: Bash(sentry auth token *)"
       },
+      "security -i": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(security -i)"
+      },
+      "security -i *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(security -i *)"
+      },
+      "security dump-keychain": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(security dump-keychain)"
+      },
+      "security dump-keychain *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(security dump-keychain *)"
+      },
+      "security export": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(security export)"
+      },
+      "security export *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(security export *)"
+      },
+      "security find-generic-password": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(security find-generic-password)"
+      },
+      "security find-generic-password *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(security find-generic-password *)"
+      },
+      "security find-internet-password": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(security find-internet-password)"
+      },
+      "security find-internet-password *": {
+        "action": "deny",
+        "reason": "denied by Claude Code policy: Bash(security find-internet-password *)"
+      },
       "bunx *submit-expo-feedback*": {
         "action": "deny",
         "reason": "denied by Claude Code policy: Bash(bunx *submit-expo-feedback*)"

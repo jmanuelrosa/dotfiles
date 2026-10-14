@@ -2,7 +2,7 @@
 # vim: ft=python
 # Filename keeps .sh extension to match the other hooks referenced from
 # settings.json (hooks.PreToolUse) and symlinked into ~/.claude/hooks.
-"""cli-egress-gate.sh - PreToolUse hook for the allowlisted CLIs that can publish.
+"""cli-egress-gate.sh - PreToolUse hook for the CLIs that can publish or hand out a credential.
 
 gh, glab, ntn and bru run OUTSIDE Claude's sandbox
 (sandbox.excludedCommands) so they can reach their own credential stores,
@@ -45,6 +45,18 @@ tiers. The gh and glab rules come first; ntn and bru follow them.
     file the agent can write, and a run sends whatever requests it
     lists to whatever hosts they name, so no `run` shape is read-only.
 
+  security: the macOS keychain CLI is not excluded from the sandbox, but
+    the sandbox does not fence the login keychain either, and gh and glab
+    keep their tokens there. A sandboxed `security find-generic-password
+    -w` prints them without a prompt, and a token outruns every rule
+    above. Allows listing keychains, certificates and identities, and
+    blocks everything else: secret reads, exports, interactive mode (it
+    runs whatever it reads), and every write. There is no ask tier,
+    since Codex lets an ask through and pi refuses it anyway. As an
+    argument the word counts only where it would run (followed by one of
+    its options or subcommands, or fed by a pipe), so `git log --grep
+    security` is left alone.
+
 The /pr skill's apply.py opens the PR/MR in a subprocess, so this hook
 never sees that `gh pr create`.
 
@@ -64,8 +76,8 @@ import shlex
 import sys
 
 FORGES = ("gh", "glab")
-NOTION, BRUNO = "ntn", "bru"
-CLIS = (*FORGES, NOTION, BRUNO)
+NOTION, BRUNO, KEYCHAIN = "ntn", "bru", "security"
+CLIS = (*FORGES, NOTION, BRUNO, KEYCHAIN)
 CLI_ALTERNATION = "|".join(re.escape(cli) for cli in CLIS)
 
 CLI_WORD_RE = re.compile(rf"(?<![\w.-])(?:{CLI_ALTERNATION})(?![\w./-])")
@@ -197,6 +209,35 @@ NOTION_QUERY_PARAM_RE = re.compile(r"^[^=:]+==")
 NOTION_BODY_INPUT_RE = re.compile(r"^[^=:]+:?=")
 
 BRUNO_READS = {"--version", "--help", "-h"}
+
+KEYCHAIN_OPTION_RE = re.compile(r"^-[hilpqv]+$")
+# -p sets the interactive prompt, and implies -i.
+KEYCHAIN_INTERACTIVE_RE = re.compile(r"^-[a-z]*[ip]")
+KEYCHAIN_SETTER_RE = re.compile(r"^-[A-Za-z]*s[A-Za-z]*$")
+KEYCHAIN_READS = {
+    "help", "list-keychains", "default-keychain", "login-keychain", "show-keychain-info",
+    "list-smartcards", "find-certificate", "find-identity", "verify-cert", "dump-trust-settings",
+    "error",
+}
+# The three keychain-list reads change the list or the default when given -s.
+KEYCHAIN_SETTERS = {"list-keychains", "default-keychain", "login-keychain"}
+KEYCHAIN_SECRET_READS = {
+    "find-generic-password", "find-internet-password", "dump-keychain", "export",
+    "export-smartcard", "cms",
+}
+KEYCHAIN_SUBCOMMANDS = KEYCHAIN_READS | KEYCHAIN_SECRET_READS | {
+    "create-keychain", "delete-keychain", "lock-keychain", "unlock-keychain",
+    "set-keychain-settings", "set-keychain-password", "create-keypair", "add-generic-password",
+    "add-internet-password", "add-certificates", "delete-generic-password",
+    "set-generic-password-partition-list", "delete-internet-password",
+    "set-internet-password-partition-list", "find-key", "set-key-partition-list",
+    "delete-certificate", "delete-identity", "set-identity-preference", "get-identity-preference",
+    "create-db", "import", "install-mds", "add-trusted-cert", "remove-trusted-cert",
+    "user-trust-settings-enable", "trust-settings-export", "trust-settings-import", "authorize",
+    "authorizationdb", "execute-with-privileges", "leaks", "create-filevaultmaster-keychain",
+    "smartcards", "translocate-policy-check", "translocate-status-check",
+    "translocate-original-path", "requirement-evaluate", "filevault", "platformsso",
+}
 
 MAX_DEPTH = 3
 
@@ -463,6 +504,33 @@ def bruno_verdict(cli, args, stdin_fed=False):
     return ASK, "a bru call, which sends whatever requests a collection lists to the hosts it names"
 
 
+def keychain_verdict(cli, args, stdin_fed=False):
+    i = 0
+    while i < len(args) and args[i].startswith("-") and args[i] != "-":
+        if KEYCHAIN_INTERACTIVE_RE.match(args[i]):
+            return BLOCK, "`security` in interactive mode, which runs any keychain command it reads"
+        i += 1
+    if i == len(args):
+        if stdin_fed:
+            return BLOCK, "a `security` call that takes its subcommand from stdin"
+        return ALLOWED
+    sub, rest = args[i], args[i + 1:]
+    if sub in KEYCHAIN_SETTERS and any(KEYCHAIN_SETTER_RE.match(t) for t in rest):
+        return BLOCK, f"`security {sub} -s`, which changes the keychain search list or default"
+    if sub in KEYCHAIN_READS:
+        return ALLOWED
+    if sub in KEYCHAIN_SECRET_READS:
+        return BLOCK, f"`security {sub}`, which reads a stored credential or key"
+    return BLOCK, f"`security {sub}`, which changes the keychain or is not a recognized read"
+
+
+def runs_keychain(following, stdin_fed):
+    if following:
+        word = following[0]
+        return bool(KEYCHAIN_OPTION_RE.match(word)) or word in KEYCHAIN_SUBCOMMANDS or word == "{}"
+    return stdin_fed
+
+
 def cli_verdict(cli, args, stdin_fed=False):
     return VERDICTS[cli](cli, args, stdin_fed)
 
@@ -508,7 +576,12 @@ def forge_verdict(cli, args, stdin_fed=False):
     return ASK, f"`{cli} {group} {verb or ''}`, which is not a recognized read-only call"
 
 
-VERDICTS = {**{forge: forge_verdict for forge in FORGES}, NOTION: notion_verdict, BRUNO: bruno_verdict}
+VERDICTS = {
+    **{forge: forge_verdict for forge in FORGES},
+    NOTION: notion_verdict,
+    BRUNO: bruno_verdict,
+    KEYCHAIN: keychain_verdict,
+}
 
 
 def substitutions_verdict(tokens, depth):
@@ -548,8 +621,10 @@ def segment_verdict(text, expands, piped, depth):
         token = tokens[j]
         if RUNS_A_COMMAND_FLAG_RE.match(token):
             token = token.partition("=")[2] or token
-        if runs_cli(token) and not argument_only:
-            return worst(verdict, wrapped, cli_verdict(os.path.basename(token), tokens[j + 1:], stdin_fed))
+        cli = os.path.basename(token)
+        runs = runs_cli(token) and (cli != KEYCHAIN or runs_keychain(tokens[j + 1:], stdin_fed))
+        if runs and not argument_only:
+            return worst(verdict, wrapped, cli_verdict(cli, tokens[j + 1:], stdin_fed))
         if not mentions_cli(token):
             continue
         evaluated = any(os.path.basename(t) in EVALUATORS for t in tokens[i:j])
@@ -593,8 +668,7 @@ def main():
     if verdict == BLOCK:
         print(
             f"cli-egress-gate: blocked. This command contains {reason}. "
-            "Reads (list/view/status/diff/checks, GET api calls) run without a prompt; "
-            "run uploads, secret or variable writes and api writes in a real terminal instead.",
+            "Reads run without a prompt; run this one in a real terminal instead.",
             file=sys.stderr,
         )
         sys.exit(2)
