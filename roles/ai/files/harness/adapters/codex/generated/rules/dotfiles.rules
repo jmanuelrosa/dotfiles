@@ -422,6 +422,36 @@ prefix_rule(
 )
 
 prefix_rule(
+    pattern = ["security", "-i"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: security -i",
+)
+
+prefix_rule(
+    pattern = ["security", "dump-keychain"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: security dump-keychain",
+)
+
+prefix_rule(
+    pattern = ["security", "export"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: security export",
+)
+
+prefix_rule(
+    pattern = ["security", "find-generic-password"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: security find-generic-password",
+)
+
+prefix_rule(
+    pattern = ["security", "find-internet-password"],
+    decision = "forbidden",
+    justification = "denied by dotfiles policy: security find-internet-password",
+)
+
+prefix_rule(
     pattern = ["bunx", "submit-expo-feedback"],
     decision = "forbidden",
     justification = "denied by dotfiles policy: bunx submit-expo-feedback",
