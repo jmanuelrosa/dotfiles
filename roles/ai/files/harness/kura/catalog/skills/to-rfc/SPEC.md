@@ -12,7 +12,7 @@ Accept a subject, epic key, PRD or Notion URL, or an existing RFC path.
 Use `/to-rfc` in Claude Code and `/skill:to-rfc` in Pi.
 Keep automatic invocation disabled.
 
-In scope: context intake, read-only investigation, the design interview, glossary updates, proposed ADRs for author-owned verdicts, the RFC draft and its revision after review.
+In scope: context intake, read-only investigation, the design interview, glossary updates, proposed ADRs for author-owned verdicts, the RFC draft, local reply drafts for reviewer comments, and the revision after review.
 Out of scope: task breakdowns, implementation, publishing to Notion, Jira or Slack, PRDs, and editing accepted ADRs.
 
 ## Runtime contract
@@ -22,7 +22,8 @@ Out of scope: task breakdowns, implementation, publishing to Notion, Jira or Sla
 - Template: `assets/rfc-template.md`, the team's RFC template copied into the skill; the project's own `docs/templates/rfc.md` wins when it exists.
 - Output: `docs/rfcs/YYYY-MM-DD-<subject-slug>.md`, unless explicit user/project instructions require another path; revisions keep the original filename.
 - Sorting rule: every open point ends as a `3.x` verdict, an `8.1` product decision, or an `8.2` technical question with an owner and a recommendation; nothing is deferred without an owner.
-- Evidence: the research memo keeps `path:line` and URLs; the RFC body carries links and short contracts only, never file references, per the template's writing rules.
+- Evidence: the research memo keeps `path:line` and URLs, with every fact tagged by origin (ticket, code, meeting, our inference); the RFC body carries links and short contracts only, never file references, per the template's writing rules.
+- Review response: every comment thread gets a sourced reply draft in a local file, pushback goes to the user before any edit, and replies are posted before the page is updated by whoever publishes.
 - Safety: only the RFC draft, `GLOSSARY.md` and new ADRs may change; delegation needs request or user/project authorization; nothing is published.
 - Portability: load dependency files from discovered skill locations; use the current harness's user-question and subagent controls.
 - Interview adaptation: ask only independent frontier questions per user-tool call, each with a recommended answer first, while preserving grilling's frontier-completeness check through section 8.
@@ -32,9 +33,10 @@ Out of scope: task breakdowns, implementation, publishing to Notion, Jira or Sla
 Run the skill-writer structural validator and `make test`.
 The catalog suite checks that declared dependencies and their transitive sources are registered.
 Dogfood on a real epic with a PRD, a Slack thread and code in scope, then revise the same RFC after a review comment to check the `Answered (date):` and decision-log paths.
+Replay the anti-pattern table in `SKILL.md` step 4 against a new draft: none of its left-hand patterns should appear.
 Static checks do not establish the quality of a live interview or of the sorting into section 8.
 
-Should apply: "write the RFC for SER-1411", "turn this plan into an RFC", "revise this RFC after review".
+Should apply: "write the RFC for SER-1411", "turn this plan into an RFC", "revise this RFC after review", "answer the comments on this RFC".
 Should not start automatically: "plan this feature" (`to-plan`), "write a PRD" (`spec-driven-development`), "record this decision" (`documentation-and-adrs`).
 
 ## Known limitations
@@ -42,6 +44,7 @@ Should not start automatically: "plan this feature" (`to-plan`), "write a PRD" (
 - The template is team-specific; another team's outline needs a different asset or a project override.
 - Word count is checked by hand; no script enforces the 2,000 to 4,000 range.
 - Slack reading depends on a read-only Slack MCP being available; otherwise the user pastes the thread.
+- The Notion API returns only unresolved comments, so a thread resolved before the review response is invisible to it.
 
 ## Maintenance
 
