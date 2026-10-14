@@ -185,6 +185,18 @@ deny = [
   "sentry auth logout *",
   "sentry auth token",
   "sentry auth token *",
+  # The sandbox does not fence the login keychain, where gh and glab keep their tokens.
+  # cli-egress-gate parses every spelling of these; the denies hold if the hook is absent.
+  "security -i",
+  "security -i *",
+  "security dump-keychain",
+  "security dump-keychain *",
+  "security export",
+  "security export *",
+  "security find-generic-password",
+  "security find-generic-password *",
+  "security find-internet-password",
+  "security find-internet-password *",
   # The vendored expo-* skills tell the agent to send its own account of the session
   # (paths, snippets, errors) to Expo through an unpinned package. Denied here rather
   # than in the skills so `kura update` cannot bring it back. Claude and Pi enforce the

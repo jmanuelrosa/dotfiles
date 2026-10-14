@@ -237,6 +237,54 @@ def test_bru_asks_because_a_collection_names_its_own_hosts(command, expected):
     assert tier(command) == expected
 
 
+@pytest.mark.parametrize("command, expected", [
+    ("security find-generic-password -s gh:github.com -w", BLOCK),
+    ("/usr/bin/security find-internet-password -s example.invalid", BLOCK),
+    ("security -q find-generic-password -w", BLOCK),
+    ("security dump-keychain", BLOCK),
+    ("security export -k login.keychain -o out.p12", BLOCK),
+    ("security -i", BLOCK),
+    ("security -p keychain", BLOCK),
+    ("echo find-generic-password -w | security -i", BLOCK),
+    ("echo find-generic-password -w | xargs security", BLOCK),
+    ("env security find-generic-password -w", BLOCK),
+    ("xargs security find-generic-password", BLOCK),
+    ("sh -c 'security find-generic-password -w'", BLOCK),
+    ('echo "$(security find-generic-password -w)"', BLOCK),
+    ("cd /tmp && security dump-keychain", BLOCK),
+    ("security add-generic-password -s x -a y -w z", BLOCK),
+    ("security delete-generic-password -s x", BLOCK),
+    ("security unlock-keychain", BLOCK),
+    ("security list-keychains -s evil.keychain", BLOCK),
+    ("security default-keychain -d user -s evil.keychain", BLOCK),
+    ("security", ALLOW),
+    ("security help", ALLOW),
+    ("security list-keychains", ALLOW),
+    ("security default-keychain -d user", ALLOW),
+    ("security find-identity -v -p codesigning", ALLOW),
+    ("security find-certificate -a -p", ALLOW),
+    ("security verify-cert -c cert.pem", ALLOW),
+    ("FOO=1 security list-keychains", ASK),
+])
+def test_a_keychain_secret_read_or_write_is_blocked_and_listings_pass(command, expected):
+    """Given a keychain call, Then a secret read, export or write is blocked; a listing passes."""
+    assert tier(command) == expected
+
+
+@pytest.mark.parametrize("command", [
+    "git log --grep security",
+    "git log --grep security --oneline",
+    "ls docs/security",
+    "rg security roles/",
+    "git commit -m 'gate the security cli'",
+    "cat docs/security.md",
+    "npm install",
+])
+def test_the_word_security_as_data_is_untouched(command):
+    """Given security only as an argument that would not run, Then nothing is said."""
+    assert tier(command) == ALLOW
+
+
 def test_a_tool_other_than_bash_is_ignored():
     assert tier("gh gist create f", tool_name="Write") == ALLOW
 
