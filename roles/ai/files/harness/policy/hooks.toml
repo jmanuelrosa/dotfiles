@@ -16,12 +16,13 @@
 # Claude's rewrite output, which Codex has not been checked against. git-skill-gate looks
 # for the skill that authorised a commit in a transcript field Codex never writes, so
 # Codex runs it with `codex_args` that drop that one check and keep its blocks.
+# No claude_if on it or on pre-commit-verify: a `Bash(git *)` filter never sees a git
+# spelled `/opt/homebrew/bin/git`, behind `env` or `timeout`, or inside `bash -c`.
 [[hook]]
 id = "git-skill-gate"
 event = "pre_tool"
 tools = ["bash"]
 script = "git-skill-gate.sh"
-claude_if = ["Bash(git *)", "Bash(gh *)", "Bash(glab *)", "Bash(*skills/commit/scripts/apply.py *)", "Bash(*skills/pr/scripts/apply.py *)"]
 codex_args = ["--skip-skill-route"]
 harnesses = ["claude", "pi", "codex"]
 
@@ -49,7 +50,6 @@ id = "pre-commit-verify"
 event = "pre_tool"
 tools = ["bash"]
 script = "pre-commit-verify.sh"
-claude_if = ["Bash(git *)", "Bash(*skills/commit/scripts/apply.py *)"]
 timeout = 180
 harnesses = ["claude", "pi", "codex"]
 

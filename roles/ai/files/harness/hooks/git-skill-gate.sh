@@ -18,7 +18,18 @@ and AskUserQuestion preserves it across the approval gate. A gated
 subcommand is allowed if any of the last 30 events is attributed to
 one of its skills.
 
-Hard-blocks `--no-verify` regardless of skill context. Also hard-blocks,
+The command word is read past exec wrappers (`env`, `command`, `exec`, `nice`,
+`nohup`, `time`, `timeout`, `xargs`), leading shell syntax, a subshell's
+parentheses, a shell's `-c` line and `eval`, and by basename, so
+`/opt/homebrew/bin/git` and `env git` are gated as `git`.
+
+Hard-blocks skipping hooks regardless of skill context: `--no-verify`, an
+abbreviation git still accepts (`--no-veri`), and `commit -n`, alone or in a
+bundle such as `-anm`. Hard-blocks, for the same reason, setting
+`core.hooksPath` or a remote's URL (`remote.*.url`, `remote.*.pushurl`,
+`url.*.insteadOf`, `url.*.pushInsteadOf`) through `-c`, `--config-env`,
+`GIT_CONFIG_PARAMETERS`, `GIT_CONFIG_KEY_<n>` or a `git config` write, and
+`git remote add`, `set-url` and `rename`. Also hard-blocks,
 regardless of skill context: any `git commit` that stages files under
 `.claude/tasks/` (local-only agent task state that must never be
 tracked), and any commit message (read from `-m`/`--message` values and
@@ -79,14 +90,17 @@ executed. Destructive aliases that are not a commit or a push (`reset
 A raw push that forces, deletes a remote branch, or targets main, master or
 the remote's default branch is blocked even inside /pr. The deny list
 matches text, so `git -C x p --force`, `git push -uf` and `git push origin
-HEAD:main` slip past it; this parses the push after alias expansion.
+HEAD:main` slip past it; this parses the push after alias expansion. A raw
+push whose repository, positional or `--repo`, is not a configured remote is
+blocked too, since /pr pushes to the branch's remote and a URL there is a copy
+of the work sent somewhere else.
 
 Codex never writes `attributionSkill`, so there the skill route would refuse
 every commit. Codex runs this hook with SKIP_SKILL_ROUTE_FLAG, which keeps
 every check above and drops only the skill route.
 
-Acknowledged limitations: the matcher does not parse subshells, command
-substitution, `eval`, or shell aliases, and for gh/glab it does not
+Acknowledged limitations: the matcher does not parse a quoted command
+substitution, backticks, or shell aliases, and for gh/glab it does not
 recognize flags placed before the subcommand (`gh -R o/r pr create`).
 The gate is intent-friction, not a security boundary.
 """
@@ -120,15 +134,38 @@ WRAPPER_SCRIPTS = (
 COMMITTING = {"git commit", COMMIT_SCRIPT}
 INTERPRETERS = {"bash", "sh", "zsh", "python", "python3"}
 
+# A command word spelled by path is reduced to its name, so `/opt/homebrew/bin/git`
+# is checked as `git`. Only these names: a wrapper script is matched by its path.
+NAMED_BY_BASENAME = {"git", "gh", "glab", *INTERPRETERS}
+
+# Words that run the rest of the line, each with the options that take a separate
+# value, so `env -u X git push` and `timeout 30 git push` are checked as the push.
+EXEC_WRAPPERS = {
+    "env": {"-u", "--unset", "-C", "--chdir", "-P"},
+    "command": set(),
+    "exec": {"-a"},
+    "nice": {"-n", "--adjustment"},
+    "nohup": set(),
+    "time": set(),
+    "timeout": {"-s", "--signal", "-k", "--kill-after"},
+    "xargs": {"-I", "-J", "-L", "-n", "-P", "-R", "-S", "-s", "-E", "-d", "-a"},
+}
+WRAPPERS_WITH_A_DURATION = {"timeout"}
+ENV_SPLIT_OPTIONS = {"-S", "--split-string"}
+SHELL_SYNTAX = {"{", "}", "!", "if", "then", "else", "elif", "do", "while", "until"}
+SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "fish"}
+SHELL_OPTIONS_WITH_SEPARATE_ARG = {"-o", "+o", "-O", "+O"}
+MAX_UNWRAP_DEPTH = 3
+
 OPTIONS_WITH_SEPARATE_ARG = {
     "-c", "-C",
     "--git-dir", "--work-tree", "--namespace",
-    "--super-prefix", "--exec-path",
+    "--super-prefix", "--exec-path", "--config-env",
 }
 
 CONFIG_LOCATING_OPTIONS = {"-C", "--git-dir", "--work-tree"}
 
-SHELL_SEPARATORS = {";", "&&", "||", "|", "&"}
+SHELL_SEPARATORS = {";", "&&", "||", "|", "&", "(", ")"}
 
 ENV_ASSIGNMENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 
@@ -147,14 +184,41 @@ FORCE_PUSH_OPTIONS = {"--force", "--force-with-lease"}
 DELETING_PUSH_OPTIONS = {"--delete", "--mirror", "--prune"}
 FALLBACK_PROTECTED_BRANCHES = {"main", "master"}
 FORCE_PUSH, DELETING_PUSH = "a force push", "a push that deletes remote branches"
+UNKNOWN_REMOTE_PUSH = "a push to a URL or to a remote that is not configured"
+URL_SHAPED_RE = re.compile(r"[:@]")
+
+NO_VERIFY_ABBREVIATION_RE = re.compile(r"^--no-veri(?:fy?)?$")
+COMMIT_SHORT_OPTIONS_WITH_ARG = set("mFCct")
+COMMIT_SHORT_OPTIONS_WITH_ATTACHED_ARG = set("Su")
+COMMIT_LONG_OPTIONS_WITH_ARG = {
+    "--message", "--file", "--reuse-message", "--reedit-message", "--template",
+    "--author", "--date", "--fixup", "--squash", "--trailer", "--cleanup",
+    "--pathspec-from-file",
+}
+
+# Config that decides which hooks run or where a push lands. Setting it for one
+# call or for good is as good as --no-verify, or as a push to a URL.
+PROTECTED_CONFIG_KEY = r"core\.hookspath|remote\.[^'=\s]+\.(?:push)?url|url\.[^'=\s]+\.(?:push)?insteadof"
+PROTECTED_CONFIG_KEY_RE = re.compile(rf"(?i)^(?:{PROTECTED_CONFIG_KEY})$")
+PROTECTED_CONFIG_SEARCH_RE = re.compile(rf"(?i)(?:{PROTECTED_CONFIG_KEY})")
+GIT_CONFIG_ENV_RE = re.compile(r"^GIT_CONFIG_(?:PARAMETERS|KEY_\d+)$")
+CONFIG_WRITE_WORDS = {"set", "unset", "rename-section", "remove-section"}
+CONFIG_WRITE_FLAGS = {"--unset", "--unset-all", "--add", "--replace-all"}
+CONFIG_READ_FLAGS = {"--get", "--get-all", "--get-regexp", "--get-urlmatch", "-l", "--list"}
+CONFIG_OPTIONS_WITH_ARG = {"-f", "--file", "--blob", "--type", "--default", "--comment", "--value", "--url"}
+REMOTE_REDIRECTS = {"add", "set-url", "rename"}
+
+
+def split_line(line):
+    try:
+        return shlex.split(line, comments=False, posix=True)
+    except ValueError:
+        return line.split()
 
 
 def split_subcommands(line):
-    padded = re.sub(r"(\|\||&&|;|\||&)", r" \1 ", line)
-    try:
-        tokens = shlex.split(padded, comments=False, posix=True)
-    except ValueError:
-        tokens = padded.split()
+    padded = re.sub(r"(\|\||&&|;|\||&|\(|\))", r" \1 ", line)
+    tokens = split_line(padded)
     chunks, cur = [], []
     for t in tokens:
         if t in SHELL_SEPARATORS:
@@ -166,6 +230,70 @@ def split_subcommands(line):
     if cur:
         chunks.append(cur)
     return chunks
+
+
+def shell_line(name, command):
+    """The line a shell's `-c` or an `eval` runs, or None."""
+    if name == "eval":
+        return " ".join(command[1:])
+    if name not in SHELLS:
+        return None
+    j, runs_line = 1, False
+    while j < len(command) and command[j][:1] in ("-", "+") and command[j] not in ("-", "--"):
+        flag = command[j]
+        runs_line = runs_line or (not flag.startswith("--") and "c" in flag[1:])
+        j += 2 if flag in SHELL_OPTIONS_WITH_SEPARATE_ARG else 1
+    return command[j] if runs_line and j < len(command) else None
+
+
+def unwrapped(tokens, depth=0):
+    """The chunks a chunk really runs, each as its env assignments then a command.
+
+    Leading shell syntax and exec wrappers are dropped, a shell's `-c` line and
+    an `eval` are split into chunks of their own, and a git, forge or interpreter
+    spelled by path is reduced to its name."""
+    assignments, i = [], 0
+    while i < len(tokens):
+        tok = tokens[i]
+        wrapper = Path(tok).name
+        if ENV_ASSIGNMENT_RE.match(tok):
+            assignments.append(tok)
+            i += 1
+        elif tok in SHELL_SYNTAX:
+            i += 1
+        elif wrapper in EXEC_WRAPPERS:
+            i += 1
+            durations = 1 if wrapper in WRAPPERS_WITH_A_DURATION else 0
+            while i < len(tokens):
+                option = tokens[i]
+                if wrapper == "env" and option in ENV_SPLIT_OPTIONS and i + 1 < len(tokens):
+                    tokens = [*tokens[:i], *split_line(tokens[i + 1]), *tokens[i + 2:]]
+                elif option == "--":
+                    i += 1
+                    break
+                elif option.startswith("-") and len(option) > 1:
+                    i += 2 if option in EXEC_WRAPPERS[wrapper] else 1
+                elif durations:
+                    durations -= 1
+                    i += 1
+                else:
+                    break
+        else:
+            break
+    command = tokens[i:]
+    if not command:
+        return [assignments] if assignments else []
+    name = Path(command[0]).name
+    line = shell_line(name, command) if depth < MAX_UNWRAP_DEPTH else None
+    if line is not None:
+        return [
+            [*assignments, *inner]
+            for chunk in split_subcommands(line)
+            for inner in unwrapped(chunk, depth + 1)
+        ]
+    if name in NAMED_BY_BASENAME:
+        command = [name, *command[1:]]
+    return [[*assignments, *command]]
 
 
 def wrapper_subcommand(token):
@@ -271,7 +399,12 @@ def expand_git_aliases(tokens, cwd, seen_aliases=frozenset()):
         chunks = shell_alias_chunks(body[1:])
         if chunks:
             chunks[-1] = chunks[-1] + rest
-        return [expanded for chunk in chunks for expanded in expand_git_aliases(chunk, cwd, seen)]
+        return [
+            expanded
+            for chunk in chunks
+            for plain in unwrapped(chunk)
+            for expanded in expand_git_aliases(plain, cwd, seen)
+        ]
     try:
         expansion = shlex.split(body)
     except ValueError:
@@ -332,7 +465,7 @@ def destructive_push_reason(tokens, cwd):
         return None
     i = start + git_subcommand_index(tokens[start:])
     lookup = lookup_options(tokens[start + 1:i])
-    args, positionals, j = tokens[i + 1:], [], 0
+    args, positionals, repository, j = tokens[i + 1:], [], None, 0
     while j < len(args):
         tok = args[j]
         if tok == "--":
@@ -344,6 +477,8 @@ def destructive_push_reason(tokens, cwd):
                 return FORCE_PUSH
             if name in DELETING_PUSH_OPTIONS:
                 return DELETING_PUSH
+            if name == "--repo":
+                repository = tok.split("=", 1)[1] if "=" in tok else (args[j + 1] if j + 1 < len(args) else None)
             if name in PUSH_OPTIONS_WITH_SEPARATE_ARG and "=" not in tok:
                 j += 1
         elif tok.startswith("-") and len(tok) > 1:
@@ -359,7 +494,11 @@ def destructive_push_reason(tokens, cwd):
             positionals.append(tok)
         j += 1
 
-    remote = positionals[0] if positionals and not re.search(r"[/:@]", positionals[0]) else "origin"
+    if positionals:
+        repository = positionals[0]
+    if repository and not is_configured_remote(repository, lookup, cwd):
+        return UNKNOWN_REMOTE_PUSH
+    remote = repository or "origin"
     current = (run_git([*lookup, "symbolic-ref", "--short", "HEAD"], cwd) or "").strip()
     protected = protected_branches(remote, lookup, cwd)
     refspecs = positionals[1:] or [current]
@@ -374,6 +513,111 @@ def destructive_push_reason(tokens, cwd):
             target = current
         if target in protected:
             return f"a push to {target}"
+    return None
+
+
+def is_configured_remote(repository, lookup, cwd):
+    """Whether a push's repository names a configured remote. When the remotes
+    cannot be listed, only a URL-shaped repository is refused."""
+    remotes = run_git([*lookup, "remote"], cwd)
+    if remotes is None:
+        return not URL_SHAPED_RE.search(repository)
+    return repository in remotes.split()
+
+
+def git_command(tokens):
+    """(index of `git`, index of its subcommand) past env assignments, or None."""
+    start = 0
+    while start < len(tokens) and ENV_ASSIGNMENT_RE.match(tokens[start]):
+        start += 1
+    if start >= len(tokens) or tokens[start] != "git":
+        return None
+    return start, start + git_subcommand_index(tokens[start:])
+
+
+def skips_hooks(tokens):
+    """Whether a git call skips hooks without spelling `--no-verify`: an
+    abbreviation git still accepts, or `commit -n` alone or in a bundle."""
+    located = git_command(tokens)
+    if not located:
+        return False
+    _, i = located
+    args = tokens[i + 1:]
+    if any(NO_VERIFY_ABBREVIATION_RE.match(tok) for tok in args):
+        return True
+    if i >= len(tokens) or tokens[i] != "commit":
+        return False
+    j = 0
+    while j < len(args):
+        tok = args[j]
+        if tok == "--":
+            break
+        if tok in COMMIT_LONG_OPTIONS_WITH_ARG:
+            j += 1
+        elif tok.startswith("-") and not tok.startswith("--"):
+            for k, letter in enumerate(tok[1:], start=2):
+                if letter == "n":
+                    return True
+                if letter in COMMIT_SHORT_OPTIONS_WITH_ARG:
+                    j += 1 if k == len(tok) else 0
+                    break
+                if letter in COMMIT_SHORT_OPTIONS_WITH_ATTACHED_ARG:
+                    break
+        j += 1
+    return False
+
+
+def config_reason(tokens):
+    """What a chunk does to config that decides which hooks run or where a push
+    lands, or None."""
+    start = 0
+    while start < len(tokens) and ENV_ASSIGNMENT_RE.match(tokens[start]):
+        start += 1
+    exported = tokens[start + 1:] if start < len(tokens) and tokens[start] == "export" else []
+    for assignment in [*tokens[:start], *exported]:
+        name, _, value = assignment.partition("=")
+        found = GIT_CONFIG_ENV_RE.match(name) and PROTECTED_CONFIG_SEARCH_RE.search(value)
+        if found:
+            return f"Setting {found.group(0)} through {name}"
+    located = git_command(tokens)
+    if not located:
+        return None
+    start, i = located
+    j = start + 1
+    while j < i:
+        tok = tokens[j]
+        if tok in ("-c", "--config-env") and j + 1 < i:
+            setting = tokens[j + 1]
+        elif tok.startswith("--config-env="):
+            setting = tok.split("=", 1)[1]
+        else:
+            setting = ""
+        key = setting.split("=", 1)[0]
+        if PROTECTED_CONFIG_KEY_RE.match(key):
+            return f"Setting {key}"
+        j += 2 if tok in OPTIONS_WITH_SEPARATE_ARG else 1
+    if i >= len(tokens):
+        return None
+    subcommand, args = tokens[i], tokens[i + 1:]
+    words, flags, j = [], [], 0
+    while j < len(args):
+        tok = args[j]
+        if tok.startswith("-"):
+            flags.append(tok.split("=", 1)[0])
+            j += 2 if subcommand == "config" and tok in CONFIG_OPTIONS_WITH_ARG else 1
+        else:
+            words.append(tok)
+            j += 1
+    if subcommand == "remote" and words and words[0] in REMOTE_REDIRECTS:
+        return f"`git remote {words[0]}`"
+    if subcommand != "config":
+        return None
+    keys = [word for word in words if PROTECTED_CONFIG_KEY_RE.match(word)]
+    if not keys:
+        return None
+    legacy_set = words[0] == keys[0] and len(words) > 1 and not CONFIG_READ_FLAGS.intersection(flags)
+    if words[0] in CONFIG_WRITE_WORDS or CONFIG_WRITE_FLAGS.intersection(flags) or legacy_set:
+        return f"Changing {keys[0]}"
     return None
 
 
@@ -475,14 +719,29 @@ def main():
     chunks = [
         expanded
         for chunk in split_subcommands(command)
-        for expanded in expand_git_aliases(chunk, cwd)
+        for plain in unwrapped(chunk)
+        for expanded in expand_git_aliases(plain, cwd)
     ]
 
-    if "--no-verify" in command or any("--no-verify" in tok for chunk in chunks for tok in chunk):
+    if (
+        "--no-verify" in command
+        or any("--no-verify" in tok for chunk in chunks for tok in chunk)
+        or any(skips_hooks(chunk) for chunk in chunks)
+    ):
         print(
-            "--no-verify is blocked. Pre-commit hooks exist for a reason.\n"
-            "If a hook is failing, fix the underlying issue or disable the hook\n"
-            "in its own config — don't skip it.",
+            "Skipping git hooks is blocked: --no-verify, its abbreviations, and commit -n.\n"
+            "Pre-commit hooks exist for a reason. If a hook is failing, fix the\n"
+            "underlying issue or disable the hook in its own config, don't skip it.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    reason = next((found for chunk in chunks if (found := config_reason(chunk))), None)
+    if reason:
+        print(
+            f"{reason} is blocked for agents, even inside /commit or /pr:\n"
+            "it decides which git hooks run or where a push lands.\n"
+            "Hand the user the exact command to run in their own terminal.",
             file=sys.stderr,
         )
         sys.exit(2)

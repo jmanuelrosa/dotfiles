@@ -28,6 +28,9 @@ BLOCK = 2
 COMMIT_WRAPPER = "~/.claude/skills/commit/scripts/apply.py"
 PR_WRAPPER = "~/.claude/skills/pr/scripts/apply.py"
 
+ORIGIN_URL = "https://example.invalid/o/r.git"
+ELSEWHERE_URL = "https://example.invalid/elsewhere/r.git"
+
 # Built from a codepoint so this file carries no literal dash of its own.
 EM_DASH = chr(0x2014)
 
@@ -165,12 +168,13 @@ def test_an_ordinary_push_inside_the_pr_skill_is_allowed(gate, command):
 
 @pytest.fixture
 def repo_on(tmp_path, git_env):
-    """A repo checked out on `branch` whose origin defaults to `default`."""
+    """A repo checked out on `branch` whose configured origin defaults to `default`."""
 
     def make(branch, default="main"):
         repo = tmp_path / "repo"
         for args in (
             ["init", "-q", "-b", branch, str(repo)],
+            ["-C", str(repo), "remote", "add", "origin", ORIGIN_URL],
             ["-C", str(repo), "symbolic-ref", "refs/remotes/origin/HEAD", f"refs/remotes/origin/{default}"],
         ):
             subprocess.run(["git", *args], check=True, env=git_env)
@@ -456,3 +460,132 @@ def test_a_typographic_dash_in_a_commit_message_is_blocked(gate):
     """Given an em dash in the message, When committing inside /commit, Then it is blocked."""
     message = f"feat: add a thing {EM_DASH} and another"
     assert gate(f"git commit -m {message!r}", skills=["commit"]) == BLOCK
+
+
+@pytest.mark.parametrize("command", [
+    "/opt/homebrew/bin/git push origin feature/x --force",
+    "env git push -f origin feature/x",
+    "env -u HOME git push -f",
+    "env -S 'git push -f origin feature/x'",
+    "command git push --force",
+    "nice -n 5 git push -f",
+    "timeout 30 git push -f origin feature/x",
+    "exec git push -f",
+    "( git push -f origin feature/x )",
+    "{ git push -f origin feature/x; }",
+    "bash -c 'git push -f origin feature/x'",
+    "sh -lc 'cd repo && git push -f origin feature/x'",
+    "eval git push -f origin feature/x",
+])
+def test_a_destructive_push_is_blocked_however_git_is_reached(gate, command):
+    """Given git spelled by path, behind a wrapper, in a subshell or a shell's
+    -c line, When a force push runs under /pr, Then it is blocked."""
+    assert gate(command, skills=["pr"]) == BLOCK
+
+
+@pytest.mark.parametrize("command", [
+    "/usr/bin/git commit -m x",
+    "env /usr/bin/git commit -m x",
+    f"/usr/bin/python3 {PR_WRAPPER} plan.json",
+    f"/usr/bin/env python3 {COMMIT_WRAPPER} plan.json",
+    "/opt/homebrew/bin/gh pr create --fill",
+    "bash -c 'git commit -m x'",
+])
+def test_the_skill_route_holds_however_the_command_is_spelled(gate, command):
+    """Given a gated command spelled by path or wrapped, When it runs with no
+    skill, Then it is blocked like the plain spelling."""
+    assert gate(command) == BLOCK
+
+
+def test_a_commit_spelled_by_path_is_allowed_inside_the_commit_skill(gate):
+    """Given /commit is active, When git is spelled by path, Then it is allowed."""
+    assert gate("/opt/homebrew/bin/git commit -m 'feat: x'", skills=["commit"]) == ALLOW
+
+
+@pytest.mark.parametrize("command", [
+    "git commit -n -m x",
+    "git commit -anm x",
+    "git commit -an",
+    "git commit -m x -n",
+    "git commit --no-veri -m x",
+    "git commit --no-verif -m x",
+    "git push --no-veri origin feature/x",
+    "git -c core.hooksPath=/dev/null commit -m x",
+    "git -c CORE.HOOKSPATH= commit -m x",
+    "git --config-env=core.hooksPath=H commit -m x",
+    "git --config-env core.hooksPath=H commit -m x",
+    "GIT_CONFIG_PARAMETERS=\"'core.hooksPath'='/dev/null'\" git commit -m x",
+    "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -m x",
+    "export GIT_CONFIG_PARAMETERS=\"'core.hooksPath'=''\"; git commit -m x",
+    "env GIT_CONFIG_KEY_0=core.hooksPath git commit -m x",
+    "git config core.hooksPath /dev/null",
+    "git config --local core.hooksPath /dev/null",
+    "git config set core.hooksPath x",
+    "git config --unset core.hooksPath",
+    "git config unset core.hooksPath",
+])
+def test_skipping_hooks_is_blocked_even_inside_the_owning_skills(gate, command):
+    """Given commit -n, an abbreviated --no-verify, or core.hooksPath pointed
+    elsewhere, When it runs under /commit and /pr, Then it is blocked."""
+    assert gate(command, skills=["commit", "pr"]) == BLOCK
+
+
+@pytest.mark.parametrize("command", [
+    f"git push {ELSEWHERE_URL} HEAD",
+    "git push git@example.invalid:elsewhere/r.git feature/x",
+    f"git push --repo={ELSEWHERE_URL}",
+    f"git push --repo {ELSEWHERE_URL} feature/x",
+    "git push elsewhere feature/x",
+    f"git -c remote.origin.url={ELSEWHERE_URL} push origin feature/x",
+    f"git -c remote.origin.pushurl={ELSEWHERE_URL} push origin feature/x",
+    "git -c url.https://example.invalid/elsewhere/.insteadOf=https://example.invalid/o/ push origin feature/x",
+    f"git remote add elsewhere {ELSEWHERE_URL}",
+    f"git remote set-url origin {ELSEWHERE_URL}",
+    f"git remote set-url --push origin {ELSEWHERE_URL}",
+    "git remote rename origin old",
+    f"git config remote.origin.pushurl {ELSEWHERE_URL}",
+    f"git config --add remote.origin.url {ELSEWHERE_URL}",
+])
+def test_a_push_sent_anywhere_but_a_configured_remote_is_blocked(gate, repo_on, command):
+    """Given a push to a URL or an unknown remote, or a remote pointed elsewhere,
+    When it runs under /pr, Then it is blocked."""
+    assert gate(command, skills=["pr"], cwd=repo_on("feature/x")) == BLOCK
+
+
+def test_a_url_push_is_blocked_where_the_remotes_cannot_be_listed(gate):
+    """Given a cwd that is not a repo, When a push names a URL, Then it is still blocked."""
+    assert gate(f"git push {ELSEWHERE_URL} HEAD", skills=["pr"]) == BLOCK
+
+
+@pytest.mark.parametrize("command", [
+    "git commit -m '-n'",
+    "git commit --message -n",
+    "git commit -m 'document core.hooksPath'",
+    "git commit -m 'feat: x' -- notes",
+    "git -c core.editor=vim commit -m x",
+    "git push -n origin feature/x",
+    "git push -u origin feature/x",
+    "git -c credential.helper= push -u origin feature/x",
+    "git log -n 5",
+    "git config --get core.hooksPath",
+    "git config core.hooksPath",
+    "git config get core.hooksPath",
+    "git config --get remote.origin.url",
+    "git config --list",
+    "git config user.name x",
+    "git remote -v",
+    "git remote get-url origin",
+    "rg 'git push -f' roles/",
+    "echo /usr/bin/git push --force",
+    "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=user.name GIT_CONFIG_VALUE_0=x git commit -m x",
+])
+def test_a_risky_word_used_as_data_is_allowed(gate, repo_on, command):
+    """Given -n, core.hooksPath or a remote named only as a value, a read, or a
+    harmless setting, When it runs under /commit and /pr, Then it is allowed."""
+    assert gate(command, skills=["commit", "pr"], cwd=repo_on("feature/x")) == ALLOW
+
+
+@pytest.mark.parametrize("command", ["git commit -n -m x", f"git push {ELSEWHERE_URL} HEAD"])
+def test_without_the_skill_route_the_new_blocks_still_hold(gate, command):
+    """Given Codex, When hooks are skipped or a push goes to a URL, Then it is blocked."""
+    assert gate(command, args=SKIP_SKILL_ROUTE) == BLOCK
