@@ -15,8 +15,16 @@ template's sections and writes the bare ADF `doc` that
     THEN it responds 413
     AND the event is recorded as rejected
 
+    Out of scope: retrying rejected events.
+
     ## Resource / sources
-    https://example.slack.com/archives/C123/p456
+    - Slack, internal thread: https://example.slack.com/archives/C123/p456
+
+A spike swaps Acceptance criteria for a `## Deliverable` section in plain
+prose or bullets: the timebox, the question, the expected output, and what
+happens with the answer. A ticket carries one of the two, never both. An
+`Out of scope` line after the last scenario closes the Gherkin and renders as
+prose.
 
 Sections are emitted in the template's order whatever order they arrive in,
 each under its fixed status lozenge. Inline `**bold**`, `` `code` ``,
@@ -54,6 +62,7 @@ HEADING_LEVEL = 2
 
 CONTEXT = "Context"
 ACCEPTANCE_CRITERIA = "Acceptance criteria"
+DELIVERABLE = "Deliverable"
 SOURCES = "Resource / sources"
 DESIGN = "Design"
 
@@ -62,10 +71,14 @@ DESIGN = "Design"
 SECTIONS = (
     (CONTEXT, "blue"),
     (ACCEPTANCE_CRITERIA, "green"),
+    (DELIVERABLE, "green"),
     (SOURCES, "yellow"),
     (DESIGN, "red"),
 )
-REQUIRED = (CONTEXT, ACCEPTANCE_CRITERIA)
+REQUIRED = (CONTEXT,)
+# An implementation ticket states what must hold once done; a spike states what
+# it hands back. Carrying both would leave the reader unsure which one closes it.
+OUTCOMES = (ACCEPTANCE_CRITERIA, DELIVERABLE)
 
 # A comment carries the criteria alone: the ticket it hangs off already has the
 # Context, and repeating it would read as a second, competing description.
@@ -82,6 +95,8 @@ ALIASES = {
     "acceptance": ACCEPTANCE_CRITERIA,
     "criteria": ACCEPTANCE_CRITERIA,
     "ac": ACCEPTANCE_CRITERIA,
+    "deliverable": DELIVERABLE,
+    "deliverables": DELIVERABLE,
     "resourcesources": SOURCES,
     "resource": SOURCES,
     "resources": SOURCES,
@@ -90,12 +105,6 @@ ALIASES = {
     "design": DESIGN,
 }
 
-INVESTIGATION_NOTE = (
-    "This ticket is for investigation only, implementation will be tracked in a "
-    "separate follow-up once we agree on a direction."
-)
-INVESTIGATION_MARKER = "for investigation only"
-
 HEADING = re.compile(r"^#{1,6}\s+(.*?)\s*#*$")
 BULLET = re.compile(r"^\s*[-*+]\s+(.*)$")
 ORDERED = re.compile(r"^\s*\d+[.)]\s+(.*)$")
@@ -103,6 +112,7 @@ ORDERED = re.compile(r"^\s*\d+[.)]\s+(.*)$")
 SCENARIO = re.compile(r"^\s*(?:\*\*)?Scenario:\s*(.*?)(?:\*\*)?\s*$")
 STEP_RANK = {"GIVEN": 1, "WHEN": 2, "THEN": 3}
 CONJUNCTION = "AND"
+OUT_OF_SCOPE = re.compile(r"^\s*(?:\*\*)?out of scope\b", re.IGNORECASE)
 
 INLINE = re.compile(
     r"`(?P<code>[^`]+)`"
@@ -330,20 +340,33 @@ def validate_scenario(scenario):
         )
 
 
+def split_out_of_scope(numbered):
+    for index, (_, line) in enumerate(numbered):
+        if OUT_OF_SCOPE.match(line):
+            return numbered[:index], numbered[index:]
+    return numbered, []
+
+
 def render_gherkin(numbered):
     """One paragraph per scenario: a bold Scenario line, then its steps on
-    following lines.
+    following lines, then any Out of scope note as prose.
 
     Separate paragraphs would space the steps apart as if each were its own
     criterion.
     """
+    gherkin, out_of_scope = split_out_of_scope(numbered)
+    if not any(line.strip() for _, line in gherkin):
+        raise bad_gherkin(
+            "acceptance criteria need a scenario before 'Out of scope'", out_of_scope[0][0]
+        )
     nodes = []
-    for scenario in parse_scenarios(numbered):
+    for scenario in parse_scenarios(gherkin):
         content = inline(f"Scenario: {scenario['name']}", (("strong", None),))
         for _, keyword, rest in scenario["steps"]:
             content.append({"type": "hardBreak"})
             content.extend(inline(f"{keyword} {rest}"))
         nodes.append(paragraph(content))
+    nodes.extend(render_prose([line for _, line in out_of_scope]))
     return nodes
 
 
@@ -360,9 +383,9 @@ def lozenge_heading(title, color):
     }
 
 
-def parse(source, required=REQUIRED):
+def parse(source, required=REQUIRED, one_of=OUTCOMES):
     """Map section title to its numbered lines, refusing anything off-template."""
-    found, title = {}, None
+    found, headed, title = {}, {}, None
     for lineno, line in enumerate(source.splitlines(), 1):
         heading = HEADING.match(line)
         if heading:
@@ -377,6 +400,7 @@ def parse(source, required=REQUIRED):
             if name in found:
                 raise InputError(EXIT_BAD_SECTION, f"section {name!r} appears twice", lineno)
             found[name] = []
+            headed[name] = lineno
             title = name
             continue
         if title is None:
@@ -396,7 +420,16 @@ def parse(source, required=REQUIRED):
                 f"section {name!r} is empty; write it or leave the heading out",
                 numbered[0][0] if numbered else None,
             )
+    present = [name for name in one_of if name in found]
+    if len(present) > 1:
+        raise InputError(
+            EXIT_BAD_SECTION,
+            f"a ticket has {' or '.join(one_of)}, not both",
+            max(headed[name] for name in present),
+        )
     missing = [name for name in required if name not in found]
+    if one_of and not present:
+        missing.append(" or ".join(one_of))
     if missing:
         raise InputError(
             EXIT_MISSING_SECTION, f"missing required section(s): {', '.join(missing)}"
@@ -404,9 +437,9 @@ def parse(source, required=REQUIRED):
     return found
 
 
-def build(source, investigation=False, comment=False):
+def build(source, comment=False):
     sections = COMMENT_SECTIONS if comment else SECTIONS
-    found = parse(source, COMMENT_REQUIRED if comment else REQUIRED)
+    found = parse(source, *((COMMENT_REQUIRED, ()) if comment else (REQUIRED, OUTCOMES)))
     content = []
     for title, color in sections:
         if title not in found:
@@ -416,8 +449,6 @@ def build(source, investigation=False, comment=False):
             body = render_gherkin(numbered)
         else:
             body = render_prose([line for _, line in numbered])
-        if title == CONTEXT and investigation and INVESTIGATION_MARKER not in source.lower():
-            body.extend(render_prose([INVESTIGATION_NOTE]))
         content.append(lozenge_heading(title, color))
         content.extend(body)
     if comment:
@@ -438,13 +469,7 @@ def main():
     parser.add_argument(
         "source", nargs="?", default="-", help="template file, or - to read stdin (default)"
     )
-    mode = parser.add_mutually_exclusive_group()
-    mode.add_argument(
-        "--investigation",
-        action="store_true",
-        help="append the investigation-only sentence to Context unless it is already there",
-    )
-    mode.add_argument(
+    parser.add_argument(
         "--comment",
         action="store_true",
         help="build an acceptance-criteria comment body: that section alone, plus a footer",
@@ -462,7 +487,7 @@ def main():
         fail(f"cannot read {args.source}: {error}", EXIT_USAGE)
 
     try:
-        doc = build(source, investigation=args.investigation, comment=args.comment)
+        doc = build(source, comment=args.comment)
     except InputError as error:
         where = f"line {error.lineno}: " if error.lineno else ""
         fail(f"{where}{error}", error.code)
