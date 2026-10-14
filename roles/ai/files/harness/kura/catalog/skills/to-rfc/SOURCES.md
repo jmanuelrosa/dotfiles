@@ -13,6 +13,7 @@
 | Sibling `unslop/SKILL.md` | Upstream contract as installed, high | Final prose pass |
 | `docs/internals/skill-registry.md` | Repository policy, high | Dependencies live in the registry; `global: true` selects the machine roots |
 | Catalog sweep of agents, skills and bundles | Local inventory, high | No existing RFC artifact; `4-tech-shape` writes a design doc but requires the product-team pipeline and an approved PRD |
+| Dogfood review of a real RFC (domains management epic, 2026-10-13 and 2026-10-14): 31 Notion comment threads from the CTO and the product manager on the template-shaped draft | Human-verified negative and fix examples, high | No meeting references in the body; ticket requirements versus our proposals; sources ready for "where is this coming from?"; no code-only hypothetical risks; no operational claims inferred from code; drop sections with nothing to decide; options in section 6 grouped by subsection, without "Rejected:"; drawbacks are costs, not constraints; define introduced statuses; plain, self-contained bullets; existing-customer rollout states; replies before page updates |
 
 ## Decisions and coverage
 
@@ -29,8 +30,16 @@
 | Model pin | `opus`, matching `to-plan` and `research`: the work is long-context synthesis and judgment calls (sorting verdicts from reviewer questions), and a fixed pin keeps runs comparable whatever the session default is |
 | Additional machinery | Rejected a word-count script, a references directory, and a Notion publishing step |
 
+| Options placement | Moved weighed options out of `3.x` tables into section 6, because the CTO asked that section 3 hold only the accepted solution; this overrides the reference RFCs' "(chosen)" tables |
+| Review response | Added as a step 5 sub-procedure, not a separate skill: it shares the sources, the draft and the checklist, and still publishes nothing |
+
+## Changelog
+
+- 2026-10-14: iterated from the dogfood review. Template: new writing rules, Release line, section 3 without options tables, sections 4 to 6 and 9 guidance. `SKILL.md`: origin tags in research, unchanged behaviour sorted out, open ticket values as product decisions, rollout-day states, a wider checklist with an anti-pattern table, and the review response. Precision: replaced the 3.x options rule, narrowed the drawbacks and alternatives guidance, added the rest with reason (each one maps to a reviewer comment).
+
 ## Precision and remaining validation
 
 Added `SKILL.md`, `SPEC.md`, this file and the template asset; no existing skill was edited.
 The research step's section table and the writing checklist were derived from the template's guidance lines so the body of the template stays verbatim.
-Live validation pending: a dogfood run on a real epic, then a revision pass after a review comment.
+Dogfooded on the domains management epic through two review rounds; the second round's comments are the source of the 2026-10-14 changes.
+Live validation pending: a fresh draft through the updated checklist, checked against the anti-pattern table.

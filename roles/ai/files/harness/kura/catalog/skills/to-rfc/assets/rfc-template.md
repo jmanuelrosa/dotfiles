@@ -10,9 +10,17 @@ How to use this template
 Writing rules
 - The RFC gives a rough idea of what we build and what still needs a solution. Everything else is a to-do or context, and goes elsewhere.
 - Aim for 2,000 to 4,000 words. If a section grows past a page, it is probably context: link it instead.
+- Include only what changes or needs agreement. A section that restates behaviour we keep, or an alert that already exists, has nothing to decide: drop it.
 - State a decision when one option clearly wins, and let reviewers push back. Ask a question only when the options are really open.
 - Keep product decisions and technical questions apart: they have different owners and are answered in different meetings.
 - Keep the problem or the options of each question (or both), never pages of background.
+- Write what we propose, not who said it or which meeting decided it. Provenance goes in the decision log only.
+- Separate what the tickets require from what we propose. A number, threshold, rule or rejection the tickets do not contain is worded as our proposal ("we propose 1 day"); never write "was rejected" for an option nobody discussed.
+- Every claim must survive "where is this coming from?": keep its source (ticket scenario, code reference, transcript timestamp) in your notes, ready to quote in a reply.
+- No hypothetical risks from reading code alone. A risk goes in with data, or with the measurement that would size it. What the code supports is not how production runs.
+- Define every status or term you introduce (a yellow and a green state, for example) where it first appears.
+- Each bullet must read on its own: give the consequence, not only the mechanism, and cut sentences that add nothing.
+- Name out-of-scope work once, in Non-goals, and keep it out of the verdicts.
 - Leave out: task breakdowns (Jira), code state and file:line references (link the repo or a plans doc), deployment checklists, full schemas, raw measurements. A short snippet is fine when it is a contract reviewers must agree on.
 - No people's names for blame or attribution; use roles ("the product side", "support").
 - One sentence per line, plain words, first-person plural ("we propose").
@@ -25,6 +33,7 @@ Writing rules
 - **What:** *one or two sentences.*
 - **Scope:** *the stories or tickets covered, linked.*
 - **Non-goals:** *what this RFC does not cover, and where it lives instead.*
+- **Release:** *one line (feature flag, order), unless reviewers must agree on something about it, in which case it gets a 3.x subsection.*
 - **Needs from reviewers:** *the number of product decisions and technical questions in section 8.*
 - **Links:** *epic, PRD, design, related RFCs.*
 
@@ -37,38 +46,33 @@ Writing rules
 2. *Limitation two.*
 
 ## 3 Proposed Implementation
-*Most of the document. Start with one overview diagram (Mermaid or an image) if the flow spans systems.*
+*Most of the document, and only the solution we propose: the options we weighed go to section 6.*
 
-*One subsection per decision or component. Each opens with a bold one-line verdict, then the reasoning in a few lines.*
+*Open with a small diagram when the flow spans systems. Prefer a top-down flowchart with one subgraph per owner, and a sequence diagram for steps over time, to one long left-to-right chain. In Notion, set each Mermaid block to Preview so the code is hidden.*
+
+*One subsection per decision or component that changes. Each opens with a bold one-line verdict, then the reasoning in a few lines.*
 
 ### 3.1 *Decision or component*
 **Verdict:** *we do X.*
 
-*Why, in three to six lines. When options were weighed, show them as a table and mark the winner.*
+*Why, in three to six lines.*
 
-| Option | Pros | Cons |
-|---|---|---|
-| *A (chosen)* | | |
-| *B* | | |
-
-*Put long research, measurements or superseded designs in a Notion toggle under the subsection, so the body stays short.*
+*Put long research or measurements in a Notion toggle under the subsection, so the body stays short.*
 
 ### 3.2 *Decision or component*
 **Verdict:** *...*
 
-### 3.x Rollout
-*Only what reviewers must agree on: feature flag, order between repos, migration of existing data. Not the deployment checklist.*
-
 ## 4 Metrics & Dashboards
-*What we measure to know it works, and which alerts fire when it does not. Include storage growth for new tables or columns.*
+*What we measure to know it works, and which new alerts fire when it does not. Check what already exists, and list only what is new. Include storage growth for new tables or columns.*
 
 ## 5 Drawbacks
-*Three to six bullets: honest costs and risks we accept, one line each, with the mitigation when there is one.*
+*Three to six bullets: costs and risks of the chosen design that we accept, one line each, with the mitigation when there is one. A constraint to keep in mind (an order of work, a dependency) is not a drawback: it goes in section 7.*
 
 ## 6 Alternatives
-*Rejected approaches for the whole design, one line each with the reason. Write "Covered in section 3" when the options already sit there.*
+*Grouped under the section 3 subsection they belong to. For each one, say how it would work, then why we don't do it. No "Rejected:" label.*
 
-- **Rejected:** *approach, because ...*
+**3.1 *Decision or component*.**
+- *Alternative.* *How it would work. Why we don't do it.*
 
 ## 7 Potential Impact and Dependencies
 *Other teams, repos, epics and open PRs this touches, and the order between them.*
@@ -80,7 +84,7 @@ Writing rules
 ## 8 Unresolved questions
 *Only what is really open. Everything with a clear winner is a verdict in section 3.*
 
-*Each item: a bold question, the owner, two or three lines of context, the options one line each, and our recommendation. Ten lines at most.*
+*Each item: a bold question, the owner, two or three lines of context citing the ticket scenario it comes from, the options one line each, and our recommendation. Ten lines at most.*
 
 *When an item is answered, keep it here with "Answered (date):" and the answer, or move the outcome into section 3.*
 
@@ -107,14 +111,14 @@ Writing rules
 **Our recommendation:** *option and one-line reason.*
 
 ## 9 Security considerations
-*Two to five bullets: new inputs, permissions, tenant isolation, personal data, abuse.*
+*Two to five plain bullets: new inputs, permissions, tenant isolation, personal data, abuse. Each says what we do, in words a non-engineer can follow.*
 
 ## 10 Conclusion
 *Two to four sentences: why this is the right design now, and the main risk we accept.*
 
 ## Decision log
-*Optional. One row per decision agreed in a meeting or a comment thread, so the outcome survives once comments are resolved.*
+*Optional. One row per decision agreed in a meeting or a comment thread, so the outcome survives once comments are resolved. Mark our own proposals as such.*
 
 | Date | Decision | Where | Section |
 |---|---|---|---|
-| | | *refinement meeting, Slack thread, Notion comment* | |
+| | | *technical refinement, Slack thread, Notion comment, "proposal, after a Notion comment"* | |
