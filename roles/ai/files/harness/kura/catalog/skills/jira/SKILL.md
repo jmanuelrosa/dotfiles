@@ -3,8 +3,8 @@ name: jira
 description: >-
   Interact with Jira via acli. Create, update, view, transition, and comment on issues. Descriptions
   are built with the bundled adf.py, which emits proper ADF (Atlassian Document Format) for the
-  squad's agreed template: Context, Gherkin acceptance criteria, a link back to the source, and
-  Design, each under a colored status-lozenge header.
+  squad's agreed template: Context, Gherkin acceptance criteria (or a Deliverable for a spike),
+  labeled links back to the sources, and Design, each under a colored status-lozenge header.
 model: haiku
 effort: medium
 disable-model-invocation: true
@@ -91,6 +91,8 @@ python3 ~/.claude/skills/jira/scripts/adf.py - --out /tmp/claude/<topic>-adf.jso
 The Stripe webhook handler crashes when the payload exceeds 1MB (logs from 2026-04-29, request id `req_8aF2`).
 Today we call `JSON.parse` on the full body, and there is no retry, so a dropped event is silently lost.
 
+This ticket covers rejecting oversized payloads. Replaying lost events is covered in a separate story of the same epic.
+
 ## Acceptance criteria
 Scenario: oversized payloads are rejected
 GIVEN a webhook payload larger than 1MB
@@ -98,21 +100,24 @@ WHEN the handler receives it
 THEN it responds 413
 AND the rejection is recorded with the request id
 
+Out of scope: replaying events that were already lost; raising the 1MB limit.
+
 ## Resource / sources
-https://example.slack.com/archives/C0123/p456
+- Slack, internal thread: https://example.slack.com/archives/C0123/p456
+- Notion: [Stripe webhooks drop large events](https://www.notion.so/abc)
 
 ## Design
-[Figma mockup](https://figma.com/file/abc)
+Figma, [Webhook error states](https://figma.com/file/abc)
 EOF
 ```
 
-`--out` writes the file (creating its directory) and prints its path; without it the ADF goes to stdout. `--investigation` appends the investigation-only sentence to Context.
+`--out` writes the file (creating its directory) and prints its path; without it the ADF goes to stdout.
 
 Every temp file this skill writes goes under `/tmp/claude/`, the same place `/commit` and `/pr` use: bare `/tmp` is not writable from a tool call, and `$TMPDIR` is no good for a path a later Read or Edit has to name literally. `/tmp/claude/` is shared across sessions, so keep `<topic>` specific enough not to collide.
 
-Headings are the four template names, with `AC` and `Sources` accepted as short forms. Inline `**bold**`, `` `code` ``, `*italic*`, `[label](url)`, bare URLs, `-` bullets and `1.` lists all work. Everything else about the shape is the script's job, so it cannot be got wrong: it fixes the section order and lozenge colors, splits any node that would carry `code` beside `strong` or `em` (which acli rejects as `INVALID_INPUT`), wraps list items in paragraphs, keeps a section's blocks as siblings of its heading, and rewrites em dashes, en dashes and curly quotes.
+Headings are the five template names, with `AC` and `Sources` accepted as short forms. Inline `**bold**`, `` `code` ``, `*italic*`, `[label](url)`, bare URLs, `-` bullets and `1.` lists all work. Everything else about the shape is the script's job, so it cannot be got wrong: it fixes the section order and lozenge colors, splits any node that would carry `code` beside `strong` or `em` (which acli rejects as `INVALID_INPUT`), wraps list items in paragraphs, keeps a section's blocks as siblings of its heading, and rewrites em dashes, en dashes and curly quotes.
 
-Malformed input exits non-zero with the offending line number and writes nothing, so a bad description never reaches Jira: `2` an off-template, duplicated or empty section, `3` a missing Context or Acceptance criteria, `4` acceptance criteria that are not strict Gherkin. Fix the input and re-run; do not fall back to writing JSON by hand.
+Malformed input exits non-zero with the offending line number and writes nothing, so a bad description never reaches Jira: `2` an off-template, duplicated or empty section, or both Acceptance criteria and Deliverable, `3` a missing Context or neither Acceptance criteria nor Deliverable, `4` acceptance criteria that are not strict Gherkin. Fix the input and re-run; do not fall back to writing JSON by hand.
 
 ## Humanization (required)
 
@@ -171,20 +176,41 @@ Write the body as the person reporting the problem, before the fix and investiga
 
 ### Standard structure
 
-The description is four sections, each headed by a colored ADF status lozenge. `adf.py` owns the order, the title strings and the colors; what you write is the content:
+The description is up to four sections, each headed by a colored ADF status lozenge. `adf.py` owns the order, the title strings and the colors; what you write is the content:
 
 | Section | Lozenge color | Contents |
 |---|---|---|
-| Context | `blue` | 2-4 sentences in your own words: what is happening, who raised it, why it matters. No large verbatim quotes. |
-| Acceptance criteria | `green` | Gherkin scenarios (see the rule below). |
-| Resource / sources | `yellow` | A link back to the originating discussion. Always present when a source exists. |
+| Context | `blue` | What is happening, who raised it, why it matters, in your own words. No large verbatim quotes. When the ticket is one slice of an epic, a second paragraph says what this ticket covers and which sibling tickets cover the rest. |
+| Acceptance criteria | `green` | Gherkin scenarios (see the rule below), optionally closed by one `Out of scope:` line. Implementation tickets only. |
+| Deliverable | `green` | What a spike hands back (see "Spike tickets" below). Replaces Acceptance criteria; a ticket has one or the other. |
+| Resource / sources | `yellow` | Every originating discussion, one labeled bullet each (see below). Always present when a source exists. |
 | Design | `red` | Only when the source has design assets (mockups, Figma links, UI screenshots). Omit the whole section otherwise. |
 
 **Acceptance criteria are strict Gherkin, no exceptions.** Each criterion is its own scenario: a `Scenario: <name>` line, then `GIVEN` / `WHEN` / `THEN` on the following lines using those exact capitalized keywords, one scenario per distinct behavior. Add `AND` lines under any of them when a scenario genuinely needs more than one condition, action, or outcome. `adf.py` enforces all of that and refuses bullets, so the judgment left to you is the wording: each `THEN` must be concrete enough that an engineer could verify it without asking "what does done look like?" - never soften it to "it works correctly", and never split one behavior across two scenarios to dodge an `AND`.
 
+What makes a `THEN` verifiable depends on the ticket:
+
+- **Bug:** one scenario per broken behavior, then a last scenario that proves the fix on the real system end to end (the storefront, the container, the dashboard), with the symptom that goes away as its `AND`.
+- **UI story:** one scenario per element or state the user sees, and the `THEN` quotes the exact copy in straight quotes (`THEN the title reads "Measurement path"`), so nobody has to open the mockup to check it. Cover the disabled, empty and already-set states, not just the happy path.
+- **Data or config change:** a scenario for the migration itself, with `AND no <thing> still references <old value>` as the check that nothing was missed.
+
+After the last scenario, an `Out of scope:` line lists what a reader might expect this ticket to do and it does not, separated by semicolons. Write it whenever the scope boundary is not obvious from the title; `adf.py` renders it as a plain paragraph.
+
 If the source does not state an explicit expected outcome (it only describes a symptom, or multiple directions are discussed without a decision), stop and ask the user the specific open questions before drafting acceptance criteria. Do not invent scope.
 
-**Resource / sources vs the PR conventions below:** the link here is the *originating discussion* (Slack thread, Notion doc, incident), not the implementing PR. The "don't reference PR numbers" and "don't paste raw GitHub URLs" conventions still hold for the implementing PR. When a PR-driven ticket has no discussion source, follow those conventions and leave the raw PR URL out of the body unless the user asks for it.
+**Resource / sources** is a bullet per source, each starting with a short label for where it lives, so the reader knows what a link opens before clicking it:
+
+```text
+- Slack, internal thread: https://acme.slack.com/archives/C0123/p456
+- Slack, update to external teams: https://acme.slack.com/archives/C0789/p012
+- Notion: [Qobuz, cookie monitoring shows 0 visits](https://www.notion.so/abc)
+- Parent epic <PROJECT>-1411, Domains management
+- Screenshots of the affected containers are in the Slack threads.
+```
+
+Give a Notion page, a doc or a Figma file its page title as the link label; leave a Slack permalink bare, since a thread has no title. Name who raised it and when in the label (`Slack thread (reporter, 12 Oct 2026)`) when the Context does not already say so. The **Design** section uses the same shape: `Figma, [file name](url)`.
+
+**Resource / sources vs the PR conventions below:** the links here are the *originating discussion* (Slack thread, Notion doc, incident), not the implementing PR. The "don't reference PR numbers" and "don't paste raw GitHub URLs" conventions still hold for the implementing PR. When a PR-driven ticket has no discussion source, follow those conventions and leave the raw PR URL out of the body unless the user asks for it.
 
 Example of the Acceptance criteria section content:
 
@@ -194,15 +220,22 @@ GIVEN a partner account with currency set to GBP
 WHEN the user exports the monthly invoice from the partner portal
 THEN the export completes
 AND the totals are formatted in GBP
+
+Out of scope: exporting in other currencies; changing the invoice layout.
 ```
 
-### Investigation tickets (vs implementation)
+### Spike tickets (vs implementation)
 
-When the work is research / decision-making and implementation is deferred, use the same four-section structure with these adjustments:
+When the work is research or diagnosis and implementation is deferred or not yet known, the ticket is a spike: same sections, but **Deliverable** replaces Acceptance criteria.
 
 - Title: category emoji + `Investigate ...` (e.g. `🧠 Investigate geoip-lite usage and shrink Docker image`).
-- Pass `--investigation` to `adf.py`, which ends the **Context** section with the sentence that flags it ("This ticket is for investigation only, implementation will be tracked in a separate follow-up once we agree on a direction"). Writing that sentence yourself is fine too; it is not repeated.
-- **Acceptance criteria** describe the investigation outcome, not a code change. Scenarios assert that a decision or recommendation is reached and written down, e.g. `Scenario: image-size options are compared` -> `THEN the ticket records each option with its trade-offs and a recommended direction`.
+- **Context** says what is observed, where it reproduces and where it does not, who is involved, and why it is urgent if it is.
+- **Deliverable** is a bullet list, not Gherkin, covering in this order:
+  - `Timebox:` how long, and when to post an update (e.g. "ASAP, with an update in the Slack thread as soon as there is news").
+  - `Question to answer:` the one question, phrased so the answer can be checked.
+  - `Output:` the artifact handed back (a written root cause, options with trade-offs and a recommended direction).
+  - What happens with the answer: a small fix on our side is applied in the spike; anything needing real development becomes a follow-up ticket with a proposed fix.
+  - What to do if the timebox runs out: report what was ruled out and escalate.
 - **Design** is omitted unless the investigation itself involves design assets.
 
 ### Conventions
@@ -244,7 +277,7 @@ User says: "update <PROJECT>-875 with context from these PRs: <urls>"
 
 1. `acli jira workitem view <PROJECT>-875` - read the existing description.
 2. `gh pr view <num> --repo <owner>/<repo> --json title,body,files,state,mergedAt` for each PR.
-3. Draft a new description in the standard structure (Context / Acceptance criteria / Resource / sources / Design). Show the user as plain text and ask to push.
+3. Draft a new description in the standard structure (Context / Acceptance criteria or Deliverable / Resource / sources / Design). Show the user as plain text and ask to push.
 4. On confirmation: build the ADF with `adf.py --out /tmp/claude/<topic>-adf.json`, then run:
 
    ```bash
@@ -281,15 +314,14 @@ User says: "make a ticket in the same epic from <pr-urls>"
 
 7. Return the Jira URL of the form `https://<INSTANCE>/browse/<PROJECT>-####`.
 
-### C) Investigation ticket (no implementation yet)
+### C) Spike ticket (no implementation yet)
 
 Same as B, but:
 
 - Title is `<category-emoji> Investigate ...` (e.g. `🧠 Investigate ...` for backend, `💿 Investigate ...` for infra).
-- Pass `--investigation` to `adf.py` so Context ends with the sentence flagging a separate implementation follow-up.
-- Acceptance criteria describe the investigation outcome (a decision or recommendation is reached and recorded), not a code change.
+- Write a `## Deliverable` section instead of `## Acceptance criteria`: timebox, question to answer, output, and what happens with the answer.
 
-See the "Investigation tickets (vs implementation)" convention above for the full adjustments.
+See "Spike tickets (vs implementation)" above for the full shape.
 
 ## Branch / commit / PR naming
 

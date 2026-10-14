@@ -182,33 +182,67 @@ def test_sentence_punctuation_stays_outside_the_source_link(adf):
     assert flat_text(body).endswith(".")
 
 
-def test_an_investigation_ticket_flags_itself_in_context(adf):
-    """Given --investigation, When the ADF is built, Then Context ends with the
-    investigation-only sentence and the shape is otherwise the template's."""
-    document = doc(adf(template(), "--investigation"))
-    context = flat_text(section(document, "Context"))
-    assert context.endswith(
-        "This ticket is for investigation only, implementation will be tracked in a "
-        "separate follow-up once we agree on a direction."
-    )
-    assert [title for title, _ in headings(document)] == ["Context", "Acceptance criteria"]
+DELIVERABLE = """- Timebox: two days, with an update in the Slack thread.
+- Question to answer: why do some containers show 0 visits?
+- Output: a written root cause, or what was ruled out.
+"""
 
 
-def test_an_investigation_sentence_already_written_is_not_repeated(adf):
-    """Given Context already carries the flagging sentence, When --investigation is
-    passed, Then it appears once."""
-    written = (
-        "The image is 900MB. This ticket is for investigation only, implementation "
-        "will be tracked in a separate follow-up once we agree on a direction."
-    )
-    context = flat_text(section(doc(adf(template(context=written), "--investigation")), "Context"))
-    assert context.count("for investigation only") == 1
+def spike(context="Some containers show 0 visits.", deliverable=DELIVERABLE):
+    return f"## Context\n{context}\n\n## Deliverable\n{deliverable}"
 
 
-def test_an_implementation_ticket_is_not_flagged_as_investigation(adf):
-    """Given no --investigation, When the ADF is built, Then no flagging sentence
-    is added."""
-    assert "for investigation only" not in flat_text(section(doc(adf(template())), "Context"))
+def test_a_spike_renders_a_deliverable_in_place_of_acceptance_criteria(adf):
+    """Given a Deliverable instead of Acceptance criteria, When the ADF is built,
+    Then it renders under a green lozenge after Context, as a bullet list."""
+    document = doc(adf(spike() + f"\n## Sources\n{SOURCE_URL}\n"))
+    assert headings(document) == [
+        ("Context", "blue"),
+        ("Deliverable", "green"),
+        ("Resource / sources", "yellow"),
+    ]
+    body = section(document, "Deliverable")
+    assert [node["type"] for node in body] == ["bulletList"]
+    assert len(body[0]["content"]) == 3
+
+
+def test_a_deliverable_is_not_held_to_gherkin(adf):
+    """Given a Deliverable in plain prose, When the ADF is built, Then it is accepted,
+    because a spike hands back an answer rather than a behavior."""
+    assert adf(spike(deliverable="A written root cause.\n")).returncode == EXIT_OK
+
+
+def test_a_ticket_cannot_carry_both_criteria_and_a_deliverable(adf):
+    """Given both Acceptance criteria and a Deliverable, When the ADF is built, Then it
+    exits on the section code, pointing at the second heading."""
+    result = adf(template() + f"\n## Deliverable\n{DELIVERABLE}")
+    assert result.returncode == EXIT_BAD_SECTION
+    assert "not both" in result.stderr
+
+
+def test_a_ticket_with_neither_criteria_nor_a_deliverable_is_refused(adf):
+    """Given only Context, When the ADF is built, Then the missing-section error names
+    both ways to close the ticket."""
+    result = adf("## Context\nThe handler crashes.\n")
+    assert result.returncode == EXIT_MISSING_SECTION
+    assert "Acceptance criteria or Deliverable" in result.stderr
+
+
+def test_out_of_scope_after_the_scenarios_renders_as_prose(adf):
+    """Given an Out of scope line after the last scenario, When the ADF is built, Then
+    it follows the scenario paragraphs as its own paragraph, unvalidated as Gherkin."""
+    criteria = GHERKIN + "\nOut of scope: retrying rejected events; alerting.\n"
+    body = section(doc(adf(template(criteria=criteria))), "Acceptance criteria")
+    assert len(body) == 2
+    assert flat_text(body[:1]).startswith("Scenario: oversized payloads are rejected")
+    assert flat_text(body[1:]) == "Out of scope: retrying rejected events; alerting."
+
+
+def test_out_of_scope_with_no_scenario_before_it_is_refused(adf):
+    """Given criteria that open with Out of scope, When the ADF is built, Then it exits
+    on the Gherkin code, so the note cannot stand in for the scenarios."""
+    result = adf(template(criteria="Out of scope: everything.\n"))
+    assert result.returncode == EXIT_BAD_GHERKIN
 
 
 def test_gherkin_renders_one_paragraph_per_scenario_with_a_bold_header(adf):
@@ -478,13 +512,6 @@ def test_a_comment_with_no_criteria_is_refused(adf):
     result = adf("## Context\nThe handler crashes.\n", "--comment")
     assert result.returncode == EXIT_MISSING_SECTION
     assert "Acceptance criteria" in result.stderr
-
-
-def test_a_comment_cannot_also_be_an_investigation(adf):
-    """Given both mode flags, When the ADF is built, Then it is a usage error, because
-    the investigation sentence lands in a Context a comment never renders."""
-    result = adf(template(), "--comment", "--investigation")
-    assert result.returncode == EXIT_USAGE
 
 
 def test_the_script_is_executable_and_stdlib_only():
