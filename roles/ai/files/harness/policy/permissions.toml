@@ -71,7 +71,7 @@ deny = [
   # `git -* p|up * <force>` is deliberately absent: two free stars around a word that
   # short deny `git -C x commit -m "wire up the + button"`, with no allow to undo it.
   # git-skill-gate parses the push instead, so it covers that form, a bundled `-uf`,
-  # a `:branch` delete and `HEAD:main` for the harnesses that run it.
+  # a `:branch` delete, `HEAD:main`, and a git spelled by path or behind a wrapper.
   "git -* apf",
   "git -* apf *",
   "git -* p --force*",

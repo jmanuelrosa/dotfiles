@@ -39,6 +39,9 @@ def commits(command):
     "python3 ~/.claude/skills/commit/scripts/apply.py plan.json",
     "python3 .claude/skills/commit/scripts/apply.py plan.json",
     "~/.claude/skills/commit/scripts/apply.py plan.json",
+    "/usr/bin/git commit -m x",
+    "env GIT_AUTHOR_NAME=x git commit -m x",
+    "timeout 60 /opt/homebrew/bin/git commit -m x",
 ])
 def test_a_commit_is_recognised(command):
     assert commits(command)
@@ -48,6 +51,8 @@ def test_a_commit_is_recognised(command):
     "git status",
     "python3 ~/.claude/skills/pr/scripts/apply.py plan.json",
     "python3 other/apply.py plan.json",
+    "echo /usr/bin/git commit",
+    "env git status",
 ])
 def test_anything_else_is_left_alone(command):
     assert not commits(command)

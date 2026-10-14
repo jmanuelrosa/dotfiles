@@ -83,10 +83,10 @@ def test_the_gate_is_wired_for_claude_where_the_probe_reaches_it(exclusion):
     for launcher in ("python3 ", "python ", "bash ", "")
 ])
 def test_every_spelling_of_a_skill_script_reaches_git_skill_gate_under_claude(probe):
-    """The hook itself recognizes any interpreter or a direct run, so the matcher must too."""
+    """The hook itself recognizes any interpreter or a direct run, so a matcher, if any, must too."""
     hook = next(h for h in POLICY.hooks_for("claude") if h["id"] == "git-skill-gate")
-    rules = [CLAUDE_RULE_RE.match(rule).group(1) for rule in hook["claude_if"]]
-    assert any(fnmatch.fnmatchcase(probe, rule) for rule in rules)
+    rules = [CLAUDE_RULE_RE.match(rule).group(1) for rule in hook.get("claude_if", [])]
+    assert not rules or any(fnmatch.fnmatchcase(probe, rule) for rule in rules)
 
 
 @pytest.mark.parametrize("exclusion", sorted(GATED))

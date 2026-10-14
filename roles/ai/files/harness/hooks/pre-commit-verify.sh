@@ -65,6 +65,20 @@ SHELL_SEPARATORS = {";", "&&", "||", "|", "&"}
 COMMIT_WRAPPER = re.compile(r"(^|/)skills/commit/scripts/apply\.py$")
 INTERPRETERS = {"bash", "sh", "zsh", "python", "python3"}
 
+# The same exec wrappers git-skill-gate reads past, so `env git commit` and
+# `/usr/bin/git commit` still get the lint pass.
+EXEC_WRAPPERS = {
+    "env": {"-u", "--unset", "-C", "--chdir", "-P"},
+    "command": set(),
+    "exec": {"-a"},
+    "nice": {"-n", "--adjustment"},
+    "nohup": set(),
+    "time": set(),
+    "timeout": {"-s", "--signal", "-k", "--kill-after"},
+    "xargs": {"-I", "-J", "-L", "-n", "-P", "-R", "-S", "-s", "-E", "-d", "-a"},
+}
+WRAPPERS_WITH_A_DURATION = {"timeout"}
+
 # Every harness reaches this hook through a symlink, and only the link's target has the
 # harness root as its grandparent.
 TRUSTED_REMOTES = Path(os.path.realpath(__file__)).parent.parent / "trusted-remotes.json"
@@ -91,15 +105,37 @@ def split_subcommands(line):
     return chunks
 
 
-def is_git_commit(tokens):
+def command_index(tokens):
+    """Where the command starts, past env assignments and exec wrappers."""
     i = 0
-    while i < len(tokens) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", tokens[i]):
-        i += 1
+    while i < len(tokens):
+        wrapper = Path(tokens[i]).name
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", tokens[i]):
+            i += 1
+        elif wrapper in EXEC_WRAPPERS:
+            i += 1
+            durations = 1 if wrapper in WRAPPERS_WITH_A_DURATION else 0
+            while i < len(tokens):
+                option = tokens[i]
+                if option.startswith("-") and len(option) > 1:
+                    i += 2 if option in EXEC_WRAPPERS[wrapper] else 1
+                elif durations:
+                    durations -= 1
+                    i += 1
+                else:
+                    break
+        else:
+            break
+    return i
+
+
+def is_git_commit(tokens):
+    i = command_index(tokens)
     if i < len(tokens) and Path(tokens[i]).name in INTERPRETERS:
         i += 1
     if i < len(tokens) and COMMIT_WRAPPER.search(tokens[i]):
         return True
-    if i >= len(tokens) or tokens[i] != "git":
+    if i >= len(tokens) or Path(tokens[i]).name != "git":
         return False
     i += 1
     while i < len(tokens):

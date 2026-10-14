@@ -353,28 +353,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/git-skill-gate.sh",
-            "if": "Bash(git *)"
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/git-skill-gate.sh",
-            "if": "Bash(gh *)"
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/git-skill-gate.sh",
-            "if": "Bash(glab *)"
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/git-skill-gate.sh",
-            "if": "Bash(*skills/commit/scripts/apply.py *)"
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/git-skill-gate.sh",
-            "if": "Bash(*skills/pr/scripts/apply.py *)"
+            "command": "~/.claude/hooks/git-skill-gate.sh"
           },
           {
             "type": "command",
@@ -387,13 +366,6 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/pre-commit-verify.sh",
-            "if": "Bash(git *)",
-            "timeout": 180
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/pre-commit-verify.sh",
-            "if": "Bash(*skills/commit/scripts/apply.py *)",
             "timeout": 180
           },
           {
