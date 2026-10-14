@@ -94,7 +94,8 @@ Sort every frontier question into one of three outcomes and record it in the dra
 A question the user defers without an owner is not settled; keep it on the frontier.
 A value the tickets leave open (a threshold, a count, a time window) is a product decision even when we have a good recommendation; cite the ticket scenario that leaves it open.
 Challenge each verdict with failure cases, rollback, compatibility and the drawbacks it creates, and collect those for sections 5 and 6.
-Include what existing customers see on the day of the rollout: missing history, empty states, statuses computed from data that does not exist yet.
+Include the data existing customers have on the day of the rollout: missing history, what gets backfilled, statuses computed from data that does not exist yet.
+Settle these as data and migration questions; how the UI presents them belongs to the design.
 If an answer changes a load-bearing premise, return to targeted research before asking downstream questions.
 
 Offer an ADR only when domain-modeling's three conditions hold and the verdict is the author's to make.
@@ -111,6 +112,7 @@ Apply the template's writing rules as a checklist before showing the draft:
 
 - Title is `[Team] Subject (EPIC-KEY)`, prefixed `[WIP]` while a draft.
 - Section 1 states the count of product decisions and technical questions in section 8.
+- Section 3 architects the new pieces (components, data, contracts, flows); no subsection only describes what the UI does.
 - Every `3.x` subsection opens with `**Verdict:**` and holds only the chosen solution; weighed options sit in section 6 under that subsection's name, each saying how it would work and why we don't do it.
 - Every section and bullet changes something or needs agreement; restated current behaviour and existing alerts are gone.
 - Section 8 holds only what is really open; anything with a clear winner moved to section 3.
@@ -135,6 +137,7 @@ These drafts drew reviewer comments; write the right-hand column instead:
 | A visitor-reset risk derived from reading the parser, with no data | Leave it out, or state the measurement that would size it |
 | "Includes projects that do not run on Spacelift", because the code supports other providers | Confirm with the infrastructure owner first |
 | A section on certificate validation we keep as it is | Delete the section |
+| A 3.x subsection walking through what each screen shows | The component, data and contract behind it; link the design for the screens |
 | A table of rejected signals inside 3.2 | The chosen signal in 3.2; the others in section 6 under "Path liveness" |
 
 Run `unslop` over the draft.

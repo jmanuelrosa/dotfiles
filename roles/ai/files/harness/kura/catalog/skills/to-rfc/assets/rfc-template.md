@@ -9,6 +9,7 @@ How to use this template
 
 Writing rules
 - The RFC gives a rough idea of what we build and what still needs a solution. Everything else is a to-do or context, and goes elsewhere.
+- Architect what is new: components, data, contracts and the flows between systems. Describe what the UI does only where it drives an architectural decision; screens, states and copy belong in the design file, linked.
 - Aim for 2,000 to 4,000 words. If a section grows past a page, it is probably context: link it instead.
 - Include only what changes or needs agreement. A section that restates behaviour we keep, or an alert that already exists, has nothing to decide: drop it.
 - State a decision when one option clearly wins, and let reviewers push back. Ask a question only when the options are really open.
@@ -50,7 +51,7 @@ Writing rules
 
 *Open with a small diagram when the flow spans systems. Prefer a top-down flowchart with one subgraph per owner, and a sequence diagram for steps over time, to one long left-to-right chain. In Notion, set each Mermaid block to Preview so the code is hidden.*
 
-*One subsection per decision or component that changes. Each opens with a bold one-line verdict, then the reasoning in a few lines.*
+*One subsection per decision or component that changes in the system, not per screen. Each opens with a bold one-line verdict, then the reasoning in a few lines.*
 
 ### 3.1 *Decision or component*
 **Verdict:** *we do X.*

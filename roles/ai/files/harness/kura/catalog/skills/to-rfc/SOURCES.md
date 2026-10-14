@@ -31,11 +31,14 @@
 | Additional machinery | Rejected a word-count script, a references directory, and a Notion publishing step |
 
 | Options placement | Moved weighed options out of `3.x` tables into section 6, because the CTO asked that section 3 hold only the accepted solution; this overrides the reference RFCs' "(chosen)" tables |
+| Architecture over UI | Section 3 architects the new components, data and contracts rather than explaining what the UI should do, per reviewer feedback; rollout-day states are framed as data questions, and UI behaviour stays in the design |
 | Review response | Added as a step 5 sub-procedure, not a separate skill: it shares the sources, the draft and the checklist, and still publishes nothing |
 
 ## Changelog
 
 - 2026-10-14: iterated from the dogfood review. Template: new writing rules, Release line, section 3 without options tables, sections 4 to 6 and 9 guidance. `SKILL.md`: origin tags in research, unchanged behaviour sorted out, open ticket values as product decisions, rollout-day states, a wider checklist with an anti-pattern table, and the review response. Precision: replaced the 3.x options rule, narrowed the drawbacks and alternatives guidance, added the rest with reason (each one maps to a reviewer comment).
+
+- 2026-10-14: architecture-first focus from reviewer feedback. Template: a writing rule and section 3 guidance (components, not screens). `SKILL.md`: rollout-day states as data questions, a checklist line, and an anti-pattern row.
 
 ## Precision and remaining validation
 
