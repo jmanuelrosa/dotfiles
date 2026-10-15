@@ -4,10 +4,11 @@
 # settings.json (hooks.PreToolUse) and symlinked into ~/.claude/hooks.
 """cli-egress-gate.sh - PreToolUse hook for the CLIs that can publish or hand out a credential.
 
-gh, glab, ntn and bru run OUTSIDE Claude's sandbox
-(sandbox.excludedCommands) so they can reach their own credential stores,
-and all four are allowlisted, so neither the network allowlist nor a
-permission prompt stands between an agent and the service. That makes
+ntn and bru run OUTSIDE Claude's sandbox (sandbox.excludedCommands) so
+they can reach their own credential stores. gh and glab run inside it,
+which keeps them off denied paths, but github.com and gitlab.com are on
+its network allowlist. All four are allowlisted, so no permission prompt
+stands between an agent and the service either. That makes
 them an egress channel: a gist, snippet, release asset, secret, CI
 variable, Notion file upload, worker deploy or API body publishes
 whatever local file the agent names, and a Bruno collection reaches any

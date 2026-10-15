@@ -16,8 +16,6 @@ allowUnsandboxedCommands = false
 enableWeakerNetworkIsolation = false
 excludedCommands = [
   "git *",
-  "gh *",
-  "glab *",
   "pgcli *",
   "acli *",
   "sentry *",

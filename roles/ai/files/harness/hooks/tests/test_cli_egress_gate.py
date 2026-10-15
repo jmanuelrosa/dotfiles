@@ -1,6 +1,7 @@
 """`cli-egress-gate.sh` keeps gh, glab, ntn and bru from publishing local data unasked.
 
-All four run outside Claude's sandbox and are allowlisted, so this hook is what
+All four are allowlisted and reach their service, ntn and bru from outside Claude's
+sandbox and gh and glab through its network allowlist, so this hook is what
 stands between an agent and a gist, snippet, release asset, secret, Notion upload,
 worker deploy or API write.
 The hook reads a PreToolUse event on stdin: exit 2 blocks, an `ask` decision on

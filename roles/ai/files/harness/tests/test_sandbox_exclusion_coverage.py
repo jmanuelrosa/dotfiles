@@ -35,8 +35,6 @@ GATED = {
     "python3 ~/.claude/skills/ship/scripts/apply.py *": (
         "git-skill-gate", "python3 ~/.claude/skills/ship/scripts/apply.py plan.json",
     ),
-    "gh *": ("cli-egress-gate", "gh gist create notes.txt"),
-    "glab *": ("cli-egress-gate", "glab snippet create -t notes notes.txt"),
     "ntn *": ("cli-egress-gate", "ntn files create"),
     "bru *": ("cli-egress-gate", "bru run"),
     "aws *": ("cloud-readonly-gate", "aws s3 rm s3://bucket/key"),
