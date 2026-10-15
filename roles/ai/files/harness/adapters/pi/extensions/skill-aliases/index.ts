@@ -3,6 +3,7 @@ import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-c
 const SKILLS = {
   commit: "Stage changes and create approved conventional commits",
   pr: "Push the branch and open a pull request or merge request",
+  ship: "Commit, push and open a pull request after one confirmation",
 } as const;
 
 type SkillName = keyof typeof SKILLS;

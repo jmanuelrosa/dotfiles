@@ -504,8 +504,6 @@
     "enableWeakerNetworkIsolation": false,
     "excludedCommands": [
       "git *",
-      "gh *",
-      "glab *",
       "pgcli *",
       "acli *",
       "sentry *",
@@ -515,6 +513,7 @@
       "cf *",
       "python3 ~/.claude/skills/commit/scripts/apply.py *",
       "python3 ~/.claude/skills/pr/scripts/apply.py *",
+      "python3 ~/.claude/skills/ship/scripts/apply.py *",
       "bunx ctx7 *",
       "npx -y ctx7 *",
       "aws *",

@@ -182,7 +182,7 @@ const SKILL_WINDOW_USER_MESSAGES = 30;
 
 // The skills git-skill-gate gates on, by name only: which command needs which one stays the hook's
 // business, and this list exists solely to be looked for in the session.
-const GATED_SKILLS = ["commit", "pr"] as const;
+const GATED_SKILLS = ["commit", "pr", "ship"] as const;
 
 interface HookPayload {
   tool_name: string;
