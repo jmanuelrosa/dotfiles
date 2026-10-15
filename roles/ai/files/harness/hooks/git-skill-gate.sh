@@ -57,6 +57,12 @@ buys only the validated commit path. The staged `.claude/tasks/` block
 covers the commit script too; its plan's messages are checked by the
 script itself, since the hook never sees them on the command line.
 
+`skills/ship/scripts/apply.py` commits, pushes and opens the PR in one call,
+and needs /ship, which also buys a raw `git push` for its sandbox fallback.
+/ship is the one model-invocable skill here, so it is recognised by its
+invocation plus a later human turn as well as by `attributionSkill`
+(SHIP_WINDOW_EVENTS explains why).
+
 `s-task` (~/.local/bin/s-task, from this repo's `work` role) pushes, and
 that push is deliberately allowed rather than gated. It exists so a
 GitHub issue gets a linked branch and a Jira ticket's Development panel
@@ -115,13 +121,27 @@ from pathlib import Path
 WINDOW_EVENTS = 30
 SKIP_SKILL_ROUTE_FLAG = "--skip-skill-route"
 COMMIT_SCRIPT = "skills/commit/scripts/apply.py"
+PR_SCRIPT = "skills/pr/scripts/apply.py"
+SHIP_SCRIPT = "skills/ship/scripts/apply.py"
 SKILLS_FOR_SUBCOMMAND = {
     "git commit": {"commit"},
     COMMIT_SCRIPT: {"commit", "pr"},
-    "git push": {"pr"},
+    PR_SCRIPT: {"pr"},
+    SHIP_SCRIPT: {"ship"},
+    "git push": {"pr", "ship"},
     "gh pr create": {"pr"},
     "glab mr create": {"pr"},
 }
+
+# /ship is model-invocable, and a model-invoked skill gets no `attributionSkill`
+# stamp, nor does any turn after a prose reply. So /ship is also active when its
+# invocation (a `/ship` command or a Skill tool call) sits in this window and a
+# human turn follows it: a typed message or an answered AskUserQuestion. That
+# second half is the confirmation the skill must ask for before it writes.
+SHIP_SKILL = "ship"
+SHIP_WINDOW_EVENTS = 400
+SHIP_COMMAND_MARKER = "<command-name>/ship</command-name>"
+NOT_A_HUMAN_TURN = ("<command-", "<local-command", "<task-notification", "<bash-")
 
 # A skill's apply.py runs the gated command in a subprocess, with no `git
 # commit` or `git push` in the command string, so executing it (directly or
@@ -129,9 +149,10 @@ SKILLS_FOR_SUBCOMMAND = {
 # are checked: a `wc -c .../apply.py` must not trip the gate.
 WRAPPER_SCRIPTS = (
     (re.compile(r"(^|/)skills/commit/scripts/apply\.py$"), COMMIT_SCRIPT),
-    (re.compile(r"(^|/)skills/pr/scripts/apply\.py$"), "git push"),
+    (re.compile(r"(^|/)skills/pr/scripts/apply\.py$"), PR_SCRIPT),
+    (re.compile(r"(^|/)skills/ship/scripts/apply\.py$"), SHIP_SCRIPT),
 )
-COMMITTING = {"git commit", COMMIT_SCRIPT}
+COMMITTING = {"git commit", COMMIT_SCRIPT, SHIP_SCRIPT}
 INTERPRETERS = {"bash", "sh", "zsh", "python", "python3"}
 
 # A command word spelled by path is reduced to its name, so `/opt/homebrew/bin/git`
@@ -635,13 +656,71 @@ def skills_in_window(transcript_path):
                     events.append(json.loads(raw))
                 except Exception:
                     continue
-        return {
+        active = {
             event.get("attributionSkill")
             for event in events[-WINDOW_EVENTS:]
             if event.get("attributionSkill")
         }
+        if ship_confirmed(events[-SHIP_WINDOW_EVENTS:]):
+            active.add(SHIP_SKILL)
+        return active
     except Exception:
         return None
+
+
+def event_blocks(event):
+    content = (event.get("message") or {}).get("content")
+    if isinstance(content, str):
+        return [{"type": "text", "text": content}]
+    return [block for block in content or [] if isinstance(block, dict)]
+
+
+def invokes_ship(event):
+    for block in event_blocks(event):
+        if event.get("type") == "user" and SHIP_COMMAND_MARKER in str(block.get("text", "")):
+            return True
+        if (
+            event.get("type") == "assistant"
+            and block.get("type") == "tool_use"
+            and block.get("name") == "Skill"
+            and (block.get("input") or {}).get("skill") == SHIP_SKILL
+        ):
+            return True
+    return False
+
+
+def is_human_prose(event):
+    if event.get("type") != "user" or event.get("isMeta"):
+        return False
+    origin = event.get("origin")
+    if isinstance(origin, dict) and origin.get("kind") != "human":
+        return False
+    blocks = event_blocks(event)
+    if not blocks or any(block.get("type") != "text" for block in blocks):
+        return False
+    text = "".join(str(block.get("text", "")) for block in blocks).lstrip()
+    return bool(text) and not text.startswith(NOT_A_HUMAN_TURN)
+
+
+def ship_confirmed(events):
+    """True when /ship was invoked in `events` and a human answered after it."""
+    start = next((i for i in range(len(events) - 1, -1, -1) if invokes_ship(events[i])), None)
+    if start is None:
+        return False
+    questions = set()
+    for event in events[start + 1:]:
+        if is_human_prose(event):
+            return True
+        for block in event_blocks(event):
+            if block.get("type") == "tool_use" and block.get("name") == "AskUserQuestion":
+                questions.add(block.get("id"))
+            if (
+                block.get("type") == "tool_result"
+                and block.get("tool_use_id") in questions
+                and not block.get("is_error")
+            ):
+                return True
+    return False
 
 
 def staged_tasks_files(cwd):
@@ -819,6 +898,7 @@ def main():
         "Use:\n"
         "  /commit   (stage and commit through the structured flow)\n"
         "  /pr       (push and open the PR/MR)\n"
+        "  /ship     (commit, push and open the PR/MR after one confirmation)\n"
         "\n"
         "To bypass for a one-off, the user can run the command in a terminal\n"
         "or temporarily disable this hook in ~/.claude/settings.json\n"

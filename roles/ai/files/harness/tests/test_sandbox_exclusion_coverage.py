@@ -32,6 +32,9 @@ GATED = {
     "python3 ~/.claude/skills/pr/scripts/apply.py *": (
         "git-skill-gate", "python3 ~/.claude/skills/pr/scripts/apply.py plan.json",
     ),
+    "python3 ~/.claude/skills/ship/scripts/apply.py *": (
+        "git-skill-gate", "python3 ~/.claude/skills/ship/scripts/apply.py plan.json",
+    ),
     "gh *": ("cli-egress-gate", "gh gist create notes.txt"),
     "glab *": ("cli-egress-gate", "glab snippet create -t notes notes.txt"),
     "ntn *": ("cli-egress-gate", "ntn files create"),
@@ -79,7 +82,7 @@ def test_the_gate_is_wired_for_claude_where_the_probe_reaches_it(exclusion):
 
 @pytest.mark.parametrize("probe", [
     f"{launcher}~/.claude/skills/{skill}/scripts/apply.py plan.json"
-    for skill in ("commit", "pr")
+    for skill in ("commit", "pr", "ship")
     for launcher in ("python3 ", "python ", "bash ", "")
 ])
 def test_every_spelling_of_a_skill_script_reaches_git_skill_gate_under_claude(probe):
