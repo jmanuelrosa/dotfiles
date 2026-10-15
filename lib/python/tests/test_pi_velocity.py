@@ -30,7 +30,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from dotkit.testing import PI_EXTENSIONS, REPO, STATUSLINE_VOCABULARY
+from dotkit.testing import PI_EXTENSIONS, REPO, STATUSLINE_VOCABULARY, pi_theme_tokens
 
 EXTENSION = PI_EXTENSIONS / "velocity" / "index.ts"
 TASKS = REPO / "roles/ai/tasks/main.yml"
@@ -123,9 +123,7 @@ def test_the_counted_field_is_still_declared(source, declarations):
 def test_the_theme_colours_exist(source, declarations):
     """`theme.fg` takes a `ThemeColor`, and an unknown one is not an error at runtime: pi returns
     the text unpainted, so the segment loses its colour rather than saying anything."""
-    palette = re.search(r"export type ThemeColor = ([^;]+);", declarations)
-    assert palette, "pi no longer declares a ThemeColor union"
-    allowed = set(re.findall(r'"([^"]+)"', palette.group(1)))
+    allowed = {name for name, (slot, _) in pi_theme_tokens(declarations).items() if slot == "foreground"}
     used = set(re.findall(r'theme\.fg\("([^"]+)"', source))
     assert used, "the extension must paint through theme.fg, so the segment follows the theme"
     assert used <= allowed, f"not pi theme colours: {sorted(used - allowed)}"

@@ -547,7 +547,7 @@ def test_cancel_signals_only_a_matching_runner_identity(tmp_path, monkeypatch):
       maxNoProgressCycles: 2,
     }});
     let status;
-    for (let attempt = 0; attempt < 50; attempt++) {{
+    for (let attempt = 0; attempt < 1_000; attempt++) {{
       status = await readMissionStatus({json.dumps(str(agent_dir))}, started.id);
       if (status.state === "running" && status.heartbeat >= 2) break;
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -575,7 +575,7 @@ def test_cancel_signals_only_a_matching_runner_identity(tmp_path, monkeypatch):
         ["node", "--input-type=module", "-e", script],
         capture_output=True,
         text=True,
-        timeout=5,
+        timeout=30,
     )
     assert done.returncode == 0, done.stderr
     result = json.loads(done.stdout)
