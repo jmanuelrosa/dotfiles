@@ -39,7 +39,7 @@ If a CLI is missing or auth-broken, say so; don't silently fall back.
 
 ## Git
 
-- Commits and pushes go through the `commit` and `pr` skills, never a raw `git commit` or `git push`.
+- Commits and pushes go through the `commit` and `pr` skills, or `ship`, which runs both after one confirmation and is on trial to replace them; never a raw `git commit` or `git push`.
 - Branch names follow `<type>/<slug>` or `<type>/<TICKET>-<slug>` using the Conventional Branch set (`feature`, `fix`, `chore`, `docs`, `refactor`, `test`, `perf`, `ci`, `build`, `style`, `revert`); create with `git switch -c`, never `git checkout -b`. `<TICKET>` is a Jira key (`PROJ-123`) or a GitHub issue (`gh-456`); `s-task <ref>` scaffolds either from the issue itself, auto-detecting the provider. If an existing branch doesn't follow this convention, don't derive commit types or PR titles from its name: stop and ask the user.
 
 ## Context hygiene

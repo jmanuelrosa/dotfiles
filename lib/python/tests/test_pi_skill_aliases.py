@@ -70,7 +70,7 @@ def invoke(extension, name, args="", idle=True):
 def test_commit_alias_expands_the_skill_and_forwards_arguments(extension):
     result = invoke(extension, "commit", "dashboard")
 
-    assert result["names"] == ["commit", "pr"]
+    assert result["names"] == ["commit", "pr", "ship"]
     assert result["sent"] == [["/skill:commit dashboard", {"expandPromptTemplates": True}]]
 
 

@@ -853,6 +853,16 @@
       "note": "Locally authored"
     },
     {
+      "name": "ship",
+      "global": true,
+      "groups": [
+        "productivity",
+        "workflow",
+        "git"
+      ],
+      "note": "Locally authored; trial replacement for commit and pr"
+    },
+    {
       "name": "coderabbit",
       "groups": [
         "productivity",
