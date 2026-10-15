@@ -14,13 +14,17 @@ import os
 import shutil
 import subprocess
 import sys
+import importlib.util
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
 
 import pytest
 
 HOOK = Path(__file__).resolve().parents[1] / "pre-commit-verify.sh"
-verify = SourceFileLoader("pre_commit_verify", str(HOOK)).load_module()
+_loader = SourceFileLoader("pre_commit_verify", str(HOOK))
+_spec = importlib.util.spec_from_loader("pre_commit_verify", _loader)
+verify = importlib.util.module_from_spec(_spec)
+_loader.exec_module(verify)
 
 TRUSTED = [
     ("github.com", ("jmanuelrosa",)),
