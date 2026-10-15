@@ -538,7 +538,8 @@
       }
     }
   },
-  "autoUpdatesChannel": "stable",
+  "subagentPromptCacheTtl": "1h",
+  "autoUpdatesChannel": "latest",
   "minimumVersion": "2.1.203",
   "plansDirectory": "docs/plans",
   "tui": "default",
