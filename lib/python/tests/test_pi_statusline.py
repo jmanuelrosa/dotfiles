@@ -27,7 +27,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from dotkit.testing import CLAUDE, PI_EXTENSIONS, REPO, STATUSLINE_VOCABULARY
+from dotkit.testing import CLAUDE, PI_EXTENSIONS, REPO, STATUSLINE_VOCABULARY, pi_theme_tokens
 
 EXTENSION = PI_EXTENSIONS / "statusline" / "index.ts"
 STATUSLINE = CLAUDE / "statusline.sh"
@@ -183,9 +183,7 @@ def test_the_summarising_entry_types_are_still_declared(source, declarations):
 def test_the_theme_colours_exist(source, declarations):
     """`theme.fg` takes a `ThemeColor`, and an unknown one is not an error at runtime: pi returns
     the text unpainted, so the gauge loses its warning colour rather than saying anything."""
-    palette = re.search(r"export type ThemeColor = ([^;]+);", declarations)
-    assert palette, "pi no longer declares a ThemeColor union"
-    allowed = set(re.findall(r'"([^"]+)"', palette.group(1)))
+    allowed = {name for name, (slot, _) in pi_theme_tokens(declarations).items() if slot == "foreground"}
     used = set(re.findall(r'theme\.fg\("([^"]+)"', source))
     assert used, "the extension must paint through theme.fg, so the footer follows the theme"
     assert used <= allowed, f"not pi theme colours: {sorted(used - allowed)}"
@@ -195,10 +193,10 @@ def test_no_optional_theme_colour_is_painted_with(source, declarations):
     """`thinkingMax` and `searchMatchText` are optional in pi's theme schema, so a user-authored
     theme in roles/ai/files/harness/adapters/pi/themes may define neither. Painting the max thinking level with
     one would leave that level as the only unstyled word in the segment."""
-    optional = re.search(r"type OptionalThemeColor = ([^;]+);", declarations)
-    assert optional, "pi no longer declares which theme colours are optional"
+    optional = {name for name, (_, has_fallback) in pi_theme_tokens(declarations).items() if has_fallback}
+    assert optional, "pi no longer marks any theme colour as optional"
     used = set(re.findall(r'"([^"]+)"', source))
-    assert used.isdisjoint(set(re.findall(r'"([^"]+)"', optional.group(1))))
+    assert used.isdisjoint(optional)
 
 
 def test_the_threshold_is_read_rather_than_typed(source):

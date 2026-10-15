@@ -25,6 +25,7 @@ imported through `lib/python` or through the `dotkit` symlink beside a tool. Not
 here may compare unresolved paths.
 """
 
+import re
 from pathlib import Path
 
 # lib/python/dotkit/testing.py -> lib/python/dotkit -> lib/python -> lib -> checkout
@@ -122,3 +123,19 @@ def harness_dirs(home="~"):
     sets = ["shared", *defaults["HARNESS_ENABLED"]]
     listed = [d for name in sets for d in defaults["HARNESS_LINKS"][name].get("dirs", [])]
     return {d.replace("{{ HOME }}", home) for d in listed + defaults["AI_DIRS"]}
+
+
+def pi_theme_tokens(declarations):
+    """Pi's theme tokens as `{name: (slot, has_fallback)}`, read from the `THEME_TOKENS` table.
+
+    Pi 1.2 derives `ThemeColor` from this table rather than writing the union out, so a regex on
+    the union stops at the first `;` of a mapped type and sees no names at all. A token with a
+    `fallback` is optional: a theme may omit it.
+    """
+    table = re.search(r"THEME_TOKENS:\s*\{(.*?)\n\};", declarations, re.S)
+    assert table, "pi no longer declares THEME_TOKENS, so the theme colours cannot be read"
+    entries = re.findall(r"readonly (\w+): \{(.*?)\n    \};", table.group(1), re.S)
+    return {
+        name: (re.search(r'slot: "(\w+)"', body).group(1), "fallback" in body)
+        for name, body in entries
+    }
