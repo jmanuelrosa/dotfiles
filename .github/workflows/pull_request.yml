@@ -68,9 +68,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install ansible
-          pip3 install ansible-lint --break-system-packages
-          ansible-galaxy collection install -r requirements.yml
+          brew install python@3.13
+          "$(brew --prefix python@3.13)/bin/python3.13" -m venv "$RUNNER_TEMP/lint-venv"
+          "$RUNNER_TEMP/lint-venv/bin/pip" install ansible-lint
+          echo "$RUNNER_TEMP/lint-venv/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/lint-venv/bin/ansible-galaxy" collection install -r requirements.yml
 
       - name: Run ansible-lint
         env:
