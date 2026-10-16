@@ -73,6 +73,7 @@
     "npm:@mrclrchtr/supi-insights@8.0.1"
   ],
   "quietStartup": true,
+  "sessionShareDestination": "gist",
   "showCacheMissNotices": true,
   "showHardwareCursor": true,
   "steeringMode": "all",
