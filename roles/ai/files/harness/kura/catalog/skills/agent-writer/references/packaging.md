@@ -7,7 +7,7 @@ Two packaging paths, decided in mode selection: a seat (it has a paired failure-
 
 A seat and its skill live in one bundle folder, so the coupling cannot drift:
 
-```
+```text
 roles/ai/files/harness/kura/catalog/bundles/<discipline>/
 ├── bundle.json
 ├── agents/<seat>.md

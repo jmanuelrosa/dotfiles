@@ -16,7 +16,6 @@ import importlib.util
 import json
 import subprocess
 import sys
-
 from pathlib import Path
 
 import pytest
@@ -609,7 +608,7 @@ def test_a_prd_restating_a_spec_requirement_that_drops_a_scenario_is_an_error(tm
 
 def test_unmerged_sees_a_requirement_missing_from_an_existing_spec(tmp_path):
     """A spec file that exists no longer proves the requirement inside it was merged."""
-    repo, root, spec = spec_repo(tmp_path, PRD)
+    _repo, root, spec = spec_repo(tmp_path, PRD)
     write(root, "05-tasks.md", TASKS.replace("- [ ] 2.2", "- [x] 2.2"))
     assert pt._unmerged(root) == ["R2"], "R2 shipped but Export history is not in the spec"
     lines, problem = pt.merge(spec, pt.requirements(root)["R2"])
@@ -716,7 +715,7 @@ def test_spec_merge_refuses_a_silent_scenario_drop_end_to_end(tmp_path):
         "#### R1.S2\n- **WHEN** a cell begins with `=`\n- **THEN** it is prefixed so no spreadsheet evaluates it\n",
         "",
     )
-    repo, root, _ = spec_repo(tmp_path, thin)
+    _repo, root, _ = spec_repo(tmp_path, thin)
     write(root, "05-tasks.md", "## 1. Export\n\n- [x] 1.1 Encoder covering R1.S1\n")
     result = run("spec-merge", "demo", cwd=tmp_path)
     assert result.returncode == pt.FINDINGS

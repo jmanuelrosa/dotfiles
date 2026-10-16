@@ -12,7 +12,6 @@ import subprocess
 import sys
 
 import pytest
-
 from dotkit.testing import WORK_SCRIPTS_DIR
 
 RECAP = WORK_SCRIPTS_DIR / "weekly-recap" / "weekly-recap"

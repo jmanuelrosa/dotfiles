@@ -1,6 +1,5 @@
 # Plan files are dated, and committed
 
-
 `plansDirectory` in [settings.json](../../roles/ai/files/harness/adapters/claude/settings.json) points plan mode at `docs/plans/`, and those files are **tracked in git**: a plan is the design record for the change that followed it, which is the same reason the ADRs are tracked. Nothing in `.gitignore` mentions the directory, so this needs no exclusion to keep working; it needs the commits to actually include it.
 
 **Claude Code owns the filename, so the repo can only rename after the fact.** Plan mode generates a slugified prompt prefix plus a random word pair (`right-now-we-save-glimmering-sun.md`) and exposes no setting to date it, which left a directory whose files sort alphabetically into meaningless order with nothing but `stat` to say which came first. [plan-date-stamp.sh](../../roles/ai/files/harness/hooks/plan-date-stamp.sh) is a `PostToolUse` hook on `ExitPlanMode` that prefixes `YYYY-MM-DD-`, matching the shape `.claude/state/research/` already uses. A prefix rather than a suffix, so the names sort chronologically.

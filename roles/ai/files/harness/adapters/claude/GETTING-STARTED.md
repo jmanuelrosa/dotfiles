@@ -88,7 +88,7 @@ Greenfield. You have an idea and an empty repo. Running example: *Ledger*, a sub
 
 **1. Strategy, once per repo.**
 
-```
+```text
 /setup-strategy
 ```
 
@@ -100,7 +100,7 @@ Then `/commit`. Merge before running any initiative.
 
 **2. Open the initiative.**
 
-```
+```text
 /0-refine-idea "let a team see every subscription they pay for in one place"
 ```
 
@@ -110,7 +110,7 @@ A healthy funnel kills most ideas here. Killing at Gate 0 is the pipeline workin
 
 **3. Research, PRD, red team, and Gate 1.**
 
-```
+```text
 /1-research      # the roster's researchers, in parallel
 /2-write-prd     # 02-prd.md: SHALL requirements, each with WHEN/THEN scenarios
 /3-red-team      # pm-red-team attacks the PRD, fixes fold back in  → Gate 1
@@ -122,7 +122,7 @@ Gate 1 comes after the red team on purpose. It is the requirements gate, and req
 
 **4. Technical shape, then decompose.**
 
-```
+```text
 /4-tech-shape    # 04-ux-spec.md + 04-design-doc.md + ADRs
 /5-decompose     # 05-tasks.md, plus thin story headers in the full profile
 /6-verify        # runs pt.py check, then judges what a script cannot
@@ -130,7 +130,7 @@ Gate 1 comes after the red team on purpose. It is the requirements gate, and req
 
 No gate on either. The design gate went because the open decisions at that stage resolve unaided, and the ADRs it used to review are now covered by a `docs/adr/` line in CODEOWNERS. The readiness gate went too, because its mechanical half is now a script:
 
-```
+```sh
 python3 .claude/skills/product-lead/scripts/pt.py check subscription-visibility
 ```
 
@@ -140,7 +140,7 @@ That decides scenario coverage (every requirement claimed by some story or task)
 
 **5. Push to the board, then record what shipped.**
 
-```
+```text
 /7-push-to-board   # full profile only
 /8-living-spec     # at ship time, not before
 ```
@@ -151,7 +151,7 @@ Stage 8 is the one that outlives the initiative. When a requirement's tasks are 
 
 Lost at any point:
 
-```
+```text
 /product-lead
 ```
 
@@ -163,7 +163,7 @@ The handoff is the story file, not the epic. Work **one story at a time**: a sto
 
 **6. Take the lowest-id PASS story and run the team.**
 
-```
+```text
 /feature-team "Story 1.2 - export the subscription list as CSV.
 Story: docs/initiatives/subscription-visibility/05-backlog/story-1.2.md (the scenario ids it claims are the acceptance bar)
 Requirements: docs/initiatives/subscription-visibility/02-prd.md (where those R#.S# scenarios are written)
@@ -181,7 +181,7 @@ Three anchors, always: the story, the PRD, the ADR directory. What happens next:
 
 **7. Close the loop.**
 
-```
+```text
 /code-review max      # on the combined diff
 /commit
 /pr
@@ -213,7 +213,7 @@ Most work is this. A single seat, dispatched directly, no architect and no `/fea
 
 Ask for the seat by name in the conversation:
 
-```
+```text
 Dispatch backend-staff-engineer with this brief:
 
 Goal: add cursor pagination to GET /subscriptions, which currently returns every row.
@@ -251,7 +251,7 @@ Between Scenario 1 and Scenario 3. The work is real design work but there is no 
 
 Dispatch the architect alone:
 
-```
+```text
 Dispatch the architect agent: design the migration from our session cookies to
 short-lived JWTs with refresh rotation. Read src/auth/ and docs/adr/. I want the
 spec and the owner split; do not dispatch anyone.

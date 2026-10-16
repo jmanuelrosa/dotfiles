@@ -12,7 +12,6 @@ never on the wording, so the messages can be reworded freely.
 import json
 import subprocess
 import sys
-
 from pathlib import Path
 
 import pytest

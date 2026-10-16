@@ -15,7 +15,6 @@ import re
 import pytest
 import yaml
 from dotkit.testing import (
-    AGENTS,
     AI_TASKS,
     CLAUDE,
     CODEX,

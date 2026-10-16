@@ -27,7 +27,13 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from dotkit.testing import CLAUDE, PI_EXTENSIONS, REPO, STATUSLINE_VOCABULARY, pi_theme_tokens
+from dotkit.testing import (
+    CLAUDE,
+    PI_EXTENSIONS,
+    REPO,
+    STATUSLINE_VOCABULARY,
+    pi_theme_tokens,
+)
 
 EXTENSION = PI_EXTENSIONS / "statusline" / "index.ts"
 STATUSLINE = CLAUDE / "statusline.sh"
@@ -103,7 +109,7 @@ def declarations(package):
 def imported(source, module):
     # `[^}]` rather than a lazy `.`, which crosses the closing brace of an earlier import and
     # returns the names of whichever block precedes this one.
-    block = re.search(rf'import (?:type )?\{{([^}}]*)\}} from "{re.escape(module)}"', source, re.S)
+    block = re.search(rf'import (?:type )?\{{([^}}]*)\}} from "{re.escape(module)}"', source, re.DOTALL)
     assert block, f"the extension must import from {module} by package name"
     return {
         name.replace("type ", "").strip() for name in block.group(1).split(",") if name.strip()
@@ -166,7 +172,7 @@ def test_the_usage_fields_are_still_declared(source, declarations):
         assert f"{field}: number" in declarations
         assert f"usage.{field}" in source
     assert "usage.cost.total" in source
-    assert re.search(r"cost: \{[^}]*total: number", declarations, re.S), (
+    assert re.search(r"cost: \{[^}]*total: number", declarations, re.DOTALL), (
         "pi no longer declares a `cost.total`, so every dollar figure in the footer reads NaN"
     )
 
@@ -542,7 +548,7 @@ def test_a_compaction_with_no_recorded_size_is_left_alone(runner):
 def test_the_compaction_size_field_is_still_declared(declarations):
     """The whole gate rests on this one field. Renamed, `measuresCompactedContext` reads undefined,
     every compaction looks unmeasurable and the ratcheted percentage is believed again."""
-    assert re.search(r'type: "compaction";[^}]*tokensBefore: number', declarations, re.S), (
+    assert re.search(r'type: "compaction";[^}]*tokensBefore: number', declarations, re.DOTALL), (
         "pi no longer declares `tokensBefore` on its compaction entry"
     )
 

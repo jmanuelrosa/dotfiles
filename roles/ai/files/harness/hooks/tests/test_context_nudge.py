@@ -14,7 +14,6 @@ state of a live session.
 import json
 import subprocess
 import sys
-
 from pathlib import Path
 
 import pytest

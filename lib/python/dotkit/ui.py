@@ -113,7 +113,7 @@ def done(text, indent=None, stream=None):
 
 
 def blank(stream=None):
-    print("", file=stream or sys.stdout)
+    print(file=stream or sys.stdout)
 
 
 def paint(text, colour, stream=None):

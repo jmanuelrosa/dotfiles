@@ -17,7 +17,7 @@ Never edit before the user accepts findings.
 
 ## Step 0: Refresh knowledge (every run)
 
-WebFetch https://code.claude.com/docs/en/sub-agents and confirm the currently honored frontmatter fields and their valid values.
+WebFetch <https://code.claude.com/docs/en/sub-agents> and confirm the currently honored frontmatter fields and their valid values.
 Training-data knowledge of agent frontmatter is stale.
 Never flag or recommend a field you did not just verify.
 If the fetch fails, say so and limit frontmatter findings to fields observed working in the repo.

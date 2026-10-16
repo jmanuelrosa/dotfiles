@@ -1,6 +1,5 @@
 # Script output style
 
-
 Every script here prints through **one vocabulary, expressed twice**: [_ui.fish](../../roles/shell/files/fish/functions/ui/_ui.fish) for fish and [dotkit/ui.py](../../lib/python/dotkit/ui.py) for python. Same kinds, same glyphs, same palette, same reset bytes. **Never hand-roll `set_color` / ANSI escapes in a new script**, and never invent a glyph: if a line does not fit a kind below, the kind is missing and belongs in both files.
 
 | kind | renders | for |
@@ -19,6 +18,7 @@ _ui title "🧹 Removing Claude artifacts"     # fish: _ui <kind> <text>, -i N t
 _ui item (_ui path "$dir")                   # _ui path collapses $HOME to ~
 _ui done "Removed 3 of 3"
 ```
+
 ```python
 ui.title("🧩 Available skills:")             # python: ui.<kind>(text, indent=…)
 ui.item(ui.path(destination))                # ui.render(kind, text) returns the string

@@ -71,7 +71,7 @@ def Path_or_skip(binary):
 
 
 def imported(source):
-    block = re.search(rf'import (?:type )?\{{([^}}]*)\}} from "{re.escape(PACKAGE)}"', source, re.S)
+    block = re.search(rf'import (?:type )?\{{([^}}]*)\}} from "{re.escape(PACKAGE)}"', source, re.DOTALL)
     assert block, "the extension must import from pi by package name"
     return {
         name.replace("type ", "").strip() for name in block.group(1).split(",") if name.strip()

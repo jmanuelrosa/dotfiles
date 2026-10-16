@@ -41,7 +41,7 @@ Reference: [jmanuelrosa/hostof](https://github.com/jmanuelrosa/hostof) at `v0.1.
 
 ### 1. `hostof` - complete
 
-- [x] Standalone repo published: https://github.com/jmanuelrosa/hostof
+- [x] Standalone repo published: <https://github.com/jmanuelrosa/hostof>
 - [x] Release `v0.1.0` with checksum-pinned install in coreutils role
 - [x] Old source removed from dotfiles; packaging tests updated
 - [x] Local verification: `make run-role ROLE=coreutils`, `make verify`
@@ -75,7 +75,7 @@ Design: [port-extraction.md](./port-extraction.md).
 
 - [x] Explicit approval and separate extraction design
 - [x] Initial `port` release retained as historical `v0.1.0`
-- [x] Standalone repository renamed: https://github.com/jmanuelrosa/shoo
+- [x] Standalone repository renamed: <https://github.com/jmanuelrosa/shoo>
 - [x] Renamed `shoo` executable published as checksum-verified `v0.2.0`
 - [x] Shell role installer pinned to the release and SHA-256 checksum
 - [x] Legacy Fish function and checksum-matched `port` executable handled safely

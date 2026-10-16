@@ -144,9 +144,11 @@ For each host that needs it:
 
 1. Create a Personal Access Token at <https://gitlab.com/-/user_settings/personal_access_tokens>, signed in to the **matching account** (personal or work).
 2. Run, replacing `<HOST>`:
+
    ```sh
    glab auth login --hostname <HOST> --git-protocol ssh --use-keyring
    ```
+
 3. Paste the PAT when prompted.
 
 For `gitlab.com-work`, glab asks a few extra questions because the host is an alias. Answer with the **real** values for everything except the SSH hostname:

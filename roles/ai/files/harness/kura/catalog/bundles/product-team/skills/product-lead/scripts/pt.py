@@ -35,7 +35,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from dotkit import ui  # noqa: E402
+from dotkit import ui
 
 OK = 0
 FINDINGS = 1

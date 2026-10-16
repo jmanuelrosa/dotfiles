@@ -1,6 +1,5 @@
 # Skill registry & dependencies
 
-
 Skills are tracked in [roles/ai/files/harness/kura/catalog/skill-registry.json](../../roles/ai/files/harness/kura/catalog/skill-registry.json): `upstream`, keyed by GitHub `owner/repo`, whose entries each carry a `branch`, a pinned `commit` on it, and the `skills` synced from it by `upstream_path`, and `local`, the skills authored here. A skill entry may declare `dependencies: [<name>, ...]` — other skills it invokes at runtime (e.g. the dispatcher `grill-me` runs `/grilling`, so it depends on `grilling`). Each named dependency must itself be a registered or on-disk skill.
 
 `kura add` resolves a skill's transitive dependency closure, downloading and symlinking each into the project, and `kura list` annotates it `(needs: …)`. `kura sync` links the skills with `global: true` plus their declared dependencies, recursively, into `~/.claude/skills/` and `~/.agents/skills/`, so a global dispatcher skill never ships without the skills it calls. Declare dependencies in the registry, not in `SKILL.md` prose — the latter is overwritten on every `kura update --type skill`.

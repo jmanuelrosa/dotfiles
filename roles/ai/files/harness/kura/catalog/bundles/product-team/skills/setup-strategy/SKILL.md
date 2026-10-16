@@ -68,12 +68,14 @@ Templates live in `../product-lead/references/templates/` (sibling of this skill
 2. `docs/strategy/product-team.yml` from `config.yml`, every value filled from the interview.
 3. `docs/LEARNINGS.md` if absent: a title line plus "Appended by /8-living-spec as each initiative ships."
 4. `.github/CODEOWNERS` if absent (or missing these lines):
-   ```
+
+   ```text
    /docs/strategy/     {strategy owner}
    /docs/initiatives/  {PM gate owner}
    /docs/initiatives/*/04-ux-spec.md  {design gate owner}
    /docs/adr/          {tech lead}
    ```
+
    Keep that order: CODEOWNERS applies the **last** matching pattern, so a specific line must follow the general one or the PM owns the UX spec too. The single `*` matches exactly the slug level, which is what the initiative layout needs. Omit the UX line entirely when there is no design gate owner.
 
    The `docs/adr/` line is load-bearing rather than tidiness: with no design gate it is the only review an ADR gets, and ADRs are the one artifact class this pipeline treats as immutable and hard to reverse. Ask for a tech lead handle even in a solo repo, where it is the repo owner: the line then costs nothing and starts working the day someone else joins.

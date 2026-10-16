@@ -7,9 +7,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
-
 from dotkit.testing import PI, ai_defaults
-
 
 EXTENSION = PI / "extensions/sandbox/index.ts"
 

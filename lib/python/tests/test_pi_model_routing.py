@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 import yaml
-from dotkit.testing import AGENTS, BUNDLES, PI, SKILLS, SKILL_REGISTRY
+from dotkit.testing import AGENTS, BUNDLES, PI, SKILL_REGISTRY, SKILLS
 
 
 @pytest.fixture(scope="module")

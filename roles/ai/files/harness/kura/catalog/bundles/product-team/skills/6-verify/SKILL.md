@@ -37,7 +37,7 @@ First read `../product-lead/references/conventions.md` and the checklist itself,
 
 **Run the script first, and do not re-decide what it decided.**
 
-```
+```sh
 python3 .claude/skills/product-lead/scripts/pt.py check {slug} --strict
 ```
 

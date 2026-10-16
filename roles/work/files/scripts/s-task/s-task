@@ -76,15 +76,15 @@ function get_branch_prefix
     set issue_type (string lower -- $argv[1])
     switch $issue_type
         case bug defect
-            echo "fix"
+            echo fix
         case story "user story"
-            echo "feature"
+            echo feature
         case task chore
-            echo "feature"
+            echo feature
         case improvement enhancement
-            echo "feature"
+            echo feature
         case '*'
-            echo "feature"
+            echo feature
     end
 end
 
@@ -94,9 +94,9 @@ end
 function github_prefix_from_type
     switch (string lower -- $argv[1])
         case bug defect regression
-            echo "fix"
+            echo fix
         case feature story enhancement improvement task
-            echo "feature"
+            echo feature
         case '*'
             echo ""
     end
@@ -108,34 +108,34 @@ function github_prefix_from_labels
     for label in $argv
         switch (string lower -- $label)
             case bug defect regression
-                echo "fix"
+                echo fix
                 return
             case enhancement feature story improvement
-                echo "feature"
+                echo feature
                 return
             case chore dependencies deps
-                echo "chore"
+                echo chore
                 return
             case documentation docs
-                echo "docs"
+                echo docs
                 return
             case refactor refactoring
-                echo "refactor"
+                echo refactor
                 return
             case test tests testing
-                echo "test"
+                echo test
                 return
             case performance perf
-                echo "perf"
+                echo perf
                 return
             case ci
-                echo "ci"
+                echo ci
                 return
             case build
-                echo "build"
+                echo build
                 return
             case style styling
-                echo "style"
+                echo style
                 return
         end
     end
@@ -227,7 +227,7 @@ if not command -v jq >/dev/null 2>&1
 end
 
 # Parse arguments
-argparse 'd/dry' 't/type=' 'j/jira' 'g/github' 'n/no-push' 'w/worktree=?' -- $argv 2>/dev/null
+argparse d/dry 't/type=' j/jira g/github n/no-push 'w/worktree=?' -- $argv 2>/dev/null
 or usage
 
 if set -q _flag_no_push
@@ -333,7 +333,7 @@ else
     set -g ISSUE_LABELS (echo "$RESPONSE" | jq -r '.labels[]?.name // empty')
     set -g TICKET "gh-"(echo "$RESPONSE" | jq -r '.number // empty')
 
-    if test -z "$ISSUE_SUMMARY" -o "$TICKET" = "gh-"
+    if test -z "$ISSUE_SUMMARY" -o "$TICKET" = gh-
         die "Could not parse issue details"
     end
 
@@ -382,7 +382,7 @@ if test (string length -- $TITLE_SLUG) -gt $MAX_SLUG_LENGTH
     set TITLE_SLUG (string sub -l $MAX_SLUG_LENGTH -- $TITLE_SLUG)
     # If we cut a word in half, walk back to the last hyphen boundary
     set next_char (string sub -s (math $MAX_SLUG_LENGTH + 1) -l 1 -- $ORIGINAL_SLUG)
-    if test "$next_char" != "-"
+    if test "$next_char" != -
         set TITLE_SLUG (string replace -r -- '-[^-]*$' '' $TITLE_SLUG)
     end
     set TITLE_SLUG (string replace -r -- '-+$' '' $TITLE_SLUG)
@@ -495,7 +495,7 @@ else
         if test "$PROVIDER" = jira
             _ui ok "Pushed. $ISSUE_REF's Development panel picks the branch up from the issue key in its name."
         else
-            _ui ok "Pushed"
+            _ui ok Pushed
         end
     end
 end

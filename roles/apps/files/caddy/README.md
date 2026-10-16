@@ -8,7 +8,7 @@ lokl add my-custom-project
 astro dev --port (lokl port my-custom-project)
 ```
 
-```
+```text
 http://my-custom-project.localhost        # through the proxy on :80
 http://my-custom-project.localhost:3001   # straight at the dev server
 ```
@@ -34,7 +34,7 @@ A dev domain is two things that have to agree, and [`lokl`](../scripts/lokl/lokl
 This half is belt and braces rather than the load-bearing thing it was written as.
 macOS 26 resolves every `*.localhost` name to loopback on its own, per RFC 6761, so `getaddrinfo` and `curl` answer for a name in no file at all:
 
-```
+```text
 zzz-random-9k3.localhost  ->  127.0.0.1, ::1     # never added anywhere
 foo.test                  ->  does not resolve
 ```
@@ -90,7 +90,7 @@ Writing the file proves nothing on its own, and this is the one assumption the w
 A project with a landing site, an app, an api and an admin panel needs four domains that share one session.
 Hyphens do not give you that:
 
-```
+```text
 pot.localhost  pot-app.localhost  pot-api.localhost  pot-admin.localhost
 ```
 
@@ -103,7 +103,7 @@ cd ~/Developer/pot
 lokl add pot --sub app --sub api --sub admin
 ```
 
-```
+```text
 pot.localhost         :29769   landing
 app.pot.localhost     :29770   app
 api.pot.localhost     :29771   api
@@ -200,7 +200,7 @@ A server bound to `0.0.0.0` is already reachable through the `127.0.0.1` entry.
 The hosts entry lists one address, `127.0.0.1`, where the file would happily carry `::1` as well, but that no longer decides anything.
 macOS answers every `*.localhost` name with both families whatever the entry says, which `lokl add` will show you:
 
-```
+```text
 ✓ my-custom-project.localhost resolves to 127.0.0.1, ::1
 ```
 

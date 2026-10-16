@@ -158,7 +158,7 @@ def strip_prose(reader):
     text = reader.read_text()
     text = re.sub(r'"""(?:.|\n)*?"""', "", text)
     text = re.sub(r"/\*(?:.|\n)*?\*/", "", text)
-    text = re.sub(r"^\s*(#|//).*$", "", text, flags=re.M)
+    text = re.sub(r"^\s*(#|//).*$", "", text, flags=re.MULTILINE)
     return text
 
 

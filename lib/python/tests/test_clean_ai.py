@@ -3,7 +3,6 @@ import os
 import subprocess
 from pathlib import Path
 
-
 FUNCTIONS = Path(__file__).resolve().parents[3] / "roles/shell/files/fish/functions"
 ALIASES = FUNCTIONS.parent / "conf.d/aliases/aliases.fish"
 

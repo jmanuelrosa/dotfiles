@@ -36,9 +36,11 @@ Two bundled scripts do the mechanical work in one call each; don't re-run git fo
    - `BRANCH` == `BASE` (on the default branch) → **ask**: commit into `$BASE`, or create a new branch?
      - Into `$BASE` (common for personal repos) → proceed.
      - New branch → **propose two candidates** from the context you already have (the diff, not a commit plan: concern analysis hasn't run yet). First from the dominant concern, second a different framing (broader or narrower slug, or a different type when the diff is arguably either). Offer them with `AskUserQuestion` (`header: "Branch name"`, `multiSelect: false`, the two names as options); `Other` covers a hand-typed name, and two options is the tool's floor, which is why you propose a pair rather than padding with a filler option. Validate the answer, proposed or typed, against:
-       ```
+
+       ```text
        ^(feature|fix|chore|docs|refactor|test|perf|ci|build|style|revert)\/([A-Z]+-[0-9]+-|gh-[0-9]+-)?[a-z0-9][a-z0-9-]*$
        ```
+
        Branch types are the Conventional Branch set, commit types are commitlint's, and they disagree on one member: a `feat` commit belongs on a `feature/` branch. The ticket is embedded with a dash, not a separate segment: a Jira key (`PROJ-123-<slug>`) or a GitHub issue (`gh-456-<slug>`). Both are what `s-task` scaffolds. Carry one only when the diff, the current branch, or the user's arguments name it: never invent a key. On failure, show why and re-ask. Create with `git switch -c "$NEW_BRANCH"`.
    - `BRANCH_CONVENTION=unresolved` because there is no origin → treat the current branch as the working branch, as step 1 states.
    - `BRANCH_CONVENTION=nonstandard` on a non-default branch → do not commit on it. Propose two valid names with the same prompt and validation above, then rename it with `git branch -m "$NEW_BRANCH"` before continuing.
@@ -67,9 +69,11 @@ Two bundled scripts do the mechanical work in one call each; don't re-run git fo
    - On `Other`, integrate the redirect, replan from concern analysis if needed, and re-run this gate.
 
 8. **Execute** (single call after Go). **Write** the approved plan to `/tmp/claude/commit-plan-<repo>-<suffix>.json` (`<suffix>` random once per run; `/tmp/claude/` is shared across sessions):
+
    ```json
    {"commits": [{"files": ["src/a.ts", "src/b.ts"], "message": "feat(x): subject\n\n- why bullet"}]}
    ```
+
    Newlines inside `message` are `\n` escapes; keep entries in plan order. Then run `python3 ~/.claude/skills/commit/scripts/apply.py <plan path>`. It validates every entry up front (attribution lines, em/en dashes, `.claude/tasks/`, secret-looking files other than `.sample`/`.example`/`.template`/`.dist`, header length), then stages each file group and commits it with `-F`, stops on the first failure leaving that group staged, and prints the final log.
    - **Hunk splits**: `apply.py` stages whole files only. Commit a mixed-concern entry manually instead: `git add -p <file>`, **Write** the message to `/tmp/claude/commit-msg-<repo>-<suffix>.txt`, then `git commit -F <that file>`. Never inline `-m` and never a HEREDOC (the harness escapes `!` and other shell-special chars; the Write tool bypasses the shell).
    - **Never** `--no-verify`. On a pre-commit hook failure, surface the full output and stop: don't retry, don't continue until it's resolved.

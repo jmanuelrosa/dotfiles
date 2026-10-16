@@ -75,13 +75,14 @@ subagent({ workflowScriptPath: "<script path>", async: true, worktree: true, bas
 ```
 
 For each unit, the `task` must be fully self-contained, because the worker starts from a fresh context in a worktree that does not contain the plan. Include:
+
 - The overall goal (the user's instruction)
 - This unit's specific task (title, branch name, file list, change description, copied verbatim from your plan)
 - Any codebase conventions you discovered that the worker needs to follow
 - The e2e test recipe from your plan (or "skip e2e because ...")
 - The worker instructions below, copied verbatim:
 
-```
+```text
 After you finish implementing the change:
 1. **Code review**: Review your own diff against the base following the `review-mechanics` skill (it reports findings; it does not edit code). Fix every blocker and important finding before continuing.
 2. **Run unit tests**: Run the project's test suite (check for package.json scripts, Makefile targets, or common commands like `npm test`, `bun test`, `pytest`, `go test`). If tests fail, fix them.

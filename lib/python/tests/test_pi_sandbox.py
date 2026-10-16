@@ -57,7 +57,7 @@ Four things the translation cannot carry, verified against pi-sandbox 0.6.5 and 
 import json
 import re
 
-from dotkit.testing import CLAUDE_SETTINGS, PI, REPO, harness_links
+from dotkit.testing import CLAUDE_SETTINGS, PI, harness_links
 from harnessgen import emit_pi, manifest
 from harnessgen.emit_pi import SANDBOX, to_sandbox_pattern
 

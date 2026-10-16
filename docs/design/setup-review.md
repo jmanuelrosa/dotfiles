@@ -320,14 +320,17 @@ None. Implementation retained P0-P2 for harness setup findings, resolves pi's in
 ## Appendix - affected files
 
 Created:
+
 - `roles/ai/files/harness/kura/catalog/skills/setup-review/SKILL.md`
 - `roles/ai/files/harness/kura/catalog/skills/setup-review-mechanics/SKILL.md`
 - `roles/ai/files/harness/agents/pi-staff-reviewer.md`
 
 Deleted:
+
 - `roles/ai/files/harness/kura/catalog/skills/cc-review/SKILL.md`
 
 Modified:
+
 - `roles/ai/files/harness/agents/cc-staff-reviewer.md`
 - `roles/ai/files/harness/kura/catalog/skill-registry.json`
 - `roles/ai/files/harness/agent-registry.json`
@@ -343,6 +346,7 @@ Modified:
 - `docs/internals/pi-harness.md`
 
 Read:
+
 - `roles/ai/tasks/main.yml`
 - `roles/ai/files/harness/adapters/pi/settings.json`
 - `roles/ai/files/harness/adapters/pi/APPEND_SYSTEM.md`
@@ -350,6 +354,7 @@ Read:
 - `roles/shell/files/fish/conf.d/exports.fish`
 
 Left alone:
+
 - `docs/cc-setup-review-2026-07-25.md`
 - `docs/plans/2026-08-17-mossy-dazzling-planet.md`
 - `.claude/state/research/2026-08-04-research-global-code-review-policy.md`

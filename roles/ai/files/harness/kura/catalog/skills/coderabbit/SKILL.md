@@ -54,12 +54,14 @@ Resolve every `scripts/...` path relative to this skill's directory.
    Weigh the `severity` the script prints: `nitpick` and `outside-diff` are low priority, `potential` and `warning` are the real candidates.
 
 4. **Single batched approval gate** (mandatory). Print **one** verdict table for the whole PR:
-   ```
+
+   ```text
    # | path:line             | severity  | verdict        | action
    1 | src/auth/token.ts:42  | warning   | FIX            | guard null session before decode
    2 | src/api/users.ts:88   | nitpick   | REPLY-AND-SKIP | naming is intentional, matches column
    3 | src/cron/sweep.ts:12  | potential | ASK-USER       | changes retry semantics, confirm?
    ```
+
    Below the table, print the **full drafted reply text** for every REPLY-AND-SKIP item, so the user sees exactly what goes public before approving.
    Replies are visible to the whole team, the gate must cover them.
 
@@ -86,6 +88,7 @@ Resolve every `scripts/...` path relative to this skill's directory.
    The `git-skill-gate.sh` hook blocks `git commit` / `git push` outside `/commit` and `/pr`, and that is intended.
 
 6. **Post the replies and resolve the threads** (single call). **Write** the approved plan to `/tmp/claude/coderabbit-plan-<repo>-<suffix>.json` (`<suffix>` random once per run), carrying only the verdicts the chosen gate option covers:
+
    ```json
    {
      "repo": "owner/name",
@@ -98,6 +101,7 @@ Resolve every `scripts/...` path relative to this skill's directory.
      "skipped": {"resolved": 4, "outdated": 1}
    }
    ```
+
    Copy `repo`, `pr` and the `skipped` counts from step 1's output, and `thread` / `reply_to` verbatim from the thread you are acting on.
    Newlines inside `body` are `\n` escapes.
    Then run `python3 scripts/apply.py <plan path>`.

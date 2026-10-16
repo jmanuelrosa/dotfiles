@@ -1,6 +1,5 @@
 # The code review policy
 
-
 The review bar lives at [roles/ai/files/harness/rules/code-review.md](../../roles/ai/files/harness/rules/code-review.md), linked into `~/.claude/rules/`, and **not** in a `REVIEW.md`.
 That is not a preference: `REVIEW.md` is read at a **repository root only**, by Anthropic's hosted GitHub Code Review and by nothing else.
 The local `/code-review` does not read it, stated in the docs and confirmed against the binary, where scanning all 256 MB of 2.1.220 finds the string `review.md` **zero** times, so there is no dynamic path construction either.

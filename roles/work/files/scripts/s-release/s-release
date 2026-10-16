@@ -459,7 +459,7 @@ function release
 end
 
 function main
-    argparse 'h/help' 'l/list' 'd/dry' 't/title=' 'o/org=' no-label no-assign -- $argv 2>/dev/null
+    argparse h/help l/list d/dry 't/title=' 'o/org=' no-label no-assign -- $argv 2>/dev/null
     or usage
 
     if set -q _flag_help
