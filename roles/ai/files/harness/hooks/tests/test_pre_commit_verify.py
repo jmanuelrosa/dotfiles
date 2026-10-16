@@ -9,12 +9,12 @@ The trust cases matter because the hook runs outside the agent sandbox: a strang
 clone whose lint script runs on commit would run with the user's full access.
 """
 
+import importlib.util
 import json
 import os
 import shutil
 import subprocess
 import sys
-import importlib.util
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
 

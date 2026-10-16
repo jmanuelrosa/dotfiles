@@ -482,7 +482,11 @@ def main():
     args = parser.parse_args()
 
     try:
-        source = sys.stdin.read() if args.source == "-" else open(args.source).read()
+        if args.source == "-":
+            source = sys.stdin.read()
+        else:
+            with open(args.source) as handle:
+                source = handle.read()
     except OSError as error:
         fail(f"cannot read {args.source}: {error}", EXIT_USAGE)
 

@@ -9,7 +9,6 @@ tool call, the AskUserQuestion round-trip, and typed messages.
 import json
 import subprocess
 import sys
-
 from pathlib import Path
 
 import pytest

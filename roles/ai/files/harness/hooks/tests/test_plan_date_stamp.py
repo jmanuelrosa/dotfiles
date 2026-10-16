@@ -12,7 +12,6 @@ the hook reads in a real session.
 import json
 import subprocess
 import sys
-
 from datetime import date
 from pathlib import Path
 

@@ -22,7 +22,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from dotkit import ui  # noqa: E402
+from dotkit import ui
 
 HARNESS = Path(__file__).resolve().parents[5]
 DEFAULT_POLICY = HARNESS / "policy" / "permissions.toml"
@@ -42,10 +42,7 @@ BELOW_THRESHOLD = "below-threshold"
 # Claude Code's own read-only validation. Calls matching these never prompt there, so a
 # rule for them is noise.
 AUTO_ANY = frozenset(
-    "cal uptime cat head tail wc stat strings hexdump od nl id uname free df du locale "
-    "groups nproc basename dirname realpath cut paste tr column tac rev fold expand "
-    "unexpand fmt comm cmp numfmt readlink diff true false sleep which type expr seq "
-    "tsort pr echo ls cd".split()
+    ["cal", "uptime", "cat", "head", "tail", "wc", "stat", "strings", "hexdump", "od", "nl", "id", "uname", "free", "df", "du", "locale", "groups", "nproc", "basename", "dirname", "realpath", "cut", "paste", "tr", "column", "tac", "rev", "fold", "expand", "unexpand", "fmt", "comm", "cmp", "numfmt", "readlink", "diff", "true", "false", "sleep", "which", "type", "expr", "seq", "tsort", "pr", "echo", "ls", "cd"]
 )
 AUTO_NO_ARGS = frozenset({"pwd", "whoami", "alias"})
 AUTO_EXACT = frozenset(
@@ -60,9 +57,7 @@ AUTO_EXACT = frozenset(
     }
 )
 AUTO_VALIDATED = frozenset(
-    "xargs file sed sort man help netstat ps base64 grep egrep fgrep sha256sum sha1sum "
-    "md5sum tree date hostname lsof pgrep tput ss fd fdfind aki rg jq uniq history arch "
-    "ifconfig find printf test".split()
+    ["xargs", "file", "sed", "sort", "man", "help", "netstat", "ps", "base64", "grep", "egrep", "fgrep", "sha256sum", "sha1sum", "md5sum", "tree", "date", "hostname", "lsof", "pgrep", "tput", "ss", "fd", "fdfind", "aki", "rg", "jq", "uniq", "history", "arch", "ifconfig", "find", "printf", "test"]
 )
 AUTO_PREFIXES = frozenset(
     tuple(prefix.split())
@@ -119,11 +114,7 @@ AUTO_PREFIXES = frozenset(
 # A wildcard rule over any of these is a rule allowing arbitrary code.
 INTERPRETER = re.compile(r"(python|pypy|ruby|perl|php|lua|node|bun|deno|java|R)[\d.]*")
 EXEC_COMMANDS = frozenset(
-    "sh bash zsh fish dash ksh csh tcsh nu pwsh eval exec source ssh mosh script expect "
-    "tmux screen watch xargs parallel awk gawk mawk nawk osascript swift kotlin scala "
-    "groovy irb pry ghci julia rscript tclsh wish npx bunx pnpx uvx pipx rtk sudo doas "
-    "su pyright basedpyright make gmake just task rake gradle gradlew mvn ant ninja turbo "
-    "nx lerna dotenv direnv nix-shell".split()
+    ["sh", "bash", "zsh", "fish", "dash", "ksh", "csh", "tcsh", "nu", "pwsh", "eval", "exec", "source", "ssh", "mosh", "script", "expect", "tmux", "screen", "watch", "xargs", "parallel", "awk", "gawk", "mawk", "nawk", "osascript", "swift", "kotlin", "scala", "groovy", "irb", "pry", "ghci", "julia", "rscript", "tclsh", "wish", "npx", "bunx", "pnpx", "uvx", "pipx", "rtk", "sudo", "doas", "su", "pyright", "basedpyright", "make", "gmake", "just", "task", "rake", "gradle", "gradlew", "mvn", "ant", "ninja", "turbo", "nx", "lerna", "dotenv", "direnv", "nix-shell"]
 )
 EXEC_SUBCOMMANDS = frozenset(
     tuple(prefix.split())
@@ -185,28 +176,20 @@ EXEC_FLAGS = frozenset({"-exec", "-execdir", "-ok", "-okdir"})
 
 # Single-purpose tools with no write or exec mode, so `cmd *` is as narrow as it gets.
 READ_ONLY_COMMANDS = frozenset(
-    "sw_vers system_profiler mdfind mdls otool nm shasum md5 eza exa tokei dig nslookup "
-    "host whois ping traceroute vm_stat iostat w who users last zipinfo".split()
+    ["sw_vers", "system_profiler", "mdfind", "mdls", "otool", "nm", "shasum", "md5", "eza", "exa", "tokei", "dig", "nslookup", "host", "whois", "ping", "traceroute", "vm_stat", "iostat", "w", "who", "users", "last", "zipinfo"]
 )
 # A subcommand word that only reads, wherever it sits in the first three words. Not
 # `version`: `npm version patch` bumps, commits and tags.
 READ_ONLY_VERBS = frozenset(
-    "status log logs diff show list ls view get describe inspect info search whoami "
-    "outdated doctor help explain top history tree why read current deps leaves uses ps "
-    "images checks".split()
+    ["status", "log", "logs", "diff", "show", "list", "ls", "view", "get", "describe", "inspect", "info", "search", "whoami", "outdated", "doctor", "help", "explain", "top", "history", "tree", "why", "read", "current", "deps", "leaves", "uses", "ps", "images", "checks"]
 )
 MUTATING_WORDS = frozenset(
-    "add apply approve cancel clean close cp create delete deploy destroy disable drop "
-    "edit enable install kill login logout merge mv patch prune publish purge push put "
-    "remove rename rerun reset restart revert rm rollback scale set start stop sync "
-    "uninstall update upgrade upload write".split()
+    ["add", "apply", "approve", "cancel", "clean", "close", "cp", "create", "delete", "deploy", "destroy", "disable", "drop", "edit", "enable", "install", "kill", "login", "logout", "merge", "mv", "patch", "prune", "publish", "purge", "push", "put", "remove", "rename", "rerun", "reset", "restart", "revert", "rm", "rollback", "scale", "set", "start", "stop", "sync", "uninstall", "update", "upgrade", "upload", "write"]
 )
 # Wider than the shell set because an MCP tool name is all verb, while a shell word after
 # the subcommand is as likely a package or resource name (`npm view react`).
 MCP_MUTATING_WORDS = MUTATING_WORDS | frozenset(
-    "append archive assign change comment complete execute insert invite join label leave "
-    "mark modify move mute pin post react replace reply run save schedule send share star "
-    "store submit toggle transition trigger unarchive unpin".split()
+    ["append", "archive", "assign", "change", "comment", "complete", "execute", "insert", "invite", "join", "label", "leave", "mark", "modify", "move", "mute", "pin", "post", "react", "replace", "reply", "run", "save", "schedule", "send", "share", "star", "store", "submit", "toggle", "transition", "trigger", "unarchive", "unpin"]
 )
 EXCLUDED_KEYS = frozenset({("go", "get")})
 VERSION_FLAGS = frozenset({"--version", "-V", "version", "--help", "-h", "help"})

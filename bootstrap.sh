@@ -3,7 +3,7 @@
 HOMEBREW_INSTALL_COMMIT="8ab1549dfa1189fd4d818a2116592d8f0ee06d8c"
 HOMEBREW_INSTALL_SHA256="5f333bbe53bc490e51e7ccb1df8779b3dd6ee73a1a7379efda216edb08ccb148"
 
-echo "$(dirname "${BASH_SOURCE}")";
+dirname "${BASH_SOURCE[0]}"
 
 printf "\e[1;34m  [i]\e[0m Downloading jmanuelrosa's dotfiles ...\e[0m\n"
 git clone https://github.com/jmanuelrosa/dotfiles.git . &> /dev/null

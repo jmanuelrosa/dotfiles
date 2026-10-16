@@ -4,7 +4,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-
 from dotkit.testing import FISH_FUNCTIONS
 
 SCRIPT = Path(__file__).resolve().parents[1] / "s-db"
@@ -86,8 +85,10 @@ printf '%s\\n' "$CLOUDSDK_ACTIVE_CONFIG_NAME" "$@" > "$PG_CALL"
                 fish,
                 "--no-config",
                 "--command",
-                'set -p fish_function_path "$HOME/.config/fish/functions"; '
-                'source "$argv[1]" $argv[2..-1]',
+                (
+                    'set -p fish_function_path "$HOME/.config/fish/functions"; '
+                    'source "$argv[1]" $argv[2..-1]'
+                ),
                 str(SCRIPT),
                 *args,
             ],

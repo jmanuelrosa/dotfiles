@@ -2,5 +2,5 @@
 
 import sys
 
-if sys.version_info < (3, 11):
+if sys.version_info < (3, 11):  # noqa: UP036
     raise SystemExit(f"harnessgen needs Python 3.11 or newer for tomllib, not {sys.version.split()[0]}")

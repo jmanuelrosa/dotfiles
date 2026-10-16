@@ -57,17 +57,17 @@ query($owner:String!,$name:String!,$pr:Int!,$endCursor:String){
 }
 """ % (PAGE_SIZE, PAGE_SIZE)
 
-DETAILS_TAG_RE = re.compile(r"</?details\b[^>]*>", re.I)
-SUMMARY_RE = re.compile(r"<summary\b[^>]*>.*?</summary>", re.I | re.S)
-STRAY_TAG_RE = re.compile(r"</?(?:summary|blockquote)\b[^>]*>", re.I)
+DETAILS_TAG_RE = re.compile(r"</?details\b[^>]*>", re.IGNORECASE)
+SUMMARY_RE = re.compile(r"<summary\b[^>]*>.*?</summary>", re.IGNORECASE | re.DOTALL)
+STRAY_TAG_RE = re.compile(r"</?(?:summary|blockquote)\b[^>]*>", re.IGNORECASE)
 SUGGESTION_FENCE_RE = re.compile(
     r"^ {0,3}`{3,}[ \t]*suggestion\b[^\n]*\n.*?^ {0,3}`{3,}[ \t]*$\n?",
-    re.M | re.S | re.I,
+    re.MULTILINE | re.DOTALL | re.IGNORECASE,
 )
 AI_PROMPT_RE = re.compile(
     r"^[^\n]*Prompt for AI Agents[^\n]*\n[ \t]*\n?"
     r"(?:^ {0,3}`{3,}[^\n]*\n.*?^ {0,3}`{3,}[ \t]*$\n?)?",
-    re.M | re.S,
+    re.MULTILINE | re.DOTALL,
 )
 BLANK_RUN_RE = re.compile(r"\n{3,}")
 

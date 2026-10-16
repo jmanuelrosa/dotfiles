@@ -95,11 +95,11 @@ end
 function get_port
     switch $argv[1]
         case production
-            echo "5434"
+            echo 5434
         case staging
-            echo "5433"
+            echo 5433
         case local
-            echo "5432"
+            echo 5432
     end
 end
 
@@ -115,16 +115,16 @@ end
 function get_user
     switch $argv[1]
         case production staging
-            echo "postgres"
+            echo postgres
         case local
-            echo "testuser"
+            echo testuser
     end
 end
 
 function get_role
     switch $argv[1]
         case local
-            echo "testuser"
+            echo testuser
     end
 end
 
@@ -420,7 +420,7 @@ end
 # ============================================================================
 
 function cmd_connect
-    argparse -n 's-db' 'h/help' 'd/detach' 'a/account=' -- $argv
+    argparse -n s-db h/help d/detach 'a/account=' -- $argv
     or exit 1
     set -q _flag_help; and usage
     set -q _flag_account; and set -g GCLOUD_CONFIG $_flag_account
@@ -474,7 +474,7 @@ function cmd_connect
 end
 
 function cmd_dump
-    argparse -n 's-db dump' 'h/help' 'v/verbose' 'o/out=' 'a/account=' dry inserts include-dlt -- $argv
+    argparse -n 's-db dump' h/help v/verbose 'o/out=' 'a/account=' dry inserts include-dlt -- $argv
     or exit 1
     set -q _flag_help; and usage
     set -q _flag_account; and set -g GCLOUD_CONFIG $_flag_account
@@ -531,7 +531,7 @@ function cmd_dump
     end
 
     _ui blank
-    _ui step "Dumping"
+    _ui step Dumping
 
     $cmd
     or die "pg_dump failed, so "(_ui path $target)" is not a usable dump"
@@ -545,7 +545,7 @@ function cmd_dump
 end
 
 function cmd_restore
-    argparse -n 's-db restore' 'h/help' 'v/verbose' 'c/clean' dry -- $argv
+    argparse -n 's-db restore' h/help v/verbose c/clean dry -- $argv
     or exit 1
     set -q _flag_help; and usage
 
@@ -596,7 +596,7 @@ function cmd_restore
     end
 
     _ui blank
-    _ui step "Restoring"
+    _ui step Restoring
 
     $cmd
     set -l code $status
@@ -616,7 +616,7 @@ function cmd_restore
 end
 
 function cmd_dumps
-    argparse -n 's-db dumps' 'h/help' -- $argv
+    argparse -n 's-db dumps' h/help -- $argv
     or exit 1
     set -q _flag_help; and usage
 

@@ -88,6 +88,5 @@ function kura:skill --wraps kura
     kura $argv --type skill
 end
 
-
 alias pi:debug=pi_debug
 alias pi:log=pi_last_error

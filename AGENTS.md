@@ -15,7 +15,8 @@ Most plays prompt for the vault password (decrypts `vars/secrets.yml` / `vars/wo
 
 | Command | Purpose |
 |---|---|
-| `make lint` | `ansible-lint` (config in [.ansible-lint](.ansible-lint)). Needs the vault password, so it can't run unattended |
+| `make lint` | `lint-static`, then `ansible-lint` (config in [.ansible-lint](.ansible-lint)). Needs the vault password, so it can't run unattended |
+| `make lint-static` | markdownlint, ruff, shellcheck and fish checks, with no vault, so it runs unattended. [bin/lint-files](bin/lint-files) picks each linter's files by shebang and skips upstream catalog entries |
 | `make test` | pytest over every python suite. Roots live in [pytest.ini](pytest.ini), not the Makefile. No vault, no become password, no network, so it runs unattended, as do the `harness-check` and `harness-report` targets |
 | `make syntax` | Playbook syntax check. Vault password only |
 | `make check` | Full dry-run with `--check --diff` |

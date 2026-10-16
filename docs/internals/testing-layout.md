@@ -1,6 +1,5 @@
 # Where a test lives
 
-
 **Beside what it exercises, unless that thing ships somewhere.** Two shapes, and the difference is whether a `tests/` directory would be carried off the machine with the code:
 
 - **A tool** owns its suite: `files/scripts/<name>/tests/`. Nothing links it anywhere, so it costs nothing.

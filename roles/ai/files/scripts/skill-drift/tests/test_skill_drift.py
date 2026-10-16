@@ -12,7 +12,6 @@ import subprocess
 import sys
 
 import pytest
-
 from dotkit.testing import AI_SCRIPTS_DIR, SKILL_REGISTRY
 
 SKILL_DRIFT = AI_SCRIPTS_DIR / "skill-drift" / "skill-drift"

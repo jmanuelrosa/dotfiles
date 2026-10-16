@@ -34,7 +34,7 @@ def test_every_extension_has_code_and_documentation():
     for directory in directories:
         assert (directory / "index.ts").is_file(), str(directory)
         assert (directory / "README.md").is_file(), str(directory)
-        assert (directory / "README.md").read_text().startswith(f"# "), str(directory)
+        assert (directory / "README.md").read_text().startswith("# "), str(directory)
 
 
 def test_manifest_activates_every_extension_except_the_parked_experiment():

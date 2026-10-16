@@ -6,7 +6,7 @@ Shared mechanics for every stage skill. Load this file before doing anything els
 
 The pipeline scaffolds into whatever repo it runs in:
 
-```
+```text
 docs/
   ideas/                   # /idea-refine one-pagers, read by stage 0 to pre-fill
   adr/                     # NNNN-{decision-slug}.md - all ADRs, global numbering, each with an Initiative field linking it back
@@ -44,7 +44,7 @@ A missing config file means the defaults: `profile: full`, `gate_medium: session
 
 ## Stage order is derived, not tracked
 
-```
+```sh
 python3 .claude/skills/product-lead/scripts/pt.py status {slug}
 ```
 

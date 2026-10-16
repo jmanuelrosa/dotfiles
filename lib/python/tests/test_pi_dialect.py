@@ -14,7 +14,15 @@ import re
 
 import pytest
 import yaml
-from dotkit.testing import AGENTS, BUNDLES, CLAUDE, PI, REPO, SKILLS, harness_dirs, harness_links
+from dotkit.testing import (
+    AGENTS,
+    BUNDLES,
+    PI,
+    REPO,
+    SKILLS,
+    harness_dirs,
+    harness_links,
+)
 
 AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 PI_SETTINGS = PI / "settings.json"
@@ -298,7 +306,7 @@ def skills_with_claude_only_keys():
         if not text.startswith("---\n"):
             continue
         block = text.split("---\n", 2)[1]
-        if any(re.search(rf"^{key}:", block, re.M) for key in SKILL_KEYS_PI_IGNORES):
+        if any(re.search(rf"^{key}:", block, re.MULTILINE) for key in SKILL_KEYS_PI_IGNORES):
             found.add(path.parent.name)
     return found
 
@@ -323,7 +331,7 @@ def test_no_skill_pretends_to_speak_pis_dialect():
         if not text.startswith("---\n"):
             continue
         block = text.split("---\n", 2)[1]
-        assert not re.search(r"^thinking:", block, re.M), (
+        assert not re.search(r"^thinking:", block, re.MULTILINE), (
             f"{path.parent.name}/SKILL.md carries `thinking:`, which pi's skill loader "
             f"never reads; only agent frontmatter is dual-keyed"
         )

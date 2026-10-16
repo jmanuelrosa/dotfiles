@@ -12,7 +12,6 @@ import sys
 import unicodedata
 
 import pytest
-
 from dotkit import ui
 from dotkit.testing import FISH_FUNCTIONS
 

@@ -98,7 +98,7 @@ def imported(source):
     """The names the extension imports from pi, type imports included."""
     # `[^}]` rather than a lazy `.`, which crosses the closing brace of an earlier import and
     # returns the names of whichever block precedes this one.
-    block = re.search(rf'import \{{([^}}]*)\}} from "{re.escape(PACKAGE)}"', source, re.S)
+    block = re.search(rf'import \{{([^}}]*)\}} from "{re.escape(PACKAGE)}"', source, re.DOTALL)
     assert block, "the extension must import from pi by package name, as guardrails.ts does"
     return {name.replace("type ", "").strip() for name in block.group(1).split(",") if name.strip()}
 

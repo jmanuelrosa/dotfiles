@@ -10,7 +10,7 @@ For the worked example (a project from zero, product side then engineering side,
 
 `kura` is the CLI. It lives in its own repository now: the `ai` role installs a pinned release at `~/.local/bin/kura` and links `~/.config/kura/catalog` to `files/kura/catalog`. It replaced the `claude-skill` / `claude-agent` fish functions, which are gone.
 
-```
+```text
 kura init                                        Initialize the exact cwd and selected harnesses
 kura config                                      Show or change global harnesses
 kura add    <name>... --type skill               Add direct project skill intent
@@ -99,7 +99,7 @@ Run `/product-lead` at any time for a status board: it runs `pt.py status` over 
 
 ### Artifact trail
 
-```
+```text
 docs/
   ideas/                    # /idea-refine one-pagers, read by stage 0 to pre-fill
   adr/
@@ -237,7 +237,7 @@ Authoring guidance for all three lives with the generators, and they are the fil
 
 1. Create the directory with a `SKILL.md`:
 
-   ```
+   ```text
    roles/ai/files/harness/kura/catalog/skills/my-skill/
      SKILL.md
    ```
@@ -272,7 +272,7 @@ Authoring guidance for all three lives with the generators, and they are the fil
 
 1. Create the file directly:
 
-   ```
+   ```text
    roles/ai/files/harness/kura/catalog/agents/my-agent.md
    ```
 
@@ -348,7 +348,7 @@ The retired `global` group tag is rejected.
 
 ## Directory Structure
 
-```
+```text
 roles/ai/files/harness/kura/catalog/
   skills/                 # Individual skills (directories with SKILL.md)
   agents/                 # Standalone agent .md files
@@ -362,4 +362,4 @@ See the code review policy section in the repo's root `CLAUDE.md` for why the re
 
 ## Resources
 
-- https://skills.sh/
+- <https://skills.sh/>

@@ -1,0 +1,22 @@
+// Which files get linted is decided by bin/lint-files, not here, so upstream catalog
+// entries stay excluded however the linter is invoked from make.
+{
+  "config": {
+    "default": true,
+    // Prose is written one sentence per line and soft-wrapped by the editor.
+    "MD013": false,
+    // Agent and skill prompts open with their instructions, not an h1, and CLAUDE.md is an import.
+    "MD041": false,
+    // Prompts write placeholders as <PROJECT> or <sha>, which this rule reads as HTML.
+    "MD033": false,
+    // A bold label over a short list is the house pattern in design docs.
+    "MD036": false,
+    // Walkthroughs mark what the reader types with a $ prompt.
+    "MD014": false,
+    // Tables keep compact cells over a tight |---| delimiter row, a mix no MD060 style accepts.
+    "MD060": false,
+    // A code span sometimes shows whitespace that matters, such as a prefix's trailing space.
+    "MD038": false,
+    "MD024": { "siblings_only": true }
+  }
+}

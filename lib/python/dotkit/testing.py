@@ -132,9 +132,9 @@ def pi_theme_tokens(declarations):
     the union stops at the first `;` of a mapped type and sees no names at all. A token with a
     `fallback` is optional: a theme may omit it.
     """
-    table = re.search(r"THEME_TOKENS:\s*\{(.*?)\n\};", declarations, re.S)
+    table = re.search(r"THEME_TOKENS:\s*\{(.*?)\n\};", declarations, re.DOTALL)
     assert table, "pi no longer declares THEME_TOKENS, so the theme colours cannot be read"
-    entries = re.findall(r"readonly (\w+): \{(.*?)\n    \};", table.group(1), re.S)
+    entries = re.findall(r"readonly (\w+): \{(.*?)\n    \};", table.group(1), re.DOTALL)
     return {
         name: (re.search(r'slot: "(\w+)"', body).group(1), "fallback" in body)
         for name, body in entries

@@ -12,7 +12,6 @@ exclusions under test never depend on the live ~/.claude.
 import json
 import subprocess
 import sys
-
 from pathlib import Path
 
 import pytest

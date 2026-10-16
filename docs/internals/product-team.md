@@ -1,6 +1,5 @@
 # The product-team bundle
 
-
 The two-gate product pipeline ships as the `product-team` catalog bundle at `roles/ai/files/harness/kura/catalog/bundles/product-team/`, not as global skills.
 It bundles eleven skills (the nine numbered stages, `setup-strategy`, and `product-lead`) with the seven agents the stages dispatch (`competitive-researcher`, `user-evidence-researcher`, `market-sizer`, `strategy-checker`, `pm-red-team`, `ac-writer`, `adr-scribe`).
 The pipeline is per-repo by nature: every stage writes `docs/initiatives/<slug>/` and reads `docs/strategy/`, so only a repo actually running initiatives needs it loaded.

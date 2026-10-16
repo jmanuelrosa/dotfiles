@@ -15,7 +15,6 @@ import subprocess
 import sys
 
 import pytest
-
 from dotkit.testing import AI_SCRIPTS_DIR
 
 TOKENCOST = AI_SCRIPTS_DIR / "tokencost" / "tokencost"

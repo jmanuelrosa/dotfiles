@@ -99,8 +99,8 @@ def test_flat_links_autoload_functions_from_grouped_sources(tmp_path):
     names = " ".join(source.stem for source in sources)
     result = subprocess.run(
         [fish, "--no-config", "--command",
-         f'set -g fish_function_path "{functions}" $fish_function_path; '
-         f'functions -q {names}; or exit 1; _ui note "autoloaded"'],
+         (f'set -g fish_function_path "{functions}" $fish_function_path; '
+          f'functions -q {names}; or exit 1; _ui note "autoloaded"')],
         env={**os.environ, "HOME": str(home), "NO_COLOR": "1"},
         capture_output=True,
         text=True,

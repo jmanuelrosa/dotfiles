@@ -33,7 +33,7 @@ First read `../product-lead/references/conventions.md` (sibling of this skill's 
 
 ## Merge
 
-```
+```sh
 python3 .claude/skills/product-lead/scripts/pt.py spec-merge {slug}
 ```
 

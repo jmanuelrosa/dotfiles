@@ -34,7 +34,15 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from dotkit.testing import CLAUDE, CLAUDE_SETTINGS, HOOKS, PI, PI_EXTENSIONS, REPO, STATUSLINE_VOCABULARY
+from dotkit.testing import (
+    CLAUDE,
+    CLAUDE_SETTINGS,
+    HOOKS,
+    PI,
+    PI_EXTENSIONS,
+    REPO,
+    STATUSLINE_VOCABULARY,
+)
 from harnessgen import emit_pi, manifest
 
 EXTENSION = PI_EXTENSIONS / "guardrails" / "index.ts"
@@ -169,7 +177,7 @@ def test_the_gated_skills_match_the_hook(source):
     """git-skill-gate decides which command needs which skill; the extension only reports which
     skills the session is in. A skill the hook gates and the extension never looks for is one
     whose commands can never be run in pi at all, since the gate would see an empty window."""
-    block = re.search(r"SKILLS_FOR_SUBCOMMAND = \{(.*?)\n\}", hook_source("git-skill-gate.sh"), re.S)
+    block = re.search(r"SKILLS_FOR_SUBCOMMAND = \{(.*?)\n\}", hook_source("git-skill-gate.sh"), re.DOTALL)
     gated = set(re.findall(r'\{"([^"]+)"\}', block.group(1)))
     listed = set(re.findall(r'"([^"]+)"', re.search(r"GATED_SKILLS = \[(.*?)\]", source).group(1)))
     assert listed == gated
@@ -230,7 +238,7 @@ def test_the_rtk_opt_in_is_read_before_anything_is_spawned(source):
     not opt in must not be rewritten. Read before the spawn rather than after, because the check
     is also what keeps an unset variable from costing a child process on every command."""
     assert REWRITE["requires_env"] == "RTK_ENABLE"
-    call = re.search(r"async function rewriteCommand\(.*?\n\}", source, re.S).group(0)
+    call = re.search(r"async function rewriteCommand\(.*?\n\}", source, re.DOTALL).group(0)
     assert "process.env[entry.requires_env]" in call, "the opt-in is not read at all"
     assert call.index("requires_env") < call.index("spawnJson"), "the opt-in is read after the spawn"
 
@@ -268,7 +276,7 @@ def test_the_rewrite_runs_after_every_gate(source):
     it looks broken from the outside: the extension loads, the hook runs, the command is allowed.
     Inside one handler the ordering settings.json states is a property of this file.
     """
-    guard = re.search(r"async function guard\(.*?\n\}", source, re.S).group(0)
+    guard = re.search(r"async function guard\(.*?\n\}", source, re.DOTALL).group(0)
     assert guard.index("await runGate(") < guard.index("await rewriteCommand("), (
         "a rewrite is applied before the gates read the command, which disarms them"
     )
@@ -282,7 +290,7 @@ def test_the_footer_mirrors_the_claude_statusline(source):
     They now read it from statusline.json instead of both typing it, so what this asserts is that
     neither has gone back to a literal, and that the file still carries what each of them asks
     for by name."""
-    segment = re.search(r"def rtk_segment\(\):.*?(?=\ndef )", STATUSLINE.read_text(), re.S).group(0)
+    segment = re.search(r"def rtk_segment\(\):.*?(?=\ndef )", STATUSLINE.read_text(), re.DOTALL).group(0)
     for key in ("rtkOn", "rtkOff"):
         assert key in VOCAB["labels"], f"statusline.json no longer carries {key}"
         assert f'word("{key}")' in source and f"word('{key}')" in segment

@@ -59,7 +59,7 @@ names it, so `git commit` still works and `cat ~/.gitconfig` does not.
 import json
 import re
 
-from dotkit.testing import CLAUDE_SETTINGS, PI, REPO, harness_links
+from dotkit.testing import CLAUDE_SETTINGS, PI, harness_links
 from harnessgen import emit_pi, manifest
 from harnessgen.emit_pi import PERMISSIONS
 

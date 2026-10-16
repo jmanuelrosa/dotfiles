@@ -5,7 +5,7 @@ It lives at `<workspace root>/.teammate/`, found as described in `profile.md`, a
 
 ## Layout
 
-```
+```text
 .teammate/
   PROFILE.md    repos, sources, approvals (see profile.md)
   INDEX.md      the map: one line per area or topic with a link, a "Not yet mapped" section, last surveyed sha per repo

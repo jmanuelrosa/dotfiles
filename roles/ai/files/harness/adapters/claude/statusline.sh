@@ -115,7 +115,7 @@ def gradient_bar(pct):
 
 
 def clamp_pct(value):
-    return max(0, min(100, int(round(value)))) if isinstance(value, (int, float)) else None
+    return max(0, min(100, round(value))) if isinstance(value, (int, float)) else None
 
 
 def fmt_tokens(n):
