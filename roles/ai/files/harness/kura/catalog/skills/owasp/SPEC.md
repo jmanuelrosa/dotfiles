@@ -8,10 +8,12 @@ The seats' own failure-mode checklists stay short gates; this skill is the exhau
 ## Scope
 
 In scope:
+
 - Every actionable recommendation of every sheet in the series, rewritten as a check with an owner seat and a source sheet.
 - Framework-specific sheets kept apart in `stack-*` references.
 
 Out of scope:
+
 - Payload catalogs, attack walkthroughs, code samples, tool advertisements.
 - Exploitation or live testing guidance; every check is performed by reading code, config, or a diff.
 - Deciding whether a recommendation is adopted: dependency and breaking-change recommendations go to the caller as `needs-decision`.
