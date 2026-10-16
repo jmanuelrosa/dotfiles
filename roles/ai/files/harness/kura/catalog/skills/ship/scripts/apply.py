@@ -57,8 +57,9 @@ ATTRIBUTION_RE = re.compile(r"(?i)co-authored-by:.*claude|generated with.*\bclau
 DASH_RE = re.compile(f"[{chr(0x2014)}{chr(0x2013)}]")
 TASKS_PATH_RE = re.compile(r"(^|/)\.claude/tasks/")
 SECRET_BASENAME_GLOBS = (".env", ".env.*", "*.pem", "*-key.json", "credentials*")
-# `.env.*` also matches the sample files a repo deliberately tracks.
-SECRET_EXEMPT_SUFFIXES = (".example", ".sample", ".template", ".dist")
+# `.env.*` also matches the sample files a repo deliberately tracks, and the committed,
+# non-secret env files test and local scripts load through `--env-file`.
+SECRET_EXEMPT_SUFFIXES = (".example", ".sample", ".template", ".dist", ".env.test", ".env.e2e", ".env.docker", ".env.dev")
 
 
 def load_context():
