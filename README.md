@@ -77,7 +77,8 @@ All commands are available through the Makefile.
 
 | Command | Description |
 |---------|-------------|
-| `make lint` | Run ansible-lint |
+| `make lint` | Run the static linters, then ansible-lint |
+| `make lint-static` | Lint Markdown, Python, shell and fish (no vault password) |
 | `make syntax` | Validate playbook syntax (no vault needed) |
 | `make check` | Dry-run preview of all changes (no changes applied) |
 | `make check-role ROLE=shell` | Dry-run preview of a specific role |
@@ -202,7 +203,6 @@ Slack, Discord, WhatsApp
 ### Other
 
 TradingView, Bitwarden, Notion, Figma, SF Symbols, NextDNS
-
 
 ## License
 

@@ -59,6 +59,25 @@ jobs:
           HARNESS_RENDER_ROOT: ~/Developer/dotfiles/roles/ai/files/harness
         run: make test
 
+  static-lint:
+    name: Markdown, Python, Shell & Fish Lint
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      # fish comes from brew rather than a distro package so fish_indent formats like the local one.
+      - name: Install dependencies
+        run: |
+          brew install fish
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Run static linters
+        run: make lint-static
+
   lint:
     name: Ansible Lint & Syntax Check
     runs-on: macos-latest

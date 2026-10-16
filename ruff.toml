@@ -1,0 +1,13 @@
+[lint]
+ignore = [
+  # Callers read returncode and stderr themselves, since a failed git or CLI call is an answer, not a crash.
+  "PLW1510",
+  # A hook that raises takes the harness turn down with it, so hooks catch broadly and fail to a safe default.
+  "BLE001",
+  "S110",
+  "S112",
+  # Jinja and GraphQL templates are brace-heavy, so % formatting keeps them readable.
+  "UP031",
+  # A malformed config file is bad input, and ValueError is what the callers catch.
+  "TRY004",
+]

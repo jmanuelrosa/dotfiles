@@ -1,4 +1,4 @@
-.PHONY: deps lint syntax check check-role run run-role test verify harness harness-check harness-apply harness-report skill-drift vm-create vm-start vm-ssh vm-destroy
+.PHONY: deps lint lint-static syntax check check-role run run-role test verify harness harness-check harness-apply harness-report skill-drift vm-create vm-start vm-ssh vm-destroy
 
 # Active profile. Override at the CLI: `make run PROFILE=work`.
 PROFILE ?= personal
@@ -11,13 +11,27 @@ HARNESS_BUILD = uv run --no-project python $(HARNESS)/bin/harness-build
 # Test deps are resolved per-run by uv, so there is no venv to create or refresh.
 PYTEST = uv run --with pytest --with pyyaml pytest
 
+# Linters run pinned and uninstalled, so a new default rule upstream cannot turn CI red.
+MARKDOWNLINT = bunx markdownlint-cli2@0.23.3
+RUFF = uvx ruff@0.17.1
+SHELLCHECK = uvx --from shellcheck-py==0.11.0.1 shellcheck
+
 # Install / refresh pinned Ansible collections
 deps:
 	ansible-galaxy collection install -r requirements.yml
 
 # Static analysis
-lint:
+lint: lint-static
 	ansible-lint
+
+# Every linter that needs no vault, so CI runs these. bin/lint-files picks each one's files
+# by shebang, since the hooks are python behind a .sh name, and skips upstream catalog entries.
+lint-static:
+	$(MARKDOWNLINT) $$(bin/lint-files markdown)
+	$(RUFF) check $$(bin/lint-files python)
+	$(SHELLCHECK) $$(bin/lint-files shell)
+	@for f in $$(bin/lint-files fish); do fish --no-execute "$$f" || exit 1; done
+	fish_indent --check $$(bin/lint-files fish)
 
 # Every python suite: the tools, the registries, the skill scripts, the hook, and the
 # suite layout itself. Fast, hermetic, no vault or become password.
