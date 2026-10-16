@@ -39,12 +39,12 @@ def harness(tmp_path):
         stub.chmod(0o755)
     args = tmp_path / "security-args"
 
-    def run(items, **tokens):
+    def run(items, command="publish @scope/pkg", **tokens):
         listed = " ".join(f"'{item}'" for item in items)
         script = (
             f'set -g fish_function_path "{WRAPPERS}" "{UI}" $fish_function_path; '
             f"set -g NPM_TOKEN_KEYCHAIN_ITEMS {listed}; "
-            "npm install @scope/pkg; "
+            f"npm {command}; "
             "set -q NPM_TOKEN; or set -q DID_NPM_TOKEN; and echo parent=set; or echo parent=unset"
         )
         return subprocess.run(
@@ -74,7 +74,7 @@ def test_the_personal_profile_injects_only_its_token(harness):
     assert result.returncode == 0, result.stderr
     assert "child NPM_TOKEN=personal-token" in result.stdout
     assert "child DID_NPM_TOKEN=unset" in result.stdout
-    assert "args=install @scope/pkg" in result.stdout
+    assert "args=publish @scope/pkg" in result.stdout
     assert "parent=unset" in result.stdout
     assert harness.security_args.read_text().split() == [
         "find-generic-password", "-s", "personal-service", "-a", "me", "-w",
@@ -96,13 +96,23 @@ def test_a_missing_item_warns_and_still_injects_the_others(harness):
     assert result.returncode == 0, result.stderr
     assert "child NPM_TOKEN=unset" in result.stdout
     assert "child DID_NPM_TOKEN=work-token" in result.stdout
-    assert "args=install @scope/pkg" in result.stdout
+    assert "args=publish @scope/pkg" in result.stdout
     assert "personal-service" in result.stderr
     assert "work-service" not in result.stderr
 
 
+def test_an_install_never_receives_the_token(harness):
+    result = harness([PERSONAL_ITEM, WORK_ITEM], command="install @scope/pkg", PERSONAL="personal-token", WORK="work-token")
+    assert result.returncode == 0, result.stderr
+    assert "child NPM_TOKEN=unset" in result.stdout
+    assert "child DID_NPM_TOKEN=unset" in result.stdout
+    assert "args=install @scope/pkg" in result.stdout
+    assert not harness.security_args.exists()
+    assert result.stderr == ""
+
+
 def test_no_listed_items_passes_the_call_through_silently(harness):
-    result = harness([])
+    result = harness([], command="install @scope/pkg")
     assert result.returncode == 0, result.stderr
     assert "child NPM_TOKEN=unset" in result.stdout
     assert "args=install @scope/pkg" in result.stdout

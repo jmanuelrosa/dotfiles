@@ -24,6 +24,8 @@ Each role that owns a token stores it in the login keychain from the vault throu
 
 `_npm_token` reads every listed item with `security find-generic-password -w` and sets it as a function-scoped export, so only the wrapped command and its children see it.
 The parent shell never does.
+It does this only for a publishing subcommand of `npm`, `pnpm`, `bun` or `yarn`: `publish`, `unpublish`, `deprecate`, `dist-tag`, `owner`, `access`, `team`, `token` or `whoami`.
+Every other call runs with no token and no keychain lookup.
 An empty vault value leaves its entry out of the list and deletes the keychain item.
 
 When an entry is listed but the keychain has no item under it, the wrapper warns on stderr and still runs the command without that variable.
@@ -33,6 +35,7 @@ The playbook stops with a named error rather than writing blind when the keychai
 
 Only a fish function call goes through these wrappers.
 A bash script, a Makefile recipe, a git hook or an IDE that runs `npm` directly gets no token; run it from fish as `_npm_token <command> ...` when it needs one.
-The token does still reach whatever the package manager itself runs: lifecycle scripts during an install, the binary `npx` or `bunx` executes, `npm run` scripts.
-Each wrapped call costs one `security` lookup per listed item, registry or not.
+Installs run without the token, so a dependency's lifecycle scripts never see it, and `npx`, `pnpx` and `bunx` never get one because they execute the package they fetch.
+The cost is that a private-scope install fails until a token is scoped to that call: public packages keep installing, and the private ones are rejected by the registry.
+A publish-type call costs one `security` lookup per listed item. Every other call costs none.
 A fish session that was open when a vault value was emptied keeps the old entry until it restarts, and warns about the deleted item until then.

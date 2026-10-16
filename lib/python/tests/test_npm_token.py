@@ -132,3 +132,14 @@ def test_every_wrapper_delegates_to_the_keychain_helper():
 
 def test_the_work_role_no_longer_carries_its_own_wrappers():
     assert not (WORK / "files/fish/functions/npm_token").exists()
+
+
+PUBLISH_COMMANDS = ["publish", "unpublish", "deprecate", "dist-tag", "owner", "access", "team", "token", "whoami"]
+
+
+def test_the_helper_hands_the_token_only_to_publishing_commands():
+    source = (WRAPPERS / "_npm_token.fish").read_text()
+    gate = source.index("if not contains -- $program npm pnpm bun yarn")
+    assert gate < source.index("for item in $NPM_TOKEN_KEYCHAIN_ITEMS")
+    assert f'contains -- "$subcommand" {" ".join(PUBLISH_COMMANDS)}' in source
+
