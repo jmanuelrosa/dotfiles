@@ -13,13 +13,13 @@ Writing rules
 - Aim for 2,000 to 4,000 words. If a section grows past a page, it is probably context: link it instead.
 - Include only what changes or needs agreement. A section that restates behaviour we keep, or an alert that already exists, has nothing to decide: drop it.
 - State a decision when one option clearly wins, and let reviewers push back. Ask a question only when the options are really open.
-- Keep product decisions and technical questions apart: they have different owners and are answered in different meetings.
+- The RFC validates the technical solution and is never the product's source of truth. A product gap (behaviour, copy, a limit or threshold the tickets leave open) goes back to the ticket's acceptance criteria; the RFC keeps only the technical value any answer needs (a date, a state).
 - Keep the problem or the options of each question (or both), never pages of background.
 - Write what we propose, not who said it or which meeting decided it. Provenance goes in the decision log only.
-- Separate what the tickets require from what we propose. A number, threshold, rule or rejection the tickets do not contain is worded as our proposal ("we propose 1 day"); never write "was rejected" for an option nobody discussed.
+- Separate what the tickets require from what we propose. A number, threshold, rule or rejection the tickets do not contain is worded as our proposal ("we propose a one-hour cache"); never write "was rejected" for an option nobody discussed.
 - Every claim must survive "where is this coming from?": keep its source (ticket scenario, code reference, transcript timestamp) in your notes, ready to quote in a reply.
 - No hypothetical risks from reading code alone. A risk goes in with data, or with the measurement that would size it. What the code supports is not how production runs.
-- Define every status or term you introduce (a yellow and a green state, for example) where it first appears.
+- Define every status or term you introduce where it first appears, by the value the system stores (`PENDING`, `LIVE`); quote the design's name for a state when one exists, and never invent UI names such as colors. Independent states (is it deployed, does it receive events) stay separate values.
 - Each bullet must read on its own: give the consequence, not only the mechanism, and cut sentences that add nothing.
 - Name out-of-scope work once, in Non-goals, and keep it out of the verdicts.
 - Leave out: task breakdowns (Jira), code state and file:line references (link the repo or a plans doc), deployment checklists, full schemas, raw measurements. A short snippet is fine when it is a contract reviewers must agree on.
@@ -35,7 +35,7 @@ Writing rules
 - **Scope:** *the stories or tickets covered, linked.*
 - **Non-goals:** *what this RFC does not cover, and where it lives instead.*
 - **Release:** *one line (feature flag, order), unless reviewers must agree on something about it, in which case it gets a 3.x subsection.*
-- **Needs from reviewers:** *the number of product decisions and technical questions in section 8.*
+- **Needs from reviewers:** *the number of technical questions in section 8, or sign-off when none is open.*
 - **Links:** *epic, PRD, design, related RFCs.*
 
 ## 2 Motivation
@@ -70,7 +70,7 @@ Writing rules
 *Three to six bullets: costs and risks of the chosen design that we accept, one line each, with the mitigation when there is one. A constraint to keep in mind (an order of work, a dependency) is not a drawback: it goes in section 7.*
 
 ## 6 Alternatives
-*Grouped under the section 3 subsection they belong to. For each one, say how it would work, then why we don't do it. No "Rejected:" label.*
+*Grouped under the section 3 subsection they belong to. For each one, say how it would work, then why we don't do it. No "Rejected:" label. Only options weighed for a current verdict: a design an earlier draft had and a later decision replaced is deleted, not moved here.*
 
 **3.1 *Decision or component*.**
 - *Alternative.* *How it would work. Why we don't do it.*
@@ -83,25 +83,11 @@ Writing rules
 | *repo / team / epic* | | |
 
 ## 8 Unresolved questions
-*Only what is really open. Everything with a clear winner is a verdict in section 3.*
+*Only technical questions that are really open: architecture, data, infrastructure, rollout. Everything with a clear winner is a verdict in section 3. Write "None open." when nothing is.*
 
-*Each item: a bold question, the owner, two or three lines of context citing the ticket scenario it comes from, the options one line each, and our recommendation. Ten lines at most.*
+*Each item: a bold question, the owner, two or three lines of context citing its source, the options one line each, and our recommendation. Ten lines at most.*
 
 *When an item is answered, keep it here with "Answered (date):" and the answer, or move the outcome into section 3.*
-
-### 8.1 Product decisions
-*Owner: the product side or design. Behaviour, copy, limits, pricing, what the customer sees.*
-
-**P1. *Question?***
-*Owner: ...*
-*Context.*
-1. *Option.*
-2. *Option.*
-
-**Our recommendation:** *option and one-line reason.*
-
-### 8.2 Technical questions
-*Owner: engineering. Architecture, data, infrastructure, rollout.*
 
 **T1. *Question?***
 *Owner: ...*
@@ -112,13 +98,13 @@ Writing rules
 **Our recommendation:** *option and one-line reason.*
 
 ## 9 Security considerations
-*Two to five plain bullets: new inputs, permissions, tenant isolation, personal data, abuse. Each says what we do, in words a non-engineer can follow.*
+*Two to five plain bullets: new inputs, permissions, tenant isolation, personal data, abuse. Each says what we do, in words a non-engineer can follow. Data built from input anyone can send (request headers) stays inert until a user acts on it.*
 
 ## 10 Conclusion
 *Two to four sentences: why this is the right design now, and the main risk we accept.*
 
 ## Decision log
-*Optional. One row per decision agreed in a meeting or a comment thread, so the outcome survives once comments are resolved. Mark our own proposals as such.*
+*Optional. One row per decision agreed in a meeting or a comment thread, so the outcome survives once comments are resolved. Mark our own proposals as such. When a later decision reverses a row, replace that row.*
 
 | Date | Decision | Where | Section |
 |---|---|---|---|
