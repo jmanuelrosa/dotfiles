@@ -5,7 +5,8 @@ The language comes from the shebang before the extension, because the harness ho
 are python behind a .sh name and several scripts carry no extension at all.
 
 Upstream catalog entries are left out: `kura update` replaces them on the next sync,
-so a finding there can never be fixed in this repo.
+so a finding there can never be fixed in this repo. Git-ignored tracked files are left out
+too, since an edit to one cannot be committed without `git add -f`.
 """
 
 import json
@@ -63,10 +64,16 @@ def main():
     tracked = subprocess.run(
         ["git", "ls-files", "-z"], cwd=ROOT, capture_output=True, check=True, text=True
     ).stdout.split("\0")
+    ignored = set(subprocess.run(
+        ["git", "ls-files", "-z", "--cached", "--ignored", "--exclude-standard"],
+        cwd=ROOT, capture_output=True, check=True, text=True,
+    ).stdout.split("\0"))
     excluded = (*upstream_prefixes(), *SKIPPED.get(wanted, ()))
     for name in filter(None, tracked):
         path = Path(name)
-        if not is_under(path, excluded) and language(path) == wanted:
+        if name in ignored or is_under(path, excluded):
+            continue
+        if language(path) == wanted:
             print(path)
 
 

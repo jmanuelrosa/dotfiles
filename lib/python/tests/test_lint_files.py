@@ -43,6 +43,12 @@ def test_upstream_skills_are_never_linted(language):
     assert not leaked, f"upstream files reached the {language} linter: {leaked}"
 
 
+def test_git_ignored_tracked_files_are_skipped():
+    ignored = Path("docs/research/subagent-plugin-structure.md")
+    assert (REPO / ignored).exists()
+    assert ignored not in files("markdown")
+
+
 def test_local_skills_are_linted():
     registry = json.loads((CATALOG / "skill-registry.json").read_text())
     local = registry["local"][0]["name"]
