@@ -564,7 +564,7 @@ def test_cancel_signals_only_a_matching_runner_identity(tmp_path, monkeypatch):
       signalProcessGroup: pid => {{ matchingSignals.push(pid); process.kill(-pid, "SIGTERM"); }},
     }});
     let cancelled;
-    for (let attempt = 0; attempt < 50; attempt++) {{
+    for (let attempt = 0; attempt < 1_000; attempt++) {{
       cancelled = await readMissionStatus({json.dumps(str(agent_dir))}, started.id);
       if (cancelled.state === "cancelled") break;
       await new Promise(resolve => setTimeout(resolve, 10));

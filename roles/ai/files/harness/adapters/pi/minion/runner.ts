@@ -65,7 +65,6 @@ async function run(): Promise<void> {
   let pullRequestUrl: string | undefined;
   let finished = false;
   let requestedStop: { state: "cancelled" | "limit-reached"; result: string } | undefined;
-  let pendingWrite = Promise.resolve();
 
   const status = (state: RunnerState, result?: string): RunnerStatus => ({
     id: launch.id,
@@ -91,8 +90,8 @@ async function run(): Promise<void> {
   });
 
   const writeStatus = (value: RunnerStatus) => {
-    pendingWrite = pendingWrite.then(() => writeMissionStatus(statusPath, value));
-    return pendingWrite;
+    if (!finished) writeMissionStatusSync(statusPath, value);
+    return Promise.resolve();
   };
 
   let heartbeatTimer: ReturnType<typeof setInterval>;
@@ -109,7 +108,6 @@ async function run(): Promise<void> {
     finished = true;
     let finalState = state;
     let finalResult = result;
-    await pendingWrite;
     try {
       await releaseCheckoutLease({ path: launch.leasePath, token: launch.token });
     } catch (error) {
