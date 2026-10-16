@@ -441,6 +441,21 @@ def test_to_plan_dependencies_have_registered_sources():
         pending.extend(entries[name].get("dependencies", []))
 
 
+def test_teammate_dependencies_are_installed_dependency_only_skills():
+    """teammate reads its dependencies by path, so each must ship beside it and stay hidden."""
+    registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
+    upstream = {
+        entry["upstream_path"].rstrip("/").rsplit("/", 1)[-1]: entry
+        for repo in registry["upstream"].values()
+        for entry in repo["skills"]
+    }
+    teammate = next(entry for entry in registry["local"] if entry["name"] == "teammate")
+    for name in teammate["dependencies"]:
+        assert (SKILLS / name / "SKILL.md").is_file(), f"missing dependency: {name}"
+        if name in {"how", "why", "teach", "domain-modeling"}:
+            assert upstream[name].get("dependency_only") is True, name
+
+
 def test_the_global_set_holds_exactly_the_documented_membership():
     """Registry root policy changes the global set even while sync is disabled."""
     registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
@@ -473,6 +488,7 @@ def test_the_global_set_holds_exactly_the_documented_membership():
         "research",
         "review-mechanics",
         "skill-writer",
+        "teammate",
         "to-plan",
         "to-rfc",
     }

@@ -268,11 +268,18 @@ def test_the_repo_root_claude_md_imports_the_shared_agents_md():
 # `cf`'s own confirmation prompt on destructive commands plus the skill's "Before any
 # write" section, which both harnesses read as prose.
 
-SKILL_KEYS_PI_IGNORES = ("allowed-tools", "effort")
+#
+# `teammate` took the first branch for `hooks:`. Its hook asks before any Write, Edit or
+# NotebookEdit outside a `.teammate/` store, a second line behind the skill's read-only
+# instructions. Under pi that line is gone: a file-tool write inside cwd goes through
+# unprompted, so the instructions alone keep it read-only there, and outside cwd pi-sandbox
+# prompts the same way the hook would.
+
+SKILL_KEYS_PI_IGNORES = ("allowed-tools", "effort", "hooks")
 
 CLAUDE_ONLY_SKILL_FRONTMATTER = {
     "ac", "agent-writer", "cloudflare", "coderabbit", "commit", "humanizer", "jira",
-    "pr", "product-lead", "research", "setup-review", "ship",
+    "pr", "product-lead", "research", "setup-review", "ship", "teammate",
     "0-refine-idea", "1-research", "2-write-prd", "3-red-team", "4-tech-shape",
     "5-decompose", "6-verify", "7-push-to-board", "8-living-spec", "setup-strategy",
 }
