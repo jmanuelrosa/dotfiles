@@ -106,6 +106,26 @@ def test_no_verify_is_blocked_even_inside_the_owning_skill(gate):
     assert gate("git commit --no-verify -m 'x'", skills=["commit"]) == BLOCK
 
 
+@pytest.mark.parametrize("command", [
+    "HUSKY=0 git commit -m 'x'",
+    "LEFTHOOK=false git commit -m 'x'",
+    "SKIP=lint git commit -m 'x'",
+    "env HUSKY=0 git commit -m 'x'",
+])
+def test_a_hook_framework_env_var_set_before_git_is_blocked(gate, command):
+    """Given HUSKY, LEFTHOOK or SKIP disables hooks, When git runs with it, Then it is blocked regardless of skill."""
+    assert gate(command, skills=["commit"]) == BLOCK
+
+
+@pytest.mark.parametrize("command", [
+    "HUSKY=1 git commit -m 'x'",
+    "git commit -m 'SKIP=lint is documented here'",
+])
+def test_a_hook_env_var_that_leaves_hooks_on_is_allowed(gate, command):
+    """Given the variable keeps hooks running or only appears as data, When git commit runs, Then it is allowed."""
+    assert gate(command, skills=["commit"]) == ALLOW
+
+
 def test_a_commit_outside_the_commit_skill_is_blocked(gate):
     """Given no skill attribution, When git commit runs, Then it is blocked."""
     assert gate("git commit -m 'feat: a thing'") == BLOCK

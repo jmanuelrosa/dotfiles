@@ -24,8 +24,9 @@ parentheses, a shell's `-c` line and `eval`, and by basename, so
 `/opt/homebrew/bin/git` and `env git` are gated as `git`.
 
 Hard-blocks skipping hooks regardless of skill context: `--no-verify`, an
-abbreviation git still accepts (`--no-veri`), and `commit -n`, alone or in a
-bundle such as `-anm`. Hard-blocks, for the same reason, setting
+abbreviation git still accepts (`--no-veri`), `commit -n`, alone or in a
+bundle such as `-anm`, and a hook framework's env var set before git
+(`HUSKY=0`, `LEFTHOOK=0`, `SKIP=…`). Hard-blocks, for the same reason, setting
 `core.hooksPath` or a remote's URL (`remote.*.url`, `remote.*.pushurl`,
 `url.*.insteadOf`, `url.*.pushInsteadOf`) through `-c`, `--config-env`,
 `GIT_CONFIG_PARAMETERS`, `GIT_CONFIG_KEY_<n>` or a `git config` write, and
@@ -209,6 +210,7 @@ UNKNOWN_REMOTE_PUSH = "a push to a URL or to a remote that is not configured"
 URL_SHAPED_RE = re.compile(r"[:@]")
 
 NO_VERIFY_ABBREVIATION_RE = re.compile(r"^--no-veri(?:fy?)?$")
+HOOK_DISABLING_VALUES = {"HUSKY": ("0", "false"), "LEFTHOOK": ("0", "false")}
 COMMIT_SHORT_OPTIONS_WITH_ARG = set("mFCct")
 COMMIT_SHORT_OPTIONS_WITH_ATTACHED_ARG = set("Su")
 COMMIT_LONG_OPTIONS_WITH_ARG = {
@@ -556,13 +558,26 @@ def git_command(tokens):
     return start, start + git_subcommand_index(tokens[start:])
 
 
+def hook_env_disabled(assignments):
+    for assignment in assignments:
+        name, _, value = assignment.partition("=")
+        if name == "SKIP" and value:
+            return True
+        if value in HOOK_DISABLING_VALUES.get(name, ()):
+            return True
+    return False
+
+
 def skips_hooks(tokens):
     """Whether a git call skips hooks without spelling `--no-verify`: an
-    abbreviation git still accepts, or `commit -n` alone or in a bundle."""
+    abbreviation git still accepts, `commit -n` alone or in a bundle, or a hook
+    framework's env var set before git (`HUSKY=0`, `LEFTHOOK=0`, `SKIP=…`)."""
     located = git_command(tokens)
     if not located:
         return False
-    _, i = located
+    start, i = located
+    if hook_env_disabled(tokens[:start]):
+        return True
     args = tokens[i + 1:]
     if any(NO_VERIFY_ABBREVIATION_RE.match(tok) for tok in args):
         return True
@@ -808,7 +823,8 @@ def main():
         or any(skips_hooks(chunk) for chunk in chunks)
     ):
         print(
-            "Skipping git hooks is blocked: --no-verify, its abbreviations, and commit -n.\n"
+            "Skipping git hooks is blocked: --no-verify, its abbreviations, commit -n,\n"
+            "and HUSKY, LEFTHOOK or SKIP set in the env before git.\n"
             "Pre-commit hooks exist for a reason. If a hook is failing, fix the\n"
             "underlying issue or disable the hook in its own config, don't skip it.",
             file=sys.stderr,
