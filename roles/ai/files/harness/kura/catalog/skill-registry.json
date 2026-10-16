@@ -216,6 +216,36 @@
             "refactoring"
           ],
           "updated_at": "2026-10-12T14:42:18Z"
+        },
+        {
+          "upstream_path": "pstack/skills/how",
+          "groups": [
+            "engineering",
+            "architecture",
+            "learning"
+          ],
+          "dependency_only": true,
+          "updated_at": "2026-10-16T12:57:20Z"
+        },
+        {
+          "upstream_path": "pstack/skills/why",
+          "groups": [
+            "engineering",
+            "architecture",
+            "learning"
+          ],
+          "dependency_only": true,
+          "updated_at": "2026-10-16T12:57:20Z"
+        },
+        {
+          "upstream_path": "pstack/skills/teach",
+          "groups": [
+            "engineering",
+            "learning",
+            "writing"
+          ],
+          "dependency_only": true,
+          "updated_at": "2026-10-16T12:57:20Z"
         }
       ]
     },
@@ -1033,6 +1063,24 @@
         "workflow"
       ],
       "note": "Locally authored; port of Claude Code's /fewer-permission-prompts onto the shared policy"
+    },
+    {
+      "name": "teammate",
+      "global": true,
+      "groups": [
+        "engineering",
+        "architecture",
+        "learning",
+        "documentation"
+      ],
+      "dependencies": [
+        "how",
+        "why",
+        "teach",
+        "unslop",
+        "domain-modeling"
+      ],
+      "note": "Locally authored; composes how, why, teach, unslop and domain-modeling into a read-only product teammate"
     }
   ]
 }

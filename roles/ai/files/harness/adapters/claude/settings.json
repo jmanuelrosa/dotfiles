@@ -333,7 +333,10 @@
   ],
   "skillOverrides": {
     "grilling": "name-only",
-    "domain-modeling": "name-only"
+    "domain-modeling": "name-only",
+    "how": "name-only",
+    "why": "name-only",
+    "teach": "name-only"
   },
   "hooks": {
     "PostToolUse": [
