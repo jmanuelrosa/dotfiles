@@ -43,10 +43,20 @@ def test_upstream_skills_are_never_linted(language):
     assert not leaked, f"upstream files reached the {language} linter: {leaked}"
 
 
+def tracked_ignored():
+    result = subprocess.run(
+        ["git", "ls-files", "--cached", "--ignored", "--exclude-standard"],
+        cwd=REPO, capture_output=True, text=True, check=True,
+    )
+    return {Path(line) for line in result.stdout.splitlines()}
+
+
 def test_git_ignored_tracked_files_are_skipped():
-    ignored = Path("docs/research/subagent-plugin-structure.md")
-    assert (REPO / ignored).exists()
-    assert ignored not in files("markdown")
+    ignored = tracked_ignored()
+    if not ignored:
+        pytest.skip("no tracked file is git-ignored")
+    leaked = sorted(ignored & files("markdown"))
+    assert not leaked, f"git-ignored files reached the markdown linter: {leaked}"
 
 
 def test_local_skills_are_linted():
