@@ -30,6 +30,9 @@ function _wt_help
     echo "                           develop > main > master). Copies root/nested .env* files"
     echo "                           and .vscode/.claude/.agents from the main checkout,"
     echo "                           skipping Git metadata, dependencies, and .claude/worktrees/."
+    echo "                           Copies kura.json when the branch does not track one, then"
+    echo "                           runs kura converge to install the same skills, agents and"
+    echo "                           bundles as the main checkout."
     echo "                           Installs deps from lockfile (frozen) if present."
     echo "                           Pass -h/--herdr to also open the worktree as a workspace"
     echo "                           in the current herdr session. Pass -f/--focus to move to"
@@ -163,12 +166,17 @@ function _wt_add
         end
     end
 
+    if test -f $main_wt/kura.json; and not test -e $target/kura.json
+        _ui step "Copying kura.json"
+        cp $main_wt/kura.json $target/kura.json; or return 1
+    end
+
     _wt_pi_sandbox $target
 
     set -l prev_dir $PWD
     cd $target
 
-    if test -d .claude; or test -d .agents
+    if test -f kura.json; or test -d .claude; or test -d .agents
         kura converge --quiet
     end
 

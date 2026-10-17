@@ -13,7 +13,8 @@ wt prune
 It copies root and nested `.env*` files from the main checkout, preserving their relative paths and skipping `.git/`, `node_modules/`, `.venv/`, `venv/`, and `vendor/` directories.
 It also merges `.vscode/`, `.claude/`, and `.agents/` into the new checkout, carrying over project-local skills and preserving their symlinks.
 It excludes `.claude/worktrees/` from both copies so existing nested worktrees are not duplicated.
-It grants Pi sandbox access to the repository's shared Git metadata, runs `kura converge --quiet` when `.claude/` or `.agents/` is present, and installs dependencies from the available lockfile in frozen mode.
+It copies `kura.json` from the main checkout when the branch does not track one, so the worktree declares the same skills, agents and bundles.
+It grants Pi sandbox access to the repository's shared Git metadata, runs `kura converge --quiet` when `kura.json`, `.claude/` or `.agents/` is present, and installs dependencies from the available lockfile in frozen mode.
 `--herdr` also opens a Herdr workspace; `--focus` changes to the new worktree and focuses that workspace when enabled.
 
 `remove` accepts a branch name or path; `--herdr` also closes its workspace.
