@@ -30,6 +30,12 @@ SSH_DIDOMI_KEY: |
   ...replace with the contents of ~/.ssh/id_didomi...
   -----END OPENSSH PRIVATE KEY-----
 
+SSH_PENTLA_PUBLIC: "ssh-ed25519 AAAA...replace with id_pentla.pub contents... your-work-email@example.com"
+SSH_PENTLA_KEY: |
+  -----BEGIN OPENSSH PRIVATE KEY-----
+  ...replace with the contents of ~/.ssh/id_pentla...
+  -----END OPENSSH PRIVATE KEY-----
+
 # --- GitLab ---------------------------------------------------------------
 
 # Username (the @handle, not the email) of your work GitLab account on

@@ -10,3 +10,6 @@ SSH_KEYS_EXTRA:
   - name: id_didomi
     content: "{{ SSH_DIDOMI_KEY }}"
     public: "{{ SSH_DIDOMI_PUBLIC }}"
+  - name: id_pentla
+    content: "{{ SSH_PENTLA_KEY }}"
+    public: "{{ SSH_PENTLA_PUBLIC }}"
