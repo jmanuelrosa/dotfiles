@@ -10,11 +10,11 @@ Deploys SSH key pairs into `~/.ssh/`.
 ## Vars
 
 - `SSH_KEYS` (group_vars/all.yml) — base list of `{name, content, public}` deployed on every profile. Default is just the personal `id_ed25519`.
-- `SSH_KEYS_EXTRA` (host_vars/<profile>.yml) — additional keys per profile. `host_vars/work.yml` adds `id_didomi`.
+- `SSH_KEYS_EXTRA` (host_vars/<profile>.yml) — additional keys per profile. `host_vars/work.yml` adds `id_didomi` and `id_pentla`.
 
 ## Vault references
 
-`SSH_KEYS` and `SSH_KEYS_EXTRA` reference variables that live in the vault-encrypted `vars/secrets.yml` and `vars/work.yml` (e.g. `SSH_KEY`, `SSH_PUBLIC`, `SSH_DIDOMI_KEY`, `SSH_DIDOMI_PUBLIC`).
+`SSH_KEYS` and `SSH_KEYS_EXTRA` reference variables that live in the vault-encrypted `vars/secrets.yml` and `vars/work.yml` (e.g. `SSH_KEY`, `SSH_PUBLIC`, `SSH_DIDOMI_KEY`, `SSH_DIDOMI_PUBLIC`, `SSH_PENTLA_KEY`, `SSH_PENTLA_PUBLIC`).
 
 ## Notes
 
