@@ -3,7 +3,7 @@ name: qa-failure-modes
 description: >-
   Failure-mode checklists for test and QA implementation work, split by domain.
   Use when writing or reviewing tests, fixtures, factories, mocks, e2e flows, test infrastructure,
-  or when diagnosing flakes and analyzing coverage gaps.
+  load and stress tests, or when diagnosing flakes and analyzing coverage gaps.
   Read only the reference files whose triggers match the change.
 ---
 
@@ -26,6 +26,7 @@ An unresolved item blocks `done`; when the brief itself forces the failure mode,
 | A coverage-gap brief; error paths, boundary values, negative cases, access-control and tenant-boundary tests, coverage reports | [references/coverage-and-gaps.md](references/coverage-and-gaps.md) |
 | Test runner or framework config, shared test utilities, suite speed, parallelism, reporters | [references/suite-health.md](references/suite-health.md) |
 | Diagnostic failure messages, false greens, secrets or real data in tests, masked flakes | [references/failure-visibility.md](references/failure-visibility.md) |
+| Load, stress, spike, soak, or benchmark scripts; throughput or latency targets; performance claims that need evidence under concurrency | [references/load-and-stress.md](references/load-and-stress.md) |
 
 Most real changes fire two or three rows (a typical test-writing brief fires at least assertion-strength, isolation-and-hermeticity, and test-data-and-fixtures).
 Read all of them; skip the rest.
