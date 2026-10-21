@@ -839,6 +839,114 @@
           "updated_at": "2026-10-08T18:36:46Z"
         }
       ]
+    },
+    "grafana/skills": {
+      "branch": "main",
+      "commit": "cc33318b60a7fbc2c69a25122164baf00e805f79",
+      "skills": [
+        {
+          "upstream_path": "skills/grafana-k6/k6",
+          "groups": [
+            "engineering",
+            "qa",
+            "backend",
+            "k6",
+            "testing",
+            "performance"
+          ],
+          "updated_at": "2026-10-21T06:19:01Z"
+        },
+        {
+          "upstream_path": "skills/grafana-k6/k6-browser-test",
+          "groups": [
+            "engineering",
+            "qa",
+            "frontend",
+            "k6",
+            "testing",
+            "performance"
+          ],
+          "updated_at": "2026-10-21T06:19:01Z"
+        },
+        {
+          "upstream_path": "skills/grafana-k6/k6-perf-test-website",
+          "groups": [
+            "engineering",
+            "qa",
+            "frontend",
+            "k6",
+            "testing",
+            "performance"
+          ],
+          "updated_at": "2026-10-21T06:19:01Z"
+        },
+        {
+          "upstream_path": "skills/grafana-k6/k6-test-maintenance",
+          "groups": [
+            "engineering",
+            "qa",
+            "k6",
+            "testing",
+            "performance"
+          ],
+          "dependencies": [
+            "k6-manage"
+          ],
+          "updated_at": "2026-10-21T06:19:01Z"
+        },
+        {
+          "upstream_path": "skills/grafana-k6/k6-manage",
+          "groups": [
+            "engineering",
+            "qa",
+            "k6",
+            "testing",
+            "performance",
+            "observability"
+          ],
+          "updated_at": "2026-10-21T06:19:01Z"
+        },
+        {
+          "upstream_path": "skills/grafana-k6/k6-cloud-investigate-test",
+          "groups": [
+            "engineering",
+            "qa",
+            "k6",
+            "testing",
+            "performance",
+            "observability"
+          ],
+          "dependencies": [
+            "k6-manage"
+          ],
+          "updated_at": "2026-10-21T06:19:01Z"
+        },
+        {
+          "upstream_path": "skills/grafana-k6/k6-trend-analysis",
+          "groups": [
+            "engineering",
+            "qa",
+            "k6",
+            "testing",
+            "performance",
+            "observability"
+          ],
+          "dependencies": [
+            "k6-manage"
+          ],
+          "updated_at": "2026-10-21T06:19:01Z"
+        },
+        {
+          "upstream_path": "skills/grafana-k6/k6-docs",
+          "groups": [
+            "engineering",
+            "writer",
+            "k6",
+            "documentation"
+          ],
+          "updated_at": "2026-10-21T06:19:01Z"
+        }
+      ]
     }
   },
   "local": [
