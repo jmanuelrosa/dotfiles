@@ -60,7 +60,9 @@
       "Bash(kura sync:*)",
       "Bash(cf auth whoami)",
       "Edit(**/.env.sample)",
-      "Edit(**/.env.example)"
+      "Edit(**/.env.example)",
+      "Bash(gh run list *)",
+      "Bash(gh run view *)"
     ],
     "deny": [
       "Workflow",
@@ -567,5 +569,6 @@
   "voiceEnabled": false,
   "allowUnixSockets": [
     "~/.colima/default/docker.sock"
-  ]
+  ],
+  "switchModelsOnFlag": true
 }
