@@ -14,7 +14,7 @@
             "designer",
             "ui"
           ],
-          "updated_at": "2026-09-23T18:45:18Z"
+          "updated_at": "2026-10-23T18:09:14Z"
         }
       ]
     },
@@ -379,7 +379,7 @@
             "frontend",
             "graphql"
           ],
-          "updated_at": "2026-10-15T05:33:57Z"
+          "updated_at": "2026-10-23T18:09:15Z"
         },
         {
           "upstream_path": "skills/graphql-operations",
@@ -388,7 +388,7 @@
             "backend",
             "graphql"
           ],
-          "updated_at": "2026-10-15T05:33:57Z"
+          "updated_at": "2026-10-23T18:09:15Z"
         }
       ]
     },
