@@ -13,7 +13,6 @@
           "contextWindow": 272000,
           "maxTokens": 128000
         },
-
         "gpt-6.1-sol": {
           "name": "GPT-6 Sol",
           "reasoning": true,
@@ -45,7 +44,6 @@
           },
           "contextWindow": 272000
         },
-
         "gpt-5.6-sol": {
           "reasoning": true,
           "thinkingLevelMap": {
@@ -84,7 +82,6 @@
           "contextWindow": 1000000,
           "maxTokens": 128000
         },
-
         "claude-opus-5": {
           "reasoning": true,
           "thinkingLevelMap": {
@@ -154,6 +151,25 @@
           "maxTokens": 131072
         }
       }
+    },
+    "minipc": {
+      "baseUrl": "http://100.88.175.136:11434/v1",
+      "api": "openai-completions",
+      "apiKey": "ollama",
+      "compat": {
+        "supportsStore": false,
+        "supportsDeveloperRole": false,
+        "supportsReasoningEffort": false,
+        "maxTokensField": "max_tokens"
+      },
+      "models": [
+        {
+          "id": "qwen3.6:35b-a3b-q4_K_M",
+          "name": "Qwen del miniPC",
+          "contextWindow": 32768,
+          "maxTokens": 4096
+        }
+      ]
     }
   }
 }

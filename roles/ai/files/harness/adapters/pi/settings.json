@@ -4,7 +4,13 @@
   "compaction": {
     "enabled": true,
     "keepRecentTokens": 10000,
-    "reserveTokens": 8192
+    "reserveTokens": 8192,
+    "modelOverrides": {
+      "minipc/qwen3.6:35b-a3b-q4_K_M": {
+        "reserveTokens": 4096,
+        "keepRecentTokens": 1536
+      }
+    }
   },
   "defaultModel": "gpt-6.1-sol",
   "defaultProvider": "openai-codex",
@@ -55,7 +61,7 @@
   ],
   "followUpMode": "one-at-a-time",
   "hideThinkingBlock": true,
-  "lastChangelogVersion": "1.2.0",
+  "lastChangelogVersion": "1.4.0",
   "defaultTools": [
     "+codemode"
   ],
