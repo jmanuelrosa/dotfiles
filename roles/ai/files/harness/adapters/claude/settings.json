@@ -60,9 +60,7 @@
       "Bash(kura sync:*)",
       "Bash(cf auth whoami)",
       "Edit(**/.env.sample)",
-      "Edit(**/.env.example)",
-      "Bash(gh run list *)",
-      "Bash(gh run view *)"
+      "Edit(**/.env.example)"
     ],
     "deny": [
       "Workflow",
