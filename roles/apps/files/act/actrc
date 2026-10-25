@@ -1,0 +1,5 @@
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+-P ubuntu-24.04=catthehacker/ubuntu:act-24.04
+-P ubuntu-22.04=catthehacker/ubuntu:act-22.04
+--container-daemon-socket unix:///var/run/docker.sock
+--var-file /Users/jmanuelrosa/Developer/3bitslost/pickleballontime/.act/pr.vars

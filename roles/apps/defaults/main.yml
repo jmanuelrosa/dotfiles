@@ -60,6 +60,7 @@ APPS_DIRS:
   - "{{ HOME }}/.config/dive"
   - "{{ HOME }}/.docker"
   - "{{ HOME }}/.colima/default"
+  - "{{ HOME }}/Library/Application Support/act"
   - "{{ HOME }}/Library/Application Support/lazygit"
   - "{{ HOME }}/Library/Application Support/jesseduffield/lazydocker"
   - "{{ HOME }}/Library/Application Support/Code/User"
@@ -103,6 +104,13 @@ APPS_LINKS:
     dest: "{{ HOME }}/.docker/config.json"
   - src: colima/colima.yaml
     dest: "{{ HOME }}/.colima/default/colima.yaml"
+  # act reaches colima through DOCKER_HOST (fish exports). Its --container-daemon-socket
+  # is a different thing: the socket bind-mounted into job containers, resolved inside
+  # the colima VM, so it names the VM's own socket. The host-side colima socket cannot
+  # be mounted from there and fails the job with "error while creating mount source path".
+  # The file being present also skips act's first-run image prompt.
+  - src: act/actrc
+    dest: "{{ HOME }}/Library/Application Support/act/actrc"
   - src: lazydocker/config.yml
     dest: "{{ HOME }}/Library/Application Support/jesseduffield/lazydocker/config.yml"
   - src: dive/config.yaml
@@ -136,6 +144,7 @@ BREW_PACKAGES:
     - dlvhdr/formulae/diffnav
     - lazygit
     - gh
+    - act
     - glab
     - fnm
     - oven-sh/bun/bun
