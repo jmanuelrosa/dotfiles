@@ -35,6 +35,9 @@ GATED = {
     "python3 ~/.claude/skills/ship/scripts/apply.py *": (
         "git-skill-gate", "python3 ~/.claude/skills/ship/scripts/apply.py plan.json",
     ),
+    "python3 ~/.claude/skills/coderabbit/scripts/apply.py *": (
+        "cli-egress-gate", "python3 ~/.claude/skills/coderabbit/scripts/apply.py plan.json",
+    ),
     "ntn *": ("cli-egress-gate", "ntn files create"),
     "bru *": ("cli-egress-gate", "bru run"),
     "aws *": ("cloud-readonly-gate", "aws s3 rm s3://bucket/key"),
@@ -54,6 +57,23 @@ EXEMPT = {
         "so gating it would prompt on every docs question the global instructions route to it."
     ),
     "npx -y ctx7 *": "The npx spelling of `bunx ctx7`, excluded for the same reason.",
+    "bash ~/.claude/skills/commit/scripts/context.sh": (
+        "Reads only: local git state for drafting commits. Sandboxed git cannot follow the "
+        "~/.gitconfig symlink to its denied real path, so the read has to run outside."
+    ),
+    "python3 ~/.claude/skills/pr/scripts/context.py": (
+        "Reads git state and the remote's default branch; its one write is the local "
+        "origin/HEAD ref. Excluded for the same ~/.gitconfig symlink as the commit context."
+    ),
+    "python3 ~/.claude/skills/pr/scripts/context.py *": "The same read, given a base branch.",
+    "python3 ~/.claude/skills/ship/scripts/context.py": (
+        "The pr context read plus unpushed commits and status. It publishes nothing."
+    ),
+    "python3 ~/.claude/skills/ship/scripts/context.py *": "The same read, given a base branch.",
+    "python3 ~/.claude/skills/coderabbit/scripts/context.py": (
+        "Reads only: the origin remote, then GraphQL queries for the PR's review threads. It posts nothing."
+    ),
+    "python3 ~/.claude/skills/coderabbit/scripts/context.py *": "The same read, given a PR number.",
 }
 
 

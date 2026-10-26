@@ -59,7 +59,10 @@ tiers. The gh and glab rules come first; ntn and bru follow them.
     security` is left alone.
 
 The /pr skill's apply.py opens the PR/MR in a subprocess, so this hook
-never sees that `gh pr create`.
+never sees that `gh pr create`. The /coderabbit skill's apply.py is the
+same shape but publishes as it goes (a PR reply per thread, then the
+resolve mutation), and it runs outside the sandbox, so any call that
+names it asks.
 
 Segment splitting respects quotes but not every shell construct; where it
 cannot place a word it asks rather than allows. What no text gate can see
@@ -239,6 +242,8 @@ KEYCHAIN_SUBCOMMANDS = KEYCHAIN_READS | KEYCHAIN_SECRET_READS | {
     "smartcards", "translocate-policy-check", "translocate-status-check",
     "translocate-original-path", "requirement-evaluate", "filevault", "platformsso",
 }
+
+CODERABBIT_APPLY_RE = re.compile(r"skills/coderabbit/scripts/apply\.py\b")
 
 MAX_DEPTH = 3
 
@@ -637,11 +642,13 @@ def segment_verdict(text, expands, piped, depth):
 
 
 def decide(command, depth=0):
+    verdict = ALLOWED
+    if CODERABBIT_APPLY_RE.search(command):
+        verdict = (ASK, "the coderabbit skill's apply.py, which posts public replies and resolves threads on the PR")
     if not mentions_cli(command):
-        return ALLOWED
+        return verdict
     if depth > MAX_DEPTH:
         return ASK, "gated CLI calls nested too deeply for this gate to read"
-    verdict = ALLOWED
     if REDIRECT_ENV_RE.search(command):
         verdict = (ASK, "a gh, glab or ntn environment variable set beside the call, which can redirect its host or token")
     for text, expands, piped in segments(command):

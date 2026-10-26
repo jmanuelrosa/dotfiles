@@ -475,6 +475,7 @@ def test_the_global_set_holds_exactly_the_documented_membership():
         "ship",
         "cc-fewer-permission-prompts",
         "cloudflare",
+        "coderabbit",
         "commit",
         "documentation-and-adrs",
         "feature-team",

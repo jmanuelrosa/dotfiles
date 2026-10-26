@@ -285,6 +285,20 @@ def test_the_word_security_as_data_is_untouched(command):
     assert tier(command) == ALLOW
 
 
+@pytest.mark.parametrize("command", [
+    "python3 ~/.claude/skills/coderabbit/scripts/apply.py /tmp/claude/cr-plan.json",
+    "python3 .claude/skills/coderabbit/scripts/apply.py plan.json",
+    "cd ~/repo && python3 ~/.claude/skills/coderabbit/scripts/apply.py plan.json",
+])
+def test_the_coderabbit_apply_script_asks_because_it_publishes_replies(command):
+    """Given the script that posts PR replies outside the sandbox, Then the user decides."""
+    assert tier(command) == ASK
+
+
+def test_the_coderabbit_context_script_is_untouched():
+    assert tier("python3 ~/.claude/skills/coderabbit/scripts/context.py 1785") == ALLOW
+
+
 def test_a_tool_other_than_bash_is_ignored():
     assert tier("gh gist create f", tool_name="Write") == ALLOW
 
