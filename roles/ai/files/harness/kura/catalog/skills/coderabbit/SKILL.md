@@ -23,11 +23,11 @@ Resolve each thread once handled.
 Never commit or push, that is `/commit` and `/pr`'s job.
 
 Two bundled scripts do the mechanical work in one call each; don't run `gh` yourself for anything they already cover.
-Resolve every `scripts/...` path relative to this skill's directory.
+Run each script by the exact `python3 ~/.claude/skills/coderabbit/scripts/...` spelling below, as its own call: that spelling is what the sandbox exempts, and the `git` and `gh` the scripts spawn fail inside it.
 
 ## Steps
 
-1. **Gather context** (single call): `python3 scripts/context.py [pr-number]`.
+1. **Gather context** (single call): `python3 ~/.claude/skills/coderabbit/scripts/context.py [pr-number]`.
    Pass the skill's argument through as `[pr-number]`; with no argument the script resolves the current branch's PR.
 
    It has already done all of this, so take its output as given: refused any non-GitHub remote, resolved the repo and PR, fetched every review thread with its resolved and outdated state, dropped the threads a previous run handled, stripped CodeRabbit's collapsed boilerplate, and grouped what survives by file path.
@@ -104,7 +104,7 @@ Resolve every `scripts/...` path relative to this skill's directory.
 
    Copy `repo`, `pr` and the `skipped` counts from step 1's output, and `thread` / `reply_to` verbatim from the thread you are acting on.
    Newlines inside `body` are `\n` escapes.
-   Then run `python3 scripts/apply.py <plan path>`.
+   Then run `python3 ~/.claude/skills/coderabbit/scripts/apply.py <plan path>`.
 
    It validates every reply up front (attribution lines, long dashes, emoji, an echoed "Prompt for AI Agents" block, a missing `reply_to`), posts each reply into the right thread, appends the `<!-- cr-skill -->` marker for you, resolves each thread only once its action succeeded, and prints the counters.
    A `fix` entry resolves its thread without posting anything; an `ask` entry resolves nothing, because an unanswered question must stay visible.

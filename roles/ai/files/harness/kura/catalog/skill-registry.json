@@ -379,7 +379,7 @@
             "frontend",
             "graphql"
           ],
-          "updated_at": "2026-10-23T18:09:15Z"
+          "updated_at": "2026-10-26T08:55:47Z"
         },
         {
           "upstream_path": "skills/graphql-operations",
@@ -388,7 +388,7 @@
             "backend",
             "graphql"
           ],
-          "updated_at": "2026-10-23T18:09:15Z"
+          "updated_at": "2026-10-26T08:55:47Z"
         }
       ]
     },
@@ -1002,6 +1002,7 @@
     },
     {
       "name": "coderabbit",
+      "global": true,
       "groups": [
         "productivity",
         "workflow",
