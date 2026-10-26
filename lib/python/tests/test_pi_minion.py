@@ -2239,11 +2239,12 @@ def test_installed_cursor_provider_is_rejected_offline_before_session(probe, mon
         exercise=True,
     )
     assert result["extensions"] == [str(extension)]
-    assert result["providerPath"] == {
+    path = result["providerPath"]
+    # pi-cursor-sdk moved from a provider config to a native provider across releases; either route must classify the same.
+    assert path.pop("registeredConfig") != path.pop("registeredNative")
+    assert path == {
         "provider": "cursor",
         "api": "cursor-sdk",
-        "registeredConfig": True,
-        "registeredNative": False,
         "classification": {
             "outcome": "known-host-tools",
             "providerPathGate": "blocked",
