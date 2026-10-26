@@ -67,10 +67,10 @@
       "source": "npm:pi-sandbox",
       "extensions": []
     },
-    "npm:@gotgenes/pi-permission-system@27.1.1",
+    "npm:@gotgenes/pi-permission-system@41.0.0",
     "npm:pi-ask-user",
     "npm:pi-subagents",
-    "npm:@mrclrchtr/supi-insights@8.0.1"
+    "npm:@mrclrchtr/supi-insights@11.0.1"
   ],
   "quietStartup": true,
   "sessionShareDestination": "gist",

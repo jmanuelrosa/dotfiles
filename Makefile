@@ -12,8 +12,8 @@ HARNESS_BUILD = uv run --no-project python $(HARNESS)/bin/harness-build
 PYTEST = uv run --with pytest --with pyyaml pytest
 
 # Linters run pinned and uninstalled, so a new default rule upstream cannot turn CI red.
-MARKDOWNLINT = bunx markdownlint-cli2@0.23.3
-RUFF = uvx ruff@0.17.1
+MARKDOWNLINT = bunx markdownlint-cli2@0.24.0
+RUFF = uvx ruff@0.17.2
 SHELLCHECK = uvx --from shellcheck-py==0.11.0.1 shellcheck
 
 # Install / refresh pinned Ansible collections
