@@ -55,7 +55,7 @@
   ],
   "followUpMode": "one-at-a-time",
   "hideThinkingBlock": true,
-  "lastChangelogVersion": "1.2.0",
+  "lastChangelogVersion": "1.4.0",
   "defaultTools": [
     "+codemode"
   ],
