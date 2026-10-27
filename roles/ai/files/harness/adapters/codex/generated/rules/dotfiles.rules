@@ -386,9 +386,9 @@ prefix_rule(
 )
 
 prefix_rule(
-    pattern = ["nnn"],
+    pattern = ["spf"],
     decision = "forbidden",
-    justification = "denied by dotfiles policy: nnn",
+    justification = "denied by dotfiles policy: spf",
 )
 
 prefix_rule(

@@ -26,7 +26,6 @@ BREW_PACKAGES:
     - fd
     - httpie
     - hyperfine
-    - nnn
     - ripgrep
     - scc
     - television

@@ -547,13 +547,13 @@
         "action": "deny",
         "reason": "denied by Claude Code policy: Bash(dive *)"
       },
-      "nnn": {
+      "spf": {
         "action": "deny",
-        "reason": "denied by Claude Code policy: Bash(nnn)"
+        "reason": "denied by Claude Code policy: Bash(spf)"
       },
-      "nnn *": {
+      "spf *": {
         "action": "deny",
-        "reason": "denied by Claude Code policy: Bash(nnn *)"
+        "reason": "denied by Claude Code policy: Bash(spf *)"
       },
       "lazydocker": {
         "action": "deny",
