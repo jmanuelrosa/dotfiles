@@ -62,6 +62,7 @@ APPS_DIRS:
   - "{{ HOME }}/.colima/default"
   - "{{ HOME }}/Library/Application Support/act"
   - "{{ HOME }}/Library/Application Support/lazygit"
+  - "{{ HOME }}/Library/Application Support/superfile"
   - "{{ HOME }}/Library/Application Support/jesseduffield/lazydocker"
   - "{{ HOME }}/Library/Application Support/Code/User"
 
@@ -74,6 +75,8 @@ APPS_LINKS:
     dest: "{{ HOME }}/.gitignore"
   - src: lazygit/config.yml
     dest: "{{ HOME }}/Library/Application Support/lazygit/config.yml"
+  - src: superfile/config.toml
+    dest: "{{ HOME }}/Library/Application Support/superfile/config.toml"
   - src: .npmrc
     dest: "{{ HOME }}/.npmrc"
   - src: gh/config.yml
@@ -143,6 +146,7 @@ BREW_PACKAGES:
     - git-filter-repo
     - dlvhdr/formulae/diffnav
     - lazygit
+    - superfile
     - gh
     - act
     - glab

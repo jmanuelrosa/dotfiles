@@ -5,7 +5,7 @@ Catch-all role for desktop apps and their configs. Browsers, chat apps, dev tool
 ## What it does
 
 1. Installs the taps, formulas and casks declared in `BREW_PACKAGES` through the shared `roles/brew/tasks/packages.yml`.
-2. Creates `APPS_DIRS` and links every config in `APPS_LINKS` (git, lazygit, npm, gh, gh-dash, diffnav, pgcli, herdr, Caddy, VSCode, Docker, Colima, lazydocker, dive, AeroSpace).
+2. Creates `APPS_DIRS` and links every config in `APPS_LINKS` (git, lazygit, superfile, npm, gh, gh-dash, diffnav, pgcli, herdr, Caddy, VSCode, Docker, Colima, lazydocker, dive, AeroSpace).
 3. Links each tool in `APPS_SCRIPTS` into `~/.local/bin/`, and creates one private Sentry config dir per account plus the map the `sentry` wrapper reads.
 4. Fails with login instructions when `gh` is not authenticated, then installs the `GH_EXTENSIONS`.
 5. Installs the npm-only `cf` Cloudflare CLI with bun, and the missing `VSCODE_EXTENSIONS`.
