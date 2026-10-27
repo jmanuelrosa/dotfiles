@@ -13,13 +13,12 @@ font-size = 10.0
 theme = Solarized Dark Patched
 
 # Settings
-# macos-non-native-fullscreen = true
 clipboard-paste-protection = false
 cursor-style-blink = false
 
 # macos
+macos-non-native-fullscreen = false
 macos-applescript = false
-macos-non-native-fullscreen = visible-menu
 macos-option-as-alt = left
 macos-window-buttons = hidden
 # macos-titlebar-style = tabs
