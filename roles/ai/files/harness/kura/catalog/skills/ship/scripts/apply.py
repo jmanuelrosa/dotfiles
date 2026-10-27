@@ -256,10 +256,25 @@ def existing_pr(host, branch, repo):
     return found[0].get(key, "") if found else ""
 
 
-def create_argv(host, base, branch, title, body, body_path, repo):
+def mark_draft(host, pull_request):
+    if host != "gh":
+        fail("draft mode is supported for GitHub pull requests only", EXIT_USAGE)
+    state = run(["gh", "pr", "view", pull_request, "--json", "isDraft", "--jq", ".isDraft"])
+    if state.returncode != 0:
+        fail("could not inspect the existing pull request draft status", EXIT_CREATE_FAILED)
+    if state.stdout.strip() == "true":
+        return
+    updated = run(["gh", "pr", "ready", "--undo", pull_request])
+    if updated.returncode != 0:
+        fail("could not mark the existing pull request as a draft", EXIT_CREATE_FAILED)
+    print(f"Marked draft: {pull_request}")
+
+
+def create_argv(host, base, branch, title, body, body_path, repo, draft=False):
     if host == "gh":
         return [
             "gh", "pr", "create",
+        ] + (["--draft"] if draft else []) + [
             "--base", base, "--head", branch,
             "--title", title, "--body-file", body_path,
             "--assignee", "@me",
@@ -298,6 +313,8 @@ def load_plan(path):
     for key in ("base", "body_file"):
         if not str(pr.get(key) or "").strip():
             fail(f"plan is missing pr.{key}", EXIT_USAGE)
+    if "draft" in pr and not isinstance(pr["draft"], bool):
+        fail("pr.draft must be a boolean", EXIT_USAGE)
     return plan
 
 
@@ -321,6 +338,9 @@ def main():
     if not base_ref:
         fail(f"base branch {base} resolves to nothing locally, fetch it first", EXIT_USAGE)
     repo = plan["pr"].get("repo") or ""
+    draft = plan["pr"].get("draft", False)
+    if draft and host != "gh":
+        fail("draft mode is supported for GitHub pull requests only", EXIT_USAGE)
 
     try:
         body = Path(plan["pr"]["body_file"]).read_text()
@@ -366,13 +386,15 @@ def main():
 
     open_pr = existing_pr(host, branch, repo)
     if open_pr:
+        if draft:
+            mark_draft(host, open_pr)
         print(f"Updated: {open_pr}")
         return EXIT_OK
 
     with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as handle:
         handle.write(body)
         body_path = handle.name
-    created = run(create_argv(host, base, branch, title, body, body_path, repo))
+    created = run(create_argv(host, base, branch, title, body, body_path, repo, draft))
     os.unlink(body_path)
     if created.returncode != 0:
         print(created.stdout, end="")
