@@ -143,7 +143,7 @@ See [`AGENTS.md`](AGENTS.md) for layout conventions, commit style, and role anat
 
 ### CLI Utilities
 
-bat, btop, duf, eza, fastfetch, fd, httpie, hyperfine, nnn, ripgrep, scc, television, vnstat, wget, zoxide, unar (modern Unix replacements; configs managed under `roles/coreutils/files/`)
+bat, btop, duf, eza, fastfetch, fd, httpie, hyperfine, ripgrep, scc, television, vnstat, wget, zoxide, unar (modern Unix replacements; configs managed under `roles/coreutils/files/`)
 
 ### Browsers
 

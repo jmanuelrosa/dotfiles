@@ -12,7 +12,7 @@ Installs modern replacements for traditional Unix utilities, plus the configs th
 
 ## Vars
 
-- `BREW_PACKAGES` (defaults/main.yml) — formulas only: bat, btop, duf, eza, fastfetch, fd, httpie, hyperfine, nnn, ripgrep, scc, television, vnstat, wget, zoxide, unar.
+- `BREW_PACKAGES` (defaults/main.yml) — formulas only: bat, btop, duf, eza, fastfetch, fd, httpie, hyperfine, ripgrep, scc, television, vnstat, wget, zoxide, unar.
 - `COREUTILS_CONFIGS` (defaults/main.yml): config paths, relative to both `files/` and `~/.config/`.
 - `HOSTOF` (defaults/main.yml): upstream repository, release, and SHA-256 checksum for the installed `hostof` asset.
 
