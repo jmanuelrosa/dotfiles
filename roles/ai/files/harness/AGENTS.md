@@ -25,6 +25,17 @@ If a CLI is missing or auth-broken, say so; don't silently fall back.
 - `glab` has multiple authenticated hosts: inside a repo it auto-selects; repo-agnostic `glab api` calls must iterate every host (recipes live in the `pr` skill and the `weekly-recap` script).
 - JS package manager: match the lockfile. No lockfile but the README names one, follow the README.
 
+## Commands for the user's terminal
+
+The user's interactive shell is fish 4, not bash or zsh.
+The agent's own shell tool loads neither fish nor its aliases, so a command that passed there can still fail when pasted.
+Any command handed to the user to run themselves must:
+
+- Use fish syntax: `set -x VAR value` (not `export`), `(cmd)` for substitution, `if ...; ...; end`, no heredocs, no `[[ ]]`. A glob that matches nothing is an error in fish, not a literal.
+- Account for the aliases that shadow system tools: `grep` is `rg`, `cat` and `less` are `bat`, `find` is `fd --hidden --follow --no-ignore` (plus excludes), `rm` is `rm -i`, `shutdown` is `sudo shutdown now`. Write the command for the real tool (`rg`, `fd`) or bypass the alias with `command grep ...`.
+
+The aliases live in `~/.config/fish/conf.d/aliases/aliases.fish`; read it when a command uses a name not listed here.
+
 ## Code standards
 
 - Default to zero comments; prefer explicit names. A comment must earn its place by explaining a non-obvious WHY, never WHAT. Same bar for JSDoc.
