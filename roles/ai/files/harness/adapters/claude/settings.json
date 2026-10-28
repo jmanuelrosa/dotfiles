@@ -534,6 +534,7 @@
     ]
   },
   "feedbackSurveyRate": 0,
+  "subagentPromptCacheTtl": "1h",
   "alwaysThinkingEnabled": true,
   "effortLevel": "high",
   "modelSettings": {
@@ -549,7 +550,6 @@
       }
     }
   },
-  "subagentPromptCacheTtl": "1h",
   "autoUpdatesChannel": "latest",
   "minimumVersion": "2.1.203",
   "plansDirectory": "docs/plans",
@@ -561,6 +561,7 @@
   "theme": "dark-ansi",
   "preferredNotifChannel": "ghostty",
   "autoCompactEnabled": false,
+  "switchModelsOnFlag": true,
   "fileCheckpointingEnabled": true,
   "showTurnDuration": true,
   "agentPushNotifEnabled": true,
@@ -575,6 +576,5 @@
   "voiceEnabled": false,
   "allowUnixSockets": [
     "~/.colima/default/docker.sock"
-  ],
-  "switchModelsOnFlag": true
+  ]
 }
