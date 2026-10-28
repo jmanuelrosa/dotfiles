@@ -54,7 +54,7 @@ function usage
     echo ""
     echo "Environments:"
     echo "  production  - Port 5434, via the Cloud SQL proxy"
-    echo "  staging     - Port 5433, via the Cloud SQL proxy"
+    echo "  staging     - Port 5433, via the Cloud SQL proxy, IAM login as the gcloud account"
     echo "  local       - Port 5432, already on localhost, no proxy"
     echo ""
     echo "connect / dump options:"
@@ -114,11 +114,40 @@ end
 
 function get_user
     switch $argv[1]
-        case production staging
+        case production
             echo postgres
+        case staging
+            gcloud_account
         case local
             echo testuser
     end
+end
+
+# An IAM database user is the Google account itself, so it has to be the account the
+# proxy authenticates as: the one signed in to the selected gcloud configuration.
+function gcloud_account
+    CLOUDSDK_ACTIVE_CONFIG_NAME=$GCLOUD_CONFIG gcloud config get-value account 2>/dev/null
+end
+
+function require_user
+    if test -z "$argv[1]"
+        die "No account is signed in to the '$GCLOUD_CONFIG' gcloud configuration. Sign in with: env CLOUDSDK_ACTIVE_CONFIG_NAME=$GCLOUD_CONFIG gcloud auth login"
+    end
+end
+
+# Production still signs in with the shared postgres password.
+function uses_iam_auth
+    switch $argv[1]
+        case staging
+            return 0
+        case '*'
+            return 1
+    end
+end
+
+function proxy_flags
+    echo --gcloud-auth
+    uses_iam_auth $argv[1]; and echo --auto-iam-authn
 end
 
 function get_role
@@ -219,7 +248,7 @@ function spawn_proxy
     require_work_dir
     require_proxy_bin
 
-    CLOUDSDK_ACTIVE_CONFIG_NAME=$GCLOUD_CONFIG nohup $PROXY_BIN --gcloud-auth --port $port $instance >$log_file 2>&1 &
+    CLOUDSDK_ACTIVE_CONFIG_NAME=$GCLOUD_CONFIG nohup $PROXY_BIN (proxy_flags $environment) --port $port $instance >$log_file 2>&1 &
     set -l proxy_pid $last_pid
 
     sleep 1
@@ -391,12 +420,15 @@ function report_connected
     set -l environment $argv[1]
     set -l port $argv[2]
     set -l instance $argv[3]
+    set -l user $argv[4]
 
     _ui blank
     _ui done "Connected to $environment"
     _ui item "Server: localhost:$port"
     _ui item "Instance: $instance"
     _ui item "Account: $GCLOUD_CONFIG (gcloud configuration)"
+    _ui item "User: $user"
+    uses_iam_auth $environment; and _ui item "Password: none, the proxy signs in with IAM"
 end
 
 function report_running
@@ -436,6 +468,8 @@ function cmd_connect
     end
 
     set -l instance (get_instance $environment)
+    set -l user (get_user $environment)
+    require_user $user
 
     _ui step "Checking for an existing connection"
 
@@ -455,7 +489,7 @@ function cmd_connect
 
         set -l pid (spawn_proxy $port $instance $environment)
 
-        report_connected $environment $port $instance
+        report_connected $environment $port $instance $user
         _ui item "PID: $pid"
         _ui item "Logs: "(_ui path (proxy_log $environment))
         _ui blank
@@ -464,12 +498,12 @@ function cmd_connect
     else
         _ui step "Connecting to $environment"
 
-        report_connected $environment $port $instance
+        report_connected $environment $port $instance $user
         _ui note "Press Ctrl+C to stop"
 
         require_work_dir
         require_proxy_bin
-        CLOUDSDK_ACTIVE_CONFIG_NAME=$GCLOUD_CONFIG exec $PROXY_BIN --gcloud-auth --port $port $instance
+        CLOUDSDK_ACTIVE_CONFIG_NAME=$GCLOUD_CONFIG exec $PROXY_BIN (proxy_flags $environment) --port $port $instance
     end
 end
 
@@ -485,6 +519,7 @@ function cmd_dump
     set -l environment $ENVIRONMENT
     set -l port (get_port $environment)
     set -l user (get_user $environment)
+    require_user $user
 
     set -l target
     if set -q _flag_out

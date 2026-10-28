@@ -44,6 +44,12 @@ fi
 """,
         bin_dir / "ps": "#!/bin/sh\nprintf 'cloud-sql-proxy\\n'\n",
         bin_dir / "gcloud": """#!/bin/sh
+if [ "$*" = "config get-value account" ]; then
+    if [ "$GCLOUD_SIGNED_OUT" != 1 ]; then
+        printf '%s@didomi.test\\n' "$CLOUDSDK_ACTIVE_CONFIG_NAME"
+    fi
+    exit 0
+fi
 printf '%s\\n' "$@" > "$CLOUD_CALL"
 exit 1
 """,
@@ -79,7 +85,7 @@ printf '%s\\n' "$CLOUDSDK_ACTIVE_CONFIG_NAME" "$@" > "$PG_CALL"
         CLOUD_CALL=str(cloud_call),
     )
 
-    def run(*args, background=False, reused=False):
+    def run(*args, background=False, reused=False, signed_out=False):
         result = subprocess.run(
             [
                 fish,
@@ -97,6 +103,7 @@ printf '%s\\n' "$CLOUDSDK_ACTIVE_CONFIG_NAME" "$@" > "$PG_CALL"
                 **env,
                 "PROXY_BACKGROUND": str(int(background)),
                 "PROXY_REUSED": str(int(reused)),
+                "GCLOUD_SIGNED_OUT": str(int(signed_out)),
             },
             capture_output=True,
             text=True,
@@ -119,14 +126,17 @@ printf '%s\\n' "$CLOUDSDK_ACTIVE_CONFIG_NAME" "$@" > "$PG_CALL"
 def test_foreground_proxy_selects_named_configuration(run_db, command, selection):
     result, calls = run_db(*command, "staging", *selection)
     assert result.returncode == 0, result.stderr
+    account = "pentla" if selection else "didomi"
     assert calls["proxy"] == [
-        "pentla" if selection else "didomi",
+        account,
         "--gcloud-auth",
+        "--auto-iam-authn",
         "--port",
         "5433",
         "addingwell-dev-326312:europe-west1:addingwell-dev-postgres",
     ]
     assert calls["pg"] == []
+    assert f"User: {account}@didomi.test" in result.stdout
 
 
 @pytest.mark.parametrize("selection", [[], ["--account", "pentla"]])
@@ -146,6 +156,31 @@ def test_background_proxy_selects_named_configuration(run_db, tmp_path, selectio
     if command[0] == "dump":
         assert calls["pg"][0] == "personal"
         assert "--port=5434" in calls["pg"]
+
+
+@pytest.mark.parametrize("selection", [[], ["--account", "pentla"]])
+def test_staging_dump_signs_in_as_the_configuration_account(run_db, selection):
+    result, calls = run_db("dump", "staging", *selection, background=True)
+    assert result.returncode == 0, result.stderr
+    account = "pentla" if selection else "didomi"
+    assert calls["proxy"][:3] == [account, "--gcloud-auth", "--auto-iam-authn"]
+    assert f"--username={account}@didomi.test" in calls["pg"]
+    assert not any(arg.startswith("--password") for arg in calls["pg"])
+
+
+def test_production_keeps_the_postgres_user(run_db):
+    result, calls = run_db("dump", "production", background=True)
+    assert result.returncode == 0, result.stderr
+    assert "--auto-iam-authn" not in calls["proxy"]
+    assert "--username=postgres" in calls["pg"]
+
+
+@pytest.mark.parametrize("command", [["staging"], ["dump", "staging"]])
+def test_staging_without_a_signed_in_account_stops_before_the_proxy(run_db, command):
+    result, calls = run_db(*command, signed_out=True)
+    assert result.returncode != 0
+    assert "No account is signed in to the 'didomi' gcloud configuration" in result.stderr
+    assert calls == {"proxy": [], "pg": []}
 
 
 @pytest.mark.parametrize("command", [["local"], ["dump", "local"], ["restore", "sample.dump"]])
@@ -169,6 +204,7 @@ def test_dump_dry_run_shows_selection_without_starting_proxy(run_db):
     result, calls = run_db("dump", "staging", "--account", "pentla", "--dry")
     assert result.returncode == 0, result.stderr
     assert "Account: pentla (gcloud configuration)" in result.stdout
+    assert "as pentla@didomi.test" in result.stdout
     assert calls == {"proxy": [], "pg": []}
 
 
