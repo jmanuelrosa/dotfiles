@@ -63,13 +63,16 @@ A script is its own process and cannot `cd` the shell that ran it, so landing in
 | env | port | proxy | user | role |
 |---|---|---|---|---|
 | `production` | 5434 | yes | `postgres` | - |
-| `staging` | 5433 | yes | `postgres` | - |
+| `staging` | 5433 | yes | the gcloud account's email (IAM) | - |
 | `local` | 5432 | no | `testuser` | `testuser` |
 
 `connect` and `dump` accept `-a NAME` / `--account NAME`, where NAME is an existing named Google Cloud CLI configuration, not an account email.
 They default to `didomi`, regardless of the shell's active configuration: `s-db staging --account pentla` or `s-db dump staging --account pentla` selects another configuration.
 New proxies use `--gcloud-auth` with a process-scoped `CLOUDSDK_ACTIVE_CONFIG_NAME`, so credentials come from that configuration's signed-in account instead of Application Default Credentials, refresh through the CLI, and leave the globally active configuration unchanged.
 A running proxy is reused with its original credentials; stop it using the printed `kill` command before selecting another account.
+Staging signs in with IAM database authentication: its proxy adds `--auto-iam-authn`, and the database user is the email signed in to the selected configuration, read with `gcloud config get-value account`, with an empty password.
+An IAM user has to be the very account the proxy authenticates as, which is why it is derived from the configuration rather than stored, and why staging stops before starting the proxy when that configuration has no account signed in.
+Production still uses `postgres` with the shared password.
 Local connections, local dumps and restores need no Google Cloud credentials.
 
 `local` is the environment added for these subcommands, and it is the one with nothing to connect: `s-db local` says so and exits 0 rather than treating it as an error.
