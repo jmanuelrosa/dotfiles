@@ -12,6 +12,7 @@ compatibility: React 18+, React 19 (Suspense/RSC). Works with Next.js, Vite, CRA
 metadata:
   author: apollographql
   version: "1.0.0"
+allowed-tools: Bash(npm:*) Bash(npx:*) Bash(node:*) Read Write Edit Glob Grep
 ---
 
 # Apollo Client 4.x Guide
