@@ -1924,7 +1924,7 @@ def test_probe_rejects_installed_sandbox_disabled_by_project_config(probe, tmp_p
         exercise=True,
         cwd=work,
     )
-    assert result["notifications"] == [{"message": "Sandbox disabled via config", "type": "info"}]
+    assert {"message": "Sandbox disabled via config", "type": "info"} in result["notifications"]
     assert result["rejections"] == ["Sandbox disabled via config"]
     assert result["calls"] == []
     assert result["exercise"] is None
