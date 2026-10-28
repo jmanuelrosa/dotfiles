@@ -290,6 +290,7 @@ CLAUDE_ONLY_SKILL_FRONTMATTER = {
     "pr", "product-lead", "research", "setup-review", "ship", "teammate",
     "0-refine-idea", "1-research", "2-write-prd", "3-red-team", "4-tech-shape",
     "5-decompose", "6-verify", "7-push-to-board", "8-living-spec", "setup-strategy",
+    "agent-platform-alert-configuration", "cloud-run-alert-configuration", "aws-containers",
 }
 
 
