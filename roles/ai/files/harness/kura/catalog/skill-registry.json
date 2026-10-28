@@ -947,6 +947,2024 @@
           "updated_at": "2026-10-21T06:19:01Z"
         }
       ]
+    },
+    "google/skills": {
+      "branch": "main",
+      "commit": "588698280ecdf6145aab1ebabad0785d9630a8db",
+      "skills": [
+        {
+          "upstream_path": "skills/cloud/agent-platform-alert-configuration",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/agent-platform-deploy",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "deployment"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/agent-platform-endpoint-management",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/agent-platform-eval-flywheel",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/agent-platform-inference",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/agent-platform-migrate-from-ai-studio",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/agent-platform-model-registry",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/agent-platform-prompt-management",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/agent-platform-rag-engine-management",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/agent-platform-skill-registry",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/agent-platform-troubleshooting",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/agent-platform-tuning",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/agent-platform-tuning-management",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/alloydb-basics",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "database"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/api-gateway-backend-security-and-rate-limiting",
+          "groups": [
+            "engineering",
+            "devops",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/api-gateway-mcp-server",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/apigee-agent-gateway-governance",
+          "groups": [
+            "engineering",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/application-design-center-design-deploy",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "deployment",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/application-integration-authoring",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/application-integration-basics",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/application-integration-troubleshooting",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/assuredworkloads-environment-assessor",
+          "groups": [
+            "engineering",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/assuredworkloads-frameworks-author",
+          "groups": [
+            "engineering",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/assuredworkloads-frameworks-navigator",
+          "groups": [
+            "engineering",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/bigquery-ai-ml",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "data"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/bigquery-basics",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "data"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/bigquery-bigframes",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "data"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/bigquery-migration-sql-translator",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "data"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/bigquery-observability",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "data",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/bigquery-optimization",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "data",
+            "performance"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/bigquery-troubleshooting",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "data",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/bigquery-udfs",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "data"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/bigtable-basics",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "database"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/cloud-armor-crs-rule-upgrader",
+          "groups": [
+            "engineering",
+            "devops",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/cloud-build-basics",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "ci"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/cloud-databases-onboarding",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "database"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/cloud-logging-configuration-basics",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/cloud-logging-cross-project-configuration",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/cloud-logging-finops",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability",
+            "performance"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/cloud-logging-query-generation",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/cloud-monitoring-chart-generation",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/cloud-monitoring-list-time-series-request",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/cloud-monitoring-metric-selection",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/cloud-monitoring-notification-channels-configuration",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/cloud-monitoring-promql-query",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/cloud-network-insights",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/cloud-run-alert-configuration",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/cloud-run-basics",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "deployment"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/cloud-sql-basics",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "database"
+          ],
+          "updated_at": "2026-10-28T07:33:15Z"
+        },
+        {
+          "upstream_path": "skills/cloud/cloud-trace-querying",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/datalineage-bigquery-asset-impact-analysis",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "data"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/datalineage-summary",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "data"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/dbt-sf-to-bq-translator",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "data"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/detection-engineering-coverage-evaluation",
+          "groups": [
+            "engineering",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/developer-device-platform-basics",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/developing-genkit-dart",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/developing-genkit-go",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/developing-genkit-js",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/developing-genkit-python",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/firebase-basics",
+          "groups": [
+            "engineering",
+            "backend",
+            "frontend",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gcloud",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gemini-agents-api",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gemini-api",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gemini-interactions-api",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gemini-live-api",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-ai-troubleshooting-handle-disruption-gpu-tpu",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-ai-troubleshooting-jobset-interruption",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-ai-troubleshooting-node-unresponsive-timeout",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-ai-troubleshooting-tpu-dynamic-slices-monitoring",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-ai-troubleshooting-tpu-metrics-monitoring",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-ai-troubleshooting-tpu-mxla-hang",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-ai-troubleshooting-tpu-partition-overlap",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-ai-troubleshooting-tpu-performance-degradation",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "observability",
+            "performance"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-ai-troubleshooting-tpu-reservation-stockout",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-ai-troubleshooting-tpu-slice-mig-stuck-updating",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-ai-troubleshooting-tpu-vbar-oom",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-ai-troubleshooting-tpu-vm-repair-stuck",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-alert-configuration",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-app-onboarding",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "deployment"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-backup-dr",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "deployment"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-basics",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-batch-hpc",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-cluster-autoscaler",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "performance"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-cluster-creation",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-compute-classes",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-cost-analysis",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "performance"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-cost-optimization",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "performance"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-custom-golden-image-discovery",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-golden-path",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "deployment"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-inference",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-manifest-generation",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "deployment"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-multitenancy",
+          "groups": [
+            "engineering",
+            "devops",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-networking",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-node-notready",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-observability",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-platform-security",
+          "groups": [
+            "engineering",
+            "devops",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-productionize",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "deployment"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-reliability",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-service-networking",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-storage",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-storage-troubleshooting",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-upgrades",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "deployment"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-workload-identity",
+          "groups": [
+            "engineering",
+            "devops",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-workload-scaling",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "performance"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-workload-scaling-troubleshooting",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability",
+            "performance"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-workload-security",
+          "groups": [
+            "engineering",
+            "devops",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/gke-workload-troubleshooting",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-agents-cli-onboarding",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-filestore-auditing",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-filestore-autoscale",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "performance"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-filestore-log-troubleshooting",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-filestore-nfs-browser",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-global-frontend-configuration",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-networking-observability",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-recipe-auth",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-recipe-foundation-builder",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-recipe-onboarding",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-scc-query",
+          "groups": [
+            "engineering",
+            "devops",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-scc-remediation",
+          "groups": [
+            "engineering",
+            "devops",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-slo-alert-configuration",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-solution-agentic-ai-bidirectional-streaming",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-solution-agentic-ai-borderless-data-lakehouse",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "data",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-solution-agentic-ai-data-science-workflow",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "data",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-solution-agentic-analytics-spark-knowledge-catalog",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "data",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-solution-architecture",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-solution-build-deploy-agents",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "deployment",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:16Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-solution-guided-gke-ai-migration",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-solution-hybrid-search-alloydb",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "database",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-solution-multi-agent-security",
+          "groups": [
+            "engineering",
+            "devops",
+            "security",
+            "infrastructure",
+            "gcp",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-solution-n-tier-serverless-web-app",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "deployment",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-solution-rag-enterprise-search-gke-sqldb",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "ai",
+            "database",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-storage-basics",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-storage-bucket-architect",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-storage-fuse",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-waf-cost-optimization",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "architecture",
+            "performance"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-waf-operational-excellence",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-waf-performance-optimization",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "architecture",
+            "performance"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-waf-reliability",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-waf-security",
+          "groups": [
+            "engineering",
+            "devops",
+            "security",
+            "infrastructure",
+            "gcp",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/google-cloud-waf-sustainability",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/iam-helper-for-policy-management",
+          "groups": [
+            "engineering",
+            "devops",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/iam-helper-for-policy-simulator",
+          "groups": [
+            "engineering",
+            "devops",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/iam-helper-for-privileged-access-management",
+          "groups": [
+            "engineering",
+            "devops",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/iam-helper-for-troubleshooting",
+          "groups": [
+            "engineering",
+            "devops",
+            "security",
+            "infrastructure",
+            "gcp",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/managed-airflow-dag-authoring",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "data"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/managed-airflow-dag-troubleshooting",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "data",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/managed-airflow-migrations",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "data"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/managed-airflow-recommendations",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "data"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/secops-cases",
+          "groups": [
+            "engineering",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/secops-detection-engineering",
+          "groups": [
+            "engineering",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/secops-hunt",
+          "groups": [
+            "engineering",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/secops-investigate",
+          "groups": [
+            "engineering",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/secops-triage",
+          "groups": [
+            "engineering",
+            "security",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/spanner-basics",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "gcp",
+            "database"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        },
+        {
+          "upstream_path": "skills/cloud/workload-manager-basics",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "gcp"
+          ],
+          "updated_at": "2026-10-28T07:33:17Z"
+        }
+      ]
+    },
+    "aws/agent-toolkit-for-aws": {
+      "branch": "main",
+      "commit": "b08b99f38098c30c0ee1a781accd8e349e5b145c",
+      "skills": [
+        {
+          "upstream_path": "skills/core-skills/amazon-bedrock",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "aws",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-ai-ml",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "aws",
+            "ai"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-auth",
+          "groups": [
+            "engineering",
+            "backend",
+            "security",
+            "infrastructure",
+            "aws"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-billing-and-cost-management",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "aws",
+            "performance"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-blocks",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "aws",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-cdk",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "aws",
+            "deployment"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-cloudformation",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "aws",
+            "deployment"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-compute",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "aws"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-containers",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "aws",
+            "deployment"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-database",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "aws",
+            "database"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-deployment",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "aws",
+            "deployment"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-iam",
+          "groups": [
+            "engineering",
+            "devops",
+            "security",
+            "infrastructure",
+            "aws"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-messaging-and-streaming",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "aws",
+            "architecture"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-networking",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "aws"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-observability",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "aws",
+            "observability"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-sdk-js-v3-usage",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "aws",
+            "node"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-sdk-python-usage",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "aws"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-sdk-swift-usage",
+          "groups": [
+            "engineering",
+            "backend",
+            "infrastructure",
+            "aws",
+            "swift"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-security",
+          "groups": [
+            "engineering",
+            "devops",
+            "security",
+            "infrastructure",
+            "aws"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-serverless",
+          "groups": [
+            "engineering",
+            "backend",
+            "devops",
+            "infrastructure",
+            "aws",
+            "deployment"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-storage",
+          "groups": [
+            "engineering",
+            "devops",
+            "backend",
+            "infrastructure",
+            "aws"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/aws-well-architected-review",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "aws",
+            "architecture",
+            "review"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/launch-with-aws",
+          "groups": [
+            "engineering",
+            "devops",
+            "infrastructure",
+            "aws",
+            "deployment"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        },
+        {
+          "upstream_path": "skills/core-skills/signing-in-to-aws",
+          "groups": [
+            "engineering",
+            "devops",
+            "security",
+            "infrastructure",
+            "aws"
+          ],
+          "updated_at": "2026-10-28T08:22:27Z"
+        }
+      ]
     }
   },
   "local": [
