@@ -4,6 +4,8 @@
 Resolves the repo and PR, fetches every review thread with its resolved and
 outdated state, drops the threads a previous run already handled, strips
 CodeRabbit's collapsed boilerplate, and groups what survives by file path.
+It also lifts the "outside diff range" findings out of the bot's review bodies,
+since GitHub gives those no thread and the threads query never sees them.
 
 Default output is a compact text report the triage step reads directly.
 --json emits the same model as structured data.
@@ -28,6 +30,7 @@ EXIT_GH_FAILED = 5
 # does not silently classify every thread as not-coderabbit.
 BOT_LOGINS = ("coderabbitai", "coderabbitai[bot]")
 SKILL_MARKER = "<!-- cr-skill -->"
+HANDLED_OUTSIDE_RE = re.compile(r"<!--\s*cr-skill:outside:([0-9A-Za-z]+)\s*-->")
 PAGE_SIZE = 100
 MAX_PAGES = 20
 
@@ -59,7 +62,8 @@ query($owner:String!,$name:String!,$pr:Int!,$endCursor:String){
 
 DETAILS_TAG_RE = re.compile(r"</?details\b[^>]*>", re.IGNORECASE)
 SUMMARY_RE = re.compile(r"<summary\b[^>]*>.*?</summary>", re.IGNORECASE | re.DOTALL)
-STRAY_TAG_RE = re.compile(r"</?(?:summary|blockquote)\b[^>]*>", re.IGNORECASE)
+STRAY_TAG_RE = re.compile(r"</?(?:summary|blockquote|dl|dd|dt)\b[^>]*>", re.IGNORECASE)
+HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 SUGGESTION_FENCE_RE = re.compile(
     r"^ {0,3}`{3,}[ \t]*suggestion\b[^\n]*\n.*?^ {0,3}`{3,}[ \t]*$\n?",
     re.MULTILINE | re.DOTALL | re.IGNORECASE,
@@ -70,6 +74,16 @@ AI_PROMPT_RE = re.compile(
     re.MULTILINE | re.DOTALL,
 )
 BLANK_RUN_RE = re.compile(r"\n{3,}")
+
+# A review body nests its findings in a quote block, under headings shaped
+# "<kind> comments (<count>)". A finding belongs to the nearest heading before it.
+QUOTE_PREFIX_RE = re.compile(r"^>[ \t]?", re.MULTILINE)
+SECTION_RE = re.compile(r"([A-Za-z][A-Za-z ]*?) comments \(\d+\)")
+FINDING_ID_RE = re.compile(r"<!--\s*cr-comment:v1:([0-9A-Za-z]+)\s*-->")
+LOCATION_RE = re.compile(r"^`([^`\s]+?):(\d+(?:-\d+)?)`[ \t]*$", re.MULTILINE)
+SUMMARY_LOCATION_RE = re.compile(r"<code>([^<\s]+?):(\d+(?:-\d+)?)</code>")
+TAG_RE = re.compile(r"<[^>]+>")
+SUMMARY_SEPARATOR = chr(0xB7)
 
 # Ordered: CodeRabbit stacks several markers on one comment and the most severe
 # one decides how the triage step prioritises it.
@@ -135,7 +149,8 @@ def drop_details(text):
 
 
 def strip_noise(body):
-    text = SUMMARY_RE.sub("", body or "")
+    text = HTML_COMMENT_RE.sub("", body or "")
+    text = SUMMARY_RE.sub("", text)
     text = drop_details(text)
     # Dropped rather than summarised: it is CodeRabbit's instruction block aimed
     # at an agent, so keeping it out of context also keeps it out of the reply.
@@ -263,26 +278,96 @@ def build(thread, comments):
     }
 
 
-def walkthrough(pr):
-    """Title, description and the bot's latest review, empty if any of it is missing.
+def fetch_pr(pr):
+    """Title, description, reviews and conversation comments, empty if unreadable.
 
     A PR whose metadata cannot be read is not fatal: the threads are the work, and
     they came from a query that already succeeded.
     """
-    data, err = gh_json(["pr", "view", str(pr), "--json", "title,body,reviews"])
-    if err or not data:
-        return {"title": "", "body": "", "walkthrough": ""}
-    bot_bodies = [
+    data, err = gh_json(["pr", "view", str(pr), "--json", "title,body,reviews,comments"])
+    return data if not err and data else {}
+
+
+def bot_review_bodies(data):
+    return [
         r.get("body") or ""
         for r in data.get("reviews") or []
         if by_bot(r) and (r.get("body") or "").strip()
     ]
-    latest = strip_noise(bot_bodies[-1]) if bot_bodies else ""
+
+
+def walkthrough(data):
+    bodies = bot_review_bodies(data)
+    latest = strip_noise(bodies[-1]) if bodies else ""
     return {
         "title": data.get("title") or "",
         "body": cap_text(strip_noise(data.get("body") or ""), WALKTHROUGH_CAP),
         "walkthrough": cap_text(latest, WALKTHROUGH_CAP),
     }
+
+
+def details_spans(text):
+    spans = []
+    opened = []
+    for m in DETAILS_TAG_RE.finditer(text):
+        if not m.group(0).startswith("</"):
+            opened.append(m.start())
+        elif opened:
+            spans.append((opened.pop(), m.end()))
+    return spans
+
+
+def parse_finding(finding_id, block):
+    summary = SUMMARY_RE.search(block)
+    summary_html = summary.group(0) if summary else ""
+    inner = block[summary.end():] if summary else block
+    parts = [p.strip() for p in TAG_RE.sub("", summary_html).split(SUMMARY_SEPARATOR)]
+    has_level = len(parts) >= 3
+    location = LOCATION_RE.search(inner) or SUMMARY_LOCATION_RE.search(summary_html)
+    return {
+        "id": finding_id,
+        "path": location.group(1) if location else "(no path)",
+        "lines": location.group(2) if location else None,
+        "severity": "outside-diff",
+        "level": parts[0].lower() if has_level else "",
+        "title": parts[1] if has_level else parts[0],
+        "body": cap_text(strip_noise(inner), BODY_CAP),
+    }
+
+
+def outside_findings(review_body):
+    text = QUOTE_PREFIX_RE.sub("", review_body)
+    spans = details_spans(text)
+    found = []
+    for m in FINDING_ID_RE.finditer(text):
+        enclosing = [span for span in spans if span[0] < m.start() < span[1]]
+        if not enclosing:
+            continue
+        start, end = max(enclosing)
+        headings = SECTION_RE.findall(text, 0, start)
+        if headings and "outside diff" in headings[-1].lower():
+            found.append(parse_finding(m.group(1), text[start:end]))
+    return found
+
+
+def collect_outside(data, skipped):
+    handled = {
+        finding_id
+        for c in data.get("comments") or []
+        for finding_id in HANDLED_OUTSIDE_RE.findall(c.get("body") or "")
+    }
+    seen = set()
+    kept = []
+    for body in bot_review_bodies(data):
+        for finding in outside_findings(body):
+            if finding["id"] in seen:
+                continue
+            seen.add(finding["id"])
+            if finding["id"] in handled:
+                skipped["outside-answered"] = skipped.get("outside-answered", 0) + 1
+            else:
+                kept.append(finding)
+    return kept
 
 
 def group_by_path(threads):
@@ -329,7 +414,6 @@ def render(model):
     section(f"open threads: {total}")
     if not total:
         out.append(f"No open CodeRabbit threads on PR #{pr['number']}.")
-        return "\n".join(out) + "\n"
 
     n = 0
     for path, items in model["threads"].items():
@@ -348,6 +432,23 @@ def render(model):
             if t["diff_hunk"]:
                 out.append("diff:")
                 out.extend(indented(t["diff_hunk"]))
+
+    outside = model["outside"]
+    section(f"outside-diff findings: {len(outside)} (no thread, answered by one PR comment)")
+    for i, f in enumerate(outside, 1):
+        lines = f["lines"] or "?"
+        out.append("")
+        out.append(
+            f"[O{i}] {f['path']}:{lines} severity={f['severity']} "
+            f"level={f['level'] or '?'} id={f['id']}"
+        )
+        out.append(f"title: {f['title']}")
+        out.append("body:")
+        out.extend(indented(f["body"]))
+
+    if not total and not outside:
+        out.append("")
+        out.append(f"Nothing to triage on PR #{pr['number']}.")
     return "\n".join(out) + "\n"
 
 
@@ -381,11 +482,14 @@ def main():
         else:
             kept.append(build(thread, comments))
 
+    data = fetch_pr(pr)
+    outside = collect_outside(data, skipped)
     model = {
         "repo": repo,
-        "pr": {"number": pr, **walkthrough(pr)},
+        "pr": {"number": pr, **walkthrough(data)},
         "skipped": skipped,
         "threads": group_by_path(kept),
+        "outside": outside,
     }
 
     if args.json:
