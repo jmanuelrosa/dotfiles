@@ -15,6 +15,18 @@ def role_task(name):
     return matching[0]
 
 
+def test_triage_settings_are_linked_without_runtime_logs():
+    config_dir = "{{ HOME }}/.config/triage"
+    assert config_dir in DEFAULTS["APPS_DIRS"]
+    triage_links = [link for link in DEFAULTS["APPS_LINKS"] if link["dest"].startswith(config_dir)]
+    assert triage_links == [
+        {"src": "triage/config.yaml", "dest": f"{config_dir}/config.yaml"},
+        {"src": "triage/fallback-browser.json", "dest": f"{config_dir}/fallback-browser.json"},
+    ]
+    for link in triage_links:
+        assert (APPS / "files" / link["src"]).is_file()
+
+
 def test_cf_cli_is_pinned_to_an_exact_version():
     version = DEFAULTS["CF_CLI"]["version"]
     assert EXACT_SEMVER.fullmatch(version), f"CF_CLI.version {version!r} must be an exact version, not a tag or range"

@@ -5,7 +5,7 @@ Catch-all role for desktop apps and their configs. Browsers, chat apps, dev tool
 ## What it does
 
 1. Installs the taps, formulas and casks declared in `BREW_PACKAGES` through the shared `roles/brew/tasks/packages.yml`.
-2. Creates `APPS_DIRS` and links every config in `APPS_LINKS` (git, lazygit, superfile, npm, gh, gh-dash, diffnav, pgcli, herdr, Caddy, VSCode, Docker, Colima, lazydocker, dive, AeroSpace).
+2. Creates `APPS_DIRS` and links every config in `APPS_LINKS` (git, lazygit, superfile, npm, gh, gh-dash, diffnav, pgcli, herdr, Caddy, VSCode, Docker, Colima, lazydocker, dive, Triage, AeroSpace).
 3. Links each tool in `APPS_SCRIPTS` into `~/.local/bin/`, and creates one private Sentry config dir per account plus the map the `sentry` wrapper reads.
 4. Fails with login instructions when `gh` is not authenticated, then installs the `GH_EXTENSIONS`.
 5. Installs the npm-only `cf` Cloudflare CLI with bun, and the missing `VSCODE_EXTENSIONS`.
@@ -37,6 +37,18 @@ Every stored credential is read-only, because any agent that can run `sentry` ca
 
 Never put a token in `.sentryclirc`: a stored login outranks it silently. Keep `.sentryclirc` for `[defaults] org`/`project`.
 The harness policy denies agents reading either config location and running `sentry auth login`, `logout` or `token`.
+
+## Triage
+
+The managed `~/.config/triage/config.yaml` preserves the current browser profiles and routing rules, and `fallback-browser.json` preserves Helium as the fallback.
+Only these files are linked, so `triage.log` stays local.
+The fallback timestamp is required by Triage's state format, not used to choose the browser.
+Edit the managed fallback file directly: Triage's **Set Fallback Browser** menu atomically replaces the symlink rather than updating its target.
+If you use that menu, import the resulting file into `files/triage/fallback-browser.json` before rerunning the role.
+
+On a new machine, launch Triage, select **Set as Default Web Browser** and confirm the macOS prompt, then enable **Launch at Login** from its menu.
+Chrome profiles named `Jose Manuel`, `Jose Manuel [Dev]` and `3bitslost` must exist; their account sessions are not dotfiles.
+Allow Triage to read Chrome's profile index when macOS requests Application Data access so those friendly profile names resolve.
 
 ## Colima
 

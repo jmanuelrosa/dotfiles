@@ -1,0 +1,38 @@
+browsers:
+  helium:
+    bundle_id: net.imput.helium
+  chrome_personal:
+    bundle_id: com.google.Chrome
+    profile: "Jose Manuel"
+  chrome_dev:
+    bundle_id: com.google.Chrome
+    profile: "Jose Manuel [Dev]"
+  chrome_3bits:
+    bundle_id: com.google.Chrome
+    profile: "3bitslost"
+  zen:
+    bundle_id: app.zen-browser.zen
+
+rules:
+  - host: "*.didomi.io"
+    browser: helium
+  - host: "*.addingwell.com"
+    browser: helium
+  - host: "*.figma.com"
+    browser: helium
+  - host: "didomi.atlassian.net"
+    browser: helium
+
+  - source_app: Slack
+    browser: helium
+
+  - cwd: "~/Developer/work/*"
+    browser: helium
+  - cwd: "~/Developer/personal/*"
+    browser: chrome_dev
+  - cwd: "~/Developer/3bitslost"
+    browser: chrome_3bits
+
+  - host: github.com
+    path: "/3bitslost-team/*"
+    browser: chrome_3bits
