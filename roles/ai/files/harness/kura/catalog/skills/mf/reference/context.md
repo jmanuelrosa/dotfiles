@@ -29,7 +29,7 @@ Find config files in the following priority order (`.ts` / `.mts` take precedenc
 
 Read the first matched file and extract the `remotes`, `exposes`, and `shared` fields.
 
-Determine the bundler name from the config filename (`rspack` / `rsbuild` / `webpack` / `vite` / `next`). When priority 1 (`module-federation.config.*`) is matched, scan the project root for bundler config files in priorities 2-7 to set `bundler.name` and `bundler.configFile` (the bundler config path, not the MF config path). If no bundler config is found, set `bundler.name` to `unknown` and `bundler.configFile` to the `module-federation.config.*` path.
+Determine the bundler name from the config filename (`rspack` / `rsbuild` / `webpack` / `vite` / `next`). When priority 1 (`module-federation.config.*`) is matched, scan the project root for bundler config files in priorities 2–7 to set `bundler.name` and `bundler.configFile` (the bundler config path, not the MF config path). If no bundler config is found, set `bundler.name` to `unknown` and `bundler.configFile` to the `module-federation.config.*` path.
 
 ## 3. Determine MF Role
 

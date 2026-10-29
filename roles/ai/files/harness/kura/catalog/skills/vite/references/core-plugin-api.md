@@ -199,7 +199,7 @@ transform(code, id) {
 
 ### Hook Filters (Vite 8)
 
-Prefer the object form with `filter` + `handler` for `transform`/`resolveId`/`load` - filtering runs in Rust, avoiding a JS call per module:
+Prefer the object form with `filter` + `handler` for `transform`/`resolveId`/`load` — filtering runs in Rust, avoiding a JS call per module:
 
 ```ts
 import { exactRegex } from '@rolldown/pluginutils' // also from 'rolldown/filter'
@@ -238,12 +238,12 @@ const plugin = () => ({
 
 ## Plugin Context Meta (Vite 8)
 
-- `this.meta.viteVersion` - current Vite version string.
-- `this.meta.rolldownVersion` - only defined on Rolldown-powered Vite (8+); use it to branch behavior.
+- `this.meta.viteVersion` — current Vite version string.
+- `this.meta.rolldownVersion` — only defined on Rolldown-powered Vite (8+); use it to branch behavior.
 
 ## Output Bundle Metadata
 
-During build, Vite augments Rolldown output objects with `viteMetadata` - inspect emitted CSS/assets without `build.manifest`:
+During build, Vite augments Rolldown output objects with `viteMetadata` — inspect emitted CSS/assets without `build.manifest`:
 
 ```ts
 {

@@ -92,7 +92,7 @@ export default defineConfig({
 })
 ```
 
-The array form's `customResolver` was removed in Vite 8 - use a custom plugin with a `resolveId` hook and `enforce: 'pre'` instead.
+The array form's `customResolver` was removed in Vite 8 — use a custom plugin with a `resolveId` hook and `enforce: 'pre'` instead.
 
 ### define (Global Constants)
 
@@ -151,7 +151,7 @@ To set the dev/transform target, use `oxc.target` (replaces `esbuild.target`); `
 
 ### tsconfig (Vite 8)
 
-Force a specific tsconfig instead of Vite's per-file discovery. Discouraged - prefer placing `tsconfig.json` near the files it configures and using TS `references`.
+Force a specific tsconfig instead of Vite's per-file discovery. Discouraged — prefer placing `tsconfig.json` near the files it configures and using TS `references`.
 
 ```ts
 export default defineConfig({ tsconfig: './tsconfig.app.json' })

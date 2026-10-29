@@ -7,7 +7,7 @@
 The script returns `autoApplySkipReason` in its output.
 
 1. Report the skip reason to the user (e.g., "Auto-apply was skipped because the previous CI pipeline execution was triggered by Nx Cloud")
-2. Offer to apply the fix manually - spawn UPDATE_FIX subagent with `APPLY` if user agrees
+2. Offer to apply the fix manually — spawn UPDATE_FIX subagent with `APPLY` if user agrees
 3. Record `last_cipe_url`, enter wait mode
 
 ### fix_apply_ready
@@ -20,7 +20,7 @@ The script returns `autoApplySkipReason` in its output.
 The script returns `verifiableTaskIds` in its output.
 
 1. **Detect package manager:** `pnpm-lock.yaml` → `pnpm nx`, `yarn.lock` → `yarn nx`, otherwise `npx nx`
-2. **Run verifiable tasks in parallel** - spawn `general` subagents for each task
+2. **Run verifiable tasks in parallel** — spawn `general` subagents for each task
 3. **If all pass** → spawn UPDATE_FIX subagent with `APPLY`, enter wait mode
 4. **If any fail** → Apply Locally + Enhance Flow (see below)
 
@@ -34,7 +34,7 @@ Spawn FETCH_HEAVY subagent, then analyze fix content (`suggestedFixDescription`,
 
 ### fix_failed / no_fix
 
-Spawn FETCH_HEAVY subagent for `taskFailureSummaries`. Run `ci-state-update.mjs gate --gate-type local-fix` - if not allowed, print message and exit. Otherwise attempt local fix (counter already incremented by gate). If successful → commit, push, enter wait mode. If not → exit with failure.
+Spawn FETCH_HEAVY subagent for `taskFailureSummaries`. Run `ci-state-update.mjs gate --gate-type local-fix` — if not allowed, print message and exit. Otherwise attempt local fix (counter already incremented by gate). If successful → commit, push, enter wait mode. If not → exit with failure.
 
 ### environment_issue
 
@@ -47,7 +47,7 @@ Spawn FETCH_HEAVY subagent for `taskFailureSummaries`. Run `ci-state-update.mjs 
 Spawn FETCH_HEAVY subagent for `selfHealingSkipMessage`.
 
 1. **Parse throttle message** for CI Attempt URLs (regex: `/cipes/{id}`)
-2. **Reject previous fixes** - for each URL: spawn FETCH_THROTTLE_INFO to get `shortLink`, then UPDATE_FIX with `REJECT`
+2. **Reject previous fixes** — for each URL: spawn FETCH_THROTTLE_INFO to get `shortLink`, then UPDATE_FIX with `REJECT`
 3. **Attempt local fix**: Run `ci-state-update.mjs gate --gate-type local-fix`. If not allowed → skip to step 4. Otherwise use `failedTaskIds` and `taskFailureSummaries` for context.
 4. **Fallback if local fix not possible or budget exhausted**: push empty commit (`git commit --allow-empty -m "ci: rerun after rejecting throttled fixes"`), enter wait mode
 
@@ -96,7 +96,7 @@ When detected → bail immediately without running gate (no budget consumed). Re
 
 ## Git Safety
 
-- Stage specific files by name - `git add -A` or `git add .` risks committing the user's unrelated work-in-progress or secrets
+- Stage specific files by name — `git add -A` or `git add .` risks committing the user's unrelated work-in-progress or secrets
 
 ## Commit Message Format
 

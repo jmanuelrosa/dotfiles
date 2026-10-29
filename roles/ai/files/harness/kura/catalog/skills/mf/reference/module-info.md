@@ -1,10 +1,10 @@
 # Sub-skill: module-info
 
-Fetch metadata and manifest info for a remote Module Federation module - publicPath, remoteEntry, type file URLs, and the module's remotes/exposes/shared from its mf-manifest.json.
+Fetch metadata and manifest info for a remote Module Federation module — publicPath, remoteEntry, type file URLs, and the module's remotes/exposes/shared from its mf-manifest.json.
 
 Two modes:
-1. **Consumer mode** - inside a consumer project; pass only the remote name; entry URL is resolved from mfConfig.remotes
-2. **Standalone mode** - outside a consumer project; pass the remote name plus its remoteEntry URL directly
+1. **Consumer mode** — inside a consumer project; pass only the remote name; entry URL is resolved from mfConfig.remotes
+2. **Standalone mode** — outside a consumer project; pass the remote name plus its remoteEntry URL directly
 
 ## Step 1: Parse ARGS
 
@@ -12,7 +12,7 @@ Two modes:
 - If a second token looks like a URL (starts with `http`) → `<remoteEntry-url>` (standalone mode); remaining tokens → `[project-root]`
 - Otherwise → `[project-root]` (consumer mode)
 
-## Step 2a - Consumer mode (no URL provided)
+## Step 2a — Consumer mode (no URL provided)
 
 Collect MFContext by reading and following the instructions in `./context.md`, passing `[project-root]` as the project root.
 
@@ -22,7 +22,7 @@ Then run:
 node scripts/module-info.js --context '<MFContext-JSON>' --module '<module-name>'
 ```
 
-## Step 2b - Standalone mode (URL provided)
+## Step 2b — Standalone mode (URL provided)
 
 Run with an empty context and the explicit URL:
 

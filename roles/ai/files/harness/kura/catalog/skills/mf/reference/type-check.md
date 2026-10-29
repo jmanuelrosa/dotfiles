@@ -21,7 +21,7 @@ Process each item in the output `results` array and follow the action plan based
 
 ---
 
-### Scenario: `TYPE_GENERATION_FAILED` (Problem 1 - Producer type files not generated)
+### Scenario: `TYPE_GENERATION_FAILED` (Problem 1 — Producer type files not generated)
 
 The producer failed to generate type files (TYPE-001 error).
 
@@ -39,7 +39,7 @@ The producer failed to generate type files (TYPE-001 error).
 
 ---
 
-### Scenario: `TYPES_NOT_PULLED` (Problem 2 - Consumer not pulling remote types)
+### Scenario: `TYPES_NOT_PULLED` (Problem 2 — Consumer not pulling remote types)
 
 The `@mf-types` folder is missing. Remote types have not been downloaded.
 
@@ -52,11 +52,11 @@ The `@mf-types` folder is missing. Remote types have not been downloaded.
      - **URL inaccessible**: try fetching the `remoteEntry` URL
        - `remoteEntry` **unreachable**: producer deployment is broken or URL is misconfigured; ask user to verify deployment
        - `remoteEntry` **reachable**: type file generation failed or wasn't deployed; ask user to provide local producer path and proceed to **Problem 1**
-     - **URL accessible**: types were generated and deployed; the issue is in tsconfig - proceed to **Problem 3**
+     - **URL accessible**: types were generated and deployed; the issue is in tsconfig — proceed to **Problem 3**
 
 ---
 
-### Scenario: `TSCONFIG_PATHS_MISSING` (Problem 3 - tsconfig not configured for remote types)
+### Scenario: `TSCONFIG_PATHS_MISSING` (Problem 3 — tsconfig not configured for remote types)
 
 The `@mf-types` folder exists but TypeScript cannot find the types because `tsconfig.json` is missing the `paths` mapping.
 
@@ -77,11 +77,11 @@ The `@mf-types` folder exists but TypeScript cannot find the types because `tsco
 
 ### Scenario: `ENV_INCOMPLETE` (Missing tsconfig or TypeScript)
 
-**TYPE-001 · warning - `tsconfig.json` missing**
+**TYPE-001 · warning — `tsconfig.json` missing**
 - `tsconfig.json` not found in the project root
 - Advise the user to create `tsconfig.json` and configure producer type paths in `paths`
 
-**TYPE-001 · warning - `typescript` dependency missing**
+**TYPE-001 · warning — `typescript` dependency missing**
 - `typescript` not installed in `dependencies` / `devDependencies`
 - Prompt the user to install: `pnpm add -D typescript`
 

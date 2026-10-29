@@ -7,8 +7,8 @@
  * Takes ci_information JSON + state args, outputs a single JSON action line.
  *
  * Architecture:
- *   classify()    - pure decision tree, returns { action, code, extra? }
- *   buildOutput() - maps classification to full output with messages, delays, counters
+ *   classify()    — pure decision tree, returns { action, code, extra? }
+ *   buildOutput() — maps classification to full output with messages, delays, counters
  *
  * Usage:
  *   node ci-poll-decide.mjs '<ci_info_json>' <poll_count> <verbosity> \
@@ -158,7 +158,7 @@ function isNewCipe() {
 }
 
 // ============================================================
-// classify() - pure decision tree
+// classify() — pure decision tree
 //
 // Returns: { action: 'poll'|'wait'|'done', code: string, extra? }
 //
@@ -306,7 +306,7 @@ function classify() {
 }
 
 // ============================================================
-// buildOutput() - maps classification to full JSON output
+// buildOutput() — maps classification to full JSON output
 // ============================================================
 
 // Message templates keyed by status or key

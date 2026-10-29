@@ -31,9 +31,9 @@ You can pass a `-p` flag to filter to specific projects, otherwise it runs on al
 
 Examples:
 
-- `nx run-many -t test -p proj1 proj2` - test specific projects
-- `nx run-many -t test --projects=*-app --exclude=excluded-app` - test projects matching a pattern
-- `nx run-many -t test --projects=tag:api-*` - test projects by tag
+- `nx run-many -t test -p proj1 proj2` — test specific projects
+- `nx run-many -t test --projects=*-app --exclude=excluded-app` — test projects matching a pattern
+- `nx run-many -t test --projects=tag:api-*` — test projects by tag
 
 ## Run tasks for affected projects
 
@@ -45,14 +45,14 @@ nx affected -t build test lint
 
 By default it compares against the base branch. You can customize this:
 
-- `nx affected -t test --base=main --head=HEAD` - compare against a specific base and head
-- `nx affected -t test --files=libs/mylib/src/index.ts` - specify changed files directly
+- `nx affected -t test --base=main --head=HEAD` — compare against a specific base and head
+- `nx affected -t test --files=libs/mylib/src/index.ts` — specify changed files directly
 
 ## Useful flags
 
 These flags work with `run`, `run-many`, and `affected`:
 
-- `--skipNxCache` - rerun tasks even when results are cached
-- `--verbose` - print additional information such as stack traces
-- `--nxBail` - stop execution after the first failed task
-- `--configuration=<name>` - use a specific configuration (e.g. `production`)
+- `--skipNxCache` — rerun tasks even when results are cached
+- `--verbose` — print additional information such as stack traces
+- `--nxBail` — stop execution after the first failed task
+- `--configuration=<name>` — use a specific configuration (e.g. `production`)
