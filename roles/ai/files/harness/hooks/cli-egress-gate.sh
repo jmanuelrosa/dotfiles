@@ -13,7 +13,7 @@ them an egress channel: a gist, snippet, release asset, secret, CI
 variable, Notion file upload, worker deploy or API body publishes
 whatever local file the agent names, and a Bruno collection reaches any
 host it lists. This hook is the guardrail on what they may do, in three
-tiers. The gh and glab rules come first; ntn and bru follow them.
+tiers. The gh and glab rules come first; ntn, bru and acli follow them.
 
   block (exit 2): uploads and writes with no review step between the
     agent and a published copy. `gh gist create/edit`, `glab snippet
@@ -45,6 +45,15 @@ tiers. The gh and glab rules come first; ntn and bru follow them.
   bru: asks on everything but help and version. A collection is a
     file the agent can write, and a run sends whatever requests it
     lists to whatever hosts they name, so no `run` shape is read-only.
+
+  acli: runs outside the sandbox and writes to a Jira or Confluence site
+    every member of the org can read, so a prompt injection that reaches
+    it can post local data where people will see it, or close and edit
+    work items. Allows the read verbs (view, list, search, get, status
+    and their list-* forms) under any group path, and help. Blocks
+    `acli feedback`, which submits a report to Atlassian. Asks on
+    everything else, which includes create, edit, comment, transition and
+    the publish steps of the jira and ac skills.
 
   security: the macOS keychain CLI is not excluded from the sandbox, but
     the sandbox does not fence the login keychain either, and gh and glab
@@ -80,8 +89,8 @@ import shlex
 import sys
 
 FORGES = ("gh", "glab")
-NOTION, BRUNO, KEYCHAIN = "ntn", "bru", "security"
-CLIS = (*FORGES, NOTION, BRUNO, KEYCHAIN)
+NOTION, BRUNO, KEYCHAIN, ATLASSIAN = "ntn", "bru", "security", "acli"
+CLIS = (*FORGES, NOTION, BRUNO, KEYCHAIN, ATLASSIAN)
 CLI_ALTERNATION = "|".join(re.escape(cli) for cli in CLIS)
 
 CLI_WORD_RE = re.compile(rf"(?<![\w.-])(?:{CLI_ALTERNATION})(?![\w./-])")
@@ -213,6 +222,17 @@ NOTION_QUERY_PARAM_RE = re.compile(r"^[^=:]+==")
 NOTION_BODY_INPUT_RE = re.compile(r"^[^=:]+:?=")
 
 BRUNO_READS = {"--version", "--help", "-h"}
+
+ACLI_GROUPS = {
+    "jira", "confluence", "workitem", "comment", "attachment", "link", "watcher", "project",
+    "board", "sprint", "filter", "field", "dashboard", "auth", "page", "space", "blog",
+}
+ACLI_READS = {
+    "view", "list", "search", "get", "status", "type", "help", "get-columns", "list-columns",
+    "list-projects", "list-sprints", "list-workitems", "list-watchers",
+}
+ACLI_VERSION_FLAGS = {"-v", "--version"}
+ACLI_BLOCKED = {"feedback": "`acli feedback`, which submits a report to Atlassian"}
 
 KEYCHAIN_OPTION_RE = re.compile(r"^-[hilpqv]+$")
 # -p sets the interactive prompt, and implies -i.
@@ -510,6 +530,24 @@ def bruno_verdict(cli, args, stdin_fed=False):
     return ASK, "a bru call, which sends whatever requests a collection lists to the hosts it names"
 
 
+def acli_verdict(cli, args, stdin_fed=False):
+    if any(t in HELP_FLAGS for t in args) or args[:1] and args[0] in ACLI_VERSION_FLAGS:
+        return ALLOWED
+    path = []
+    for token in args:
+        if not path and token in ACLI_BLOCKED:
+            return BLOCK, ACLI_BLOCKED[token]
+        if token in ACLI_READS:
+            return ALLOWED
+        if token.startswith("-") or token not in ACLI_GROUPS:
+            path.append(token)
+            break
+        path.append(token)
+    if not path:
+        return ALLOWED
+    return ASK, f"`acli {' '.join(path)}`, which is not a recognized read-only call"
+
+
 def keychain_verdict(cli, args, stdin_fed=False):
     i = 0
     while i < len(args) and args[i].startswith("-") and args[i] != "-":
@@ -587,6 +625,7 @@ VERDICTS = {
     NOTION: notion_verdict,
     BRUNO: bruno_verdict,
     KEYCHAIN: keychain_verdict,
+    ATLASSIAN: acli_verdict,
 }
 
 

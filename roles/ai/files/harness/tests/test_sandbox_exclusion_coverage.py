@@ -40,6 +40,7 @@ GATED = {
     ),
     "ntn *": ("cli-egress-gate", "ntn files create"),
     "bru *": ("cli-egress-gate", "bru run"),
+    "acli *": ("cli-egress-gate", "acli jira workitem comment create --key X-1 --body leak"),
     "aws *": ("cloud-readonly-gate", "aws s3 rm s3://bucket/key"),
     "gcloud *": ("cloud-readonly-gate", "gcloud auth print-access-token"),
     "gsutil *": ("cloud-readonly-gate", "gsutil rm gs://bucket/key"),
@@ -48,7 +49,6 @@ GATED = {
 
 EXEMPT = {
     "pgcli *": "Reaches only the database a connection names and publishes nothing beyond it.",
-    "acli *": "Writes land in the user's own Atlassian site, readable by its members, not the public.",
     "sentry *": "Reads and resolves issues in the user's own Sentry org; nothing it writes is public.",
     "wrangler *": "Not allowlisted, so every call prompts; the exclusion only lets an approved call reach its credentials.",
     "cf *": "Not allowlisted beyond `cf auth whoami`, so every other call prompts before it runs.",
