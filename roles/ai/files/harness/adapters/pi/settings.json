@@ -62,6 +62,7 @@
   "packages": [
     "git:github.com/earendil-works/pi-review",
     "npm:pi-cc-patch",
+    "npm:pi-context-view",
     "npm:pi-cursor-sdk",
     {
       "source": "npm:pi-sandbox",
