@@ -895,6 +895,21 @@
         }
       ]
     },
+    "spacelift-io/claude-plugins": {
+      "branch": "main",
+      "commit": "302d0fd67dff9d7ebef2b6839984bed9235fe706",
+      "skills": [
+        {
+          "upstream_path": "plugins/spacelift/skills/spacelift",
+          "groups": [
+            "engineering",
+            "devops",
+            "deployment"
+          ],
+          "updated_at": "2026-10-29T19:05:31Z"
+        }
+      ]
+    },
     "hashicorp/agent-skills": {
       "branch": "main",
       "commit": "f706481af9b8fedb66de909f6243ad29601afa0c",
