@@ -13,7 +13,7 @@
             "frontend",
             "architecture"
           ],
-          "updated_at": "2026-10-29T10:28:03Z"
+          "updated_at": "2026-10-29T16:30:36Z"
         }
       ]
     },
@@ -89,7 +89,7 @@
             "frontend",
             "workflow"
           ],
-          "updated_at": "2026-10-29T10:28:03Z"
+          "updated_at": "2026-10-29T16:29:57Z"
         }
       ]
     },
@@ -133,7 +133,7 @@
             "ci",
             "workflow"
           ],
-          "updated_at": "2026-10-29T10:28:03Z"
+          "updated_at": "2026-10-29T16:30:37Z"
         },
         {
           "upstream_path": "skills/nx-cloud-api",
@@ -143,7 +143,7 @@
             "ci",
             "observability"
           ],
-          "updated_at": "2026-10-29T10:28:03Z"
+          "updated_at": "2026-10-29T16:30:37Z"
         },
         {
           "upstream_path": "skills/nx-cloud-cache-investigator",
@@ -169,7 +169,7 @@
           "dependencies": [
             "nx-cloud-api"
           ],
-          "updated_at": "2026-10-29T10:28:03Z"
+          "updated_at": "2026-10-29T16:30:37Z"
         },
         {
           "upstream_path": "skills/nx-generate",
@@ -182,7 +182,7 @@
           "dependencies": [
             "link-workspace-packages"
           ],
-          "updated_at": "2026-10-29T10:28:03Z"
+          "updated_at": "2026-10-29T16:30:37Z"
         },
         {
           "upstream_path": "skills/nx-import",
@@ -192,7 +192,7 @@
             "architecture",
             "workflow"
           ],
-          "updated_at": "2026-10-29T10:28:03Z"
+          "updated_at": "2026-10-29T16:30:37Z"
         },
         {
           "upstream_path": "skills/nx-plugins",
@@ -210,7 +210,7 @@
             "devops",
             "workflow"
           ],
-          "updated_at": "2026-10-29T10:28:03Z"
+          "updated_at": "2026-10-29T16:30:37Z"
         },
         {
           "upstream_path": "skills/nx-workspace",
@@ -602,7 +602,7 @@
             "frontend",
             "graphql"
           ],
-          "updated_at": "2026-10-28T18:46:47Z"
+          "updated_at": "2026-10-29T16:30:00Z"
         },
         {
           "upstream_path": "skills/graphql-operations",
@@ -611,7 +611,7 @@
             "backend",
             "graphql"
           ],
-          "updated_at": "2026-10-28T18:46:47Z"
+          "updated_at": "2026-10-29T16:30:00Z"
         }
       ]
     },
@@ -1308,7 +1308,7 @@
             "gcp",
             "ai"
           ],
-          "updated_at": "2026-10-28T07:33:15Z"
+          "updated_at": "2026-10-29T16:30:29Z"
         },
         {
           "upstream_path": "skills/cloud/agent-platform-tuning-management",
@@ -1730,7 +1730,7 @@
             "gcp",
             "observability"
           ],
-          "updated_at": "2026-10-28T07:33:16Z"
+          "updated_at": "2026-10-29T16:30:29Z"
         },
         {
           "upstream_path": "skills/cloud/datalineage-bigquery-asset-impact-analysis",

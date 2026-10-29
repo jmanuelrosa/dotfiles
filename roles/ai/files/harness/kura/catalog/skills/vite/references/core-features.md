@@ -209,7 +209,7 @@ if (import.meta.hot) {
 
 ### ESM Integration (Vite 8)
 
-Import a `.wasm` file directly - Vite instantiates it and re-exposes its exports as named ESM exports. Behaves as an async module (needs top-level `await`):
+Import a `.wasm` file directly — Vite instantiates it and re-exposes its exports as named ESM exports. Behaves as an async module (needs top-level `await`):
 
 ```js
 import { add } from './add.wasm'

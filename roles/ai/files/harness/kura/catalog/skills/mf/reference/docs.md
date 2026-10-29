@@ -1,6 +1,6 @@
 # Sub-skill: docs
 
-Answer Module Federation questions by fetching only the relevant documentation pages - not the entire docs.
+Answer Module Federation questions by fetching only the relevant documentation pages — not the entire docs.
 
 Requires internet access to fetch documentation from module-federation.io.
 
@@ -19,7 +19,7 @@ The index is in this format:
 
 ## Step 2: Identify the relevant page(s)
 
-Read the page descriptions in the index and select the 1-3 pages most relevant to the user's question. Use the quick topic map below to narrow down candidates before reading descriptions.
+Read the page descriptions in the index and select the 1–3 pages most relevant to the user's question. Use the quick topic map below to narrow down candidates before reading descriptions.
 
 **Quick topic map:**
 
@@ -60,7 +60,7 @@ Answer based on the fetched content. If the answer spans multiple pages (e.g., c
 
 ## Important notes
 
-- Always fetch the index first - never guess page paths from memory
+- Always fetch the index first — never guess page paths from memory
 - If the index descriptions are insufficient to identify the right page, fetch the most likely candidate and check its content
-- The docs cover MF 2.0 (`@module-federation/enhanced`) - this is different from the older Webpack 5 built-in Module Federation
+- The docs cover MF 2.0 (`@module-federation/enhanced`) — this is different from the older Webpack 5 built-in Module Federation
 - Next.js support is deprecated; inform the user if they ask about it

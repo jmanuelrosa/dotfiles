@@ -27,12 +27,19 @@ If a CLI is missing or auth-broken, say so; don't silently fall back.
 
 ## Commands for the user's terminal
 
-The user's interactive shell is fish 4, not bash or zsh.
-The agent's own shell tool loads neither fish nor its aliases, so a command that passed there can still fail when pasted.
-Any command handed to the user to run themselves must:
+The user's interactive shell is fish 4, not Bash or Zsh.
+Fish is mandatory for all newly authored shell code: commands given to the user, internal shell tool calls, temporary helper scripts, sandbox handoffs (including `!` commands), and snippets embedded in skills.
+A tool named `bash` or a Bash/Zsh host is not permission to author code in that language.
 
 - Use fish syntax: `set -x VAR value` (not `export`), `(cmd)` for substitution, `if ...; ...; end`, no heredocs, no `[[ ]]`. A glob that matches nothing is an error in fish, not a literal.
+- Never generate Bash or Zsh snippets or helper scripts unless the user explicitly requests that language, including when a sandbox or network failure requires the user to run a command.
+- Generated shell scripts must use a `.fish` filename, a `#!/usr/bin/env fish` shebang, and a `fish <script>.fish` invocation. Validate them with `fish --no-execute <script>.fish` before running them or asking the user to run them.
+- Existing repository and vendor scripts keep their declared interpreter; this policy does not require translating hooks, Makefile recipes, or upstream scripts.
 - Account for the aliases that shadow system tools: `grep` is `rg`, `cat` and `less` are `bat`, `find` is `fd --hidden --follow --no-ignore` (plus excludes), `rm` is `rm -i`, `shutdown` is `sudo shutdown now`. Write the command for the real tool (`rg`, `fd`) or bypass the alias with `command grep ...`.
+
+When a harness requires a Bash/Zsh host, run shell logic through `fish -c '<fish code>'` or a fish script instead of changing the host shell or bypassing its sandbox.
+Keep standalone CLI calls direct when sandbox exemptions depend on the leading command.
+Do not assume a non-interactive tool loads the user's interactive aliases or functions.
 
 The aliases live in `~/.config/fish/conf.d/aliases/aliases.fish`; read it when a command uses a name not listed here.
 

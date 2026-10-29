@@ -40,7 +40,7 @@ Identify which generator(s) could fulfill the user's needs. Consider what artifa
 
 **IMPORTANT**: When both a local workspace generator and an external plugin generator could satisfy the request, **always prefer the local workspace generator**. Local generators are customized for the specific repo's patterns.
 
-If no suitable generator exists, you can stop using this skill. However, the burden of proof is high-carefully consider all available generators before deciding none apply.
+If no suitable generator exists, you can stop using this skill. However, the burden of proof is high—carefully consider all available generators before deciding none apply.
 
 ### 3. Get Generator Options
 

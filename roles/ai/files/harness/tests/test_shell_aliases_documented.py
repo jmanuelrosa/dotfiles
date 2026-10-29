@@ -1,8 +1,4 @@
-"""Every fish alias that shadows a system tool is named in the global instructions.
-
-The agent's own shell runs without fish or its aliases, so a command it hands the user
-to paste only works if the instructions say which names mean something else there.
-"""
+"""Shared instructions require fish code and document aliases that shadow system tools."""
 
 import re
 from pathlib import Path
@@ -35,3 +31,21 @@ def test_every_shadowing_alias_is_documented():
     section = terminal_section()
     missing = [n for n in shadowing_aliases() if f"`{n}`" not in section]
     assert missing == [], f"add {missing} to the '{SECTION}' section of {AGENTS.name}"
+
+
+def test_fish_covers_internal_execution_and_sandbox_handoffs():
+    section = terminal_section()
+    for context in ("internal shell tool calls", "temporary helper scripts", "sandbox handoffs"):
+        assert context in section, f"fish policy must cover {context}"
+
+
+def test_generated_scripts_require_fish_and_syntax_checks():
+    section = terminal_section()
+    for requirement in ("`.fish`", "`#!/usr/bin/env fish`", "`fish --no-execute", "Never generate Bash or Zsh"):
+        assert requirement in section, f"missing generated-script rule: {requirement}"
+
+
+def test_fish_execution_preserves_sandbox_and_existing_interpreters():
+    section = terminal_section()
+    for requirement in ("`fish -c '<fish code>'`", "standalone CLI calls direct", "declared interpreter"):
+        assert requirement in section, f"missing shell-host boundary: {requirement}"

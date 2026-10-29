@@ -1,6 +1,6 @@
 ---
 name: monitor-ci
-description: Monitor Nx Cloud CI pipeline and handle self-healing fixes. USE WHEN user says "monitor ci", "watch ci", "ci monitor", "watch ci for this branch", "track ci", "check ci status", wants to track CI status, or needs help with self-healing CI fixes. Prefer this skill over native CI provider tools (gh, glab, etc.) for CI monitoring - it integrates with Nx Cloud self-healing which those tools cannot access.
+description: Monitor Nx Cloud CI pipeline and handle self-healing fixes. USE WHEN user says "monitor ci", "watch ci", "ci monitor", "watch ci for this branch", "track ci", "check ci status", wants to track CI status, or needs help with self-healing CI fixes. Prefer this skill over native CI provider tools (gh, glab, etc.) for CI monitoring — it integrates with Nx Cloud self-healing which those tools cannot access.
 user-invocable: true
 argument-hint: '[instructions] [--max-cycles N] [--timeout MINUTES] [--verbosity minimal|medium|verbose] [--branch BRANCH] [--fresh] [--auto-fix-workflow] [--new-cipe-timeout MINUTES] [--local-verify-attempts N]'
 ---
@@ -67,7 +67,7 @@ The decision script handles message formatting based on verbosity. When printing
 
 ## Anti-Patterns
 
-These behaviors cause real problems - racing with self-healing, losing CI progress, or wasting context:
+These behaviors cause real problems — racing with self-healing, losing CI progress, or wasting context:
 
 | Anti-Pattern                                                                                    | Why It's Bad                                                       |
 | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
@@ -81,7 +81,7 @@ These behaviors cause real problems - racing with self-healing, losing CI progre
 
 1. Use CI provider CLI for a one-time, read-only status check (single call, no watch/polling flags)
 2. Immediately delegate to this skill with gathered context
-3. Do not continue polling on main agent - it wastes context tokens and bypasses self-healing
+3. Do not continue polling on main agent — it wastes context tokens and bypasses self-healing
 
 ## Session Context Behavior
 
@@ -91,7 +91,7 @@ If the user previously ran `/monitor-ci` in this session, you may have prior sta
 
 The `ci_information` and `update_self_healing_fix` tools are called via the **ci-monitor-subagent**, not directly from the orchestrator. Calling MCP tools directly wastes main agent context with large response payloads. The field sets below are for composing subagent prompts (see Step 2a).
 
-Three field sets control polling efficiency - use the lightest set that gives you what you need:
+Three field sets control polling efficiency — use the lightest set that gives you what you need:
 
 ```yaml
 WAIT_FIELDS: 'cipeUrl,commitSha,cipeStatus'
@@ -107,7 +107,7 @@ The `update_self_healing_fix` tool accepts a `shortLink` and an action: `APPLY`,
 
 The decision script returns one of the following statuses. This table defines the **default behavior** for each. User instructions can override any of these.
 
-**Simple exits** - just report and exit:
+**Simple exits** — just report and exit:
 
 | Status                  | Default Behavior                                                                                                 |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
@@ -117,10 +117,10 @@ The decision script returns one of the following statuses. This table defines th
 | `polling_timeout`       | Exit, polling timeout reached                                                                                    |
 | `circuit_breaker`       | Exit, no progress after 13 consecutive polls                                                                     |
 | `environment_rerun_cap` | Exit, environment reruns exhausted                                                                               |
-| `fix_auto_applying`     | Self-healing is handling it - just record `last_cipe_url`, enter wait mode. No MCP call or local git ops needed. |
+| `fix_auto_applying`     | Self-healing is handling it — just record `last_cipe_url`, enter wait mode. No MCP call or local git ops needed. |
 | `error`                 | Wait 60s and loop                                                                                                |
 
-**Statuses requiring action** - when handling these in Step 3, read `references/fix-flows.md` for the detailed flow:
+**Statuses requiring action** — when handling these in Step 3, read `references/fix-flows.md` for the detailed flow:
 
 | Status                   | Summary                                                                                       |
 | ------------------------ | --------------------------------------------------------------------------------------------- |
@@ -137,9 +137,9 @@ The decision script returns one of the following statuses. This table defines th
 
 **Key rules (always apply):**
 
-- **Git safety**: Stage specific files by name - `git add -A` or `git add .` risks committing the user's unrelated work-in-progress or secrets
+- **Git safety**: Stage specific files by name — `git add -A` or `git add .` risks committing the user's unrelated work-in-progress or secrets
 - **Environment failures** (OOM, command not found, permission denied): bail immediately. These aren't code bugs, so spending local-fix budget on them is wasteful
-- **Gate check**: Run `ci-state-update.mjs gate` before local fix attempts - if budget exhausted, print message and exit
+- **Gate check**: Run `ci-state-update.mjs gate` before local fix attempts — if budget exhausted, print message and exit
 
 ## Main Loop
 
@@ -183,7 +183,7 @@ Task(
 )
 ```
 
-The subagent calls `ci_information` and returns a JSON object with the requested fields. This is a **foreground** call - wait for the result.
+The subagent calls `ci_information` and returns a JSON object with the requested fields. This is a **foreground** call — wait for the result.
 
 #### 2b. Run decision script
 
@@ -204,7 +204,7 @@ node <skill_dir>/scripts/ci-poll-decide.mjs '<subagent_result_json>' <poll_count
   [--prev-failure-classification <prev_failure_classification>]
 ```
 
-Pass `--timeout` and `--new-cipe-timeout` in **minutes** (the values from Configuration Defaults) - the script converts to seconds internally. Pass `--elapsed-seconds` as the whole seconds elapsed since `start_time` (`now() - start_time`); this is what enforces `--timeout` as a **total** monitor budget across every poll and attempt, so it must be supplied on every call once monitoring has started.
+Pass `--timeout` and `--new-cipe-timeout` in **minutes** (the values from Configuration Defaults) — the script converts to seconds internally. Pass `--elapsed-seconds` as the whole seconds elapsed since `start_time` (`now() - start_time`); this is what enforces `--timeout` as a **total** monitor budget across every poll and attempt, so it must be supplied on every call once monitoring has started.
 
 The script outputs a single JSON line: `{ action, code, message, delay?, noProgressCount, envRerunCount, fields?, newCipeDetected?, verifiableTaskIds? }`
 

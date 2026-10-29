@@ -15,7 +15,7 @@ Vite 6+: Configure as many environments as needed (browser, node server, edge se
 
 ## Basic Configuration
 
-For SPA/MPA, nothing changes-options apply to the implicit `client` environment:
+For SPA/MPA, nothing changes—options apply to the implicit `client` environment:
 
 ```ts
 export default defineConfig({
@@ -78,7 +78,7 @@ Example: Cloudflare's Vite plugin runs code in `workerd` runtime during developm
 
 Environments run modules through a runner. Two dev environment shapes exist:
 
-- **`RunnableDevEnvironment`** - evaluates modules in the **same runtime** as the Vite server, so it exchanges arbitrary JS values in-process. Its `runner.import(url)` is the modern replacement for `server.ssrLoadModule` (full HMR). Default for `ssr` and other non-client envs. Guard with `isRunnableDevEnvironment(env)`.
+- **`RunnableDevEnvironment`** — evaluates modules in the **same runtime** as the Vite server, so it exchanges arbitrary JS values in-process. Its `runner.import(url)` is the modern replacement for `server.ssrLoadModule` (full HMR). Default for `ssr` and other non-client envs. Guard with `isRunnableDevEnvironment(env)`.
 
 ```ts
 if (isRunnableDevEnvironment(server.environments.ssr)) {
@@ -86,7 +86,7 @@ if (isRunnableDevEnvironment(server.environments.ssr)) {
 }
 ```
 
-- **`FetchableDevEnvironment`** - communicates only via the **Fetch API** (`Request`/`Response`), so it works for runtimes that can't run Vite directly (e.g. Cloudflare Workers). Preferred over `RunnableDevEnvironment` for such runtimes. Handle requests with `handleRequest`; dispatch via `env.dispatchFetch(new Request(url))`.
+- **`FetchableDevEnvironment`** — communicates only via the **Fetch API** (`Request`/`Response`), so it works for runtimes that can't run Vite directly (e.g. Cloudflare Workers). Preferred over `RunnableDevEnvironment` for such runtimes. Handle requests with `handleRequest`; dispatch via `env.dispatchFetch(new Request(url))`.
 
 ## Building Environments
 
@@ -121,7 +121,7 @@ Restrict a plugin to specific environments with `applyToEnvironment`, or configu
 
 ## When to Use
 
-- **End users**: Usually don't need to configure-frameworks handle it
+- **End users**: Usually don't need to configure—frameworks handle it
 - **Plugin authors**: Use for environment-aware transformations
 - **Framework authors**: Create custom environments for their runtime needs
 

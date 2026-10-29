@@ -74,7 +74,7 @@ build: {
 
 ## Multi-Page App
 
-Prefer the top-level `input` option (Vite 8) - it applies in dev too:
+Prefer the top-level `input` option (Vite 8) — it applies in dev too:
 
 ```ts
 export default defineConfig({
@@ -117,7 +117,7 @@ server.printUrls()
 
 ### build
 
-Returns `RolldownOutput | RolldownOutput[] | RolldownWatcher` (was `RollupOutput` in Vite 7). On failure it throws a `BundleError` - inspect `e.errors`.
+Returns `RolldownOutput | RolldownOutput[] | RolldownWatcher` (was `RollupOutput` in Vite 7). On failure it throws a `BundleError` — inspect `e.errors`.
 
 ```ts
 import { build } from 'vite'

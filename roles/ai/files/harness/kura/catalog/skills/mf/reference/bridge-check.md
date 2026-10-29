@@ -16,13 +16,13 @@ node scripts/bridge-check.js --context '<MFContext-JSON>'
 
 Process each item in the output `results` and `context.mfConfig`:
 
-**BRIDGE-USAGE · info - No export-app export found**
+**BRIDGE-USAGE · info — No export-app export found**
 - No key matching the `export-app` pattern found in `exposes`
 - If this project is a sub-app that should follow the Bridge spec, guide the user to:
   1. Add `"./export-app": "./src/export-app.tsx"` to `exposes`
   2. The exported module must return an object conforming to the Bridge spec (containing `render` and `destroy` methods)
 
-**BRIDGE-USAGE · info - Consumer API recommendation**
+**BRIDGE-USAGE · info — Consumer API recommendation**
 - Advise consumers to use official Bridge APIs such as `createRemoteAppComponent`
 - Avoid directly concatenating remote URLs or manually calling `loadRemote`
 

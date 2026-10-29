@@ -1,10 +1,10 @@
 ---
 name: mf
-description: "All-in-one Module Federation skill. Use when the user asks anything about MF - concepts, configuration, runtime API, shared dependencies, type errors, runtime error code troubleshooting, observability/obs, slow builds, Bridge integration, or adding MF to an existing project."
+description: "All-in-one Module Federation skill. Use when the user asks anything about MF — concepts, configuration, runtime API, shared dependencies, type errors, runtime error code troubleshooting, observability/obs, slow builds, Bridge integration, or adding MF to an existing project."
 argument-hint: <sub-command | natural-language-query> [args...]
 ---
 
-# MF - Module Federation All-in-One Skill
+# MF — Module Federation All-in-One Skill
 
 ## Step 1: Identify the sub-skill
 

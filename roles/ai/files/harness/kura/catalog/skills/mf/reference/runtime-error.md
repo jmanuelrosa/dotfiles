@@ -39,9 +39,9 @@ These two codes need special handling because in versions **before `2.3.0`**, so
 
 The goal is to confirm whether the real problem is:
 
-1. `ScriptNetworkError` - the remote entry could not be downloaded
-2. `ScriptExecutionError` - the remote entry downloaded, but threw during execution
-3. legacy hidden execution error - old versions reported it as `runtime-001` / vague `runtime-008` because the browser detail was hidden
+1. `ScriptNetworkError` — the remote entry could not be downloaded
+2. `ScriptExecutionError` — the remote entry downloaded, but threw during execution
+3. legacy hidden execution error — old versions reported it as `runtime-001` / vague `runtime-008` because the browser detail was hidden
 
 ## Step 3: Prefer Divebell Browser Evidence
 
@@ -102,7 +102,7 @@ If live capture cannot be used, ask the user to provide:
 
 ## Step 5: Classify the result for `001` / `008`
 
-### Case A - `ScriptNetworkError`
+### Case A — `ScriptNetworkError`
 
 Treat it as network-layer load failure when any of the following is true:
 
@@ -118,7 +118,7 @@ Then guide the user to check:
 3. whether CORS is configured correctly
 4. whether CDN or gateway routing is broken
 
-### Case B - `ScriptExecutionError`
+### Case B — `ScriptExecutionError`
 
 Treat it as download succeeded but execution failed when:
 
@@ -136,7 +136,7 @@ Then guide the user to check:
 
 Retries do not fix this case.
 
-### Case C - legacy hidden execution error
+### Case C — legacy hidden execution error
 
 Treat it as a likely hidden execution error when:
 

@@ -9,7 +9,7 @@ description: Import, merge, or combine repositories into an Nx workspace using n
 - After nx `22.6.0`, `nx import` responds with .ndjson outputs and follow-up questions. For earlier versions, always run with `--no-interactive` and specify all flags directly.
 - Run `nx import --help` for available options.
 - Make sure the destination directory is empty before importing.
-  EXAMPLE: target has `libs/utils` and `libs/models`; source has `libs/ui` and `libs/data-access` - you cannot import `libs/` into `libs/` directly. Import each source library individually.
+  EXAMPLE: target has `libs/utils` and `libs/models`; source has `libs/ui` and `libs/data-access` — you cannot import `libs/` into `libs/` directly. Import each source library individually.
 
 Primary docs:
 
@@ -22,7 +22,7 @@ Read the nx docs if you have the tools for it.
 
 **Subdirectory-at-a-time** (`nx import <source> apps --source=apps`):
 
-- **Recommended for monorepo sources** - files land at top level, no redundant config
+- **Recommended for monorepo sources** — files land at top level, no redundant config
 - Caveats: multiple import commands (separate merge commits each); dest must not have conflicting directories; root configs (deps, plugins, targetDefaults) not imported
 - **Directory conflicts**: Import into alternate-named dir (e.g. `imported-apps/`), then rename
 
@@ -69,7 +69,7 @@ Before importing, identify whether the source is an **application** or a **libra
 `nx import` does **NOT** merge from the source's root:
 
 - `dependencies`/`devDependencies` from `package.json`
-- `targetDefaults` from `nx.json` (e.g. `"@nx/esbuild:esbuild": { "dependsOn": ["^build"] }` - critical for build ordering)
+- `targetDefaults` from `nx.json` (e.g. `"@nx/esbuild:esbuild": { "dependsOn": ["^build"] }` — critical for build ordering)
 - `namedInputs` from `nx.json` (e.g. `production` exclusion patterns for test files)
 - Plugin configurations from `nx.json`
 
@@ -81,26 +81,26 @@ After import, run `nx sync --yes`. If it reports nothing but typecheck still fai
 
 ### Explicit Executor Path Fixups
 
-Inferred targets (via Nx plugins) resolve config relative to project root - no changes needed. Explicit executor targets (e.g. `@nx/esbuild:esbuild`) have workspace-root-relative paths (`main`, `outputPath`, `tsConfig`, `assets`, `sourceRoot`) that must be prefixed with the import destination directory.
+Inferred targets (via Nx plugins) resolve config relative to project root — no changes needed. Explicit executor targets (e.g. `@nx/esbuild:esbuild`) have workspace-root-relative paths (`main`, `outputPath`, `tsConfig`, `assets`, `sourceRoot`) that must be prefixed with the import destination directory.
 
 ### Plugin Detection
 
 - **Whole-repo import**: `nx import` detects and offers to install plugins. Accept them.
-- **Subdirectory import**: Plugins NOT auto-detected. Manually add with `npx nx add @nx/PLUGIN`. Check `include`/`exclude` patterns - defaults won't match alternate directories (e.g. `apps-beta/`).
+- **Subdirectory import**: Plugins NOT auto-detected. Manually add with `npx nx add @nx/PLUGIN`. Check `include`/`exclude` patterns — defaults won't match alternate directories (e.g. `apps-beta/`).
 - Run `npx nx reset` after any plugin config changes.
 
 ### Redundant Root Files (Whole-Repo Only)
 
 Whole-repo import brings ALL source root files into the dest subdirectory. Clean up:
 
-- `pnpm-lock.yaml` - stale; dest has its own lockfile
-- `pnpm-workspace.yaml` - source workspace config; conflicts with dest
-- `node_modules/` - stale symlinks pointing to source filesystem
-- `.gitignore` - redundant with dest root `.gitignore`
-- `nx.json` - source Nx config; dest has its own
-- `README.md` - optional; keep or remove
+- `pnpm-lock.yaml` — stale; dest has its own lockfile
+- `pnpm-workspace.yaml` — source workspace config; conflicts with dest
+- `node_modules/` — stale symlinks pointing to source filesystem
+- `.gitignore` — redundant with dest root `.gitignore`
+- `nx.json` — source Nx config; dest has its own
+- `README.md` — optional; keep or remove
 
-**Don't blindly delete** `tsconfig.base.json` - imported projects may extend it via relative paths.
+**Don't blindly delete** `tsconfig.base.json` — imported projects may extend it via relative paths.
 
 ### Root ESLint Config Missing (Subdirectory Import)
 
@@ -112,7 +112,7 @@ Subdirectory import doesn't bring the source's root `eslint.config.mjs`, but pro
 2. Create root `eslint.config.mjs` (copy from source or create with `@nx/eslint-plugin` base rules)
 3. Then `npx nx add @nx/eslint` to register the plugin in `nx.json`
 
-Install `typescript-eslint` explicitly - pnpm's strict hoisting won't auto-resolve this transitive dep of `@nx/eslint-plugin`.
+Install `typescript-eslint` explicitly — pnpm's strict hoisting won't auto-resolve this transitive dep of `@nx/eslint-plugin`.
 
 ### ESLint Version Pinning (Critical)
 
@@ -134,7 +134,7 @@ Imported projects may lack `tags`. Add tags or update `@nx/enforce-module-bounda
 
 ### Project Name Collisions (Multi-Import)
 
-Same `name` in `package.json` across source and dest causes `MultipleProjectsWithSameNameError`. **Fix**: Rename conflicting names (e.g. `@org/api` → `@org/teama-api`), update all dep references and import statements, `pnpm install`. The root `package.json` of each imported repo also becomes a project - rename those too.
+Same `name` in `package.json` across source and dest causes `MultipleProjectsWithSameNameError`. **Fix**: Rename conflicting names (e.g. `@org/api` → `@org/teama-api`), update all dep references and import statements, `pnpm install`. The root `package.json` of each imported repo also becomes a project — rename those too.
 
 ### Workspace Dep Import Ordering
 
@@ -153,11 +153,11 @@ The TS preset defaults (`module: "nodenext"`, `moduleResolution: "nodenext"`, `l
 - **`lib`**: Must include `"dom"` and `"dom.iterable"` (frontend projects need these)
 - **`jsx`**: `"react-jsx"` for React-only workspaces, per-project for mixed frameworks
 
-For **subdirectory imports**, the dest root tsconfig is authoritative - update it. For **whole-repo imports**, imported projects may extend their own nested `tsconfig.base.json`, making this less critical.
+For **subdirectory imports**, the dest root tsconfig is authoritative — update it. For **whole-repo imports**, imported projects may extend their own nested `tsconfig.base.json`, making this less critical.
 
 If the dest also has backend projects needing `nodenext`, use per-project overrides instead of changing the root.
 
-**Gotcha**: TypeScript does NOT merge `lib` arrays - a project-level override **replaces** the base array entirely. Always include all needed entries (e.g. `es2022`, `dom`, `dom.iterable`) in any project-level `lib`.
+**Gotcha**: TypeScript does NOT merge `lib` arrays — a project-level override **replaces** the base array entirely. Always include all needed entries (e.g. `es2022`, `dom`, `dom.iterable`) in any project-level `lib`.
 
 ### `@nx/react` Typings for Libraries
 
@@ -171,8 +171,8 @@ Nx presets create `jest.preset.js` at the workspace root, and project jest confi
 
 **Fix**:
 
-1. Run `npx nx add @nx/jest` - registers `@nx/jest/plugin` in `nx.json` and updates `namedInputs`
-2. Create `jest.preset.js` at workspace root (see `references/JEST.md` for content) - `nx add` only creates this when a generator runs, not on bare `nx add`
+1. Run `npx nx add @nx/jest` — registers `@nx/jest/plugin` in `nx.json` and updates `namedInputs`
+2. Create `jest.preset.js` at workspace root (see `references/JEST.md` for content) — `nx add` only creates this when a generator runs, not on bare `nx add`
 3. Install test runner deps: `pnpm add -wD jest jest-environment-jsdom ts-jest @types/jest`
 4. Install framework-specific test deps as needed (see `references/JEST.md`)
 
@@ -193,7 +193,7 @@ When the source is a plain pnpm/npm workspace without `nx.json`.
 
 ### npm Script Rewriting (Critical)
 
-Nx rewrites `package.json` scripts during init, creating broken commands (e.g. `vitest run` → `nx test run`). **Fix**: Remove all rewritten scripts - Nx plugins infer targets from config files.
+Nx rewrites `package.json` scripts during init, creating broken commands (e.g. `vitest run` → `nx test run`). **Fix**: Remove all rewritten scripts — Nx plugins infer targets from config files.
 
 ### `noEmit` → `composite` + `emitDeclarationOnly` (Critical)
 
@@ -230,9 +230,9 @@ Identify technologies in the source repo, then read and apply the matching refer
 
 Available references:
 
-- `references/ESLINT.md` - ESLint projects: duplicate `lint`/`eslint:lint` targets, legacy `.eslintrc.*` linting generated files, flat config `.cjs` self-linting, `typescript-eslint` v7/v9 peer dep conflict, mixed ESLint v8+v9 in one workspace.
+- `references/ESLINT.md` — ESLint projects: duplicate `lint`/`eslint:lint` targets, legacy `.eslintrc.*` linting generated files, flat config `.cjs` self-linting, `typescript-eslint` v7/v9 peer dep conflict, mixed ESLint v8+v9 in one workspace.
 - `references/GRADLE.md`
-- `references/JEST.md` - Jest testing: `@nx/jest/plugin` setup, jest.preset.js, testing deps by framework, tsconfig.spec.json, Jest vs Vitest coexistence, Babel transforms, CI atomization.
-- `references/NEXT.md` - Next.js projects: `@nx/next/plugin` targets, `withNx`, Next.js TS config (`noEmit`, `jsx: "preserve"`), auto-installing deps via wrong PM, non-Nx `create-next-app` imports, mixed Next.js+Vite coexistence.
+- `references/JEST.md` — Jest testing: `@nx/jest/plugin` setup, jest.preset.js, testing deps by framework, tsconfig.spec.json, Jest vs Vitest coexistence, Babel transforms, CI atomization.
+- `references/NEXT.md` — Next.js projects: `@nx/next/plugin` targets, `withNx`, Next.js TS config (`noEmit`, `jsx: "preserve"`), auto-installing deps via wrong PM, non-Nx `create-next-app` imports, mixed Next.js+Vite coexistence.
 - `references/TURBOREPO.md`
-- `references/VITE.md` - Vite projects (React, Vue, or both): `@nx/vite/plugin` typecheck target, `resolve.alias`/`__dirname` fixes, framework deps, Vue-specific setup, mixed React+Vue coexistence.
+- `references/VITE.md` — Vite projects (React, Vue, or both): `@nx/vite/plugin` typecheck target, `resolve.alias`/`__dirname` fixes, framework deps, Vue-specific setup, mixed React+Vue coexistence.
