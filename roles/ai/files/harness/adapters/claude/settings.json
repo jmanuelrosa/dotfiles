@@ -10,7 +10,10 @@
     "DISABLE_ERROR_REPORTING": "1",
     "ENABLE_TOOL_SEARCH": "auto:5",
     "RTK_HOOK_AUDIT": "1",
-    "USE_BUILTIN_RIPGREP": "0"
+    "USE_BUILTIN_RIPGREP": "0",
+    "GIT_PAGER": "cat",
+    "PAGER": "cat",
+    "AWS_PAGER": ""
   },
   "attribution": {
     "commit": "",
