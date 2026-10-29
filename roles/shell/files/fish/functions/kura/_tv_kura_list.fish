@@ -41,7 +41,7 @@ function _tv_kura_list --description "Television source: list catalog skills, ag
         .name,
         (.groups | join(", ")),
         (if .state == "missing" then "not downloaded" else .state end)
-    ] | @tsv'
+    ]'
 
     if test "$filter" = categories
         set prog '[.[] | . as $skill | .groups[] | {group: ., state: $skill.state}]
@@ -49,17 +49,31 @@ function _tv_kura_list --description "Television source: list catalog skills, ag
                 ("@" + .[0].group),
                 ("skills: \(length)"),
                 ("\([.[] | select(.state == "linked")] | length)/\(length) linked")
-            ] | @tsv'
+            ]'
     end
 
-    kura list --type $type --json | jq -r $prog | while read -l -d \t name groups state
-        _tv_kura_fmt $name "$groups" $state
+    set -l layout '['$prog']
+        | (map(.[0] | length) | max) as $name_width
+        | (map("[" + .[2] + "]" | length) | max) as $state_width
+        | .[] | . + [$name_width, $state_width] | @tsv'
+    kura list --type $type --json | jq -r $layout | while read -l -d \t name groups state name_width state_width
+        _tv_kura_fmt $name "$groups" $state $name_width $state_width
     end | sort
 end
 
 function _tv_kura_fmt --description "Format one television row: name, groups, link status"
-    # Fixed-width columns for a picker to lay out and filter, which is why this is a
-    # printf and not the shared `_ui` vocabulary: the cable reads the status back with
-    # `string match -e '[linked]'`, and these are columns rather than lines for a human.
-    printf '%-28s  %-46s  [%s]\n' $argv[1] $argv[2] $argv[3]
+    set -l state (printf '%-*s' $argv[5] "[$argv[3]]")
+    set -l groups $argv[2]
+    if _ui color-enabled
+        set -l colour cyan
+        switch $argv[3]
+            case linked
+                set colour green
+            case 'not downloaded'
+                set colour yellow
+        end
+        set state (_ui paint $colour "$state")
+        set groups (_ui paint dim "$groups")
+    end
+    printf '%-*s  %s  %s\n' $argv[4] $argv[1] "$state" "$groups"
 end

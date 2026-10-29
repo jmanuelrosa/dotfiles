@@ -4,6 +4,8 @@ description = "Manage catalog bundles (toggle link, edit)"
 requirements = ["fish", "jq", "bat", "eza", "kura"]
 
 [source]
+ansi = true
+env = { FORCE_COLOR = "1" }
 command = [
   { name = "No global", run = "fish -c '_tv_kura_list bundle noglobal'" },
   { name = "Linked",    run = "fish -c '_tv_kura_list bundle linked'" },
@@ -17,6 +19,13 @@ command = "bat --color=always --plain --language=json $DOTFILES_DIR/roles/ai/fil
 
 [ui]
 layout = "portrait"
+
+[ui.input_bar]
+header = "Bundles | Enter toggle | Tab select | Ctrl-S views"
+
+[ui.preview_panel]
+header = "{split: :0}"
+footer = "Ctrl-O edit | Ctrl-R reload"
 
 [keybindings]
 enter = "actions:toggle"
