@@ -4,7 +4,8 @@ Work-only role. Runs only when `profile=work`.
 
 ## What it does
 
-- Installs the `acli` (Atlassian) formula from `BREW_PACKAGES` (with the `atlassian/homebrew-acli` tap) through the shared `roles/brew/tasks/packages.yml`. Relies on `shell` / `coreutils` (which run before `work` in `profile_roles[work]`) for `fish` and `television`.
+- Installs the `acli` (Atlassian) formula and the `spacectl` (Spacelift) cask from `BREW_PACKAGES` (with the `atlassian/homebrew-acli` and `spacelift-io/homebrew-spacelift` taps) through the shared `roles/brew/tasks/packages.yml`. Relies on `shell` / `coreutils` (which run before `work` in `profile_roles[work]`) for `fish` and `television`.
+- Checks that the `spacectl` profile named in `SPACELIFT_PROFILE` exists and prints the login command when it does not. See [Spacelift (spacectl)](#spacelift-spacectl).
 - Renders `~/.config/fish/conf.d/work-secrets.fish` from `templates/exports.fish.j2` (vault values that are safe to export, mode 0600). It holds no token. See [npm token](#npm-token).
 - Stores `DID_NPM_TOKEN` from the vault in the login keychain for the shell role's `npm_token` fish wrappers. See [npm token](#npm-token).
 - Symlinks each tool named in `WORK_SCRIPTS` into `~/.local/bin/`. See [Scripts](#scripts).
@@ -126,6 +127,7 @@ Rotating the token is a vault edit followed by `make run-role ROLE=work PROFILE=
 
 - `BREW_PACKAGES` (defaults/main.yml) — taps/formulas/casks for the work tooling.
 - `DID_NPM_TOKEN_KEYCHAIN` (defaults/main.yml): the login keychain `service` and `account` the npm token is stored under.
+- `SPACELIFT_PROFILE` (defaults/main.yml): the `spacectl` profile `alias` and the Spacelift account `endpoint` it logs in to.
 - Vault-encrypted secrets live in `vars/work.yml`. See `vars/work.yml.example` for the full key list.
 
 ## SSH keys
@@ -185,6 +187,21 @@ clone with `git remote set-url origin git@gitlab.com-work:group/project.git`.
 Tooling that queries GitLab **outside** a repo (e.g. the `weekly-recap` script)
 can't infer the host from a remote, so it enumerates every authenticated host and
 passes `--hostname` per host to cover both accounts.
+
+## Spacelift (spacectl)
+
+`spacectl` has no settings file apart from its profiles, and a profile cannot be tracked: `~/.spacelift/<alias>` holds the endpoint and the token in the same file, and `~/.spacelift/current` is a symlink to the active one.
+So the role keeps the non-secret half, the alias and endpoint in `SPACELIFT_PROFILE`, and only checks that the profile exists.
+A missing profile prints a warning rather than failing the play, because nothing else in the role depends on it.
+
+Log in once, from a normal terminal, with the values from `SPACELIFT_PROFILE`:
+
+```sh
+spacectl profile login --method browser --endpoint https://addingwell.app.spacelift.io addingwell
+```
+
+With several profiles, switch with `spacectl profile select <alias>`.
+Fish completions come with the cask, so there is nothing to link.
 
 ## Profile gating
 
