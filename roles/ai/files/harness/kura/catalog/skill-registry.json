@@ -379,7 +379,7 @@
             "frontend",
             "graphql"
           ],
-          "updated_at": "2026-10-26T08:55:47Z"
+          "updated_at": "2026-10-28T18:46:47Z"
         },
         {
           "upstream_path": "skills/graphql-operations",
@@ -388,7 +388,7 @@
             "backend",
             "graphql"
           ],
-          "updated_at": "2026-10-26T08:55:47Z"
+          "updated_at": "2026-10-28T18:46:47Z"
         }
       ]
     },
@@ -2093,7 +2093,7 @@
             "gcp",
             "deployment"
           ],
-          "updated_at": "2026-10-28T07:33:16Z"
+          "updated_at": "2026-10-28T18:47:02Z"
         },
         {
           "upstream_path": "skills/cloud/gke-workload-identity",
