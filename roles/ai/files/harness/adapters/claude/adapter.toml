@@ -6,6 +6,9 @@
 [install]
 mcp_config = "~/.claude.json"
 mcp_state = "~/.claude/.harness-mcp-owned.json"
+# Shared servers Claude reaches another way. Slack refuses dynamic client registration, which a bare
+# HTTP entry relies on, and the claude.ai Slack connector the policy allows already covers it.
+mcp_exclude = ["slack"]
 
 [sandbox]
 enabled = true

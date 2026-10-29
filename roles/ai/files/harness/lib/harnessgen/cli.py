@@ -77,7 +77,11 @@ def apply_claude(root=None, check_only=False):
     install = policy.adapter(emit_claude.NAME)["install"]
     config_path = Path(install["mcp_config"]).expanduser()
     state_path = Path(install["mcp_state"]).expanduser()
-    servers = {name: mcp.for_claude(entry) for name, entry in mcp.load(policy.root).items()}
+    shared = mcp.load(policy.root)
+    excluded = set(install.get("mcp_exclude", []))
+    if excluded - shared.keys():
+        raise ValueError("Claude mcp_exclude must name shared servers")
+    servers = {name: mcp.for_claude(entry) for name, entry in shared.items() if name not in excluded}
     config = json.loads(config_path.read_text()) if config_path.is_file() else {}
     changed, names = mcp.plan(config, state_path, servers, "mcpServers")
     if check_only or not changed:
