@@ -1,6 +1,6 @@
 [metadata]
 name = "kura-skills"
-description = "Manage Claude Code skills (toggle link, check outdated, update)"
+description = "Manage skills and install whole categories (toggle link, check outdated, update)"
 requirements = ["fish", "jq", "bat", "kura"]
 
 [source]
@@ -9,11 +9,12 @@ command = [
   { name = "Linked",    run = "fish -c '_tv_kura_list skill linked'" },
   { name = "Available", run = "fish -c '_tv_kura_list skill available'" },
   { name = "All",       run = "fish -c '_tv_kura_list skill'" },
+  { name = "Categories", run = "fish -c '_tv_kura_list skill categories'" },
 ]
 output = "{split: :0}"
 
 [preview]
-command = "bat --color=always --plain --language=markdown $DOTFILES_DIR/roles/ai/files/harness/kura/catalog/skills/{split: :0}/SKILL.md 2>/dev/null; or echo 'Not downloaded: press Enter to install via kura add --type skill'"
+command = "fish -c '_tv_kura_skill_action preview {split: :0}'"
 
 [ui]
 layout = "portrait"
@@ -32,25 +33,25 @@ ctrl-o = "actions:edit"
 # and `map:` then takes field 0 of each. `\\n` in TOML is the two characters
 # string_pipeline unescapes; `separator` wants the real byte.
 [actions.toggle]
-description = "Toggle the skill link in this project"
-command = "fish -c '_tv_kura_toggle skill {split:\\n:..|map:{split: :0}|join: }'"
+description = "Toggle skill links or install every skill in selected categories"
+command = "fish -c '_tv_kura_skill_action toggle {split:\\n:..|map:{split: :0}|join: }'"
 mode = "execute"
 separator = "\n"
 
 [actions.outdated]
 description = "Check if the skill is up-to-date"
-command = "kura outdated --type skill {split:\\n:..|map:{split: :0}|join: }"
+command = "fish -c '_tv_kura_skill_action outdated {split:\\n:..|map:{split: :0}|join: }'"
 mode = "execute"
 separator = "\n"
 
 [actions.update]
 description = "Sync the skill from upstream"
-command = "kura update --type skill {split:\\n:..|map:{split: :0}|join: }"
+command = "fish -c '_tv_kura_skill_action update {split:\\n:..|map:{split: :0}|join: }'"
 mode = "execute"
 separator = "\n"
 
 [actions.edit]
 description = "Open SKILL.md in $EDITOR"
-command = "$EDITOR {split:\\n:..|map:{split: :0|prepend:$DOTFILES_DIR/roles/ai/files/harness/kura/catalog/skills/|append:/SKILL.md}|join: }"
+command = "fish -c '_tv_kura_skill_action edit {split:\\n:..|map:{split: :0}|join: }'"
 mode = "execute"
 separator = "\n"
