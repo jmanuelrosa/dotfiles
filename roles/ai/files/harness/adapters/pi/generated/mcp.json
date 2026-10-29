@@ -11,7 +11,7 @@
       "oauth": {
         "clientId": "185316078694.12036247391600",
         "callbackUrl": "http://localhost:19876/callback",
-        "scope": "search:read.public channels:read channels:history users:read search:read.users search:read.private search:read.im search:read.mpim groups:read groups:history im:read im:history mpim:read mpim:history chat:write reactions:write"
+        "scope": "search:read.public channels:read channels:history users:read search:read.users search:read.private search:read.im search:read.mpim groups:read groups:history im:read im:history mpim:read mpim:history"
       }
     }
   }

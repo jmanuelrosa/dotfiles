@@ -1077,9 +1077,6 @@
       }
     },
     "mcp__*__*": "ask",
-    "mcp__slack__slack_read_thread": "allow",
-    "mcp__slack__slack_search_public_and_private": "allow",
-    "mcp__slack__slack_read_channel": "allow",
     "mcp__notion__*": {
       "*": {
         "action": "deny",

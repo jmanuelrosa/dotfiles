@@ -291,16 +291,22 @@ def decide_tool(permission, tool):
     return resolve(surfaces, tool)
 
 
-def test_native_mcp_tools_ask_unless_claude_allows_them():
+def test_native_mcp_tools_ask():
     """pi registers each MCP tool as `mcp__<server>__<tool>`, so that name is the surface.
 
     A write such as posting to a channel must prompt, or injected content can make the
-    agent send repo or environment contents to Slack without anyone seeing it.
+    agent send repo or environment contents to Slack without anyone seeing it. Reads ask
+    too: a private-history search is the data a prompt injection is after.
     """
     permission = policy()
-    for tool in ("slack_read_thread", "slack_search_public_and_private", "slack_read_channel"):
-        assert decide_tool(permission, f"mcp__slack__{tool}") == "allow", f"{tool} prompts"
-    for tool in ("mcp__slack__slack_send_message", "mcp__slack__slack_add_reaction", "mcp__unknown__anything"):
+    for tool in (
+        "mcp__slack__slack_read_thread",
+        "mcp__slack__slack_search_public_and_private",
+        "mcp__slack__slack_read_channel",
+        "mcp__slack__slack_send_message",
+        "mcp__slack__slack_add_reaction",
+        "mcp__unknown__anything",
+    ):
         assert decide_tool(permission, tool) == "ask", f"{tool} runs unprompted"
 
 

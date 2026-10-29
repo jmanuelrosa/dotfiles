@@ -224,7 +224,7 @@ def test_apply_replaces_the_owned_keys_and_keeps_every_other(home):
     original = tomllib.loads(CODEX_CONFIG)
     assert {k: merged[k] for k in original if k not in owned and k != "mcp_servers"} == {k: v for k, v in original.items() if k not in owned and k != "mcp_servers"}
     assert merged["mcp_servers"]["node_repl"] == original["mcp_servers"]["node_repl"]
-    assert merged["mcp_servers"]["notion"] == {"url": "https://mcp.notion.com/mcp"}
+    assert merged["mcp_servers"]["notion"] == {"url": "https://mcp.notion.com/mcp", "default_tools_approval_mode": "prompt"}
 
 
 def test_a_second_apply_changes_nothing(home):

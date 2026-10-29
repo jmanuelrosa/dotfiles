@@ -35,15 +35,25 @@ tools = ["bash"]
 script = "cloud-readonly-gate.sh"
 harnesses = ["claude", "pi", "codex"]
 
-# gh, glab, ntn and bru. No claude_if, like the cloud gate: a call chained after
+# gh, glab, ntn, bru and acli. No claude_if, like the cloud gate: a call chained after
 # `cd` or hidden in a wrapper must still reach it. Pi turns its ask tier into a refusal,
-# so there a mutating verb of those four runs from a real terminal; Codex keeps only its blocks.
+# so there a mutating verb of those five runs from a real terminal; Codex keeps only its blocks.
 [[hook]]
 id = "cli-egress-gate"
 event = "pre_tool"
 tools = ["bash"]
 script = "cli-egress-gate.sh"
 harnesses = ["claude", "pi", "codex"]
+
+# WebFetch and WebSearch are allowlisted and never pass the sandbox's domain allowlist,
+# so a URL or query is the egress channel a prompt injection reaches for. Claude only:
+# pi has no web tool, and Codex's is hosted, so its adapter pins it to the cache instead.
+[[hook]]
+id = "web-egress-gate"
+event = "pre_tool"
+tools = ["web_fetch", "web_search"]
+script = "web-egress-gate.sh"
+harnesses = ["claude"]
 
 [[hook]]
 id = "pre-commit-verify"

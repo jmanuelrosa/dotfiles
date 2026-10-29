@@ -5,11 +5,15 @@
 
 # Seeded from what Codex had picked, so the first apply changes no model. Never
 # translated from another harness's model: the ids share no namespace.
+#
+# web_search is pinned because Codex's default turns live under a full-access sandbox, and
+# live search fetches whatever URL a prompt injection names. The cached index fetches nothing.
 [config]
-model = "gpt-5.6-sol"
+model = "gpt-6.1-sol"
 model_reasoning_effort = "xhigh"
 sandbox_mode = "workspace-write"
 approval_policy = "on-request"
+web_search = "cached"
 
 # Where `apply` writes. The rules file is a copy, not a link: Codex's loader skips a
 # symlinked .rules file, and it appends its own approvals to ~/.codex/rules/, which a

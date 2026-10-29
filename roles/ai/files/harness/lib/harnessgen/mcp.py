@@ -6,6 +6,7 @@ from pathlib import Path
 
 ENV_REF = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}\Z")
 STATE_FILE = ".harness-mcp-owned.json"
+CODEX_TOOL_APPROVAL = "prompt"
 
 
 def load(root):
@@ -40,14 +41,17 @@ def for_claude(entry):
 
 
 def for_codex(entry):
+    # Codex runs a tool its server marks read-only without asking, and a read is how
+    # injected text arrives, so every managed server asks as it does under Claude and pi.
+    approval = {"default_tools_approval_mode": CODEX_TOOL_APPROVAL}
     if entry.get("type") == "http":
-        return {"url": entry["url"]}
+        return {"url": entry["url"], **approval}
     config = {key: entry[key] for key in ("command", "args", "cwd") if key in entry}
     if "env" in entry:
         config["env_vars"] = sorted({ENV_REF.fullmatch(value).group(1) for value in entry["env"].values()})
         if any(key != ENV_REF.fullmatch(value).group(1) for key, value in entry["env"].items()):
             raise ValueError("Codex cannot rename inherited stdio environment variables")
-    return config
+    return {**config, **approval}
 
 
 def plan(config, state_path, desired, key):
