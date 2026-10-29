@@ -69,7 +69,7 @@ skill-drift:
 	PYTHONDONTWRITEBYTECODE=1 roles/ai/files/scripts/skill-drift/skill-drift
 
 syntax:
-	ansible-playbook --syntax-check --inventory inventory.yml --ask-vault-password --extra-vars "profile=$(PROFILE)" dotfiles.yml
+	ansible-playbook --syntax-check --inventory inventory.yml --extra-vars "profile=$(PROFILE)" dotfiles.yml
 
 # Preview (dry-run, no changes applied)
 check:

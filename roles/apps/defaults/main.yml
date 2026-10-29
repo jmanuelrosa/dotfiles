@@ -149,6 +149,7 @@ BREW_PACKAGES:
     - superfile
     - gh
     - act
+    - actionlint
     - glab
     - fnm
     - oven-sh/bun/bun

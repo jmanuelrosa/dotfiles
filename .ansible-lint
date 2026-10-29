@@ -2,9 +2,6 @@ skip_list:
   - yaml[truthy]
   - var-naming
 
-warn_list:
-  - internal-error  # syntax-check fails without real vault password
-
 exclude_paths:
   - inventory.yml  # INI format, not YAML — linter misdetects it
   - vars/secrets.yml

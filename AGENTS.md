@@ -15,10 +15,10 @@ Most plays prompt for the vault password (decrypts `vars/secrets.yml` / `vars/wo
 
 | Command | Purpose |
 |---|---|
-| `make lint` | `lint-static`, then `ansible-lint` (config in [.ansible-lint](.ansible-lint)). Needs the vault password, so it can't run unattended |
+| `make lint` | `lint-static`, then `ansible-lint` (config in [.ansible-lint](.ansible-lint)). No vault password, so it runs unattended |
 | `make lint-static` | markdownlint, ruff, shellcheck and fish checks, with no vault, so it runs unattended. [bin/lint-files](bin/lint-files) picks each linter's files by shebang and skips upstream catalog entries |
 | `make test` | pytest over every python suite. Roots live in [pytest.ini](pytest.ini), not the Makefile. No vault, no become password, no network, so it runs unattended, as do the `harness-check` and `harness-report` targets |
-| `make syntax` | Playbook syntax check. Vault password only |
+| `make syntax` | Playbook syntax check. No vault or become password |
 | `make check` | Full dry-run with `--check --diff` |
 | `make check-role ROLE=shell` | Dry-run a single role by tag |
 | `make run` | Apply the full playbook (personal profile) |
@@ -43,7 +43,7 @@ What is not obvious from the tree:
 - **Homebrew is per-role.** Each installing role defines `BREW_PACKAGES` in its `defaults/main.yml` with optional `taps`, `formulas`, `casks`, `trusted` keys. There is no central package list, so adding a tool means editing the role it belongs to. The install itself is the shared [roles/brew/tasks/packages.yml](roles/brew/tasks/packages.yml), which each role includes by path.
 - **Role execution order is load-bearing.** `brew` runs first so every later role can assume Homebrew is on PATH. Control sequencing through the order in [dotfiles.yml](dotfiles.yml) and **never add `meta/main.yml` deps**.
 - **Configs are symlinks, not copies.** Linked with `ansible.builtin.file state=link force=true`, so editing a file under `roles/<x>/files/` takes effect in `$HOME` immediately without re-running the playbook.
-- **Secrets** are vault-encrypted in `vars/secrets.yml` (personal) and `vars/work.yml` (work), both loaded unconditionally. Config files reference `${NAME}` and resolve at runtime. [vars/work.yml.example](vars/work.yml.example) lists the keys a fork must provide.
+- **Secrets** are vault-encrypted in `vars/secrets.yml` (personal) and `vars/work.yml` (work), both loaded at task runtime before profile overrides in an always-tagged, no-log pre-task. Lint and syntax checks do not decrypt them. Config files reference `${NAME}` and resolve at runtime. [vars/work.yml.example](vars/work.yml.example) lists the keys a fork must provide.
 
 Roles whose name does not tell you what is inside:
 
