@@ -11,6 +11,9 @@ command = '''aerospace list-windows --all \
 display = "{split:\\t:1}"
 output = "{split:\\t:0}"
 
+[ui.input_bar]
+header = "Windows | Enter focus | Ctrl-X close"
+
 [keybindings]
 enter = "actions:focus"
 ctrl-x = [ "actions:close", "reload_source" ]

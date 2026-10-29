@@ -4,6 +4,8 @@ description = "Manage catalog agents (toggle link, edit)"
 requirements = ["fish", "jq", "bat", "kura"]
 
 [source]
+ansi = true
+env = { FORCE_COLOR = "1" }
 command = [
   { name = "No global", run = "fish -c '_tv_kura_list agent noglobal'" },
   { name = "Linked",    run = "fish -c '_tv_kura_list agent linked'" },
@@ -19,6 +21,13 @@ command = "set -l f $DOTFILES_DIR/roles/ai/files/harness/kura/catalog/**/agents/
 
 [ui]
 layout = "portrait"
+
+[ui.input_bar]
+header = "Agents | Enter toggle | Tab select | Ctrl-S views"
+
+[ui.preview_panel]
+header = "{split: :0}"
+footer = "Ctrl-O edit | Ctrl-R reload"
 
 [keybindings]
 enter = "actions:toggle"

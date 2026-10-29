@@ -4,6 +4,8 @@ description = "Manage skills and install whole categories (toggle link, check ou
 requirements = ["fish", "jq", "bat", "kura"]
 
 [source]
+ansi = true
+env = { FORCE_COLOR = "1" }
 command = [
   { name = "No global", run = "fish -c '_tv_kura_list skill noglobal'" },
   { name = "Linked",    run = "fish -c '_tv_kura_list skill linked'" },
@@ -18,6 +20,13 @@ command = "fish -c '_tv_kura_skill_action preview {split: :0}'"
 
 [ui]
 layout = "portrait"
+
+[ui.input_bar]
+header = "Skills | Enter toggle | Tab select | Ctrl-S views"
+
+[ui.preview_panel]
+header = "{split: :0}"
+footer = "Ctrl-D outdated | Ctrl-U update | Ctrl-O edit"
 
 [keybindings]
 enter = "actions:toggle"

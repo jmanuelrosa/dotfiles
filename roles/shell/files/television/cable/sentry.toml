@@ -5,6 +5,7 @@ requirements = ["sentry", "jq"]
 
 [source]
 command = "sentry issue list --json --fields shortId,level,title 2>/dev/null | jq -r '(if type == \"array\" then . else .data end)[] | \"\\(.shortId)  \\(.level)  \\(.title)\"'"
+display = "{split: :0}  [{split: :2}]  {split: :4..}"
 output = "{split: :0}"
 
 [preview]
@@ -12,6 +13,12 @@ command = "sentry issue view {split: :0} 2>/dev/null"
 
 [ui]
 layout = "portrait"
+
+[ui.input_bar]
+header = "Issues | Enter browser | Ctrl-R reload"
+
+[ui.preview_panel]
+header = "{split: :0}"
 
 [keybindings]
 enter = "actions:open-browser"

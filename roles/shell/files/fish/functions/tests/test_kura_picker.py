@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -48,7 +49,7 @@ def picker(tmp_path):
     (bin_dir / "editor").symlink_to(stub)
     (bin_dir / "bat").symlink_to(stub)
 
-    def run(action, *names, linked=False, list_fail=False):
+    def run(action, *names, linked=False, list_fail=False, color=False, no_color=False):
         if linked:
             for row in rows:
                 row["state"] = "linked"
@@ -62,9 +63,12 @@ def picker(tmp_path):
             "TEST_CALLS": str(calls),
             "TEST_ROWS": json.dumps(rows),
             "TEST_LIST_FAIL": "1" if list_fail else "",
-            "NO_COLOR": "1",
+            "NO_COLOR": "1" if no_color or not color else "",
+            "FORCE_COLOR": "1" if color else "",
         }
-        if action == "categories":
+        if action == "list":
+            command = "fish -c '_tv_kura_list skill'"
+        elif action == "categories":
             source = next(
                 (s for s in CABLE["source"]["command"] if s["name"] == "Categories"),
                 None,
@@ -100,11 +104,62 @@ def test_categories_are_unique_with_skill_and_link_counts(picker):
     result, calls = picker("categories")
     assert result.returncode == 0, result.stderr
     assert [" ".join(line.split()) for line in result.stdout.splitlines()] == [
-        "@backend skills: 1 [0/1 linked]",
-        "@frontend skills: 4 [2/4 linked]",
-        "@gcp skills: 2 [0/2 linked]",
+        "@backend [0/1 linked] skills: 1",
+        "@frontend [2/4 linked] skills: 4",
+        "@gcp [0/2 linked] skills: 2",
     ]
     assert calls == [["list", "--type", "skill", "--json"]]
+
+
+def test_picker_rows_show_status_before_searchable_groups(picker):
+    result, _ = picker("list")
+    assert result.returncode == 0, result.stderr
+    assert "\x1b" not in result.stdout
+    assert [" ".join(line.split()) for line in result.stdout.splitlines()] == [
+        "cloud [available] gcp",
+        "existing [linked] frontend",
+        "global [linked] frontend",
+        "server [available] backend",
+        "shared [not downloaded] frontend, gcp",
+        "ui [available] frontend",
+    ]
+
+
+def test_picker_columns_fit_the_current_rows(picker):
+    result, _ = picker("list")
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.splitlines()
+    name_width = max(len(line.split(" ")[0]) for line in lines)
+    assert {line.index("[") for line in lines} == {name_width + 2}
+    assert {line.index("frontend") for line in lines if "frontend" in line} == {
+        name_width + len("[not downloaded]") + 4
+    }
+
+
+@pytest.mark.parametrize(
+    ("name", "state", "colour", "groups"),
+    [
+        ("existing", "linked", 32, "frontend"),
+        ("cloud", "available", 36, "gcp"),
+        ("shared", "not downloaded", 33, "frontend, gcp"),
+    ],
+)
+def test_picker_colours_status_and_groups_without_changing_action_ids(
+    picker, name, state, colour, groups
+):
+    result, _ = picker("list", color=True)
+    assert result.returncode == 0, result.stderr
+    line = next(line for line in result.stdout.splitlines() if line.startswith(name + " "))
+    assert line.split(" ")[0] == name
+    assert f"\x1b[{colour}m[{state}]" in line
+    assert re.search(r"\x1b\[[0-9;]*m" + re.escape(groups) + r"\x1b\[[0-9;]*m$", line)
+
+
+def test_picker_respects_no_color_even_when_the_cable_forces_color(picker):
+    result, _ = picker("list", color=True, no_color=True)
+    assert result.returncode == 0, result.stderr
+    assert "\x1b" not in result.stdout
+    assert "[linked]" in result.stdout
 
 
 def test_install_categories_deduplicates_and_preserves_linked_skills(picker):

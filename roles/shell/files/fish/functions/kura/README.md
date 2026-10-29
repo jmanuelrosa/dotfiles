@@ -5,6 +5,10 @@
 `_tv_kura_skill_action` expands category selections for skill actions and previews.
 All derive state exclusively from `kura list`; none reconstructs the catalog, workspace anchoring, or scope rules.
 
+Rows fit the name and status columns to the current results, with status before the dimmed groups.
+Linked entries are green, available entries cyan, and missing downloads yellow, using the shared terminal palette and respecting `NO_COLOR`.
+Groups stay in the results because Television searches displayed text, so hiding them in a preview would remove group matching.
+
 In `tv kura-skills`, press `Ctrl-S` to cycle to **Categories**.
 Rows show each category's skill count and how many are already linked.
 Use `Tab` to select categories such as `@frontend` and `@gcp`, then `Enter` to install their skills.

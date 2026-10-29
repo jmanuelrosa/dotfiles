@@ -6,11 +6,11 @@ requirements = ["acli", "jq", "fzf", "fish", "s-task"]
 [source]
 ansi = true
 command = [
-  "fish -c '_tv_jira list all'",
-  "fish -c '_tv_jira list backlog'",
-  "fish -c '_tv_jira list selected'",
-  "fish -c '_tv_jira list in-progress'",
-  "fish -c '_tv_jira list ready'",
+  { name = "All",         run = "fish -c '_tv_jira list all'" },
+  { name = "Backlog",     run = "fish -c '_tv_jira list backlog'" },
+  { name = "Selected",    run = "fish -c '_tv_jira list selected'" },
+  { name = "In progress", run = "fish -c '_tv_jira list in-progress'" },
+  { name = "Ready",       run = "fish -c '_tv_jira list ready'" },
 ]
 output = "{split: :0}"
 
@@ -19,6 +19,13 @@ command = "fish -c '_tv_jira preview {split: :0}'"
 
 [ui]
 layout = "portrait"
+
+[ui.input_bar]
+header = "Jira | Enter browser | Ctrl-S views | Ctrl-B branch | Ctrl-T status"
+
+[ui.preview_panel]
+header = "{split: :0}"
+footer = "Ctrl-Y copy key | Ctrl-R reload"
 
 [keybindings]
 enter = "actions:open-browser"
