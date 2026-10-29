@@ -2,7 +2,6 @@
 name: mf
 description: "All-in-one Module Federation skill. Use when the user asks anything about MF — concepts, configuration, runtime API, shared dependencies, type errors, runtime error code troubleshooting, observability/obs, slow builds, Bridge integration, or adding MF to an existing project."
 argument-hint: <sub-command | natural-language-query> [args...]
-allowed-tools: Read Glob Bash(node *) Bash(npx tsc*) Bash(npx mf dts*) Bash(curl *) Bash(divebell *) Bash(npm install --global @divebell/cli) WebFetch Write Edit AskUserQuestion
 ---
 
 # MF — Module Federation All-in-One Skill
