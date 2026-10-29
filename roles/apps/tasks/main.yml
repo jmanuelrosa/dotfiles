@@ -45,6 +45,25 @@
     mode: "0600"
     content: "{% for account in SENTRY_ACCOUNTS %}{% for root in account.roots %}{{ account.name }} {{ root }}\n{% endfor %}{% endfor %}"
 
+- name: Ensure the gcloud configurations dir exists
+  ansible.builtin.file:
+    path: "{{ GCLOUD_CONFIG_DIR }}/configurations"
+    state: directory
+    mode: "0755"
+
+- name: Create the neutral gcloud configuration without touching an existing one
+  ansible.builtin.copy:
+    dest: "{{ GCLOUD_CONFIG_DIR }}/configurations/config_{{ GCLOUD_NEUTRAL_CONFIG }}"
+    content: ""
+    force: false
+    mode: "0644"
+
+- name: Make the neutral gcloud configuration the global default
+  ansible.builtin.copy:
+    dest: "{{ GCLOUD_CONFIG_DIR }}/active_config"
+    content: "{{ GCLOUD_NEUTRAL_CONFIG }}"
+    mode: "0644"
+
 - name: Verify gh is authenticated for github.com
   ansible.builtin.command: gh auth status --hostname github.com
   environment:

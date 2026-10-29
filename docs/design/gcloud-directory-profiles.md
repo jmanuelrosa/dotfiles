@@ -117,7 +117,7 @@ Install through `make run-role ROLE=shell`, which requires the usual interactive
 | Enter a similarly named sibling, such as `addingwell-other` | No match; restore the incoming environment if needed |
 | Enter a more specific mapped child | Use its configuration, retaining the original snapshot |
 | Return from that child to the mapped parent | Use the parent's configuration |
-| Leave all mapped roots with no incoming override | Unset the variable, letting Google Cloud use its global default |
+| Leave all mapped roots with no incoming override | Unset the variable, letting Google Cloud use its global default, which the apps role keeps as an empty `default` configuration |
 | Leave all mapped roots with an incoming override, including an empty value | Restore that value |
 | Start a nested shell inside a mapped root, then leave it | Restore the configuration inherited by that nested shell |
 | Run two separate terminals | Their selections and snapshots remain independent |

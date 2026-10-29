@@ -34,6 +34,13 @@ APPS_SCRIPTS:
 
 SENTRY_ACCOUNTS_DIR: "{{ HOME }}/.config/sentry"
 
+# The globally active gcloud configuration is what every process outside a
+# gcloud-profiles mapping falls back to (agent shells, IDEs, scripts), so it is
+# kept empty: an unmapped command fails for lack of an account or project
+# instead of silently writing into a work configuration.
+GCLOUD_CONFIG_DIR: "{{ HOME }}/.config/gcloud"
+GCLOUD_NEUTRAL_CONFIG: default
+
 # The `sentry` wrapper picks the account whose root is the longest prefix of the
 # working directory.
 SENTRY_ACCOUNTS:

@@ -20,6 +20,9 @@ The longest matching root wins, regardless of list order.
 Matching follows logical `$PWD`: similarly named siblings and unrelated symlink paths do not match.
 The hook exports `CLOUDSDK_ACTIVE_CONFIG_NAME` in the current shell only, without changing Google's globally active configuration.
 Leaving all mapped trees restores the incoming value, including an empty value or an unset variable.
+An unset variable falls back to Google's globally active configuration, which the apps role pins to an empty `default` configuration.
+Anything that never runs this hook (agent shells, IDEs, scripts) lands there too, so an unmapped `gcloud` command fails for lack of an account or project rather than writing into a work configuration.
+Give a new project its own named configuration and a mapping here; never set an account or project on `default`.
 A nested shell restores its own inherited value, not its parent's earlier baseline.
 
 After installation or editing the mappings, open a new shell or reload:
