@@ -1,6 +1,6 @@
 ---
 name: coderabbit
-description: Walk open CodeRabbit review threads on a GitHub PR, investigate each in the code, then either fix it or reply to @coderabbitai explaining why it stays. Resolves each thread it handles. Stops before commit.
+description: Walk open CodeRabbit review threads and outside-diff findings on a GitHub PR, investigate each in the code, then either fix it or reply to @coderabbitai explaining why it stays. Resolves each thread it handles, and asks CodeRabbit to review again when nothing needs pushing. Stops before commit.
 argument-hint: "[pr-number]"
 model: sonnet
 effort: medium
@@ -18,7 +18,7 @@ allowed-tools:
 
 # Address CodeRabbit review threads
 
-Walk every open CodeRabbit thread on a PR, investigate each one in the code, triage it, get one batched approval, then either fix the code or reply to `@coderabbitai` explaining why it stays.
+Walk every open CodeRabbit thread on a PR, plus the findings CodeRabbit could only post in its review body because they sit outside the diff, investigate each one in the code, triage it, get one batched approval, then either fix the code or reply to `@coderabbitai` explaining why it stays.
 Resolve each thread once handled.
 Never commit or push, that is `/commit` and `/pr`'s job.
 
@@ -34,12 +34,16 @@ Run each script by the exact `python3 ~/.claude/skills/coderabbit/scripts/...` s
    For each surviving thread it prints `path:line`, a `severity`, the `thread=` node id, the `reply-to=` root comment id, the cleaned body, and the diff hunk CodeRabbit saw.
    It also prints the PR title, description, and the bot's latest walkthrough: read the walkthrough once for context, do not triage its bullets as tasks.
 
+   Under `outside-diff findings` it lists, as `[O1]`, `[O2]`, ..., every finding CodeRabbit placed in a review body under "Outside diff range comments", with `path:lines`, a `level` (CodeRabbit's own: critical, major, minor), the finding `id=`, a `title:` and the cleaned body.
+   These have no thread and no diff hunk, so they cannot be resolved; a previous run's answers are already filtered out.
+
    Stop and report if it exits non-zero (no origin, a non-GitHub remote, or no PR: tell the user to pass a PR number or run `/pr` first).
-   If it prints `No open CodeRabbit threads on PR #<n>.`, say so and stop.
+   If it prints `Nothing to triage on PR #<n>.`, say so and stop.
    That is the normal steady state, not an error.
 
 2. **Investigate each thread in the code**. This is the actual work, and it is the one part no script can do.
    For each thread: open `path` at the printed line, read enough surrounding context to judge it, use Grep/Glob to confirm whether the concern is real (is the null actually unguarded, is the export actually unused), and read the diff hunk to see exactly what CodeRabbit saw.
+   An outside-diff finding gets the same treatment at its `path:lines`; it may predate later commits, so check it still applies to the current code.
    Form a one-line, code-grounded verdict.
    Never take the comment's word for it: CodeRabbit reads a diff, you can read the whole repo.
 
@@ -51,7 +55,8 @@ Run each script by the exact `python3 ~/.claude/skills/coderabbit/scripts/...` s
    - **ASK-USER**: a judgment call, or a real change in behavior or public API the user should decide.
      Carries a specific question.
 
-   Weigh the `severity` the script prints: `nitpick` and `outside-diff` are low priority, `potential` and `warning` are the real candidates.
+   Weigh the `severity` the script prints: `nitpick` is low priority, `potential` and `warning` are the real candidates.
+   For an outside-diff finding weigh its `level` instead: `critical` and `major` are real candidates, being outside the diff does not make them minor.
 
 4. **Single batched approval gate** (mandatory). Print **one** verdict table for the whole PR:
 
@@ -60,6 +65,7 @@ Run each script by the exact `python3 ~/.claude/skills/coderabbit/scripts/...` s
    1 | src/auth/token.ts:42  | warning   | FIX            | guard null session before decode
    2 | src/api/users.ts:88   | nitpick   | REPLY-AND-SKIP | naming is intentional, matches column
    3 | src/cron/sweep.ts:12  | potential | ASK-USER       | changes retry semantics, confirm?
+   O1 | src/api/del.ts:776-778 | outside/major | FIX         | refuse delete while websites forward to it
    ```
 
    Below the table, print the **full drafted reply text** for every REPLY-AND-SKIP item, so the user sees exactly what goes public before approving.
@@ -71,8 +77,9 @@ Run each script by the exact `python3 ~/.claude/skills/coderabbit/scripts/...` s
    - `multiSelect: false`
    - `options`:
      - `Go`: apply all FIX edits and post all REPLY-AND-SKIP replies, then resolve every handled thread.
-     - `Fixes only`: apply FIX edits and resolve those threads, post no replies.
+     - `Fixes only`: apply FIX edits and resolve those threads, post no declines (outside-diff fixes still get their one "fixed" note).
      - `Replies only`: post replies and resolve those threads, make no code edits.
+   - When the chosen option posts replies and applies no fix, say in its description that apply.py will also post `@coderabbitai review`.
      - `Cancel`: do nothing.
    - The auto-provided `Other` lets the user redirect ("flip 2 to FIX", "answer ASK-USER #3: yes", "reword reply 2").
      On `Other`, fold in the feedback, re-triage, re-show the table, and re-run this gate.
@@ -98,19 +105,26 @@ Run each script by the exact `python3 ~/.claude/skills/coderabbit/scripts/...` s
        {"thread": "PRRT_b", "verdict": "reply", "reply_to": 1001, "body": "@coderabbitai\n\n> Suggestion: ...\n\nThe reason."},
        {"thread": "PRRT_c", "verdict": "ask"}
      ],
+     "outside": [
+       {"id": "a376", "verdict": "fix", "title": "Make delete refuse ...", "location": "src/api/del.ts:776-778"},
+       {"id": "b812", "verdict": "reply", "title": "Cache the lookup.", "location": "src/api/get.ts:40", "body": "The reason."}
+     ],
      "skipped": {"resolved": 4, "outdated": 1}
    }
    ```
 
    Copy `repo`, `pr` and the `skipped` counts from step 1's output, and `thread` / `reply_to` verbatim from the thread you are acting on.
+   For an outside-diff finding copy `id`, `title` and `path:lines` (as `location`) verbatim; its `body` is only the reason, one to three sentences, because apply.py writes the `@coderabbitai` address and the quoted title itself.
    Newlines inside `body` are `\n` escapes.
    Then run `python3 ~/.claude/skills/coderabbit/scripts/apply.py <plan path>`.
 
    It validates every reply up front (attribution lines, long dashes, emoji, an echoed "Prompt for AI Agents" block, a missing `reply_to`), posts each reply into the right thread, appends the `<!-- cr-skill -->` marker for you, resolves each thread only once its action succeeded, and prints the counters.
    A `fix` entry resolves its thread without posting anything; an `ask` entry resolves nothing, because an unanswered question must stay visible.
+   Every answered outside-diff finding goes into one PR conversation comment with a hidden marker per finding, which is what keeps the next run from surfacing it again; an `ask` one stays out of it.
+   When the run replied but fixed nothing, it then posts `@coderabbitai review`, since no push is coming to trigger CodeRabbit; with any fix, the push does that.
    It exits non-zero if any call failed and names the thread; report that and move on, the next run stays idempotent either way.
 
-7. **Report** the summary line apply.py printed (N fixed, N replied, N resolved, N asked, N skipped) and remind the user to run `/commit` then `/pr`.
+7. **Report** the summary line apply.py printed (N fixed, N replied, N resolved, N asked, N skipped) and its `re-review:` line, and, when anything was fixed, remind the user to run `/commit` then `/pr`.
    The threads are resolved, but the code is not pushed yet, and resolving does not push for them.
    Multiple rounds are normal: re-run `/coderabbit` after each push and step 1 keeps it idempotent.
 
@@ -177,5 +191,6 @@ Bad:
   The hook enforces this.
 - Resolve every thread the skill acts on once the action succeeds.
   Never resolve a thread that was not fixed or replied to, and never one left as ASK-USER.
+- Outside-diff findings are triaged like threads, never folded into the walkthrough or skipped for being outside the diff.
 - Never auto-pick an ASK-USER verdict.
-- Re-running is safe: resolved, outdated, and already-answered threads never reach triage.
+- Re-running is safe: resolved, outdated, and already-answered threads, and outside-diff findings already answered, never reach triage.

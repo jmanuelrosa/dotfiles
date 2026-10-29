@@ -168,7 +168,7 @@ def page(nodes, has_next=False, cursor=None):
 
 
 def gh_rules(pages=None, repo=REPO_SLUG, pr=PR_NUMBER, title="add token guard",
-             pr_body="", reviews=None, no_pr=False):
+             pr_body="", reviews=None, pr_comments=None, no_pr=False):
     """pages maps an endCursor token to a response, so pagination is deterministic."""
     rules = [
         {"match": ["repo", "view", "nameWithOwner"], "stdout": json.dumps({"nameWithOwner": repo})},
@@ -179,8 +179,11 @@ def gh_rules(pages=None, repo=REPO_SLUG, pr=PR_NUMBER, title="add token guard",
         rules.append({"match": ["pr", "view", "number"], "stdout": json.dumps({"number": pr})})
     rules.append(
         {
-            "match": ["pr", "view", "title,body,reviews"],
-            "stdout": json.dumps({"title": title, "body": pr_body, "reviews": reviews or []}),
+            "match": ["pr", "view", "title,body,reviews,comments"],
+            "stdout": json.dumps(
+                {"title": title, "body": pr_body, "reviews": reviews or [],
+                 "comments": pr_comments or []}
+            ),
         }
     )
     for cursor_token, response in (pages or {}).items():
@@ -422,6 +425,112 @@ def test_the_walkthrough_comes_from_the_bots_latest_review(context):
     assert model["pr"]["walkthrough"] == "new walkthrough"
 
 
+def finding(fid="a1b2", level="Major", title="Make delete refuse an in-use endpoint.",
+            location="src/domain/mutation.ts:776-778"):
+    """One finding block, shaped like CodeRabbit's review body markup."""
+    return f"""<details>
+<summary><strong><picture><img src="x.svg"></picture> {level}</strong> \u00b7 {title} \u00b7 <code>mutation.ts:776-778</code></summary><blockquote>
+<dl>
+<dd>
+
+`{location}`
+**{level}**
+
+The delete path never checks for forwarding domains.
+
+<details>
+<summary>Proposed fix</summary>
+
+{FENCE}diff
++ guard()
+{FENCE}
+</details>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+{FENCE}
+Verify each finding against current code.
+{FENCE}
+</details>
+
+<!-- cr-comment:v1:{fid} -->
+
+</dd>
+</dl>
+</blockquote></details>"""
+
+
+def review_body(*findings, section="Outside diff range"):
+    quoted = "\n".join(f"> {ln}" for ln in "\n\n".join(findings).splitlines())
+    return (
+        "**Actionable comments posted: 1**\n\n"
+        "> [!CAUTION]\n"
+        f"> **{section} comments ({len(findings)})**\n>\n{quoted}\n\n---\n"
+    )
+
+
+def outside_rules(reviews, pr_comments=None, nodes=None):
+    return gh_rules(
+        pages={'"endCursor": null': page(nodes if nodes is not None else [])},
+        reviews=[{"author": {"login": BOT}, "body": body} for body in reviews],
+        pr_comments=pr_comments,
+    )
+
+
+def test_an_outside_diff_finding_surfaces_from_the_review_body(context):
+    """Given a review whose only finding is outside the diff, When context runs, Then it
+    surfaces with its full path, lines, level and title, minus the fix and prompt blocks.
+
+    GitHub gives these no thread, so the threads query alone never sees them.
+    """
+    model = model_of(context({"gh": outside_rules([review_body(finding())])}))
+    [found] = model["outside"]
+    assert found["id"] == "a1b2"
+    assert (found["path"], found["lines"]) == ("src/domain/mutation.ts", "776-778")
+    assert (found["level"], found["title"]) == ("major", "Make delete refuse an in-use endpoint.")
+    assert "never checks for forwarding domains" in found["body"]
+    for leaked in ("Prompt for AI Agents", "guard()", "cr-comment", "<dd>"):
+        assert leaked not in found["body"]
+
+
+def test_an_answered_outside_finding_is_skipped(context):
+    """Given a PR comment carrying the finding's skill marker, When context runs, Then the
+    finding is skipped and counted, so a re-run never answers it twice."""
+    answered = [{"author": {"login": "jmr"}, "body": "x\n<!-- cr-skill:outside:a1b2 -->"}]
+    model = model_of(context({"gh": outside_rules([review_body(finding())], answered)}))
+    assert model["outside"] == []
+    assert model["skipped"]["outside-answered"] == 1
+
+
+def test_an_outside_finding_repeated_across_reviews_appears_once(context):
+    """Given the same finding id in two reviews, When context runs, Then it is listed once."""
+    body = review_body(finding())
+    model = model_of(context({"gh": outside_rules([body, body])}))
+    assert len(model["outside"]) == 1
+
+
+def test_a_finding_under_another_section_is_not_outside_diff(context):
+    """Given a finding under a nitpick heading, When context runs, Then it is not lifted."""
+    body = review_body(finding(), section="Nitpick")
+    assert model_of(context({"gh": outside_rules([body])}))["outside"] == []
+
+
+def test_outside_findings_alone_are_still_work(context):
+    """Given no open threads but one outside finding, When context runs as text, Then it
+    lists the finding and does not report nothing to triage."""
+    proc = context({"gh": outside_rules([review_body(finding())])}, as_json=False)
+    assert proc.returncode == EXIT_OK, proc.stderr
+    assert "[O1] src/domain/mutation.ts:776-778 severity=outside-diff level=major id=a1b2" in proc.stdout
+    assert "Nothing to triage" not in proc.stdout
+
+
+def test_nothing_to_triage_needs_both_sources_empty(context):
+    """Given no threads and no outside findings, When context runs, Then it says so."""
+    proc = context({"gh": outside_rules([])}, as_json=False)
+    assert f"Nothing to triage on PR #{PR_NUMBER}." in proc.stdout
+
+
 def test_a_failing_threads_query_is_reported(context):
     """Given the GraphQL query fails, When context runs, Then it exits on the gh failure code."""
     plan = gh_rules()
@@ -447,8 +556,14 @@ def apply_plan(stub_gh, tmp_path):
     return run
 
 
-def apply_rules(reply_ok=True, resolve_ok=True):
+def apply_rules(reply_ok=True, resolve_ok=True, pr_comment_ok=True):
     return [
+        {
+            "match": [f"issues/{PR_NUMBER}/comments"],
+            "stdout": json.dumps({"html_url": "https://github.com/acme/api/pull/42#ic1"}),
+            "code": 0 if pr_comment_ok else 1,
+            "stderr": "" if pr_comment_ok else "comment rejected\n",
+        },
         {
             "match": [f"pulls/{PR_NUMBER}/comments"],
             "stdout": json.dumps({"html_url": "https://github.com/acme/api/pull/42#r1"}),
@@ -465,8 +580,64 @@ def apply_rules(reply_ok=True, resolve_ok=True):
     ]
 
 
-def base_plan(threads, skipped=None):
-    return {"repo": REPO_SLUG, "pr": PR_NUMBER, "threads": threads, "skipped": skipped or {}}
+def base_plan(threads, skipped=None, outside=None):
+    return {"repo": REPO_SLUG, "pr": PR_NUMBER, "threads": threads,
+            "outside": outside or [], "skipped": skipped or {}}
+
+
+REPLY = {"thread": "PRRT_b", "verdict": "reply", "reply_to": 1001, "body": "@coderabbitai intentional."}
+FIX = {"thread": "PRRT_a", "verdict": "fix", "files": ["src/a.ts"]}
+OUTSIDE_FIX = {"id": "a1b2", "verdict": "fix", "title": "Guard delete.", "location": "src/d.ts:7-9"}
+OUTSIDE_REPLY = {"id": "c3d4", "verdict": "reply", "title": "Cache it.", "body": "Runs once per boot."}
+
+
+def test_outside_findings_are_answered_in_one_marked_pr_comment(apply_plan):
+    """Given a fixed and a declined outside finding, When apply runs, Then one PR comment
+    carries both answers and a marker per finding, and the summary counts them.
+
+    The markers are the only record a re-run can read, since there is no thread to resolve.
+    """
+    rules = apply_rules()
+    rules[0]["stdin_match"] = [
+        "@coderabbitai", "Fixed, lands with the next push.", "Runs once per boot.",
+        "cr-skill:outside:a1b2", "cr-skill:outside:c3d4",
+    ]
+    proc = apply_plan({"gh": rules}, base_plan([], outside=[OUTSIDE_FIX, OUTSIDE_REPLY]))
+    assert proc.returncode == EXIT_OK, proc.stderr
+    assert "summary: 1 fixed, 1 replied, 0 resolved, 0 asked" in proc.stdout
+
+
+def test_a_failed_outside_comment_counts_nothing(apply_plan):
+    """Given the PR comment call fails, When apply runs, Then no finding is counted as handled."""
+    proc = apply_plan({"gh": apply_rules(pr_comment_ok=False)}, base_plan([], outside=[OUTSIDE_FIX]))
+    assert proc.returncode == APPLY_PARTIAL
+    assert "summary: 0 fixed, 0 replied" in proc.stdout
+
+
+def test_a_declined_outside_finding_without_a_reason_is_refused(apply_plan):
+    """Given an outside reply verdict with no body, When apply runs, Then it refuses."""
+    entry = {**OUTSIDE_REPLY, "body": ""}
+    assert apply_plan({"gh": apply_rules()}, base_plan([], outside=[entry])).returncode == APPLY_INVALID_PLAN
+
+
+def test_a_replies_only_run_requests_a_review(apply_plan):
+    """Given replies and no fixes, When apply runs, Then it asks CodeRabbit to review.
+
+    Nothing is waiting on a push, so no push will trigger CodeRabbit on its own.
+    """
+    rules = apply_rules()
+    rules[0]["stdin_match"] = ["@coderabbitai review"]
+    proc = apply_plan({"gh": rules}, base_plan([REPLY]))
+    assert proc.returncode == EXIT_OK, proc.stderr
+    assert "re-review: requested" in proc.stdout
+
+
+def test_a_run_with_a_fix_leaves_the_review_to_the_push(apply_plan):
+    """Given a fix alongside a reply, When apply runs, Then no review is requested."""
+    rules = [r for r in apply_rules() if "issues/" not in r["match"][0]]
+    proc = apply_plan({"gh": rules}, base_plan([FIX, REPLY]))
+    assert proc.returncode == EXIT_OK, proc.stderr
+    assert "re-review: not needed, the push of these fixes triggers it" in proc.stdout
 
 
 def test_the_summary_counts_every_bucket(apply_plan):
