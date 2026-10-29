@@ -15,7 +15,14 @@ EVENTS = {
     "stop": "Stop",
     "prompt_submit": "UserPromptSubmit",
 }
-TOOLS = {"bash": "Bash", "write": "Write", "edit": "Edit", "exit_plan_mode": "ExitPlanMode"}
+TOOLS = {
+    "bash": "Bash",
+    "write": "Write",
+    "edit": "Edit",
+    "exit_plan_mode": "ExitPlanMode",
+    "web_fetch": "WebFetch",
+    "web_search": "WebSearch",
+}
 # SessionStart takes a source matcher rather than a tool one; Stop and UserPromptSubmit take none.
 MATCH_EVERY_SOURCE = "*"
 # Not `off` or `user-invocable-only`: the parent skill still loads its dependency through

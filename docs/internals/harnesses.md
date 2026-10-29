@@ -131,7 +131,7 @@ Pi's built-in MCP support registers each tool as `mcp__<server>__<tool>` and gat
 `mcp__*__*` falls back to `ask`, a denied server's tools are refused as `mcp__<server>__*`, and the `[tools].allow` entries Claude grants become allows.
 Claude names the claude.ai connector (`claude_ai_Slack`) while pi reaches the same service through the shared inventory's `slack`, so a rule lands on the shared server whose name matches once the `claude_ai_` prefix is removed, and an allow that names no shared server stays at `ask`.
 Names are written the way pi registers them, with a `-` or any other character outside letters, digits and `_` turned into `_`.
-Without the fallback, injected content could make a pi agent post to Slack with the `chat:write` scope its OAuth entry requests.
+Without the fallback, injected content could make a pi agent post to Slack; its OAuth entry no longer requests `chat:write`, so the ask is the second layer rather than the only one.
 The legacy `mcp` surface keeps the server denies and also falls back to `ask`, so reinstating `pi-mcp-adapter` does not quietly reopen it.
 
 **Role-owned global skill scripts are outside the project but inside the trusted harness.**
@@ -279,6 +279,10 @@ The command allows are left out on purpose: under `approval_policy = "on-request
 
 **The network is off, and that is what gates the cloud.** Codex's sandbox has no domain allowlist, only `network_access`, so it stays `false` and a command that needs the network asks to leave the sandbox.
 That matters for `cloud-readonly-gate.sh`, because Codex has no `ask` answer for a hook: `permissionDecision: "ask"` is unsupported and fails open, so the gate's broadest tier only refuses in Claude and Pi, and in Codex the escalation prompt is what stands in for it.
+The same prompt covers the ask tier of `cli-egress-gate.sh`, `acli` writes included, since every one of those CLIs needs the network.
+
+**Web search is pinned to the cache, and MCP tools prompt.** Codex's `web_search` tool is hosted and never reaches a hook, so `web-egress-gate.sh` has nothing to read there; `web_search = "cached"` serves pre-indexed results and fetches no URL a prompt injection could name, where the default turns `live` under a full-access sandbox.
+Every managed MCP server gets `default_tools_approval_mode = "prompt"`, because Codex otherwise runs a tool its server marks read-only unasked, and a Slack or Notion read is how injected text arrives.
 
 **Hooks are linked, rendered, and trusted by hand.** `~/.codex/hooks.json` links `adapters/codex/generated/hooks.json`, which lists the scripts under `~/.codex/hooks/` for `^Bash$` (Codex matches a regex, so a bare `Bash` would match any tool containing it).
 Codex runs a hook only after it is trusted in `/hooks`, once per machine.

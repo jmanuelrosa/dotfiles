@@ -20,9 +20,6 @@
     "allow": [
       "WebFetch",
       "WebSearch",
-      "mcp__claude_ai_Slack__slack_read_thread",
-      "mcp__claude_ai_Slack__slack_search_public_and_private",
-      "mcp__claude_ai_Slack__slack_read_channel",
       "Bash(find:*)",
       "Bash(grep:*)",
       "Bash(head:*)",
@@ -374,6 +371,15 @@
           {
             "type": "command",
             "command": "if [ -n \"$RTK_ENABLE\" ] && command -v rtk >/dev/null 2>&1; then rtk hook claude || true; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "WebFetch|WebSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/web-egress-gate.sh"
           }
         ]
       },

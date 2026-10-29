@@ -50,7 +50,7 @@ def test_pi_native_config_merges_shared_servers_with_its_overrides():
     assert native["slack"]["oauth"] == {
         "clientId": "185316078694.12036247391600",
         "callbackUrl": "http://localhost:19876/callback",
-        "scope": "search:read.public channels:read channels:history users:read search:read.users search:read.private search:read.im search:read.mpim groups:read groups:history im:read im:history mpim:read mpim:history chat:write reactions:write",
+        "scope": "search:read.public channels:read channels:history users:read search:read.users search:read.private search:read.im search:read.mpim groups:read groups:history im:read im:history mpim:read mpim:history",
     }
     assert "auth" not in native["slack"] and "exposeResources" not in native["slack"]
 
@@ -115,7 +115,8 @@ def test_codex_preserves_app_server_and_existing_policy(harness):
     assert {"mcp: notion", "mcp: slack"} <= set(cli.apply_codex(root))
     servers = tomllib.loads(config.read_text())["mcp_servers"]
     assert servers == {"node_repl": {"command": "app-owned"},
-                       **{name: {"url": entry["url"]} for name, entry in mcp.load(root).items()}}
+                       **{name: {"url": entry["url"], "default_tools_approval_mode": "prompt"}
+                          for name, entry in mcp.load(root).items()}}
     assert tomllib.loads(config.read_text())["projects"]["/workspace"]["trust_level"] == "trusted"
     assert cli.apply_codex(root) == []
     assert "node_repl" in (home / ".codex/config.toml.harness-bak").read_text()
@@ -154,7 +155,8 @@ def test_only_portable_stdio_env_and_http_fields_are_accepted(harness):
     root, _ = harness
     entry = {"command": "server", "args": [], "env": {"TOKEN": "${TOKEN}"}}
     inventory(root, {"local": entry})
-    assert mcp.for_codex(mcp.load(root)["local"]) == {"command": "server", "args": [], "env_vars": ["TOKEN"]}
+    assert mcp.for_codex(mcp.load(root)["local"]) == {"command": "server", "args": [], "env_vars": ["TOKEN"],
+                                                      "default_tools_approval_mode": "prompt"}
     assert mcp.for_claude(entry)["type"] == "stdio"
     inventory(root, {"local": {**entry, "env": {"TOKEN": "literal-secret"}}})
     with pytest.raises(ValueError, match="variable references"):
