@@ -17,7 +17,7 @@ BREW_PACKAGES:
     # Shipped as a cask, which also installs its fish completions.
     - spacectl
 
-# spacectl stores each profile's endpoint and token together in ~/.spacelift/<alias>, so the
+# spacectl stores every profile's endpoint and token together in ~/.spacelift/config.json, so the
 # file cannot be tracked. The role keeps the non-secret half and checks the profile exists.
 SPACELIFT_PROFILE:
   alias: addingwell
