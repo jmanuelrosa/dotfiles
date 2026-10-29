@@ -6,11 +6,22 @@
 BREW_PACKAGES:
   taps:
     - atlassian/homebrew-acli
+    - spacelift-io/homebrew-spacelift
   trusted:
     # Canonical name drops the homebrew- prefix from the tap repo above.
     - atlassian/acli/acli
+    - spacelift-io/spacelift/spacectl
   formulas:
     - acli
+  casks:
+    # Shipped as a cask, which also installs its fish completions.
+    - spacectl
+
+# spacectl stores each profile's endpoint and token together in ~/.spacelift/<alias>, so the
+# file cannot be tracked. The role keeps the non-secret half and checks the profile exists.
+SPACELIFT_PROFILE:
+  alias: addingwell
+  endpoint: https://addingwell.app.spacelift.io
 
 # Tools symlinked onto PATH from files/scripts/, one directory per tool with the
 # executable named after it. Same convention and the same reasons as the ai role's

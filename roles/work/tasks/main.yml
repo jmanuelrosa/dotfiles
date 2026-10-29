@@ -39,6 +39,19 @@
     force: true
   loop: "{{ WORK_SCRIPTS }}"
 
+- name: Check the spacectl profile exists
+  ansible.builtin.stat:
+    path: "{{ HOME }}/.spacelift/{{ SPACELIFT_PROFILE.alias }}"
+  register: spacectl_profile
+
+- name: Warn when the spacectl profile is missing
+  ansible.builtin.debug:
+    msg: |
+      spacectl has no '{{ SPACELIFT_PROFILE.alias }}' profile yet. Log in from a normal terminal:
+        spacectl profile login --method browser --endpoint {{ SPACELIFT_PROFILE.endpoint }} {{ SPACELIFT_PROFILE.alias }}
+      See roles/work/README.md (Spacelift).
+  when: not spacectl_profile.stat.exists
+
 - name: Ensure glab-cli config directory exists
   ansible.builtin.file:
     path: "{{ HOME }}/Library/Application Support/glab-cli"
