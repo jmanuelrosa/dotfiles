@@ -1,6 +1,6 @@
 # Sub-skill: integrate
 
-Integrate Module Federation into an existing project - add provider (exposes modules) or consumer (loads remote modules) configuration.
+Integrate Module Federation into an existing project — add provider (exposes modules) or consumer (loads remote modules) configuration.
 
 ## Step 1: Detect project
 
@@ -24,18 +24,18 @@ If MF is already configured (MFContext shows existing `remotes` or `exposes`), i
 
 Ask the user the following questions (combine into one AskUserQuestion call):
 
-1. **Role** - What role should this app play?
-   - `consumer` - loads modules from remote apps (default)
-   - `provider` - exposes modules to other apps
-   - `both` - exposes modules and loads remote modules
+1. **Role** — What role should this app play?
+   - `consumer` — loads modules from remote apps (default)
+   - `provider` — exposes modules to other apps
+   - `both` — exposes modules and loads remote modules
 
-2. **App name** - What should the MF name be for this app?
+2. **App name** — What should the MF name be for this app?
    - Suggest the `name` field from `package.json` (snake_case, no hyphens). Hyphens are not allowed in MF names.
 
 3. **Role-specific**:
    - If **consumer** or **both**: Do you want to connect to the public demo provider to see MF working immediately, or configure your own remotes?
-     - `demo` - use the public demo provider (default for consumers)
-     - `custom` - I'll specify my own remote URLs
+     - `demo` — use the public demo provider (default for consumers)
+     - `custom` — I'll specify my own remote URLs
    - If **provider** or **both**: What module(s) do you want to expose? Provide `key: path` pairs, e.g. `./Button: ./src/components/Button.tsx`. If unsure, use `'.' : './src/index'` as a default.
 
 ---
@@ -100,7 +100,7 @@ export default createModuleFederationConfig({
   // remotes: { ... },        // consumer / both only
   shareStrategy: 'loaded-first',
   shared: {
-    // react + react-dom or vue - from Step 3
+    // react + react-dom or vue — from Step 3
   },
 });
 ```
@@ -141,7 +141,7 @@ export default createModuleFederationConfig({
   // exposes: { ... },        // provider / both only
   // remotes: { ... },        // consumer / both only
   shared: {
-    // react + react-dom or vue - from Step 3
+    // react + react-dom or vue — from Step 3
   },
 });
 ```
@@ -315,7 +315,7 @@ export default createModuleFederationConfig({
   // exposes: { ... },        // provider / both only
   // remotes: { ... },        // consumer / both only
   shared: {
-    // react + react-dom or vue - from Step 3
+    // react + react-dom or vue — from Step 3
   },
 });
 ```
@@ -365,7 +365,7 @@ Search for the entry component file in this priority order:
 | Next.js | `pages/index.tsx`, `pages/index.jsx`, `pages/index.js` |
 | Vite | `src/App.tsx`, `src/App.jsx`, `src/App.js` |
 
-Read the first file that exists. If none found, tell the user which file to modify manually and show the snippet - do not attempt blind writes.
+Read the first file that exists. If none found, tell the user which file to modify manually and show the snippet — do not attempt blind writes.
 
 ### 5b. Determine remote name and import path
 
@@ -384,15 +384,15 @@ Add import after the last existing import line:
 import ProviderApp from 'provider';
 ```
 
-Insert `<ProviderApp />` inside the existing JSX return. Find a natural place - inside a `<div>`, after existing content. Do not restructure the component; just append the element.
+Insert `<ProviderApp />` inside the existing JSX return. Find a natural place — inside a `<div>`, after existing content. Do not restructure the component; just append the element.
 
 **For Modern.js** (`src/routes/page.tsx`)
 
-Same pattern - add import and render `<ProviderApp />` in the returned JSX.
+Same pattern — add import and render `<ProviderApp />` in the returned JSX.
 
 **For Next.js** (`pages/index.tsx`)
 
-Same pattern - add import and render `<ProviderApp />` in the returned JSX.
+Same pattern — add import and render `<ProviderApp />` in the returned JSX.
 
 ### 5d. Add TypeScript declaration (if TypeScript project)
 

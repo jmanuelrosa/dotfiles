@@ -19,7 +19,7 @@ ESLint-specific guidance for `nx import`. For generic import issues (root deps, 
 }
 ```
 
-**Auto-installation**: `nx import` auto-detects ESLint config files and offers to install `@nx/eslint`. Accept the offer - it registers the plugin and updates `namedInputs.production` to exclude ESLint config files.
+**Auto-installation**: `nx import` auto-detects ESLint config files and offers to install `@nx/eslint`. Accept the offer — it registers the plugin and updates `namedInputs.production` to exclude ESLint config files.
 
 ---
 
@@ -27,10 +27,10 @@ ESLint-specific guidance for `nx import`. For generic import issues (root deps, 
 
 After import, projects will have **two** lint-related targets if the source `package.json` has a `"lint"` npm script:
 
-- `eslint:lint` - inferred by `@nx/eslint/plugin`; has proper caching and input/output tracking
-- `lint` - created by Nx from the npm script via `nx:run-script`; no caching intelligence, just wraps `npm run lint`
+- `eslint:lint` — inferred by `@nx/eslint/plugin`; has proper caching and input/output tracking
+- `lint` — created by Nx from the npm script via `nx:run-script`; no caching intelligence, just wraps `npm run lint`
 
-**Fix**: Remove the `"lint"` script from each project's `package.json`. Keep `"lint:fix"` if present - there is no plugin-inferred equivalent for auto-fixing.
+**Fix**: Remove the `"lint"` script from each project's `package.json`. Keep `"lint:fix"` if present — there is no plugin-inferred equivalent for auto-fixing.
 
 ---
 
@@ -53,7 +53,7 @@ This causes `Parsing error: ESLint was configured to run on X using parserOption
 ```
 
 ```js
-// .eslintrc.js - also ignore the config file itself since module.exports isn't in tsconfig
+// .eslintrc.js — also ignore the config file itself since module.exports isn't in tsconfig
 module.exports = {
   ignorePatterns: ['dist/**', '.eslintrc.js'],
   // ...
@@ -87,7 +87,7 @@ The same applies to `eslint.config.js` in a CJS project (no `"type": "module"`) 
 
 **Root cause**: `@nx/eslint` init adds `eslint@~8.57.0` at the workspace root (for its own peer deps). Workspace packages that request `eslint@^9.0.0` + `typescript-eslint@^7.0.0` trigger the conflict when npm resolves their deps.
 
-**Fix**: Upgrade `typescript-eslint` from `^7.0.0` to `^8.0.0` directly in the affected workspace package's `package.json`. The `tseslint.config()` API and `tseslint.configs.recommended` are identical between v7 and v8 - no config changes needed.
+**Fix**: Upgrade `typescript-eslint` from `^7.0.0` to `^8.0.0` directly in the affected workspace package's `package.json`. The `tseslint.config()` API and `tseslint.configs.recommended` are identical between v7 and v8 — no config changes needed.
 
 ```json
 // packages/my-package/package.json
@@ -98,7 +98,7 @@ The same applies to `eslint.config.js` in a CJS project (no `"type": "module"`) 
 }
 ```
 
-**Note**: npm's root-level `"overrides"` field does not force versions for workspace packages' direct dependencies - update each package.json individually.
+**Note**: npm's root-level `"overrides"` field does not force versions for workspace packages' direct dependencies — update each package.json individually.
 
 ---
 

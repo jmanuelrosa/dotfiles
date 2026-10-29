@@ -22,7 +22,7 @@ Vite 8 replaces esbuild + Rollup with [Rolldown](https://rolldown.rs/) (Rust bun
 
 ## Backward Compatibility (Auto-Conversion)
 
-Old options are **deprecated but still work** - Vite converts them internally:
+Old options are **deprecated but still work** — Vite converts them internally:
 
 - `esbuild` → `oxc`
 - `build.rollupOptions` → `build.rolldownOptions` (alias)
@@ -53,7 +53,7 @@ export default defineConfig({
 })
 ```
 
-Prefer the top-level [`input`](../references/core-config.md) option over `build.rolldownOptions.input` - it applies in dev too.
+Prefer the top-level [`input`](../references/core-config.md) option over `build.rolldownOptions.input` — it applies in dev too.
 
 ### esbuild → oxc
 
@@ -69,7 +69,7 @@ export default defineConfig({
 })
 ```
 
-`esbuild.jsxFactory`→`oxc.jsx.pragma`, `jsxFragment`→`oxc.jsx.pragmaFrag`, `jsx: 'transform'`→`oxc.jsx: { runtime: 'classic' }`, `jsx: 'automatic'`→`{ runtime: 'automatic' }`. `esbuild.banner`/`footer` have no equivalent - use a custom plugin `transform` hook.
+`esbuild.jsxFactory`→`oxc.jsx.pragma`, `jsxFragment`→`oxc.jsx.pragmaFrag`, `jsx: 'transform'`→`oxc.jsx: { runtime: 'classic' }`, `jsx: 'automatic'`→`{ runtime: 'automatic' }`. `esbuild.banner`/`footer` have no equivalent — use a custom plugin `transform` hook.
 
 ### JSX Configuration
 
@@ -104,9 +104,9 @@ export default defineConfig({
 - **`resolve.alias[].customResolver`** deprecated → use a custom plugin with a `resolveId` hook and `enforce: 'pre'`.
 - **`build.commonjsOptions`** is now a no-op.
 - **`require` calls for externalized modules** are preserved as `require`. To convert to `import`, use the re-exported `esmExternalRequirePlugin`.
-- **`import.meta.hot.accept(url)`** no longer accepts a URL - pass an id.
+- **`import.meta.hot.accept(url)`** no longer accepts a URL — pass an id.
 - Unsupported by Rolldown: output format `'system'`/`'amd'`, `shouldTransformCachedModule`, `resolveImportMeta`, `renderDynamicImport`, `resolveFileUrl` hooks.
-- Native decorator lowering is not yet supported by Oxc - use `@rolldown/plugin-babel` or `@rollup/plugin-swc` as a workaround.
+- Native decorator lowering is not yet supported by Oxc — use `@rolldown/plugin-babel` or `@rollup/plugin-swc` as a workaround.
 
 ## Detecting Rolldown-powered Vite
 
@@ -121,7 +121,7 @@ Also exported from `vite`: `version`, `rolldownVersion` (`esbuildVersion`/`rollu
 
 ## Plugin Compatibility
 
-Most Vite plugins work unchanged - Rolldown supports Rollup's plugin API. Rolldown runs all parallel Rollup hooks sequentially. If a plugin only works during build:
+Most Vite plugins work unchanged — Rolldown supports Rollup's plugin API. Rolldown runs all parallel Rollup hooks sequentially. If a plugin only works during build:
 
 ```ts
 {
@@ -139,7 +139,7 @@ Most Vite plugins work unchanged - Rolldown supports Rollup's plugin API. Rolldo
 
 ## Gradual Migration
 
-`rolldown-vite` is Vite 7 running on Rolldown *without* other Vite 8 changes - an intermediate step:
+`rolldown-vite` is Vite 7 running on Rolldown *without* other Vite 8 changes — an intermediate step:
 
 ```bash
 # Step 1: swap vite for rolldown-vite on Vite 7 (npm alias in package.json)

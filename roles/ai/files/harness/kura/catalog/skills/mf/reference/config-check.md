@@ -16,7 +16,7 @@ node scripts/config-exposes-check.js --context '<MFContext-JSON>'
 
 Process each item in the output `results` array:
 
-**CONFIG-PLUGIN · warning - incorrect or missing MF plugin**
+**CONFIG-PLUGIN · warning — incorrect or missing MF plugin**
 - Based on the detected bundler and installed packages, the recommended plugin is:
   - Webpack only: `@module-federation/enhanced` or `@module-federation/enhanced/webpack`
   - Vite only: `@module-federation/vite` (MF options can live in root `module-federation.config.*` via `createModuleFederationConfig`)
@@ -26,7 +26,7 @@ Process each item in the output `results` array:
   - Next.js: `@module-federation/nextjs-mf`
 - Show the detected bundler, installed MF-related packages, and the recommended plugin
 
-**CONFIG-ASYNC-ENTRY · warning - async entry not configured (maps to RUNTIME-006)**
+**CONFIG-ASYNC-ENTRY · warning — async entry not configured (maps to RUNTIME-006)**
 - `experiments.asyncStartup = true` is not set in the bundler config
 - This setting is required by most bundler setups to avoid runtime initialization errors
 - Exception: not required when using `@module-federation/modern-js-v3` or `@module-federation/modern-js`
@@ -34,11 +34,11 @@ Process each item in the output `results` array:
 - Reference: https://module-federation.io/blog/hoisted-runtime.md
 - To check: read `bundler.configFile` from MFContext and look for `experiments.asyncStartup`
 
-**CONFIG-EXPOSES-KEY · warning - key does not start with `./`**
+**CONFIG-EXPOSES-KEY · warning — key does not start with `./`**
 - MF spec requires exposes keys to start with `./` (e.g., `"./Button"` not `"Button"`)
 - Inform the user of the specific key name and guide them to correct the format
 
-**CONFIG-EXPOSES-PATH · warning - path does not exist**
+**CONFIG-EXPOSES-PATH · warning — path does not exist**
 - The file referenced by the exposes value does not exist in the project. Show the specific key and incorrect path.
 - The check must match the exact file extension (e.g., `.tsx` ≠ `.ts`)
 - Common causes:
