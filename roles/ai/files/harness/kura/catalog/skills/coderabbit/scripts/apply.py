@@ -8,7 +8,16 @@ Bash round-trip, then prints the counters the summary step reports:
       {"thread": "PRRT_a", "verdict": "fix", "files": ["src/a.ts"]},
       {"thread": "PRRT_b", "verdict": "reply", "reply_to": 123, "body": "@coderabbitai ..."},
       {"thread": "PRRT_c", "verdict": "ask"}
+    ], "outside": [
+      {"id": "a376", "verdict": "reply", "title": "...", "location": "src/a.ts:7-9", "body": "reason"}
     ], "skipped": {"resolved": 4}}
+
+Outside-diff findings have no thread to reply into or resolve, so every handled
+one is answered in a single PR conversation comment whose per-finding markers
+are what the next run's context.py reads to skip them.
+
+When the run posted replies but fixed nothing, nothing is waiting on a push to
+trigger CodeRabbit again, so this asks it for a review explicitly.
 
 Reply bodies are public, so they are validated the way commit messages are:
 no attribution lines, no long dashes, no emoji, and no echo of CodeRabbit's
@@ -29,7 +38,10 @@ EXIT_INVALID_PLAN = 2
 EXIT_PARTIAL = 3
 
 SKILL_MARKER = "<!-- cr-skill -->"
+OUTSIDE_MARKER = "<!-- cr-skill:outside:{} -->"
 VERDICTS = ("fix", "reply", "ask")
+OUTSIDE_FIXED_NOTE = "Fixed, lands with the next push."
+REVIEW_COMMAND = "@coderabbitai review"
 
 ATTRIBUTION_RE = re.compile(r"(?i)co-authored-by:.*claude|generated with.*\bclaude\b")
 # Assembled from codepoints because the house style bans these characters in source.
@@ -73,9 +85,10 @@ def validate(plan):
         pr = int(plan.get("pr"))
     except (TypeError, ValueError):
         fail("plan needs a numeric pr", EXIT_INVALID_PLAN)
-    threads = plan.get("threads")
-    if not threads:
-        fail("plan has no threads", EXIT_INVALID_PLAN)
+    threads = plan.get("threads") or []
+    outside = plan.get("outside") or []
+    if not threads and not outside:
+        fail("plan has no threads and no outside-diff findings", EXIT_INVALID_PLAN)
 
     for i, t in enumerate(threads, 1):
         verdict = t.get("verdict")
@@ -90,19 +103,59 @@ def validate(plan):
             fail(f"thread {i}: reply verdict with an empty body", EXIT_INVALID_PLAN)
         if not t.get("reply_to"):
             fail(f"thread {i}: reply verdict needs reply_to (the thread root comment id)", EXIT_INVALID_PLAN)
-        for pattern, complaint in REPLY_BLOCKS:
-            if pattern.search(body):
-                fail(f"thread {i}: reply {complaint}", EXIT_INVALID_PLAN)
-    return repo, pr, threads
+        refuse_unpublishable(f"thread {i}", body)
+
+    for i, f in enumerate(outside, 1):
+        verdict = f.get("verdict")
+        if verdict not in VERDICTS:
+            fail(f"outside {i}: verdict must be one of {', '.join(VERDICTS)}", EXIT_INVALID_PLAN)
+        if verdict == "ask":
+            continue
+        if not f.get("id") or not f.get("title"):
+            fail(f"outside {i}: needs the finding id and title", EXIT_INVALID_PLAN)
+        refuse_unpublishable(f"outside {i}", f["title"])
+        if verdict != "reply":
+            continue
+        body = (f.get("body") or "").strip()
+        if not body:
+            fail(f"outside {i}: reply verdict with an empty body", EXIT_INVALID_PLAN)
+        refuse_unpublishable(f"outside {i}", body)
+    return repo, pr, threads, outside
+
+
+def refuse_unpublishable(label, text):
+    for pattern, complaint in REPLY_BLOCKS:
+        if pattern.search(text):
+            fail(f"{label}: reply {complaint}", EXIT_INVALID_PLAN)
+
+
+def outside_comment(entries):
+    declined = any(e["verdict"] == "reply" for e in entries)
+    parts = ["@coderabbitai"] if declined else []
+    parts.append("Outside diff range findings:")
+    for e in entries:
+        where = f" (`{e['location']}`)" if e.get("location") else ""
+        parts.append(f"> {e['title']}{where}")
+        parts.append(e["body"].strip() if e["verdict"] == "reply" else OUTSIDE_FIXED_NOTE)
+    markers = [SKILL_MARKER] + [OUTSIDE_MARKER.format(e["id"]) for e in entries]
+    parts.append("\n".join(markers))
+    return "\n\n".join(parts)
 
 
 def post_reply(repo, pr, reply_to, body):
     if SKILL_MARKER not in body:
         body = body.rstrip() + "\n\n" + SKILL_MARKER
-    payload = json.dumps({"body": body, "in_reply_to": int(reply_to)})
+    return post(f"repos/{repo}/pulls/{pr}/comments", {"body": body, "in_reply_to": int(reply_to)})
+
+
+def post_pr_comment(repo, pr, body):
+    return post(f"repos/{repo}/issues/{pr}/comments", {"body": body})
+
+
+def post(endpoint, payload):
     proc = run(
-        ["gh", "api", "--method", "POST", f"repos/{repo}/pulls/{pr}/comments", "--input", "-"],
-        stdin=payload,
+        ["gh", "api", "--method", "POST", endpoint, "--input", "-"],
+        stdin=json.dumps(payload),
     )
     if proc.returncode != 0:
         return None, proc.stderr.strip() or proc.stdout.strip()
@@ -135,7 +188,7 @@ def main():
     except (OSError, ValueError) as e:
         fail(f"cannot read plan: {e}", EXIT_USAGE)
 
-    repo, pr, threads = validate(plan)
+    repo, pr, threads, outside = validate(plan)
 
     fixed = replied = resolved = asked = 0
     files = []
@@ -168,12 +221,34 @@ def main():
             continue
         resolved += 1
 
+    answered = [f for f in outside if f["verdict"] != "ask"]
+    asked += len(outside) - len(answered)
+    if answered:
+        url, err = post_pr_comment(repo, pr, outside_comment(answered))
+        if err:
+            failures.append(f"outside-diff comment failed: {err}")
+            print("[outside] comment FAILED, findings stay open", file=sys.stderr)
+        else:
+            fixed += sum(1 for f in answered if f["verdict"] == "fix")
+            replied += sum(1 for f in answered if f["verdict"] == "reply")
+            print(f"[outside] answered {len(answered)}: {url}")
+
+    review = "not needed, the push of these fixes triggers it" if fixed else "not needed"
+    if replied and not fixed:
+        url, err = post_pr_comment(repo, pr, REVIEW_COMMAND)
+        if err:
+            failures.append(f"review request failed: {err}")
+            review = "FAILED"
+        else:
+            review = f"requested {url}"
+
     skipped = sum((plan.get("skipped") or {}).values())
     print()
     print(
         f"summary: {fixed} fixed, {replied} replied, {resolved} resolved, "
         f"{asked} asked, {skipped} skipped"
     )
+    print(f"re-review: {review}")
     if files:
         print(f"files touched: {', '.join(sorted(set(files)))}")
     for f in failures:
