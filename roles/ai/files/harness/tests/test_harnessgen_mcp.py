@@ -1,6 +1,7 @@
 """The shared inventory merges by name without adopting app-owned servers."""
 
 import json
+import re
 import shutil
 import tomllib
 
@@ -23,6 +24,11 @@ def harness(tmp_path, monkeypatch):
 
 def inventory(root, servers):
     (root / "mcp.json").write_text(json.dumps({"mcpServers": servers}))
+
+
+def claude_excludes(root, names):
+    adapter = root / "adapters/claude/adapter.toml"
+    adapter.write_text(re.sub(r"(?m)^mcp_exclude = .*$", f"mcp_exclude = {json.dumps(names)}", adapter.read_text()))
 
 
 def test_shared_servers_and_notion_policy():
@@ -60,11 +66,12 @@ def test_claude_adds_only_managed_names_and_does_not_rewrite_on_repeat(harness):
     config.parent.mkdir(parents=True)
     original = {"numStartups": 4, "mcpServers": {"personal": {"command": "local"}}}
     config.write_text(json.dumps(original))
-    assert cli.apply_claude(root, check_only=True) == ["mcp: notion", "mcp: slack"]
+    assert cli.apply_claude(root, check_only=True) == ["mcp: notion"]
     assert json.loads(config.read_text()) == original
-    assert cli.apply_claude(root) == ["mcp: notion", "mcp: slack"]
-    assert json.loads(config.read_text()) == {**original, "mcpServers": {**original["mcpServers"], **mcp.load(root)}}
-    assert json.loads((home / ".claude/.harness-mcp-owned.json").read_text()) == ["notion", "slack"]
+    assert cli.apply_claude(root) == ["mcp: notion"]
+    notion = {"notion": mcp.load(root)["notion"]}
+    assert json.loads(config.read_text()) == {**original, "mcpServers": {**original["mcpServers"], **notion}}
+    assert json.loads((home / ".claude/.harness-mcp-owned.json").read_text()) == ["notion"]
     assert cli.apply_claude(root) == []
     assert json.loads((home / ".claude.json.harness-bak").read_text()) == original
 
@@ -78,7 +85,24 @@ def test_managed_server_is_replaced_without_touching_user_servers(harness):
     document["mcpServers"]["personal"] = {"command": "local"}
     config.write_text(json.dumps(document))
     assert cli.apply_claude(root) == ["mcp: notion"]
-    assert json.loads(config.read_text())["mcpServers"] == {**mcp.load(root), "personal": {"command": "local"}}
+    assert json.loads(config.read_text())["mcpServers"] == {"notion": mcp.load(root)["notion"], "personal": {"command": "local"}}
+
+
+def test_excluding_a_previously_managed_server_removes_it_from_claude(harness):
+    root, home = harness
+    claude_excludes(root, [])
+    assert cli.apply_claude(root) == ["mcp: notion", "mcp: slack"]
+    claude_excludes(root, ["slack"])
+    assert cli.apply_claude(root) == ["mcp: slack"]
+    assert "slack" not in json.loads((home / ".claude.json").read_text())["mcpServers"]
+    assert json.loads((home / ".claude" / mcp.STATE_FILE).read_text()) == ["notion"]
+
+
+def test_claude_exclusion_must_name_a_shared_server(harness):
+    root, _ = harness
+    claude_excludes(root, ["slak"])
+    with pytest.raises(ValueError, match="mcp_exclude must name shared servers"):
+        cli.apply_claude(root)
 
 
 def test_codex_preserves_app_server_and_existing_policy(harness):
@@ -102,6 +126,7 @@ def test_removal_only_deletes_managed_names_even_after_manual_edit(harness, clie
     root, home = harness
     config = home / (".claude.json" if client == "claude" else ".codex/config.toml")
     apply = cli.apply_claude if client == "claude" else cli.apply_codex
+    claude_excludes(root, [])
     apply(root)
     text = config.read_text().replace("https://mcp.notion.com/mcp", "https://edited.example.invalid/mcp")
     config.write_text(text)
