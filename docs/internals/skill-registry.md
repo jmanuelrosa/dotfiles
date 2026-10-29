@@ -10,7 +10,11 @@ A skill that exists *only* to satisfy another skill's `dependencies` (e.g. `gril
 Kura fetches `https://github.com/<repo>/archive/<commit>.tar.gz` when `commit` is set, so `kura update` can never pull an upstream HEAD nobody reviewed, and `branch` only records where the pin was taken from.
 `make skill-drift` says which pins are worth bumping: it compares each `commit` with the tip of its `branch` and lists only the new commits that touch a vendored `upstream_path`.
 To bump one, resolve the branch's current SHA with `gh api repos/<owner>/<repo>/commits/<branch> --jq .sha` (drop any trailing `/` from the registry key), replace the `commit` value, run `kura outdated --type skill`, then `kura update --type skill`, and review the diff before committing.
-`apollo-client` and `graphql-operations` always report as behind, because their `allowed-tools` frontmatter line is stripped locally; re-strip it after any update.
+`apollo-client`, `graphql-operations`, `mf`, and `monitor-ci` report as behind because their `allowed-tools` frontmatter is stripped locally; re-strip it after any update.
+Some vendored skills also differ only in em/en dash punctuation normalized to house style; preserve that normalization after updates.
+
+`monitor-ci` requires Nx's `ci-monitor-subagent` and Nx MCP tools in the target project.
+The skill catalog does not install or configure those integrations.
 
 Agent entries in [roles/ai/files/harness/kura/catalog/agent-registry.json](../../roles/ai/files/harness/kura/catalog/agent-registry.json) use `upstream` and `local` like the skill registry. Kura projects standalone agents with `global: true` and their declared skill dependencies into both harnesses with bare `kura sync`; `kura sync --type skill` leaves agent views unchanged. The AI role removes its old agent links, but never runs sync automatically.
 

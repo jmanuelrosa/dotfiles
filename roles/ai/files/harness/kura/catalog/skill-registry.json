@@ -2,6 +2,229 @@
   "$schema": "https://raw.githubusercontent.com/jmanuelrosa/kura/main/docs/schemas/skill-registry.schema.json",
   "version": 3,
   "upstream": {
+    "module-federation/agent-skills": {
+      "branch": "main",
+      "commit": "cfba18cc15d84fce52f36a147a2bb79d81049972",
+      "skills": [
+        {
+          "upstream_path": "skills/mf",
+          "groups": [
+            "engineering",
+            "frontend",
+            "architecture"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        }
+      ]
+    },
+    "github/awesome-copilot": {
+      "branch": "main",
+      "commit": "b6483db44fb602654bca6a097185fcaddb305f97",
+      "skills": [
+        {
+          "upstream_path": "skills/react19-source-patterns",
+          "groups": [
+            "engineering",
+            "frontend",
+            "react",
+            "refactoring"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        },
+        {
+          "upstream_path": "skills/react19-test-patterns",
+          "groups": [
+            "quality",
+            "frontend",
+            "qa",
+            "react",
+            "testing"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        }
+      ]
+    },
+    "rstackjs/agent-skills": {
+      "branch": "main",
+      "commit": "2ee8100ab8efb6d6c3c4c6d901fcb665b10163fc",
+      "skills": [
+        {
+          "upstream_path": "skills/rspack-best-practices",
+          "groups": [
+            "engineering",
+            "frontend",
+            "performance"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        },
+        {
+          "upstream_path": "skills/rsbuild-best-practices",
+          "groups": [
+            "engineering",
+            "frontend",
+            "workflow"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        },
+        {
+          "upstream_path": "skills/rsdoctor-analysis",
+          "groups": [
+            "engineering",
+            "frontend",
+            "performance",
+            "observability"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        }
+      ]
+    },
+    "antfu/skills": {
+      "branch": "main",
+      "commit": "8886fe2d385d3644cbb47e46ae9cb1cf09307d3b",
+      "skills": [
+        {
+          "upstream_path": "skills/vite",
+          "groups": [
+            "engineering",
+            "frontend",
+            "workflow"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        }
+      ]
+    },
+    "vercel/turborepo": {
+      "branch": "main",
+      "commit": "e158e859f804019fa48dd1af15bc247e4759d81e",
+      "skills": [
+        {
+          "upstream_path": "skills/turborepo",
+          "groups": [
+            "engineering",
+            "frontend",
+            "backend",
+            "devops",
+            "ci",
+            "workflow"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        }
+      ]
+    },
+    "nrwl/nx-ai-agents-config": {
+      "branch": "main",
+      "commit": "d36b53059f88dbb13264fde35d467a9d8261aec4",
+      "skills": [
+        {
+          "upstream_path": "skills/link-workspace-packages",
+          "groups": [
+            "engineering",
+            "frontend",
+            "backend",
+            "workflow"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        },
+        {
+          "upstream_path": "skills/monitor-ci",
+          "groups": [
+            "quality",
+            "devops",
+            "ci",
+            "workflow"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        },
+        {
+          "upstream_path": "skills/nx-cloud-api",
+          "groups": [
+            "engineering",
+            "devops",
+            "ci",
+            "observability"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        },
+        {
+          "upstream_path": "skills/nx-cloud-cache-investigator",
+          "groups": [
+            "engineering",
+            "devops",
+            "performance",
+            "ci"
+          ],
+          "dependencies": [
+            "nx-cloud-api"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        },
+        {
+          "upstream_path": "skills/nx-cloud-ci-failure-review",
+          "groups": [
+            "quality",
+            "devops",
+            "review",
+            "ci"
+          ],
+          "dependencies": [
+            "nx-cloud-api"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        },
+        {
+          "upstream_path": "skills/nx-generate",
+          "groups": [
+            "engineering",
+            "frontend",
+            "backend",
+            "workflow"
+          ],
+          "dependencies": [
+            "link-workspace-packages"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        },
+        {
+          "upstream_path": "skills/nx-import",
+          "groups": [
+            "engineering",
+            "devops",
+            "architecture",
+            "workflow"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        },
+        {
+          "upstream_path": "skills/nx-plugins",
+          "groups": [
+            "engineering",
+            "devops",
+            "workflow"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        },
+        {
+          "upstream_path": "skills/nx-run-tasks",
+          "groups": [
+            "engineering",
+            "devops",
+            "workflow"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        },
+        {
+          "upstream_path": "skills/nx-workspace",
+          "groups": [
+            "engineering",
+            "frontend",
+            "backend",
+            "architecture",
+            "workflow"
+          ],
+          "updated_at": "2026-10-29T10:28:03Z"
+        }
+      ]
+    },
     "anthropics/claude-plugins-official": {
       "branch": "main",
       "commit": "f359d43b406057f1a8cdbc4ea93b827642c162e6",
