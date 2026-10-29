@@ -58,6 +58,7 @@ APPS_DIRS:
   - "{{ HOME }}/.config/pgcli"
   - "{{ HOME }}/.config/herdr"
   - "{{ HOME }}/.config/dive"
+  - "{{ HOME }}/.config/triage"
   - "{{ HOME }}/.docker"
   - "{{ HOME }}/.colima/default"
   - "{{ HOME }}/Library/Application Support/act"
@@ -119,6 +120,10 @@ APPS_LINKS:
   - src: dive/config.yaml
     dest: "{{ HOME }}/.config/dive/config.yaml"
   # System
+  - src: triage/config.yaml
+    dest: "{{ HOME }}/.config/triage/config.yaml"
+  - src: triage/fallback-browser.json
+    dest: "{{ HOME }}/.config/triage/fallback-browser.json"
   - src: .aerospace.toml
     dest: "{{ HOME }}/.aerospace.toml"
 

@@ -79,6 +79,10 @@ Two rules that apply without opening anything: a **name must mean one artifact**
 
 ## Conventions
 
+- **Every app must restore its settings, not just install.** For every app managed by any role, track its non-secret settings in that role and restore them idempotently during provisioning (symlinks for config files, templates or native preference tasks where needed).
+  Import the current settings before replacing an unmanaged config, and make subsequent settings changes in the managed source.
+  Keep credentials in the existing vault or runtime authentication flow; never track logs, caches, sessions or other machine-local data.
+  Document any app with no configurable settings, settings that cannot be exported or restored, and unavoidable activation, login or permission steps in the owning role\'s README rather than silently leaving it unmanaged.
 - **Idempotency is mandatory.** Every task must be safe to re-run. If a task isn't naturally idempotent, gate it with a `stat` / `register` check.
 - **Commits and branch names follow the global conventions**, defined in the global instructions ([roles/ai/files/harness/AGENTS.md](roles/ai/files/harness/AGENTS.md)) and the commit skill, not per-repo.
 - **Lint exclusions** ([.ansible-lint](.ansible-lint)) skip `yaml[truthy]` and `var-naming` (uppercase Ansible vars are intentional). Don't fight the linter on those, they're conscious choices.
