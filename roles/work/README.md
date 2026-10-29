@@ -190,8 +190,9 @@ passes `--hostname` per host to cover both accounts.
 
 ## Spacelift (spacectl)
 
-`spacectl` has no settings file apart from its profiles, and a profile cannot be tracked: `~/.spacelift/<alias>` holds the endpoint and the token in the same file, and `~/.spacelift/current` is a symlink to the active one.
-So the role keeps the non-secret half, the alias and endpoint in `SPACELIFT_PROFILE`, and only checks that the profile exists.
+`spacectl` keeps all of its state in `~/.spacelift/config.json`: every profile's alias, endpoint and access token, plus `currentProfileAlias` for the selected one.
+The settings and the token share that file and spacectl rewrites it on every login, so it cannot be linked or templated.
+The role keeps the non-secret half, the alias and endpoint in `SPACELIFT_PROFILE`, and only checks that the file has that profile.
 A missing profile prints a warning rather than failing the play, because nothing else in the role depends on it.
 
 Log in once, from a normal terminal, with the values from `SPACELIFT_PROFILE`:
@@ -200,6 +201,7 @@ Log in once, from a normal terminal, with the values from `SPACELIFT_PROFILE`:
 spacectl profile login --method browser --endpoint https://addingwell.app.spacelift.io addingwell
 ```
 
+Check it with `spacectl profile current` and `spacectl whoami`.
 With several profiles, switch with `spacectl profile select <alias>`.
 Fish completions come with the cask, so there is nothing to link.
 

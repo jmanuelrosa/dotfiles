@@ -39,10 +39,18 @@
     force: true
   loop: "{{ WORK_SCRIPTS }}"
 
-- name: Check the spacectl profile exists
+- name: Check the spacectl config exists
   ansible.builtin.stat:
-    path: "{{ HOME }}/.spacelift/{{ SPACELIFT_PROFILE.alias }}"
-  register: spacectl_profile
+    path: "{{ HOME }}/.spacelift/config.json"
+  register: spacectl_config
+
+- name: Read the spacectl config
+  ansible.builtin.slurp:
+    src: "{{ spacectl_config.stat.path }}"
+  register: spacectl_config_raw
+  when: spacectl_config.stat.exists
+  # The file holds each profile's access token.
+  no_log: true
 
 - name: Warn when the spacectl profile is missing
   ansible.builtin.debug:
@@ -50,7 +58,9 @@
       spacectl has no '{{ SPACELIFT_PROFILE.alias }}' profile yet. Log in from a normal terminal:
         spacectl profile login --method browser --endpoint {{ SPACELIFT_PROFILE.endpoint }} {{ SPACELIFT_PROFILE.alias }}
       See roles/work/README.md (Spacelift).
-  when: not spacectl_profile.stat.exists
+  when: >-
+    not spacectl_config.stat.exists
+    or SPACELIFT_PROFILE.alias not in (spacectl_config_raw.content | b64decode | from_json).get('profiles', {})
 
 - name: Ensure glab-cli config directory exists
   ansible.builtin.file:
