@@ -2,7 +2,15 @@
 
 `_tv_kura_list` renders the skill, agent, and bundle rows used by the Television cables.
 `_tv_kura_toggle` applies installation and global-scope changes to the selected rows.
-Both derive state exclusively from `kura list --json`; neither reconstructs the catalog, workspace anchoring, or scope rules.
+`_tv_kura_skill_action` expands category selections for skill actions and previews.
+All derive state exclusively from `kura list`; none reconstructs the catalog, workspace anchoring, or scope rules.
+
+In `tv kura-skills`, press `Ctrl-S` to cycle to **Categories**.
+Rows show each category's skill count and how many are already linked.
+Use `Tab` to select categories such as `@frontend` and `@gcp`, then `Enter` to install their skills.
+Overlapping skills install once, already-linked skills stay linked, and each skill keeps the scope reported by Kura.
+Individual skill rows still toggle installation with `Enter`.
+Category previews list their skills; `Ctrl-D`, `Ctrl-U`, and `Ctrl-O` check, update, or edit all selected category members.
 
 Requires `kura` and `jq`.
 These are picker helpers rather than standalone user commands.

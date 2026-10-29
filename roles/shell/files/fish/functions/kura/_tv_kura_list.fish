@@ -30,10 +30,10 @@ function _tv_kura_list --description "Television source: list catalog skills, ag
             # Hides what is installed everywhere already, so browsing to install into one
             # project shows only what that project does not get for free.
             set select 'select(.global | not)'
-        case '' all
+        case '' all categories
             set select '.'
         case '*'
-            _ui err "_tv_kura_list: filter must be 'linked', 'available', 'noglobal', or empty"
+            _ui err "_tv_kura_list: filter must be 'linked', 'available', 'noglobal', 'categories', or empty"
             return 1
     end
 
@@ -42,6 +42,15 @@ function _tv_kura_list --description "Television source: list catalog skills, ag
         (.groups | join(", ")),
         (if .state == "missing" then "not downloaded" else .state end)
     ] | @tsv'
+
+    if test "$filter" = categories
+        set prog '[.[] | . as $skill | .groups[] | {group: ., state: $skill.state}]
+            | group_by(.group) | .[] | [
+                ("@" + .[0].group),
+                ("skills: \(length)"),
+                ("\([.[] | select(.state == "linked")] | length)/\(length) linked")
+            ] | @tsv'
+    end
 
     kura list --type $type --json | jq -r $prog | while read -l -d \t name groups state
         _tv_kura_fmt $name "$groups" $state
