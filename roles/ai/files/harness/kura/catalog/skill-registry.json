@@ -692,17 +692,6 @@
             "review"
           ],
           "updated_at": "2026-09-23T18:45:23Z"
-        },
-        {
-          "upstream_path": "skills/fix-sentry-issues",
-          "groups": [
-            "engineering",
-            "backend",
-            "frontend",
-            "observability",
-            "sentry"
-          ],
-          "updated_at": "2026-09-23T18:45:23Z"
         }
       ]
     },
@@ -3388,6 +3377,44 @@
         "ai"
       ],
       "note": "Locally authored"
+    },
+    {
+      "name": "triage",
+      "global": true,
+      "groups": [
+        "engineering",
+        "workflow",
+        "ai"
+      ],
+      "note": "Locally authored; routes one incoming item to automate, spec, clarify or park",
+      "dependencies": [
+        "sentry"
+      ]
+    },
+    {
+      "name": "watch",
+      "global": true,
+      "groups": [
+        "engineering",
+        "workflow",
+        "ai"
+      ],
+      "note": "Locally authored; report-only sentry (local /loop) and janitor sweeps",
+      "dependencies": [
+        "triage",
+        "sentry"
+      ]
+    },
+    {
+      "name": "sentry",
+      "groups": [
+        "engineering",
+        "backend",
+        "frontend",
+        "observability",
+        "sentry"
+      ],
+      "note": "Locally authored; drives the per-account sentry CLI wrapper, replaces the MCP-based fix-sentry-issues"
     },
     {
       "name": "cloudflare",

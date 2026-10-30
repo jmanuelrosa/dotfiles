@@ -101,7 +101,7 @@ Skills, not this file, are the source of stack-specific truth. Inventory what is
 | Rendering cost, bundle or CSS size, animation performance | `performance-optimization` |
 | Tricky types in a variant or token API | `typescript-magician` |
 | A test-first brief | `test-driven-development` |
-| A Sentry-reported issue | `fix-sentry-issues` |
+| A Sentry-reported issue | `sentry` |
 
 A row that does not fire is a skill you do not read. Adding a variant to an existing component fires none of the first two.
 

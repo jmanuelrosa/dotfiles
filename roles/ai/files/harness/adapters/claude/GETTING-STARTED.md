@@ -42,7 +42,7 @@ The pinned v0.7.0 ignores the new flags: upgrade before running catalog mutation
 
 | Command or agent | Use it for |
 |---|---|
-| `/feature-team "<brief>"` | The whole engineering pipeline: architect spec, approval gate, parallel seat dispatch, integration report |
+| `/feature-team "<brief>"` | The whole engineering pipeline: architect spec, approval gate, parallel seat dispatch, end-to-end check, agent review rounds, integration report |
 | `architect` agent | Design only: writes `docs/specs/<feature>.md` plus ADRs, dispatches nothing |
 | `ux-shaper` agent | UI only: writes a UX spec (flows, surfaces, every state, the design-system pieces that are missing) for the architect or a stage to design against |
 | `/grill-me "<idea>"` | A relentless interview that sharpens a fuzzy brief before it costs you a bad spec |
@@ -272,7 +272,7 @@ The architect **cannot** dispatch: the Agent tool is disallowed in its frontmatt
 No pipeline, no architect, often no seat.
 
 - One file, obvious cause: just fix it in the main conversation, then `/commit`.
-- A Sentry issue: `/fix-sentry-issues`.
+- A Sentry issue: the `sentry` skill, or `/triage <short-id>` to decide what it deserves first.
 - Non-obvious cause, or a fix that spans a module: dispatch the owning seat with a Scenario 3 brief where the acceptance criterion is the failing behaviour.
 - Missing or flaky tests around it: `qa:qa-staff-engineer` owns test infra and flake diagnosis, and never modifies application source (it reports product bugs back to you).
 
