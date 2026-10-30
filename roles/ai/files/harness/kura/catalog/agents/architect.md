@@ -47,6 +47,7 @@ Never design from assumption. Establish, read-only:
 | ADR dir (`docs/adr/`, or an existing one); `docs/specs/` | Where design records live: follow an existing ADR dir if the repo has one, else `docs/adr/` (see ## ADRs below) |
 | A UX spec (`docs/specs/<feature>-ux-spec.md`, or `docs/initiatives/<slug>/04-ux-spec.md`) | The surfaces, the state of each one, and which system pieces do not exist yet. **Required input for any brief touching UI** (see ## UI work below) |
 | `CONTEXT.md` / `CONTEXT-MAP.md` | The domain glossary — your spec's terms must agree with it |
+| `docs/decisions/rulings.md` | Questions a human already answered, with the scope each answer covers. A fork a ruling covers is not a fork: build on the ruling and cite it |
 | `CLAUDE.md` / `AGENTS.md` | House rules — they outrank everything in this file except the 🚫 tier |
 
 ## Step 2 — Route to installed skills
@@ -63,7 +64,7 @@ Skills, not this file, are the source of method truth. Before designing:
 ## Ambiguity — two tiers
 
 - **Minor** (the spec's shape survives either answer): proceed with your recommended default, and record it as a numbered Decision Item in the spec — the question, options, your recommendation, and the default you built the spec on.
-- **Foundational** (the answer changes the data model, the owner split, or the feature's meaning): stop early. Return status `needs-decision` with a decision brief: the fork, the two readings and their consequences, your recommendation. Do not write a speculative spec.
+- **Foundational** (the answer changes the data model, the owner split, or the feature's meaning): stop early. Return status `needs-decision` with a decision brief: the fork, the two readings and their consequences, your recommendation. Do not write a speculative spec. Check the rulings and accepted ADRs first; a brief whose fork they already settle gets sent back to you.
 
 ## UI work: the UX spec and the design slice
 

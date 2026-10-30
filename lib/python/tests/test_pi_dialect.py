@@ -275,6 +275,10 @@ def test_the_repo_root_claude_md_imports_the_shared_agents_md():
 # network and touches no path pi-sandbox can confine. What protects the account is
 # `cf`'s own confirmation prompt on destructive commands plus the skill's "Before any
 # write" section, which both harnesses read as prose.
+#
+# `sentry` took the first branch for the same reason. Its `allowed-tools` lists only the
+# read subcommands, so resolve, archive, merge and `sentry api` writes prompt under both
+# harnesses, and its "Writes change shared state" section is the guard both read.
 
 #
 # `teammate` took the first branch for `hooks:`. Its hook asks before any Write, Edit or
@@ -287,7 +291,7 @@ SKILL_KEYS_PI_IGNORES = ("allowed-tools", "effort", "hooks")
 
 CLAUDE_ONLY_SKILL_FRONTMATTER = {
     "ac", "agent-writer", "cloudflare", "coderabbit", "commit", "humanizer", "jira",
-    "pr", "product-lead", "research", "setup-review", "ship", "teammate",
+    "pr", "product-lead", "research", "sentry", "setup-review", "ship", "teammate",
     "0-refine-idea", "1-research", "2-write-prd", "3-red-team", "4-tech-shape",
     "5-decompose", "6-verify", "7-push-to-board", "8-living-spec", "setup-strategy",
     "agent-platform-alert-configuration", "cloud-run-alert-configuration", "aws-containers",
