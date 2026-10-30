@@ -127,7 +127,7 @@ def test_every_wrapper_delegates_to_the_keychain_helper():
     for name in WRAPPED:
         source = (WRAPPERS / f"{name}.fish").read_text()
         assert source.startswith(f"function {name} ")
-        assert f"_npm_token {name} $argv" in source
+        assert f"_npm_token --publish-only {name} $argv" in source
 
 
 def test_the_work_role_no_longer_carries_its_own_wrappers():
@@ -137,9 +137,35 @@ def test_the_work_role_no_longer_carries_its_own_wrappers():
 PUBLISH_COMMANDS = ["publish", "unpublish", "deprecate", "dist-tag", "owner", "access", "team", "token", "whoami"]
 
 
-def test_the_helper_hands_the_token_only_to_publishing_commands():
+def test_the_wrappers_hand_the_token_only_to_publishing_commands():
     source = (WRAPPERS / "_npm_token.fish").read_text()
+    publish_only = source.index("if test $publish_only = true")
     gate = source.index("if not contains -- $program npm pnpm bun yarn")
-    assert gate < source.index("for item in $NPM_TOKEN_KEYCHAIN_ITEMS")
+    assert publish_only < gate < source.index("for item in $NPM_TOKEN_KEYCHAIN_ITEMS")
     assert f'contains -- "$subcommand" {" ".join(PUBLISH_COMMANDS)}' in source
+
+
+def test_a_directory_scoped_item_overrides_the_unscoped_one():
+    source = (WRAPPERS / "_npm_token.fish").read_text()
+    assert "string split -m 3 : -- $item" in source
+    assert 'string match -q -- "$fields[4]/*" "$PWD"' in source
+    assert "for item in $unscoped $scoped" in source
+
+
+def test_yarn_never_sees_an_unset_token_variable():
+    source = (WRAPPERS / "_npm_token.fish").read_text()
+    guard = source.index("if test $program = yarn")
+    assert 'set -q $variable; or set -fx $variable ""' in source[guard:]
+    assert guard < source.index("command $argv")
+
+
+def test_didomi_repos_get_the_work_token_as_npm_token():
+    source = (WORK / "templates/exports.fish.j2").read_text()
+    names = "DID_NPM_TOKEN_KEYCHAIN"
+    entry = f"NPM_TOKEN:{{{{ {names}.service }}}}:{{{{ {names}.account }}}}:{{{{ DID_NPM_TOKEN_AS_NPM_TOKEN_UNDER }}}}"
+    assert f"contains -- {entry} $NPM_TOKEN_KEYCHAIN_ITEMS" in source
+    assert f"or set -ga NPM_TOKEN_KEYCHAIN_ITEMS {entry}" in source
+    assert source.index(entry) < source.index("{% endif %}")
+    defaults = yaml.safe_load((WORK / "defaults/main.yml").read_text())
+    assert defaults["DID_NPM_TOKEN_AS_NPM_TOKEN_UNDER"].startswith("{{ HOME }}/")
 

@@ -118,6 +118,7 @@ The mechanism belongs to the `shell` role, which does the same for the personal 
 
 - It includes the shell role's [keychain_token.yml](../shell/tasks/keychain_token.yml) with `DID_NPM_TOKEN` and the `DID_NPM_TOKEN_KEYCHAIN` names. That file writes the item only when it differs from the vault, so a re-run reports no change, and it writes through `security -i` on stdin so the token never shows in `ps`. Every `security` call in it carries `no_log: true`, and it fails with a named error when the keychain is locked rather than writing blind.
 - `work-secrets.fish` appends the item to `NPM_TOKEN_KEYCHAIN_ITEMS`, the list the shell role's [npm_token](../shell/files/fish/functions/npm_token/README.md) wrappers (`npm`, `npx`, `pnpm`, `pnpx`, `bun`, `bunx`, `yarn`) read per call. That README covers the failure behaviour and what the wrappers do not reach.
+- It appends the same item a second time as `NPM_TOKEN`, scoped to `DID_NPM_TOKEN_AS_NPM_TOKEN_UNDER`. Didomi repos name `${NPM_TOKEN}` for the GitLab registry in their own `.npmrc` and `.yarnrc.yml`, so inside them the work token has to answer to that name; everywhere else `NPM_TOKEN` stays the personal one. A private `@didomi` install needs the explicit prefix: `_npm_token yarn install --immutable`.
 - The `work-secrets.fish` render carries `diff: false` because the copy on disk from before this move still holds the token. The glab config render carries it because glab writes a token into that file for a host logged in without `--use-keyring`.
 
 An empty `DID_NPM_TOKEN` in the vault deletes the keychain item and leaves it out of the list.
@@ -127,6 +128,7 @@ Rotating the token is a vault edit followed by `make run-role ROLE=work PROFILE=
 
 - `BREW_PACKAGES` (defaults/main.yml) — taps/formulas/casks for the work tooling.
 - `DID_NPM_TOKEN_KEYCHAIN` (defaults/main.yml): the login keychain `service` and `account` the npm token is stored under.
+- `DID_NPM_TOKEN_AS_NPM_TOKEN_UNDER` (defaults/main.yml): the directory below which the npm token is also handed over as `NPM_TOKEN`.
 - `SPACELIFT_PROFILE` (defaults/main.yml): the `spacectl` profile `alias` and the Spacelift account `endpoint` it logs in to.
 - Vault-encrypted secrets live in `vars/work.yml`. See `vars/work.yml.example` for the full key list.
 
