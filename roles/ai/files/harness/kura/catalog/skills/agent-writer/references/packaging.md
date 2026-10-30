@@ -8,7 +8,7 @@ Two packaging paths, decided in mode selection: a seat (it has a paired failure-
 A seat and its skill live in one bundle folder, so the coupling cannot drift:
 
 ```text
-roles/ai/files/harness/kura/catalog/bundles/<discipline>/
+bundles/<discipline>/
 ├── bundle.json
 ├── agents/<seat>.md
 └── skills/<seat>-failure-modes/        (SKILL.md + references/)
@@ -33,7 +33,7 @@ Keep catalog groups and scope out of this manifest.
 
 ### Bundle registry entry
 
-Add a `local` entry in `kura/catalog/bundle-registry.json`:
+Add a `local` entry in `bundle-registry.json`:
 
 ```json
 {
@@ -56,7 +56,7 @@ After adding a bundle, trust the workspace (`kura trust --on`) and restart the h
 
 A utility agent (no paired skill) is a flat file with a registry entry:
 
-`roles/ai/files/harness/kura/catalog/agents/<name>.md` plus a `local` entry in `kura/catalog/agent-registry.json`:
+`agents/<name>.md` plus a `local` entry in `agent-registry.json`:
 
 ```json
 {
@@ -73,7 +73,7 @@ Always edit the registry via a python3 round-trip with `json.dump(..., indent=2)
 
 ## Groups vocabulary
 
-Artifact tags come from the controlled vocabulary in `docs/internals/skill-registry.md`, in facet order: discipline, persona, technology, topic.
+Artifact tags come from the controlled vocabulary in `docs/skill-registry.md`, in facet order: discipline, persona, technology, topic.
 Reuse an existing tag before coining one; the tooling treats groups as opaque, so no code change is needed either way.
 Coining is legitimate when the fleet already carries the tag: add it to the matching facet list in the registry documentation as part of the same change.
 Bundle tags live only in the registry; their paired skills carry no group list.

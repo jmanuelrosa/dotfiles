@@ -6,9 +6,9 @@ All checks must pass; a red check is fixed or reported honestly, never skipped.
 ## Checks
 
 1. **Line budget.** The agent is <= ~215 lines and in family with the siblings:
-   `wc -l roles/ai/files/harness/kura/catalog/bundles/*/agents/*.md`
+   `wc -l bundles/*/agents/*.md`
 2. **No em or en dashes** in any touched file:
-   `grep -rnP '[\x{2013}\x{2014}]' roles/ai/files/harness/kura/catalog/bundles/<discipline>/`
+   `grep -rnP '[\x{2013}\x{2014}]' bundles/<discipline>/`
    Must return nothing.
 3. **Frontmatter parses under strict YAML** and uses `description: >-`; confirm `model:`, `effort:` and `memory:` survived, and for advisor seats the `tools:` allowlist and its `effort: high` too:
    `awk '/^---$/{c++; next} c==1{print}' <file> | ruby -ryaml -e 'YAML.safe_load(STDIN.read)'`
@@ -18,7 +18,7 @@ All checks must pass; a red check is fixed or reported honestly, never skipped.
 5. **Packaging is valid.** For a seat bundle: `bundle.json` and `bundle-registry.json` parse as JSON, their names match `<discipline>`, and the manifest carries neither `groups` nor `global`.
    Confirm the manifest retains its identity and `requires`; descriptive groups live only in the registry, are nonempty and deduplicated, and omit the `global` tag.
    The registry row must omit `global`, `dependencies`, and `dependency_only`.
-   For a utility agent instead: both registries parse as JSON (`python3 -c "import json; json.load(open('roles/ai/files/harness/kura/catalog/skill-registry.json')); json.load(open('roles/ai/files/harness/kura/catalog/agent-registry.json'))"`).
+   For a utility agent instead: both registries parse as JSON (`python3 -c "import json; json.load(open('skill-registry.json')); json.load(open('agent-registry.json'))"`).
    Utility global roots use boolean `global: true`; their descriptive `groups` must not contain `global`.
 6. **The seat package is discoverable (with an executable supporting explicit global flags and bundle registry groups):**
    `kura list --type bundle --json` includes `<discipline>` with its descriptive groups, expected agent, and failure-modes skill after `kura add <discipline> --type bundle` in a scratch project. A global utility agent appears in both harnesses after bare `kura sync`.

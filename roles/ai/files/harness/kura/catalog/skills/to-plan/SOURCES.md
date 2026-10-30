@@ -8,8 +8,8 @@
 | Existing `to-plan/SKILL.md` and its introducing change in git history | Local behavior, high | Research before design, iterative review, and explicit implementation authorization |
 | Sibling `research/SKILL.md`, `SPEC.md`, and memo/source references | Local contract, high | Code plus external investigation, citations, confidence, contradictions, and adversarial verification |
 | Sibling `grilling/SKILL.md` | Upstream contract as installed, high | Dependency-aware decision tree, recomputed frontier, and shared-understanding gate |
-| `docs/internals/skill-registry.md` | Repository policy, high | Runtime dependencies belong in the registry and are resolved transitively |
-| `docs/internals/plan-files.md` | Repository policy, high | Dated, tracked plans under `docs/plans/` |
+| `docs/skill-registry.md` | Repository policy, high | Runtime dependencies belong in the registry and are resolved transitively |
+| [dotfiles `docs/internals/plan-files.md`](https://github.com/jmanuelrosa/dotfiles/blob/main/docs/internals/plan-files.md) | Repository policy, high | Dated, tracked plans under `docs/plans/` |
 | Installed Pi `docs/skills.md` | Official local documentation, high | Explicit `/skill:name` invocation and loading dependency instructions by reading files |
 | Installed `pi-subagents` skill and global instructions | Execution boundary, high | Skills cannot independently authorize delegation; one focused question per user-tool call |
 | Luka's [research skill](https://github.com/LukaPrebil/harness-config/blob/main/skills/research/SKILL.md) and linked Slack message | Workflow comparison, high | Evidence-only research followed by grilling, rather than recommending a design during research |

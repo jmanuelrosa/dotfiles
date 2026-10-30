@@ -25,7 +25,7 @@ If the fetch fails, say so and limit frontmatter findings to fields observed wor
 ## Step 1: Discover and classify
 
 1. Collect agent files from project `.claude/agents/` and global `~/.claude/agents/`.
-   When run inside the dotfiles repo, use the source of truth instead: `roles/ai/files/harness/kura/catalog/agents/` plus `roles/ai/files/harness/kura/catalog/agent-registry.json`.
+   When run inside the agent-catalog repo, use the source of truth instead: `agents/` plus `agent-registry.json`.
 2. Classify each agent:
    - **local**: under registry `local`, or no registry entry.
      Fixes may be applied.

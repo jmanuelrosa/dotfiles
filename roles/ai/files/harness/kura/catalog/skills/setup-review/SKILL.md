@@ -14,7 +14,7 @@ Maintenance review of my agent configuration.
    The reviewer reports which scopes it found and what usage evidence was available.
 3. Return the reviewer's report verbatim: prioritized P0-P2 findings, adoption opportunities, proposed new artifacts, action table, and highest-leverage next three moves.
 4. If the report contains adoption opportunities or proposed artifacts, use the harness's structured multi-select question tool to ask which items to take. Give each item one option whose description states why and how in one line. Skip this step when there are no ASK items.
-5. Apply only accepted items in this main conversation. Edit configuration directly; create skills or agents through the skill-writing skill. Most reviewed paths are symlinks into the dotfiles repo, so edit the owning file under `roles/ai/files/`, update its registry entry when needed, say where the change landed, and offer to commit there. Drop declined items without ceremony.
+5. Apply only accepted items in this main conversation. Edit configuration directly; create skills or agents through the skill-writing skill. Most reviewed paths are symlinks into a source checkout (agent-catalog for skills and agents, the configuration repo for the rest), so edit the owning file there, update its registry entry when needed, say where the change landed, and offer to commit there. Drop declined items without ceremony.
 
 The reviewer never modifies files.
 In this conversation, modify files only for items explicitly accepted in step 4.

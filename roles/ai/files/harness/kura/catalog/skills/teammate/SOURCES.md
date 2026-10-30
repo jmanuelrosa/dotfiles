@@ -13,7 +13,7 @@
 | Matt Pocock `teach` (learning records), `wayfinder` (index, not store), `wait-what` (re-pitch) | Read upstream, not installed; patterns only | `learner.md`, `INDEX.md` gists with a "Not yet mapped" section, the repair rule |
 | Addy Osmani `context-engineering` and `interview-me` (MIT) | Read upstream; patterns only | Retrieved content as untrusted evidence, explicit-yes approval semantics |
 | Claude Code 2.1.300 docs and probes in the authoring session | Platform contract plus measurement, high | Skill `hooks` frontmatter; `${CLAUDE_SKILL_DIR}` does not expand in a hook command; skill hooks do not fire inside subagents or after a headless `--resume`; `Explore` and `Plan` carry no write tools |
-| `docs/internals/harnesses.md` | Repository policy, high | Pi reads only `name`, `description`, `disable-model-invocation`; `PI_SESSION_ID`; Pi sandbox prompts on file-tool writes outside cwd; Codex has no subagent tool here |
+| [dotfiles `docs/internals/harnesses.md`](https://github.com/jmanuelrosa/dotfiles/blob/main/docs/internals/harnesses.md) | Repository policy, high | Pi reads only `name`, `description`, `disable-model-invocation`; `PI_SESSION_ID`; Pi sandbox prompts on file-tool writes outside cwd; Codex has no subagent tool here |
 | `skills/to-rfc/SKILL.md` | Local precedent, high | Wording for loading dependency skills by reading their files |
 
 ## Decisions and coverage
@@ -25,6 +25,6 @@
 | Invocation | User-only (`disable-model-invocation: true`) so it never takes over a coding session |
 | Model pin | None: it inherits the session model, and its subagents follow the harness bridge |
 | Generic | No product or company in the skill; everything product-specific lives in that product's `PROFILE.md` |
-| Store | `<workspace root>/.teammate/`, unversioned and personal; never this public dotfiles repo |
+| Store | `<workspace root>/.teammate/`, unversioned and personal; never a public configuration repo |
 | Write fence | Claude-only `ask` hook on Write, Edit and NotebookEdit outside `.teammate/`; ask, not deny, because a skill hook persists for the rest of the session |
 | Subagents | `Explore` and `Plan` only in Claude Code, because the fence does not reach subagents |
