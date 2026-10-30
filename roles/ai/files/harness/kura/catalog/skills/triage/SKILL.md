@@ -53,7 +53,7 @@ Posting the clarifying questions, transitioning a ticket, or commenting anywhere
 
 One block per item:
 
-```
+```text
 ### <ref>: <title>
 **Route:** automate | spec | clarify | park
 **Why:** <one or two lines, naming the files or precedent that decided it>
