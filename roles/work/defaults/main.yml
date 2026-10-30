@@ -37,3 +37,7 @@ WORK_SCRIPTS:
 DID_NPM_TOKEN_KEYCHAIN:
   service: dotfiles-did-npm-token
   account: "{{ USER }}"
+
+# Didomi repos read the GitLab token from NPM_TOKEN in their own .npmrc and .yarnrc.yml, so
+# under this directory the npm_token helper also hands DID_NPM_TOKEN's item over as NPM_TOKEN.
+DID_NPM_TOKEN_AS_NPM_TOKEN_UNDER: "{{ HOME }}/Developer/work/didomi"
