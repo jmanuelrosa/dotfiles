@@ -10,20 +10,26 @@ import yaml
 from harnessgen import cli, emit_pi, manifest, mcp
 
 ROOT = manifest.find_root()
-
-
-@pytest.fixture
-def harness(tmp_path, monkeypatch):
-    for relative in ["harness.toml", "policy", "mcp.json", "adapters/claude/adapter.toml", "adapters/codex/adapter.toml"]:
-        source, target = ROOT / relative, tmp_path / "source" / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
-        (shutil.copytree if source.is_dir() else shutil.copy)(source, target)
-    monkeypatch.setenv("HOME", str(tmp_path / "home"))
-    return tmp_path / "source", tmp_path / "home"
+FIXTURE_SERVERS = {
+    "notion": {"type": "http", "url": "https://mcp.notion.com/mcp"},
+    "slack": {"type": "http", "url": "https://mcp.slack.com/mcp"},
+}
 
 
 def inventory(root, servers):
     (root / "mcp.json").write_text(json.dumps({"mcpServers": servers}))
+
+
+@pytest.fixture
+def harness(tmp_path, monkeypatch):
+    """The merge tests run over a fixed inventory, so adding a real server does not rewrite them."""
+    for relative in ["harness.toml", "policy", "adapters/claude/adapter.toml", "adapters/codex/adapter.toml"]:
+        source, target = ROOT / relative, tmp_path / "source" / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        (shutil.copytree if source.is_dir() else shutil.copy)(source, target)
+    inventory(tmp_path / "source", FIXTURE_SERVERS)
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    return tmp_path / "source", tmp_path / "home"
 
 
 def claude_excludes(root, names):
@@ -33,6 +39,7 @@ def claude_excludes(root, names):
 
 def test_shared_servers_and_notion_policy():
     assert mcp.load(ROOT) == {
+        "drawio": {"type": "http", "url": "https://mcp.draw.io/mcp"},
         "notion": {"type": "http", "url": "https://mcp.notion.com/mcp"},
         "slack": {"type": "http", "url": "https://mcp.slack.com/mcp"},
     }
