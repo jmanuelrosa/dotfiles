@@ -19,6 +19,8 @@ BREW_PACKAGES:
     - claude-code@latest
     # - codex
     - cursor
+    # The `diagram` skill exports .drawio sources to SVG and PNG through its CLI.
+    - drawio
 
 # Directories symlinked into Pi's global extension root. Every entry contains the
 # auto-discovered index.ts and a README; claude-ui is deliberately not active.

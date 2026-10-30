@@ -7,6 +7,7 @@ effort: medium
 allowed-tools:
   - Bash(python3 *skills/ship/scripts/context.py*)
   - Bash(python3 *skills/ship/scripts/apply.py *)
+  - Bash(python3 *skills/diagram/scripts/diagrams.py scan*)
   - Bash(git push *)
   - Bash(git diff *)
   - Bash(git log *)
@@ -48,6 +49,9 @@ Prose that changes something (another base, another split, leave a file out) is 
    Excluded or capped files still show in the stats: ship them with the concern they belong to, and only run `git diff -- <path>` when one genuinely matters.
 
    Stop with a one-line reason when `WORKTREE=clean` and `UNPUSHED_COMMITS=0` and `PUSHED_COMMITS=0`: there is nothing to ship.
+
+   **Stale diagrams** (single call, skipped when the arguments say `skip diagrams`): `python3 ~/.claude/skills/diagram/scripts/diagrams.py scan --since <BASE_REF> --lint`.
+   A missing script or `DIAGRAMS=0` means move on. A non-zero `STALE` or `LINT_ERRORS` count means diagrams rest on files this branch changes, or fail lint: list each as `<name> (<FILE>)` with its changed files or `lint:` lines, then one `AskUserQuestion`, `header: "Diagrams"`: "`<n>` diagrams are stale or fail lint. Refresh them first?". Options: `Refresh first` (stop the run with nothing written and say to run `/diagram refresh`, then `/ship` again), `Ship anyway` (continue; the PR description names the stale diagrams under a "Docs" line). This question comes before the gate, so a `go` at the gate still means ship.
 
 2. **Decide the branch.**
    - `BRANCH_CONVENTION=ok` and the branch matches the work → `keep`, no question.

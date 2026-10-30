@@ -8,6 +8,7 @@ disable-model-invocation: true
 allowed-tools:
   - Bash(python3 *skills/pr/scripts/context.py*)
   - Bash(python3 *skills/pr/scripts/apply.py *)
+  - Bash(python3 *skills/diagram/scripts/diagrams.py scan*)
   - Bash(git push *)
   - Bash(git diff *)
   - Bash(git log *)
@@ -48,6 +49,8 @@ Everything left in this file is judgment: what the description says, whether a c
    - `WORKTREE=dirty`: stop and tell the user to run `/commit` first, then `/pr` on its own. Never run both skills in one turn, even when both were asked for together: the `git-skill-gate` hook attributes a git call to one skill, and two in flight collide.
    - `BRANCH_CONVENTION=nonstandard` (so `TITLE_SOURCE=unresolved`): do not push. Propose two valid names based on the branch's commits and diff, ask the user to choose one, validate it against `^(feature|fix|chore|docs|refactor|test|perf|ci|build|style|revert)\/([A-Z]+-[0-9]+-|gh-[0-9]+-)?[a-z0-9][a-z0-9-]*$`, rename with `git branch -m "$NEW_BRANCH"`, then rerun this context step. There is no title-only bypass.
    - `GLHOST_CANDIDATES` (GitLab only, when one server backs more than one authenticated account): `AskUserQuestion` with `header: "GitLab account"`, `multiSelect: false`, one option per candidate labelled `<host> (<account>)`, defaulting to the account matching `GIT_EMAIL`. Use `<chosen host>/<NS>` as the plan's `repo` in step 4. `NOT_LOGGED_IN=<host>` instead means leave `repo` out and let glab auto-detect; if the create then fails, tell the user to run `glab auth login`.
+
+   Then one more read-only call, skipped when the arguments say `skip diagrams`: `python3 ~/.claude/skills/diagram/scripts/diagrams.py scan --since <BASE> --lint`. A missing script or `DIAGRAMS=0` means move on. A non-zero `STALE` or `LINT_ERRORS` count means diagrams rest on files this branch changes, or fail lint: list each as `<name> (<FILE>)` with its changed files or `lint:` lines, then `AskUserQuestion` with `header: "Diagrams"`: "`<n>` diagrams are stale or fail lint. Refresh them first?". Options: `Refresh first` (stop with nothing pushed and say to run `/diagram refresh`, `/commit`, then `/pr` again), `Open anyway` (continue; name the stale diagrams under a "Docs" line in the description).
 
 2. **Fill the template**:
    - **Free-text sections**: clear, concise content on what the changes do and *why*. Link the ticket where relevant. When `TICKET_KIND=github`, put the `CLOSES` line (`Closes #<n>`) in the body, so merging closes the issue and advances its board card. Write that line even when `s-task` created the branch through `gh issue develop`: a linked branch already closes its issue on merge, but the keyword states the link where a reviewer sees it, and it is the only mechanism when the branch was not created that way.
