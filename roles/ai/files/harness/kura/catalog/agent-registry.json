@@ -52,6 +52,28 @@
       "dependencies": [
         "domain-modeling"
       ]
+    },
+    {
+      "name": "decision-judge",
+      "global": true,
+      "groups": [
+        "engineering",
+        "architecture",
+        "workflow"
+      ],
+      "note": "Locally authored; answers needs-decision from recorded precedent, never Tier-1"
+    },
+    {
+      "name": "code-reviewer",
+      "global": true,
+      "groups": [
+        "engineering",
+        "review"
+      ],
+      "note": "Locally authored; read-only reviewer for orchestrated review rounds",
+      "dependencies": [
+        "review-mechanics"
+      ]
     }
   ]
 }

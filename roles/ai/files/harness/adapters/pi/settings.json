@@ -101,6 +101,9 @@
       "cloud-staff-engineer": {
         "model": "openai-codex/gpt-6.1-sol"
       },
+      "code-reviewer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
       "competitive-researcher": {
         "model": "openai-codex/gpt-6.1-sol"
       },
@@ -108,6 +111,9 @@
         "model": "openai-codex/gpt-6.1-sol"
       },
       "database-staff-engineer": {
+        "model": "openai-codex/gpt-6.1-sol"
+      },
+      "decision-judge": {
         "model": "openai-codex/gpt-6.1-sol"
       },
       "design-staff-engineer": {
