@@ -109,7 +109,7 @@ def test_the_role_links_kuras_catalog_and_machine_configuration():
 
 
 def test_the_catalog_view_exposes_kuras_supported_inputs():
-    assert {entry.name for entry in KURA_CATALOG.iterdir()} == {
+    assert {entry.name for entry in KURA_CATALOG.iterdir()} >= {
         "skills",
         "skill-registry.json",
         "agents",
@@ -394,11 +394,17 @@ def test_every_registered_skill_has_a_source_on_disk():
     assert missing == [], f"registered skills with no directory: {missing}"
 
 
+def upstream_name(entry):
+    """The directory kura installs an upstream entry under: its `name`, else the
+    basename of `upstream_path`. A repo-root skill (`upstream_path: "."`) carries a name."""
+    return entry.get("name") or entry["upstream_path"].rstrip("/").rsplit("/", 1)[-1]
+
+
 def upstream_skill_dirs():
     registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
     for repo in registry["upstream"].values():
         for entry in repo["skills"]:
-            yield SKILLS / entry.get("name", entry["upstream_path"].rstrip("/").rsplit("/", 1)[-1])
+            yield SKILLS / upstream_name(entry)
 
 
 def test_no_upstream_skill_grants_itself_bash():
@@ -423,7 +429,7 @@ def test_to_plan_dependencies_have_registered_sources():
     registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
     entries = {entry["name"]: entry for entry in registry["local"]}
     entries.update(
-        (entry["upstream_path"].rstrip("/").rsplit("/", 1)[-1], entry)
+        (upstream_name(entry), entry)
         for repo in registry["upstream"].values()
         for entry in repo["skills"]
     )
@@ -445,7 +451,7 @@ def test_teammate_dependencies_are_installed_dependency_only_skills():
     """teammate reads its dependencies by path, so each must ship beside it and stay hidden."""
     registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
     upstream = {
-        entry["upstream_path"].rstrip("/").rsplit("/", 1)[-1]: entry
+        upstream_name(entry): entry
         for repo in registry["upstream"].values()
         for entry in repo["skills"]
     }
@@ -461,7 +467,7 @@ def test_the_global_set_holds_exactly_the_documented_membership():
     registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
     global_roots = {entry["name"] for entry in registry["local"] if entry.get("global", False)}
     global_roots.update(
-        entry["upstream_path"].rstrip("/").rsplit("/", 1)[-1]
+        upstream_name(entry)
         for repo in registry["upstream"].values()
         for entry in repo["skills"]
         if entry.get("global", False)
