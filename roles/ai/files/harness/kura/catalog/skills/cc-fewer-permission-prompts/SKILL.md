@@ -9,7 +9,8 @@ disable-model-invocation: true
 
 A port of Claude Code's `/fewer-permission-prompts` onto the neutral policy.
 Instead of `.claude/settings.json`, the rules go into `policy/permissions.toml`, the single source `make harness` renders into Claude Code, Pi and Codex.
-That holds wherever this runs: outside the dotfiles repo it still edits that file, never a project's settings.
+That holds wherever this runs: it edits that file, never a project's settings.
+The policy path comes from `$HARNESS_POLICY`, or from `--policy` when the user names one.
 
 The bundled `scripts/mine.py` does the counting, beside this file (global install `~/.claude/skills/cc-fewer-permission-prompts/` or `~/.agents/skills/cc-fewer-permission-prompts/`).
 It reads the most recent Claude Code transcripts (`~/.claude/projects/**/*.jsonl`) and Pi sessions (`~/.pi/agent/sessions/**/*.jsonl`), reduces each shell call to its command and read-only subcommand, keeps only what it can show is read-only, and subtracts what the policy already allows or denies and what Claude Code never prompts for.
@@ -18,7 +19,7 @@ It reads the most recent Claude Code transcripts (`~/.claude/projects/**/*.jsonl
 
 1. **Mine** (single call): `python3 <skill dir>/scripts/mine.py --json`, appending any arguments the user passed (`--min-count`, default 3; `--top`, default 20; `--sessions`, recent transcripts per harness, default 50, `0` for all).
    The JSON carries `policy` (the absolute path of the file to edit), `candidates` (ranked: `pattern`, `count`, `section`, `sources` per harness) and `skipped` (calls per reason, with the top patterns).
-   A non-zero exit means the policy file was not found: relay the error and stop.
+   A non-zero exit means no policy was given or the file was not found: relay the error and stop.
 
 2. **Present** the candidates as a markdown table, one row each, with a one-line note you write from the pattern:
 
@@ -43,7 +44,7 @@ It reads the most recent Claude Code transcripts (`~/.claude/projects/**/*.jsonl
    Skip a pattern already present, remove nothing, reorder nothing, and never touch `deny`, `[paths]`, `[mcp]` or any other section.
 
 6. **Report**: what was added (count and a few examples), what was already covered (`skipped.policy-allowed`), and what was skipped and why, from `skipped` (for example "dropped `python3` and `npm run`: arbitrary code; dropped `git status` and `ls`: Claude Code never prompts for them").
-   Then tell the user to run, from the dotfiles checkout that holds the policy file:
+   Then tell the user to run, from the checkout that holds the policy file:
    - `make harness`, with no Claude Code session open, since it rewrites Claude's `settings.json`;
    - `make harness-check`, to confirm nothing drifted.
 

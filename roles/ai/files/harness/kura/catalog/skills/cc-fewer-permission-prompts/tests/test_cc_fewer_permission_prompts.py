@@ -355,6 +355,15 @@ def test_a_wildcard_reaching_a_denied_rule_is_dropped(mine):
     assert mine.policy_reason("shell", "git stash list", policy) is None
 
 
-def test_the_default_policy_is_the_shared_one(mine):
-    assert mine.DEFAULT_POLICY.parts[-3:] == ("harness", "policy", "permissions.toml")
-    assert mine.DEFAULT_POLICY.is_file()
+def test_the_policy_defaults_to_the_environment(mine, capsys, monkeypatch, claude_root, pi_root, policy):
+    monkeypatch.setenv(mine.POLICY_ENV, str(policy))
+    code = mine.main(["--json", "--claude-projects", str(claude_root), "--pi-sessions", str(pi_root)])
+    assert code == 0
+    assert json.loads(capsys.readouterr().out)["policy"] == str(policy.resolve())
+
+
+def test_refuses_without_a_policy(mine, capsys, monkeypatch, claude_root, pi_root):
+    monkeypatch.delenv(mine.POLICY_ENV, raising=False)
+    code = mine.main(["--json", "--claude-projects", str(claude_root), "--pi-sessions", str(pi_root)])
+    assert code == 1
+    assert mine.POLICY_ENV in capsys.readouterr().err
