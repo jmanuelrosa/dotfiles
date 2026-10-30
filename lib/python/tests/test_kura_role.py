@@ -477,6 +477,7 @@ def test_the_global_set_holds_exactly_the_documented_membership():
         "cloudflare",
         "coderabbit",
         "commit",
+        "diagram",
         "documentation-and-adrs",
         "feature-team",
         "grill-me",

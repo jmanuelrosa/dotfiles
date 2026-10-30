@@ -3446,6 +3446,17 @@
         "domain-modeling"
       ],
       "note": "Locally authored; composes how, why, teach, unslop and domain-modeling into a read-only product teammate"
+    },
+    {
+      "name": "diagram",
+      "global": true,
+      "groups": [
+        "engineering",
+        "architecture",
+        "documentation",
+        "writing"
+      ],
+      "note": "Locally authored; draws Mermaid or draw.io diagrams per documentation kind into doc pages with sha+paths anchors, and refreshes the stale ones; ship and pr scan for stale diagrams before their gate"
     }
   ]
 }
