@@ -40,6 +40,7 @@ A review reports.
 It does not edit, stage, commit, delete, or run a fixer.
 Read, Grep, Glob and read-only `git` are the tools.
 Fixes are a separate turn the user asks for, so the diff under review stays the diff that was reviewed.
+One orchestrated exception: `feature-team` may route findings to the owning seats before any human sees the diff, provided a read-only review is the last step, so what the human reads is still a diff that was reviewed.
 
 **Nits are capped at three, and zero when a blocker is present.**
 An appendix of nits costs a reader the same as reporting them.
