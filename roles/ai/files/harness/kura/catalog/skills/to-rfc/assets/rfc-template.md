@@ -2,9 +2,9 @@
 
 <!--
 How to use this template
-- It follows the sections of the company template in the Notion "List of RFCs" database ("[Team] Subject"), so reviewers find the usual outline. Create the RFC from that database, then paste this content.
-- Title: "[Team] Subject (EPIC-KEY)", for example "[Addingwell] Domains management (SER-1411)". Prefix with [WIP] while it is a draft.
-- Notion properties: Authors, Date, a one-sentence Description, Status (DRAFT while writing, Open for Comments when shared).
+- When the project or the team has its own RFC template, follow its outline instead; this one is the default.
+- Title: "[Team] Subject (EPIC-KEY)", for example "[Payments] Refund retries (PAY-1411)". Prefix with [WIP] while it is a draft.
+- Record the authors, the date, a one-sentence description and the status (DRAFT while writing, Open for Comments when shared) wherever the team tracks RFCs.
 - Delete every italic guidance line and this comment before sharing.
 
 Writing rules
@@ -52,7 +52,7 @@ Writing rules
 
 *Most of the document, and only the solution we propose: the options we weighed go to section 6.*
 
-*Open with a small diagram when the flow spans systems. Prefer a top-down flowchart with one subgraph per owner, and a sequence diagram for steps over time, to one long left-to-right chain. In Notion, set each Mermaid block to Preview so the code is hidden.*
+*Open with a small diagram when the flow spans systems. Prefer a top-down flowchart with one subgraph per owner, and a sequence diagram for steps over time, to one long left-to-right chain.*
 
 *One subsection per decision or component that changes in the system, not per screen. Each opens with a bold one-line verdict, then the reasoning in a few lines.*
 
@@ -62,7 +62,7 @@ Writing rules
 
 *Why, in three to six lines.*
 
-*Put long research or measurements in a Notion toggle under the subsection, so the body stays short.*
+*Put long research or measurements in a collapsible block or a linked page, so the body stays short.*
 
 ### 3.2 *Decision or component*
 
@@ -123,4 +123,4 @@ Writing rules
 
 | Date | Decision | Where | Section |
 |---|---|---|---|
-| | | *technical refinement, Slack thread, Notion comment, "proposal, after a Notion comment"* | |
+| | | *technical refinement, Slack thread, review comment, "proposal, after a review comment"* | |

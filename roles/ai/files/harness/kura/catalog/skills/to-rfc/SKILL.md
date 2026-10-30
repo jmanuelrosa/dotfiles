@@ -23,7 +23,7 @@ Keep three things apart throughout: facts with citations, decisions the author m
 - Modify only the RFC draft, its local replies file, `GLOSSARY.md`, and new ADRs under the project's ADR convention.
   Do not modify implementation code, configs, dependencies, or accepted ADRs.
 - Never publish anywhere (Notion, Jira, Slack).
-  The output is a local markdown file the user pastes into the Notion RFC database themselves.
+  The output is a local markdown file the user pastes into the team's RFC space themselves.
 
 ## 1. Intake
 
