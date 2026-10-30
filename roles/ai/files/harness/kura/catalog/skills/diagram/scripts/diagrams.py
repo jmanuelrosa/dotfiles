@@ -32,9 +32,9 @@ import json
 import re
 import subprocess
 import sys
-import xml.etree.ElementTree as ElementTree
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from xml.etree import ElementTree
 
 EXIT_OK = 0
 EXIT_USAGE = 1
