@@ -1,14 +1,14 @@
 # Claude
 
-Shared payload for Claude Code and Pi skills, agents, and catalog bundles. Kura manages standalone skills and agents through `../../kura/catalog/`. Project plugin links remain project-owned legacy state.
+Shared payload for Claude Code and Pi skills, agents, and catalog bundles. Kura manages standalone skills and agents through the [agent-catalog](https://github.com/jmanuelrosa/agent-catalog) repository, cloned to `~/Developer/agent-catalog` and linked at `~/.config/kura/catalog`. Project plugin links remain project-owned legacy state.
 
-This document covers how to **use them in a project** and how to **add new skills and agents to the dotfiles repo** itself.
+This document covers how to **use them in a project** and how to **add new skills and agents to the catalog**, which happens in the agent-catalog clone rather than in the dotfiles repo.
 
 For the worked example (a project from zero, product side then engineering side, with the exact commands and dispatch briefs) read [GETTING-STARTED.md](GETTING-STARTED.md). This file is the reference; that one is the walkthrough. For keeping a session cheap, and for the measured list of things that are not worth optimising, read [CONTEXT-TIPS.md](CONTEXT-TIPS.md).
 
 ## Commands
 
-`kura` is the CLI. It lives in its own repository now: the `ai` role installs a pinned release at `~/.local/bin/kura` and links `~/.config/kura/catalog` to `files/kura/catalog`. It replaced the `claude-skill` / `claude-agent` fish functions, which are gone.
+`kura` is the CLI. It lives in its own repository now: the `ai` role installs a pinned release at `~/.local/bin/kura` and links `~/.config/kura/catalog` to its clone of agent-catalog at `~/Developer/agent-catalog`. It replaced the `claude-skill` / `claude-agent` fish functions, which are gone.
 
 ```text
 kura init                                        Initialize the exact cwd and selected harnesses
@@ -33,13 +33,13 @@ Artifact commands accept `--type skill`, `--type agent`, and `--type bundle`. `a
 
 ## Agents and bundles
 
-Kura links standalone agents with `global: true` from `../../kura/catalog/agents/` into each harness's native agent root with bare `kura sync`, including their required skills. The AI role removes only its own former agent links and Pi bridge. Use `kura add <name> --type agent` for an initialized project's standalone agent.
+Kura links standalone agents with `global: true` from the catalog's [agents/](https://github.com/jmanuelrosa/agent-catalog/tree/main/agents) into each harness's native agent root with bare `kura sync`, including their required skills. The AI role removes only its own former agent links and Pi bridge. Use `kura add <name> --type agent` for an initialized project's standalone agent.
 
-Seat and product bundles live under `../../kura/catalog/bundles/`. Install them per project with `kura add <name> --type bundle` after `kura init`.
+Seat and product bundles live under the catalog's [bundles/](https://github.com/jmanuelrosa/agent-catalog/tree/main/bundles). Install them per project with `kura add <name> --type bundle` after `kura init`.
 
 ## Product Team
 
-A two-gate, spec-driven pipeline that takes a raw product idea to an engineering-ready backlog, and then to a living record of what the system actually does. It ships as the `product-team` bundle (see [kura/catalog/bundles/product-team/skills/product-lead/SKILL.md](kura/catalog/bundles/product-team/skills/product-lead/SKILL.md) for the guide).
+A two-gate, spec-driven pipeline that takes a raw product idea to an engineering-ready backlog, and then to a living record of what the system actually does. It ships as the `product-team` bundle (see [bundles/product-team/skills/product-lead/SKILL.md](https://github.com/jmanuelrosa/agent-catalog/blob/main/bundles/product-team/skills/product-lead/SKILL.md) for the guide).
 
 The mental model:
 
@@ -171,7 +171,7 @@ A separate delegation system for building what Product Team specs out. Each seat
 | `qa-staff-engineer` | Unit/integration/e2e tests, test infra, fixtures, flake diagnosis | Modifies application source; reports product bugs back to the caller |
 | `security-staff-engineer` | Read-only assessment: STRIDE threat models, dependency audits, secrets hygiene, authn/authz review | Edits files; auto-delegation during coding (diff review is `/security-review`) |
 
-Each seat is a catalog bundle under `roles/ai/files/harness/kura/catalog/bundles/<discipline>/` that bundles the agent with its `<discipline>-failure-modes` skill (`frontend-failure-modes`, `backend-failure-modes`, and so on): an audited checklist of that domain's common defects the seat consults before it implements. `kura add <discipline> --type bundle` links the agent and skill into the project under bare names (`backend-staff-engineer`, `backend-failure-modes`).
+Each seat is a catalog bundle under `bundles/<discipline>/` in [agent-catalog](https://github.com/jmanuelrosa/agent-catalog/tree/main/bundles) that bundles the agent with its `<discipline>-failure-modes` skill (`frontend-failure-modes`, `backend-failure-modes`, and so on): an audited checklist of that domain's common defects the seat consults before it implements. `kura add <discipline> --type bundle` links the agent and skill into the project under bare names (`backend-staff-engineer`, `backend-failure-modes`).
 
 Product Team hands off a backlog; then `/feature-team "<brief>"` runs the build side: `architect` writes the spec, you approve the plan, the installed seats implement in parallel, the skill exercises the integrated change end to end and runs two review rounds through the read-only `code-reviewer` agent (review, the owning seats fix, review again, nothing fixed after the last review), and it returns an integration report. A seat's or the architect's `needs-decision` goes to the `decision-judge` agent first, which answers from `docs/decisions/rulings.md` and accepted ADRs, sends malformed questions back, and holds the rest (and every Tier-1 item) for you; your answers to held questions are appended to that rulings file. Dispatch seats by agent filename (`backend-staff-engineer`, not a prefix).
 
@@ -194,9 +194,9 @@ The per-story loop:
 
 ## The Tracked/Local Rule
 
-Every skill and agent in this repo is either:
+Every skill and agent in the catalog is either:
 
-- **Tracked** - synced from an upstream GitHub repo, declared under `upstream` in [skill-registry.json](../../kura/catalog/skill-registry.json) or [agent-registry.json](../../kura/catalog/agent-registry.json), or
+- **Tracked** - synced from an upstream GitHub repo, declared under `upstream` in [skill-registry.json](https://github.com/jmanuelrosa/agent-catalog/blob/main/skill-registry.json) or [agent-registry.json](https://github.com/jmanuelrosa/agent-catalog/blob/main/agent-registry.json), or
 - **Local** - authored (or consolidated) here, declared under `local` in the matching registry.
 
 **Never both, never neither.** The `local` arrays are the authoritative inventory of locally-authored items. If a skill or agent exists on disk but doesn't appear in either place, that's a bug.
@@ -229,20 +229,23 @@ Leave `model:` off unless inheriting the caller's model would be wrong for the w
 
 All 15 seats, `architect` and `ux-shaper` carry `memory: project`, giving each one `<project>/.claude/agent-memory/<name>/` so it stops rediscovering the same stack facts on every dispatch. For `ux-shaper` those facts are the design system: which tokens exist, which components have which variants. The directory is committable by design, so a seat records the **shape of the codebase** there and never a secret, a credential, or a security finding's exploit detail. Enabling the field is not enough on its own: each seat also carries a boundary bullet telling it to write there, and the completion report still names the gotchas for the caller.
 
-Authoring guidance for all three lives with the generators, and they are the files to change if this policy changes: [skills/agent-writer/references/seat-agent-anatomy.md](skills/agent-writer/references/seat-agent-anatomy.md) for seats, [skills/skill-writer/references/claude-frontmatter-invocation.md](skills/skill-writer/references/claude-frontmatter-invocation.md) for skills, and [skills/agent-audit/SKILL.md](skills/agent-audit/SKILL.md) for the audit rubric that catches drift.
+Authoring guidance for all three lives with the generators, and they are the files to change if this policy changes: [skills/agent-writer/references/seat-agent-anatomy.md](https://github.com/jmanuelrosa/agent-catalog/blob/main/skills/agent-writer/references/seat-agent-anatomy.md) for seats, [skills/skill-writer/references/claude-frontmatter-invocation.md](https://github.com/jmanuelrosa/agent-catalog/blob/main/skills/skill-writer/references/claude-frontmatter-invocation.md) for skills, and [skills/agent-audit/SKILL.md](https://github.com/jmanuelrosa/agent-catalog/blob/main/skills/agent-audit/SKILL.md) for the audit rubric that catches drift.
 
 ## Adding Skills
+
+Skills and agents are added in the agent-catalog clone at `~/Developer/agent-catalog`, and committed and pushed from there.
+The paths below are relative to that clone.
 
 ### Option A — Local skill
 
 1. Create the directory with a `SKILL.md`:
 
    ```text
-   roles/ai/files/harness/kura/catalog/skills/my-skill/
+   skills/my-skill/
      SKILL.md
    ```
 
-2. Declare it in `local_skills` in [skill-registry.json](skill-registry.json) with its groups and a note:
+2. Declare it in `local` in [skill-registry.json](https://github.com/jmanuelrosa/agent-catalog/blob/main/skill-registry.json) with its groups and a note:
 
    ```json
    { "name": "my-skill", "groups": ["productivity"], "note": "Locally authored" }
@@ -254,7 +257,7 @@ Authoring guidance for all three lives with the generators, and they are the fil
 
 ### Option B — Track from an upstream repo
 
-1. Add an entry to [skill-registry.json](skill-registry.json) under the appropriate repo key:
+1. Add an entry to [skill-registry.json](https://github.com/jmanuelrosa/agent-catalog/blob/main/skill-registry.json) under the appropriate repo key:
 
    ```json
    {
@@ -273,10 +276,10 @@ Authoring guidance for all three lives with the generators, and they are the fil
 1. Create the file directly:
 
    ```text
-   roles/ai/files/harness/kura/catalog/agents/my-agent.md
+   agents/my-agent.md
    ```
 
-2. Declare it in `local` in [agent-registry.json](../../kura/catalog/agent-registry.json) with its groups and a note:
+2. Declare it in `local` in [agent-registry.json](https://github.com/jmanuelrosa/agent-catalog/blob/main/agent-registry.json) with its groups and a note:
 
    ```json
    { "name": "my-agent", "global": true, "groups": ["quality"], "note": "Locally authored" }
@@ -288,7 +291,7 @@ Authoring guidance for all three lives with the generators, and they are the fil
 
 ### Option B — Track from an upstream repo
 
-1. Add an entry to [agent-registry.json](../../kura/catalog/agent-registry.json) under the appropriate upstream repo key:
+1. Add an entry to [agent-registry.json](https://github.com/jmanuelrosa/agent-catalog/blob/main/agent-registry.json) under the appropriate upstream repo key:
 
    ```json
    {
@@ -298,7 +301,7 @@ Authoring guidance for all three lives with the generators, and they are the fil
    }
    ```
 
-2. Copy the file in by hand and record `updated_at` yourself: `update` and `outdated` cover skills only (`kura update --type agent` refuses), because every agent here is authored in this repo. `upstream` is empty today, and this is the reason to think twice before filling it.
+2. Copy the file in by hand and record `updated_at` yourself: `update` and `outdated` cover skills only (`kura update --type agent` refuses), because every agent in the catalog is authored there. `upstream` is empty today, and this is the reason to think twice before filling it.
 
 ## Registry Format
 
@@ -348,12 +351,16 @@ The retired `global` group tag is rejected.
 
 ## Directory Structure
 
+The catalog lives in [agent-catalog](https://github.com/jmanuelrosa/agent-catalog), cloned to `~/Developer/agent-catalog` and linked at `~/.config/kura/catalog`:
+
 ```text
-roles/ai/files/harness/kura/catalog/
+~/Developer/agent-catalog/
   skills/                 # Individual skills (directories with SKILL.md)
   agents/                 # Standalone agent .md files
+  bundles/                # Seat and product bundles
   skill-registry.json     # Skill metadata
   agent-registry.json     # Agent metadata
+  bundle-registry.json    # Bundle metadata
 ```
 
 Every `.md` in `rules/` is linked into `~/.claude/rules/` and loads at launch in every project, so it is machine-wide the moment the `ai` role runs.

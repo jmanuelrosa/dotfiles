@@ -315,12 +315,12 @@ No pipeline, no architect, often no seat.
 |---|---|
 | The reference for all of this | [README.md](README.md) |
 | Keeping a session cheap, and what is not worth optimising | [CONTEXT-TIPS.md](CONTEXT-TIPS.md) |
-| Product pipeline mechanics (layout, the two gates, profiles, deferrals) | [kura/catalog/bundles/product-team/skills/product-lead/references/conventions.md](kura/catalog/bundles/product-team/skills/product-lead/references/conventions.md) |
-| Product gate protocol per medium, and the revision flow | [kura/catalog/bundles/product-team/skills/product-lead/references/gates.md](kura/catalog/bundles/product-team/skills/product-lead/references/gates.md) |
-| The engineering pipeline, step by step | [skills/feature-team/SKILL.md](skills/feature-team/SKILL.md) |
-| The spec contract and the ADR rules | [architect.md](../../kura/catalog/agents/architect.md) |
-| The UX spec contract (flows, surfaces, the state matrix) | [ux-shaper.md](../../kura/catalog/agents/ux-shaper.md), [kura/catalog/bundles/product-team/skills/product-lead/references/templates/ux-spec.md](kura/catalog/bundles/product-team/skills/product-lead/references/templates/ux-spec.md) |
-| A seat's anatomy, boundaries and report contract | `plugins/<discipline>/agents/<discipline>-staff-engineer.md` |
-| A seat's failure-mode checklists | `plugins/<discipline>/skills/<discipline>-failure-modes/` |
+| Product pipeline mechanics (layout, the two gates, profiles, deferrals) | [bundles/product-team/skills/product-lead/references/conventions.md](https://github.com/jmanuelrosa/agent-catalog/blob/main/bundles/product-team/skills/product-lead/references/conventions.md) |
+| Product gate protocol per medium, and the revision flow | [bundles/product-team/skills/product-lead/references/gates.md](https://github.com/jmanuelrosa/agent-catalog/blob/main/bundles/product-team/skills/product-lead/references/gates.md) |
+| The engineering pipeline, step by step | [skills/feature-team/SKILL.md](https://github.com/jmanuelrosa/agent-catalog/blob/main/skills/feature-team/SKILL.md) |
+| The spec contract and the ADR rules | [architect.md](https://github.com/jmanuelrosa/agent-catalog/blob/main/agents/architect.md) |
+| The UX spec contract (flows, surfaces, the state matrix) | [ux-shaper.md](https://github.com/jmanuelrosa/agent-catalog/blob/main/agents/ux-shaper.md), [bundles/product-team/skills/product-lead/references/templates/ux-spec.md](https://github.com/jmanuelrosa/agent-catalog/blob/main/bundles/product-team/skills/product-lead/references/templates/ux-spec.md) |
+| A seat's anatomy, boundaries and report contract | `bundles/<discipline>/agents/<discipline>-staff-engineer.md` in agent-catalog |
+| A seat's failure-mode checklists | `bundles/<discipline>/skills/<discipline>-failure-modes/` in agent-catalog |
 | `kura` full reference and FAQ | kura's own README, in its repository |
-| Which artifacts are global, and the group vocabulary | [skill-registry.json](../../kura/catalog/skill-registry.json), [agent-registry.json](../../kura/catalog/agent-registry.json) |
+| Which artifacts are global, and the group vocabulary | [skill-registry.json](https://github.com/jmanuelrosa/agent-catalog/blob/main/skill-registry.json), [agent-registry.json](https://github.com/jmanuelrosa/agent-catalog/blob/main/agent-registry.json) |

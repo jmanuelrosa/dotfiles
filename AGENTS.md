@@ -16,7 +16,7 @@ Most plays prompt for the vault password (decrypts `vars/secrets.yml` / `vars/wo
 | Command | Purpose |
 |---|---|
 | `make lint` | `lint-static`, then `ansible-lint` (config in [.ansible-lint](.ansible-lint)). No vault password, so it runs unattended |
-| `make lint-static` | markdownlint, ruff, shellcheck and fish checks, with no vault, so it runs unattended. [bin/lint-files](bin/lint-files) picks each linter's files by shebang and skips upstream catalog entries |
+| `make lint-static` | markdownlint, ruff, shellcheck and fish checks, with no vault, so it runs unattended. [bin/lint-files](bin/lint-files) picks each linter's files by shebang |
 | `make test` | pytest over every python suite. Roots live in [pytest.ini](pytest.ini), not the Makefile. No vault, no become password, no network, so it runs unattended, as do the `harness-check` and `harness-report` targets |
 | `make syntax` | Playbook syntax check. No vault or become password |
 | `make check` | Full dry-run with `--check --diff` |
@@ -50,7 +50,7 @@ Roles whose name does not tell you what is inside:
 | Role | Holds |
 |---|---|
 | [coreutils](roles/coreutils/) | Modern Unix replacements (bat, eza, fd, ripgrep, television, btop). **Not** the GNU `coreutils` package. Domain CLIs (awscli, gh, docker, lazygit) live in `apps` beside their configs |
-| [ai](roles/ai/) | Claude Code, Pi and Codex tooling. All three run over one harness-neutral payload, `files/harness/`, whose `policy/` is rendered into each harness's config, described in [harnesses](docs/internals/harnesses.md). `rtk` ships here and is opt-in per shell via `RTK_ENABLE`; pi's guardrails only see pi's own tools, which is why the shell exports `PI_CURSOR_EXPOSE_BUILTIN_TOOLS` |
+| [ai](roles/ai/) | Claude Code, Pi and Codex tooling. All three run over one harness-neutral payload, `files/harness/`, whose `policy/` is rendered into each harness's config, described in [harnesses](docs/internals/harnesses.md). The skill and agent catalog is the separate [agent-catalog](https://github.com/jmanuelrosa/agent-catalog) repository, which the role clones and links for `kura`. `rtk` ships here and is opt-in per shell via `RTK_ENABLE`; pi's guardrails only see pi's own tools, which is why the shell exports `PI_CURSOR_EXPOSE_BUILTIN_TOOLS` |
 | [shell](roles/shell/) | fish, Ghostty, Starship, Television, plus the custom fish functions and the vendored television cables |
 | [ssh](roles/ssh/) | Drives off `SSH_KEYS + SSH_KEYS_EXTRA`; per-profile keys go in `host_vars/<profile>.yml` |
 | [macos](roles/macos/) | `osx_defaults` plus nvram/pmset firmware tweaks |
@@ -62,20 +62,17 @@ Open the one you are working in, and only that one.
 
 | Open this | When you are |
 |---|---|
-| [The ai role](roles/ai/README.md) | Changing how the pinned `kura` release is installed or what catalog it is pointed at. `kura` itself lives in its own repository now, and its commands, scopes, provenance manifest, dependency resolution, `sync` pruning and workspace trust are documented there |
-| [Skill registry & dependencies](docs/internals/skill-registry.md) | Adding or retagging a skill or agent, touching `skill-registry.json` / `agent-registry.json`, the `groups` vocabulary, or the `global` root flag |
-| [Seat bundles](docs/internals/seat-plugins.md) | Authoring or upgrading a staff-engineer seat, its failure-mode references, or the design-versus-frontend boundary |
-| [The product-team bundle](docs/internals/product-team.md) | Working on the two-gate product pipeline, its stages, `pt.py`, or `docs/initiatives/` artifacts |
+| [The ai role](roles/ai/README.md) | Changing how the pinned `kura` release is installed or how the catalog is cloned and linked. `kura` itself lives in its own repository now, and its commands, scopes, provenance manifest, dependency resolution, `sync` pruning and workspace trust are documented there |
+| [agent-catalog](https://github.com/jmanuelrosa/agent-catalog) and its [docs](https://github.com/jmanuelrosa/agent-catalog/tree/main/docs) | Adding or retagging a skill, agent or bundle, touching the registries, the `groups` vocabulary or the `global` root flag, authoring a staff-engineer seat, working on the product-team pipeline or `pt.py`, or on the `ac` skill. The catalog is its own repository, cloned to `~/Developer/agent-catalog` and linked at `~/.config/kura/catalog` |
 | [Code review policy](docs/internals/code-review-policy.md) | Changing the review bar, its severities or axes, or anything under `roles/ai/files/harness/rules/` |
 | [Skill precedence](docs/internals/skill-precedence.md) | Resolving a conflict between an installed skill and an agent's own checklist |
 | [Script output style](docs/internals/script-output-style.md) | Writing or changing any script that prints, in fish or python |
 | [Where a test lives](docs/internals/testing-layout.md) | Adding a test suite, or changing `pytest.ini` roots |
 | [Plan files](docs/internals/plan-files.md) | Touching `plansDirectory`, the plan date-stamp hook, or `docs/plans/` |
-| [Acceptance criteria](docs/internals/acceptance-criteria.md) | Working on the `ac` skill or its Jira publishing path |
 | [Harnesses](docs/internals/harnesses.md) | Changing `policy/` or the `harnessgen` generator; working on Pi (the shared payload, the translated guardrail hooks, the derived `pi-sandbox` permission config, the two trust stores, the footer, `tokencost --pi`); or working on Codex (the merged `config.toml`, the rules copy, hook trust) |
 | [Context hygiene](docs/internals/context-hygiene.md) | Investigating token or usage spend, or deciding where a piece of documentation should live |
 
-Two rules that apply without opening anything: a **name must mean one artifact** across `skill-registry.json`, `agent-registry.json`, and `kura/catalog/bundles/`, and the global skill and agent directories are **owned and pruned**: `kura sync` deletes a link under `~/.claude/skills/` or `~/.agents/skills/` that is not derived from `global: true` and its dependency closure, and the ai role deletes a dangling link in any harness glob directory that points into the role.
+Two rules that apply without opening anything: a **name must mean one artifact** across the catalog's `skill-registry.json`, `agent-registry.json`, and `bundles/`, and the global skill and agent directories are **owned and pruned**: `kura sync` deletes a link under `~/.claude/skills/` or `~/.agents/skills/` that is not derived from `global: true` and its dependency closure, and the ai role deletes a dangling link in any harness glob directory that points into the role.
 
 ## Conventions
 
