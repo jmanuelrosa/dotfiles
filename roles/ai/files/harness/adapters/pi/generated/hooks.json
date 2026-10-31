@@ -57,5 +57,12 @@
       "kind": "gate",
       "script": "em-dash-gate.sh"
     }
+  ],
+  "prompt_submit": [
+    {
+      "id": "dependency-skill-gate",
+      "kind": "gate",
+      "script": "dependency-skill-gate.sh"
+    }
   ]
 }

@@ -34,6 +34,15 @@ The note names the origin by host and path only, because a remote URL can carry 
 Trust follows the namespace, not the author, so two cases stay exposed: a fork of a third-party project kept under a trusted namespace, and a branch from someone else checked out inside a trusted repo, such as a fork's pull request.
 The note is stderr on an allowed call, which Claude only feeds the model on a block and Pi's guardrails drops unless it blocks, so a skip is quiet by design rather than a prompt on every commit.
 
+### Dependency-only skills are refused on the prompt
+
+A skill the catalog marks `dependency_only` is loaded by other skills and never invoked by the user, and no harness has a setting that says so.
+Claude's `skillOverrides` keeps every visible state in the `/` menu (only the `user-invocable: false` frontmatter hides one, and `kura update` overwrites an upstream `SKILL.md`), Pi's `enableSkillCommands` only hides discovery for every skill at once, and Codex's `allow_implicit_invocation: false` is the inverse.
+So `dependency-skill-gate.sh` refuses the typed invocation instead: Claude runs it on `UserPromptSubmit`, which receives `/name` before expansion, and Pi's guardrails runs it on `input`, which fires before `/skill:name` expands.
+It reads the registry on every prompt, so a skill `kura update` newly marks is covered without a render, and the model and parent skills, which load a skill through their own tools, never pass through it.
+Claude still renders each one as `name-only`, which trims the model's listing and nothing else.
+Codex is left off until its `UserPromptSubmit` is shown to carry a `$name` mention unresolved.
+
 ## Shared MCP servers
 
 `mcp.json` is the committed user-global server inventory, separate from `policy/permissions.toml`: connecting a server does not grant permission to call its tools. Pi's built-in MCP support reads `~/.pi/agent/mcp.json`, linked to the rendered `adapters/pi/generated/mcp.json`. The renderer merges the shared inventory with Pi-only overrides from `adapters/pi/mcp.json`; Notion is disabled in Pi so its tasks use `ntn`, while Slack keeps its Pi-specific client ID, callback URL and scopes. Provisioning refuses to replace a user-owned Pi config and removes only the old role-owned `~/.config/mcp/mcp.json` link. Project configurations are not scanned or changed.

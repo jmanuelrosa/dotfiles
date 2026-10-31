@@ -48,6 +48,8 @@ excludedCommands = [
 # Skill name to on | name-only | user-invocable-only | off, so an upstream skill's visibility
 # changes without editing a SKILL.md that `kura update` would overwrite. Every `dependency_only`
 # skill in the registry is already rendered as name-only; an entry here wins over that.
+# name-only only trims the model's listing and keeps the skill in the `/` menu: what refuses
+# the user typing it is the dependency-skill-gate hook.
 [skill_overrides]
 
 [plugin_configs."agents-md@builtin".options]
