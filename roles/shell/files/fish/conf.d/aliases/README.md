@@ -5,6 +5,7 @@ Fish loads the installed snippet automatically at startup.
 
 The `clean:*` aliases delegate to the cleanup functions; they do not add confirmation or dry-run protection.
 `clean:ai` runs the Claude cleaner followed by the Pi cleaner, stopping if the first fails.
+`yi` is an abbreviation rather than an alias: it expands to `_npm_token yarn install` on the command line, so a private-scope install gets its token and the prefix stays visible, as described in [npm_token](../../functions/npm_token/README.md).
 Docker shortcuts target the Colima socket exported by [exports](../exports/README.md).
 
 Edit `aliases.fish`, then reload with `source ~/.config/fish/conf.d/aliases.fish`.

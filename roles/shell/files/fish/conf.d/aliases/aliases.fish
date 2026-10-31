@@ -25,6 +25,8 @@ alias lt="eza --tree --level=2 --color=auto --icons=auto --long --all --git --ig
 
 # NPM
 alias p=pnpm
+# An abbreviation, so the token-bearing _npm_token prefix stays visible before it runs.
+abbr --add yi '_npm_token yarn install'
 
 # apps
 alias chrome='open -a google\ chrome'
