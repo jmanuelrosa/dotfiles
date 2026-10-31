@@ -159,7 +159,6 @@ ChatGPT, Claude, Claude Code, Cursor
 
 Claude Code and Pi skills are managed with [`kura`](https://github.com/jmanuelrosa/kura), installed by the `ai` role as a pinned release at `~/.local/bin/kura` and pointed at the [agent-catalog](https://github.com/jmanuelrosa/agent-catalog) repository, cloned to `~/Developer/agent-catalog` and linked at `~/.config/kura/catalog`. The catalog exposes skills, standalone agents, bundles, and their registries; Kura owns the native artifact links, while existing project plugin links remain project-owned legacy state.
 Global skill and agent roots now use `global: true`, not a group tag.
-The pinned v0.7.0 ignores these flags: upgrade to a compatible release before running catalog mutations, as described in the [AI role guide](roles/ai/README.md#kura-by-hand).
 
 ```bash
 kura list --type skill                               # Show available skills
