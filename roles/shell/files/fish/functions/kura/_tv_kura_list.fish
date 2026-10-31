@@ -40,7 +40,11 @@ function _tv_kura_list --description "Television source: list catalog skills, ag
     set -l prog '.[] | '$select' | [
         .name,
         (.groups | join(", ")),
-        (if .state == "missing" then "not downloaded" else .state end)
+        (if .state == "missing" then "not downloaded" else .state end),
+        (if .global or .installed == "global" then "global"
+         elif (.reason // "" | startswith("dep-of:")) then "via " + (.reason | ltrimstr("dep-of:"))
+         elif .installed == "project" then "project"
+         else "" end)
     ]'
 
     if test "$filter" = categories
@@ -48,32 +52,41 @@ function _tv_kura_list --description "Television source: list catalog skills, ag
             | group_by(.group) | .[] | [
                 ("@" + .[0].group),
                 ("skills: \(length)"),
-                ("\([.[] | select(.state == "linked")] | length)/\(length) linked")
+                ("\([.[] | select(.state == "linked")] | length)/\(length) linked"),
+                ""
             ]'
     end
 
     set -l layout '['$prog']
         | (map(.[0] | length) | max) as $name_width
         | (map("[" + .[2] + "]" | length) | max) as $state_width
-        | .[] | . + [$name_width, $state_width] | @tsv'
-    kura list --type $type --json | jq -r $layout | while read -l -d \t name groups state name_width state_width
-        _tv_kura_fmt $name "$groups" $state $name_width $state_width
+        | (map(.[3] | length) | max) as $scope_width
+        | .[] | . + [$name_width, $state_width, $scope_width] | @tsv'
+    kura list --type $type --json | jq -r $layout | while read -l -d \t name groups state scope name_width state_width scope_width
+        _tv_kura_fmt $name "$groups" $state "$scope" $name_width $state_width $scope_width
     end | sort
 end
 
-function _tv_kura_fmt --description "Format one television row: name, groups, link status"
-    set -l state (printf '%-*s' $argv[5] "[$argv[3]]")
-    set -l groups $argv[2]
+function _tv_kura_fmt --description "Format one television row: name, link status, scope, groups" --argument-names name groups state scope name_width state_width scope_width
+    set -l status_cell (printf '%-*s' $state_width "[$state]")
+    set -l scope_cell (printf '%-*s' $scope_width "$scope")
     if _ui color-enabled
         set -l colour cyan
-        switch $argv[3]
+        switch $state
             case linked
                 set colour green
             case 'not downloaded'
                 set colour yellow
         end
-        set state (_ui paint $colour "$state")
+        set status_cell (_ui paint $colour "$status_cell")
+        if test "$scope" = global
+            set scope_cell (_ui paint magenta "$scope_cell")
+        end
         set groups (_ui paint dim "$groups")
     end
-    printf '%-*s  %s  %s\n' $argv[4] $argv[1] "$state" "$groups"
+    if test "$scope_width" -eq 0
+        printf '%-*s  %s  %s\n' $name_width $name "$status_cell" "$groups"
+    else
+        printf '%-*s  %s  %s  %s\n' $name_width $name "$status_cell" "$scope_cell" "$groups"
+    end
 end
