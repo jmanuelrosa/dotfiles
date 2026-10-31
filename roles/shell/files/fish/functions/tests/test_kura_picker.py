@@ -22,12 +22,16 @@ def picker(tmp_path):
     if fish is None or shutil.which("jq") is None:
         pytest.skip("Fish and jq are required for picker tests")
     rows = [
-        {"name": "existing", "groups": ["frontend"], "state": "linked", "global": False},
+        {"name": "existing", "groups": ["frontend"], "state": "linked", "global": False,
+         "installed": "project", "reason": "direct"},
         {"name": "ui", "groups": ["frontend"], "state": "available", "global": False},
         {"name": "shared", "groups": ["frontend", "gcp"], "state": "missing", "global": False},
         {"name": "cloud", "groups": ["gcp"], "state": "available", "global": True},
-        {"name": "global", "groups": ["frontend"], "state": "linked", "global": True},
+        {"name": "global", "groups": ["frontend"], "state": "linked", "global": True,
+         "installed": "global", "reason": None},
         {"name": "server", "groups": ["backend"], "state": "available", "global": False},
+        {"name": "helper", "groups": ["backend"], "state": "linked", "global": False,
+         "installed": "project", "reason": "dep-of:server"},
     ]
     home = tmp_path / "home"
     home.mkdir()
@@ -104,21 +108,22 @@ def test_categories_are_unique_with_skill_and_link_counts(picker):
     result, calls = picker("categories")
     assert result.returncode == 0, result.stderr
     assert [" ".join(line.split()) for line in result.stdout.splitlines()] == [
-        "@backend [0/1 linked] skills: 1",
+        "@backend [1/2 linked] skills: 2",
         "@frontend [2/4 linked] skills: 4",
         "@gcp [0/2 linked] skills: 2",
     ]
     assert calls == [["list", "--type", "skill", "--json"]]
 
 
-def test_picker_rows_show_status_before_searchable_groups(picker):
+def test_picker_rows_show_status_and_scope_before_searchable_groups(picker):
     result, _ = picker("list")
     assert result.returncode == 0, result.stderr
     assert "\x1b" not in result.stdout
     assert [" ".join(line.split()) for line in result.stdout.splitlines()] == [
-        "cloud [available] gcp",
-        "existing [linked] frontend",
-        "global [linked] frontend",
+        "cloud [available] global gcp",
+        "existing [linked] project frontend",
+        "global [linked] global frontend",
+        "helper [linked] via server backend",
         "server [available] backend",
         "shared [not downloaded] frontend, gcp",
         "ui [available] frontend",
@@ -132,7 +137,7 @@ def test_picker_columns_fit_the_current_rows(picker):
     name_width = max(len(line.split(" ")[0]) for line in lines)
     assert {line.index("[") for line in lines} == {name_width + 2}
     assert {line.index("frontend") for line in lines if "frontend" in line} == {
-        name_width + len("[not downloaded]") + 4
+        name_width + len("[not downloaded]") + len("via server") + 6
     }
 
 

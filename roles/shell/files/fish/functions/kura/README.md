@@ -5,7 +5,8 @@
 `_tv_kura_skill_action` expands category selections for skill actions and previews.
 All derive state exclusively from `kura list`; none reconstructs the catalog, workspace anchoring, or scope rules.
 
-Rows fit the name and status columns to the current results, with status before the dimmed groups.
+Rows fit the name, status and scope columns to the current results, with both before the dimmed groups.
+Scope says why an entry is (or would be) installed: `global` (magenta) for the catalog's global set, `project` for a direct project link, `via <name>` for a dependency pulled in by another entry, and blank otherwise.
 Linked entries are green, available entries cyan, and missing downloads yellow, using the shared terminal palette and respecting `NO_COLOR`.
 Groups stay in the results because Television searches displayed text, so hiding them in a preview would remove group matching.
 
