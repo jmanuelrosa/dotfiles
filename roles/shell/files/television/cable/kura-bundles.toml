@@ -15,7 +15,7 @@ command = [
 output = "{split: :0}"
 
 [preview]
-command = "bat --color=always --plain --language=json $DOTFILES_DIR/roles/ai/files/harness/kura/catalog/bundles/{split: :0}/bundle.json 2>/dev/null; and eza --tree --color=always $DOTFILES_DIR/roles/ai/files/harness/kura/catalog/bundles/{split: :0}; or echo 'Not in the catalog'"
+command = "bat --color=always --plain --language=json $HOME/.config/kura/catalog/bundles/{split: :0}/bundle.json 2>/dev/null; and eza --tree --color=always $HOME/.config/kura/catalog/bundles/{split: :0}; or echo 'Not in the catalog'"
 
 [ui]
 layout = "portrait"
@@ -41,6 +41,6 @@ separator = "\n"
 
 [actions.edit]
 description = "Open the bundle directory in $EDITOR"
-command = "$EDITOR {split:\\n:..|map:{split: :0|prepend:$DOTFILES_DIR/roles/ai/files/harness/kura/catalog/bundles/}|join: }"
+command = "$EDITOR {split:\\n:..|map:{split: :0|prepend:$HOME/.config/kura/catalog/bundles/}|join: }"
 mode = "execute"
 separator = "\n"

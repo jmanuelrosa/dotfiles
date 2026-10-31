@@ -45,7 +45,7 @@ One orchestrated exception: `feature-team` may route findings to the owning seat
 **Nits are capped at three, and zero when a blocker is present.**
 An appendix of nits costs a reader the same as reporting them.
 
-**Report nothing in** generated or vendored trees, lockfiles, snapshots asserting only shape, or `roles/ai/files/harness/kura/catalog/skills/<upstream>` in the dotfiles repo, since `kura update` discards a finding there on the next sync.
+**Report nothing in** generated or vendored trees, lockfiles, snapshots asserting only shape, or an upstream skill in the agent catalog (`skills/<upstream>`), since `kura update` discards a finding there on the next sync.
 
 **A finding that cannot state a concrete failure scenario is an opinion.**
 Drop it rather than dressing it as a risk.

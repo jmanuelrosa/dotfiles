@@ -39,9 +39,9 @@ allow_read = [
   "~/.ssh/known_hosts",
   "/etc/ssl/cert.pem",
   "~/.config/acli",
-  "{harness}/kura/catalog/skills",
+  "~/Developer/agent-catalog/skills",
   "{harness}/hooks",
-  "{harness}/kura/catalog/bundles",
+  "~/Developer/agent-catalog/bundles",
   "{harness}/adapters/claude/settings.json",
 ]
 deny_read = [

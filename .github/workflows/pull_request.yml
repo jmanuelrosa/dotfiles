@@ -46,6 +46,11 @@ jobs:
           brew install fish jq fd
           curl -LsSf https://astral.sh/uv/install.sh | sh
 
+      # The suites that read skills, agents and the registries skip without a catalog,
+      # so CI clones the one the ai role would.
+      - name: Clone the agent catalog
+        run: git clone --depth 1 https://github.com/jmanuelrosa/agent-catalog.git "$RUNNER_TEMP/agent-catalog"
+
       # No vault password needed: these tests read registries and drive the fish
       # functions against a throwaway HOME, never the playbook.
       #
@@ -57,6 +62,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
           # The committed harness renders name the checkout they are linked from, not this clone.
           HARNESS_RENDER_ROOT: ~/Developer/dotfiles/roles/ai/files/harness
+          AGENT_CATALOG: ${{ runner.temp }}/agent-catalog
         run: make test
 
   static-lint:

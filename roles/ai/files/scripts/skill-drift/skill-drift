@@ -17,6 +17,7 @@ Every request goes through `gh api`, so it needs a logged-in gh and the network.
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -29,10 +30,10 @@ from urllib.parse import urlencode
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dotkit import ui
 
-# This file sits at roles/ai/files/scripts/skill-drift/, and resolve() follows the
-# ~/.local/bin link back into the checkout.
-HERE = Path(__file__).resolve().parent
-REGISTRY = HERE.parents[1] / "harness/kura/catalog/skill-registry.json"
+# The agent catalog the ai role clones and links where kura reads it. AGENT_CATALOG
+# names another clone.
+CATALOG = Path(os.environ.get("AGENT_CATALOG") or "~/.config/kura/catalog").expanduser()
+REGISTRY = CATALOG / "skill-registry.json"
 
 FULL_SHA = re.compile(r"[0-9a-f]{40}")
 

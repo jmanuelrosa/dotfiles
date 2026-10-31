@@ -33,23 +33,36 @@
     checksum: "{{ KURA.checksum }}"
     mode: "0755"
 
+# `update: false` leaves an existing clone alone, local edits and branch included.
+- name: Clone the agent catalog
+  ansible.builtin.git:
+    repo: "{{ AGENT_CATALOG.repository }}"
+    dest: "{{ AGENT_CATALOG.path }}"
+    version: main
+    update: false
+  register: agent_catalog
+
 - name: Link kura's catalog and machine config
   ansible.builtin.file:
-    src: "{{ HARNESS_DIR }}/kura/{{ item }}"
-    dest: "{{ HOME }}/.config/kura/{{ item }}"
+    src: "{{ item.src }}"
+    dest: "{{ HOME }}/.config/kura/{{ item.name }}"
     state: link
     force: true
   loop:
-    - catalog
-    - config.json
+    - { name: catalog, src: "{{ AGENT_CATALOG.path }}" }
+    - { name: config.json, src: "{{ HARNESS_DIR }}/kura/config.json" }
+  loop_control:
+    label: "{{ item.name }}"
 
-# `removes` skips the check-mode run on a machine where get_url has not downloaded kura yet.
+# `removes` skips the check-mode run on a machine where get_url has not downloaded kura
+# yet, and the `when` skips it where the catalog has not been cloned yet.
 - name: Sync global skills and agents with kura
   ansible.builtin.command:
     argv: "{{ [HOME ~ '/.local/bin/kura', 'sync'] + (['--dry-run'] if ansible_check_mode else []) }}"
     removes: "{{ HOME }}/.local/bin/kura"
   register: kura_sync
   check_mode: false
+  when: not (ansible_check_mode and agent_catalog is changed)
   changed_when: "', 0 changes' not in kura_sync.stdout"
 
 # --- harness links ------------------------------------------------------------------

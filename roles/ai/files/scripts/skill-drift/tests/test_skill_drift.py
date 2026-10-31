@@ -274,6 +274,7 @@ def test_a_commit_that_is_not_a_full_sha_is_skipped(run):
     assert result.requests == []
 
 
+@pytest.mark.skipif(not SKILL_REGISTRY.is_file(), reason="no agent catalog")
 def test_every_shipped_upstream_names_a_branch_and_a_full_sha_commit(run):
     result = run({}, {"*": {"pages": [compare_page()]}}, registry=SKILL_REGISTRY)
     assert result.returncode == EXIT_OK, result.stderr
