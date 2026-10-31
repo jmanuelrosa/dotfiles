@@ -7,6 +7,7 @@ Claude Code and Pi should enforce the same repository gates without maintaining 
 ## What it does
 
 `index.ts` adapts Pi `tool_call` events to the JSON input expected by the Python hooks under `roles/ai/files/harness/hooks/`.
+It also runs the table's `prompt_submit` gates on Pi's `input` event, before `/skill:name` expands, and refuses a blocked prompt with a notification.
 It bridges edit payloads, active skill detection, Pi-specific refusal guidance, and the cloud read-only decision shape.
 It also exposes the shared rtk and Cursor footer statuses.
 

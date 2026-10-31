@@ -30,8 +30,9 @@
  * for git-skill-gate, the ask tier for whichever gate prints one. The hooks the table gives only
  * to Claude are on events this file does not listen to: plan-date-stamp.sh is PostToolUse on
  * ExitPlanMode and Pi has no plan mode at all, while skill-recap.sh (Stop) and context-nudge.sh
- * (UserPromptSubmit) would map onto Pi's `turn_end` and `turn_start` and are deliberately left
- * for their own pass.
+ * (UserPromptSubmit, but it writes Claude's advisory JSON rather than refusing) are deliberately
+ * left for their own pass. The UserPromptSubmit gates the table gives Pi run on `input`, at
+ * `guardPrompt`.
  *
  * One entry in the table is the odd one out: rtk rewrites a command rather than refusing one, so
  * it is a gate in position only. It lives in this file rather than in an extension of its own
@@ -75,6 +76,8 @@ import { fileURLToPath } from "node:url";
 import {
   type ExtensionAPI,
   type ExtensionContext,
+  type InputEvent,
+  type InputEventResult,
   isToolCallEventType,
   type ToolCallEvent,
   type ToolCallEventResult,
@@ -125,7 +128,8 @@ const HOOK_TABLE_PATH = join(dirname(realpathSync(fileURLToPath(import.meta.url)
 
 interface HookEntry {
   id: string;
-  tools: string[];
+  // Absent on a prompt_submit entry, which no tool routes.
+  tools?: string[];
   kind: "gate" | "rewrite";
   script?: string;
   exec?: string[];
@@ -135,29 +139,31 @@ interface HookEntry {
 
 function isEntry(candidate: unknown): candidate is HookEntry {
   const entry = candidate as Partial<HookEntry> | null;
-  if (!entry || typeof entry.id !== "string" || !Array.isArray(entry.tools)) return false;
+  if (!entry || typeof entry.id !== "string") return false;
+  if (entry.tools !== undefined && !Array.isArray(entry.tools)) return false;
   if (entry.kind === "gate") return typeof entry.script === "string";
   if (entry.kind === "rewrite") return Array.isArray(entry.exec) && entry.exec.length > 0;
   return false;
 }
 
 /**
- * The PreToolUse half of the table, in its order.
+ * One event's half of the table, in its order.
  *
  * A table that is missing or will not parse is an empty one, so every call is allowed: the same
  * fail-open reading a missing hook script gets, for the reason the header gives. An entry of a
  * shape this file does not know is skipped rather than guessed at.
  */
-function hookTable(): HookEntry[] {
+function hookTable(event: "pre_tool" | "prompt_submit"): HookEntry[] {
   try {
-    const parsed: unknown = JSON.parse(readFileSync(HOOK_TABLE_PATH, "utf8"))?.pre_tool;
+    const parsed: unknown = JSON.parse(readFileSync(HOOK_TABLE_PATH, "utf8"))?.[event];
     return Array.isArray(parsed) ? parsed.filter(isEntry) : [];
   } catch {
     return [];
   }
 }
 
-const PRE_TOOL = hookTable();
+const PRE_TOOL = hookTable("pre_tool");
+const PROMPT_SUBMIT = hookTable("prompt_submit").filter((entry) => entry.kind === "gate");
 
 // The one gate that reads a transcript, which pi has none of in the shape it parses.
 const TRANSCRIPT_GATE = "git-skill-gate";
@@ -189,6 +195,12 @@ interface HookPayload {
   tool_input: Record<string, unknown>;
   cwd: string;
   transcript_path?: string;
+}
+
+// Claude's UserPromptSubmit fields that a prompt gate reads.
+interface PromptPayload {
+  prompt: string;
+  cwd: string;
 }
 
 interface HookVerdict {
@@ -264,7 +276,7 @@ function spawnJson(exec: string, args: string[], payload: unknown, options: Spaw
   });
 }
 
-async function runHook(name: string, payload: HookPayload): Promise<HookVerdict> {
+async function runHook(name: string, payload: HookPayload | PromptPayload): Promise<HookVerdict> {
   const script = join(HOOKS_DIR, name);
   if (!existsSync(script)) {
     return ALLOW;
@@ -485,7 +497,7 @@ async function runGate(entry: HookEntry, payload: HookPayload, ctx: ExtensionCon
 async function guard(event: ToolCallEvent, ctx: ExtensionContext): Promise<ToolCallEventResult | undefined> {
   const payload = payloadFor(event, ctx);
   if (!payload) return undefined;
-  const entries = PRE_TOOL.filter((entry) => entry.tools.includes(event.toolName));
+  const entries = PRE_TOOL.filter((entry) => entry.tools?.includes(event.toolName));
 
   // In table order, stopping at the first refusal: the cheap gates come first there, so a command
   // that was never allowed cannot also spend a project's full lint budget proving itself clean.
@@ -503,6 +515,27 @@ async function guard(event: ToolCallEvent, ctx: ExtensionContext): Promise<ToolC
       if (entry.kind !== "rewrite") continue;
       const rewritten = await rewriteCommand(entry, event.input.command, ctx.cwd);
       if (rewritten) event.input.command = rewritten;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Claude's UserPromptSubmit gates, on Pi's `input`.
+ *
+ * `input` and not `turn_start`, because pi emits it before `/skill:name` is expanded, so a gate
+ * reads the prompt as typed, which is what Claude hands its hook. Input another extension sends is
+ * left alone: a prompt gate judges what a person typed, and an extension speaking for a skill is
+ * that skill's own invocation.
+ */
+async function guardPrompt(event: InputEvent, ctx: ExtensionContext): Promise<InputEventResult | undefined> {
+  if (event.source === "extension") return undefined;
+  const payload: PromptPayload = { prompt: event.text, cwd: ctx.cwd };
+  for (const entry of PROMPT_SUBMIT) {
+    const verdict = await runHook(entry.script ?? "", payload);
+    if (verdict.blocked) {
+      ctx.ui.notify(verdict.message, "warning");
+      return { action: "handled" };
     }
   }
   return undefined;
@@ -591,6 +624,15 @@ export default function (pi: ExtensionAPI) {
       // The whole of the fail-open promise, in one place. Pi reads a throw here as a block, so
       // without this an unreadable session or an unwritable temp file would refuse every write,
       // edit and command in the session, and the refusal would carry no reason anyone could act on.
+      return undefined;
+    }
+  });
+
+  pi.on("input", async (event, ctx) => {
+    try {
+      return await guardPrompt(event, ctx);
+    } catch {
+      // Fail open for the same reason as tool_call: a throw must not swallow the user's prompt.
       return undefined;
     }
   });

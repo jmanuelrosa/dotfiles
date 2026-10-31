@@ -55,7 +55,9 @@ STATUSLINE = CLAUDE / "statusline.sh"
 APPEND_SYSTEM = PI / "APPEND_SYSTEM.md"
 FISH_CONFIG = REPO / "roles/shell/files/fish/config.fish"
 HOOK_TABLE = manifest.find_root(PI) / emit_pi.HOOKS
-PRE_TOOL = json.loads(HOOK_TABLE.read_text())["pre_tool"]
+TABLE = json.loads(HOOK_TABLE.read_text())
+PRE_TOOL = TABLE["pre_tool"]
+PROMPT_SUBMIT = TABLE.get("prompt_submit", [])
 REWRITE = next(entry for entry in PRE_TOOL if entry["kind"] == "rewrite")
 
 # The variable that decides whether any of this runs at all under the cursor provider. Cursor's
@@ -86,6 +88,12 @@ CONTRACTS = {
     # routed unconditionally, so it checks the tool itself. It never reads `cwd`.
     "cloud-readonly-gate.sh": ("tool_name", "tool_input", "command"),
     "cli-egress-gate.sh": ("tool_name", "tool_input", "command"),
+}
+
+# The same direction for the gates `guardPrompt` drives on `input`, which are handed Claude's
+# UserPromptSubmit fields rather than a tool call.
+PROMPT_CONTRACTS = {
+    "dependency-skill-gate.sh": ("prompt",),
 }
 
 # The fingerprints of each hook's own logic. Written as escapes for the two dash characters so
@@ -147,6 +155,24 @@ def test_every_gate_in_the_table_has_a_contract():
     assert gates == set(CONTRACTS)
 
 
+@pytest.mark.parametrize("name", sorted(PROMPT_CONTRACTS))
+def test_each_driven_prompt_hook_exists(name):
+    scripts = {entry.get("script") for entry in PROMPT_SUBMIT}
+    assert name in scripts, f"{name} is no longer in the prompt_submit table the extension runs"
+    assert (HOOKS / name).is_file(), f"the extension spawns {name}, which is not in {HOOKS.name}/"
+
+
+def test_every_prompt_gate_in_the_table_has_a_contract():
+    gates = {entry["script"] for entry in PROMPT_SUBMIT if entry["kind"] == "gate"}
+    assert gates == set(PROMPT_CONTRACTS)
+
+
+def test_prompt_gates_run_before_skill_expansion(source):
+    """`input` is the one pi event that sees `/skill:name` as typed; turn_start sees it expanded,
+    where no gate could tell a typed invocation from a skill's own body."""
+    assert 'pi.on("input"' in source
+
+
 def test_the_lint_gate_runs_last():
     """The table is pi's run order and a refusal stops it, so the cheap parses come first and
     pre-commit-verify does not spend a project's full lint on a command another gate refuses."""
@@ -163,7 +189,7 @@ def test_the_transcript_goes_to_the_gate_that_reads_it(source):
 
 @pytest.mark.parametrize(
     ("name", "key"),
-    [(name, key) for name, keys in sorted(CONTRACTS.items()) for key in keys],
+    [(name, key) for name, keys in sorted({**CONTRACTS, **PROMPT_CONTRACTS}.items()) for key in keys],
 )
 def test_a_key_the_hook_reads_is_a_key_the_extension_sends(name, key, source):
     assert key in hook_source(name), f"{name} no longer reads {key!r}; this contract is stale"
