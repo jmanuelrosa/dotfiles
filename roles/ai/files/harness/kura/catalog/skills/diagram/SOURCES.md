@@ -15,7 +15,7 @@
 | `jgraph/drawio-mcp` README (official) | Vendor docs, high | Hosted MCP at `mcp.draw.io/mcp` with `get_drawio_reference`, `search_shapes`, `create_diagram`; `create_diagram` returns a link in a terminal |
 | `drawio --help` from draw.io Desktop 32.6.1, and an export trial in the authoring session | Installed CLI plus measurement, high | `--export`, `--embed-diagram`, `--border`; format from the output extension; export works inside the Claude sandbox with a harmless `sandbox_extension_issue_file` warning; the PNG opens in the file-read tool for a visual check |
 | `probelabs/maid` README | Vendor docs, medium | Browser-free Mermaid lint, stdin with `-`, exit 0 clean and 1 on errors; not trialled here, the sandbox classifier refused to run it |
-| `docs/internals/script-output-style.md` | Repository policy, high | A model-facing script prints plain `KEY=value` text like `context.py`, not the `dotkit.ui` vocabulary meant for humans |
+| [dotfiles `docs/internals/script-output-style.md`](https://github.com/jmanuelrosa/dotfiles/blob/main/docs/internals/script-output-style.md) | Repository policy, high | A model-facing script prints plain `KEY=value` text like `context.py`, not the `dotkit.ui` vocabulary meant for humans |
 
 ## Decisions and coverage
 

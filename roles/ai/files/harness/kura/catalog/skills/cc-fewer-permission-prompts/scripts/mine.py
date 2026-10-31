@@ -24,8 +24,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dotkit import ui
 
-HARNESS = Path(__file__).resolve().parents[5]
-DEFAULT_POLICY = HARNESS / "policy" / "permissions.toml"
+POLICY_ENV = "HARNESS_POLICY"
 DEFAULT_MIN_COUNT = 3
 DEFAULT_TOP = 20
 DEFAULT_SESSIONS = 50
@@ -639,8 +638,8 @@ def parse_args(argv):
     parser.add_argument("--sessions", type=int, default=DEFAULT_SESSIONS,
                         help="most recent transcripts read per harness, 0 for all "
                              f"(default {DEFAULT_SESSIONS})")
-    parser.add_argument("--policy", type=Path, default=DEFAULT_POLICY,
-                        help="the neutral permissions.toml to subtract")
+    parser.add_argument("--policy", type=Path, default=None,
+                        help=f"the neutral permissions.toml to subtract (default ${POLICY_ENV})")
     parser.add_argument("--claude-projects", type=Path, default=None,
                         help="Claude Code transcript root (default $CLAUDE_CONFIG_DIR/projects)")
     parser.add_argument("--pi-sessions", type=Path, default=None,
@@ -667,7 +666,11 @@ def report(result):
 
 def main(argv=None):
     args = parse_args(argv)
-    policy_path = args.policy.expanduser().resolve()
+    policy_arg = args.policy or os.environ.get(POLICY_ENV)
+    if not policy_arg:
+        ui.err(f"No policy given; set {POLICY_ENV} or pass --policy <permissions.toml>")
+        return 1
+    policy_path = Path(policy_arg).expanduser().resolve()
     if not policy_path.is_file():
         ui.err(f"No policy at {ui.path(policy_path)}; pass --policy <permissions.toml>")
         return 1

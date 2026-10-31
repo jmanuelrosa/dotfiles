@@ -56,7 +56,7 @@ Two bundled scripts do the mechanical work in one call each; don't re-run git fo
    - **Don't force a split** when the diff is cohesive: one feature touching ten files is one commit.
 
 5. **Draft the plan**: one entry per concern.
-   - **Header**: `<type>(<scope>): <subject>`, ≤ 100 chars, imperative, no leading capital, no trailing period. Types: `feat | fix | chore | docs | refactor | test | perf | ci | build | style | revert`. Derive scope from the touched area (monorepo package, top-level directory, role name in this dotfiles repo, feature area); omit `(<scope>)` only when genuinely repo-wide, and surface the doubt at the gate if unclear.
+   - **Header**: `<type>(<scope>): <subject>`, ≤ 100 chars, imperative, no leading capital, no trailing period. Types: `feat | fix | chore | docs | refactor | test | perf | ci | build | style | revert`. Derive scope from the touched area (monorepo package, top-level directory, role name in an Ansible repo, feature area); omit `(<scope>)` only when genuinely repo-wide, and surface the doubt at the gate if unclear.
    - **Body**: only when the *why* isn't obvious from the subject. Blank line after subject, short `-` bullets, no prose paragraphs. Skip rather than pad.
    - **Never** write `Co-Authored-By: Claude …` or `🤖 Generated with …`: `settings.json` handles attribution and both the `git-skill-gate` hook and `apply.py` hard-block these lines.
 

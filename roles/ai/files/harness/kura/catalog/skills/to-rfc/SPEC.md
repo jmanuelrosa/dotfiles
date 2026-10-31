@@ -19,7 +19,7 @@ Out of scope: task breakdowns, implementation, publishing to Notion, Jira or Sla
 
 - Dependencies: `research` in planning-groundwork mode, `grilling`, `domain-modeling` and `unslop`, declared in the skill registry.
 - Sequence: intake, research, grill with docs, write from the template, review and hand over.
-- Template: `assets/rfc-template.md`, the team's RFC template copied into the skill; the project's own `docs/templates/rfc.md` wins when it exists.
+- Template: `assets/rfc-template.md`, a generic default RFC template bundled with the skill; the project's own `docs/templates/rfc.md` wins when it exists.
 - Output: `docs/rfcs/YYYY-MM-DD-<subject-slug>.md`, unless explicit user/project instructions require another path; revisions keep the original filename.
 - Sorting rule: every open point ends as a `3.x` verdict, a section 8 technical question with an owner and a recommendation, or a product gap raised on its ticket; nothing is deferred without an owner.
 - Scope of the RFC: technical only; product behaviour, copy and UI states live in the design and the acceptance criteria.
@@ -42,7 +42,7 @@ Should not start automatically: "plan this feature" (`to-plan`), "write a PRD" (
 
 ## Known limitations
 
-- The template is team-specific; another team's outline needs a different asset or a project override.
+- The bundled template is one outline; a team with its own outline uses a project override.
 - Word count is checked by hand; no script enforces the 2,000 to 4,000 range.
 - Slack reading depends on a read-only Slack MCP being available; otherwise the user pastes the thread.
 - The Notion API returns only unresolved comments, so a thread resolved before the review response is invisible to it.
@@ -51,5 +51,5 @@ Should not start automatically: "plan this feature" (`to-plan`), "write a PRD" (
 ## Maintenance
 
 Keep the runtime workflow and the writing checklist in `SKILL.md`; keep provenance and decisions in `SOURCES.md`.
-When the team template changes, replace `assets/rfc-template.md` and re-check the section table in `SKILL.md` step 2 and the checklist in step 4 against it.
+When the default template changes, update `assets/rfc-template.md` and re-check the section table in `SKILL.md` step 2 and the checklist in step 4 against it.
 Update the registry dependencies together with the composition.

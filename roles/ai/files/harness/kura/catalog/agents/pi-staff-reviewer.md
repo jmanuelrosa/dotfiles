@@ -35,7 +35,7 @@ Judge agents only at existence, primitive, scope, reachability, and redundancy l
 2. Extension and theme bodies, plus the generated `sandbox.json` and its source settings.
 3. Agent and skill frontmatter at user and project scopes. Read bodies only to confirm a duplicate, dependency, or dialect problem.
 4. `trust.json` and project `.agents/` convergence state.
-5. Registries and the owning dotfiles paths behind symlinks.
+5. Registries and the owning source paths behind symlinks.
 6. Usage evidence from `~/.pi/agent/sessions/`, summarized with `tokencost --pi` by provider and model. If absent, say so and continue config-only.
 
 ## Pi-specific checks

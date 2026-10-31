@@ -3192,6 +3192,23 @@
           "updated_at": "2026-10-28T08:22:27Z"
         }
       ]
+    },
+    "blader/humanizer": {
+      "branch": "main",
+      "commit": "0ef9fe5bc3572734fd3ae6c448fe00a30cd5dcf0",
+      "skills": [
+        {
+          "name": "humanizer",
+          "upstream_path": ".",
+          "global": true,
+          "groups": [
+            "ai",
+            "prompt engineering",
+            "claude"
+          ],
+          "updated_at": "2026-10-30T23:05:04Z"
+        }
+      ]
     }
   },
   "local": [
@@ -3204,16 +3221,6 @@
         "claude"
       ],
       "note": "Locally authored"
-    },
-    {
-      "name": "humanizer",
-      "global": true,
-      "groups": [
-        "ai",
-        "prompt engineering",
-        "claude"
-      ],
-      "note": "No external source"
     },
     {
       "name": "commit",

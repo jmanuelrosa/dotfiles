@@ -20,7 +20,7 @@ allowed-tools:
 
 # Jira via cli
 
-Use Atlassian's official CLI (`acli`) to interact with Jira. Avoid the Atlassian MCP server and `jira-cli` (Go) - both fail against Didomi's SSO + scoped-token org policy. `acli` uses an OAuth device flow that works with SSO.
+Use Atlassian's official CLI (`acli`) to interact with Jira. Avoid the Atlassian MCP server and `jira-cli` (Go) - both fail against organisations that enforce SSO with scoped API tokens. `acli` uses an OAuth device flow that works with SSO.
 
 Install and auth are one-time: `brew install acli` (tap `atlassian/acli`), then `acli jira auth login --web` in your own terminal. `acli jira auth status` prints `✓ Authenticated` plus the site and auth type.
 
@@ -240,20 +240,9 @@ When the work is research or diagnosis and implementation is deferred or not yet
 
 ### Conventions
 
-- **Category emoji prefix on titles.** Pick the emoji that matches the area of work and put it at the start of the summary. The mapping is shared across the Didomi backlog:
-
-  | Emoji | Category |
-  |-------|----------|
-  | 💻 | Frontend |
-  | 🧠 | Backend |
-  | 💿 | Infra |
-  | 📊 | Analytics |
-  | 🚀 | UI Library |
-  | 🚪 | Shell |
-
-  Server-side / `aw-gtm-cloud-image` work is **Backend** -> use the brain emoji. Cloud Run / Terraform / GitHub Actions work is **Infra** -> use the disc emoji. When the area is ambiguous, ask the user.
-
-- **Parent epic for tech debt:** `--parent <TECH-DEBT-EPIC>` for any tech debt work in the <PROJECT> project. The category emoji is independent of the parent epic - a backend tech-debt ticket uses the brain emoji prefix together with `--parent <TECH-DEBT-EPIC>`.
+- **Match the project's title convention.** Before creating a ticket, read the summaries of the last few tickets in `<PROJECT>` (`acli jira workitem search --jql "project = <PROJECT> ORDER BY created DESC" --limit 15 --fields summary`). If they open with a category prefix (an emoji or a `[Area]` tag), pick the one that matches the area of work; when the area is ambiguous, ask the user. Without a visible convention, write a plain summary.
+- **Category is independent of the parent epic:** a tech-debt ticket keeps the prefix of its area together with `--parent <TECH-DEBT-EPIC>`.
+- **Parent epic for tech debt:** `--parent <TECH-DEBT-EPIC>` for any tech debt work in the <PROJECT> project.
 - **No dashes (em dashes).** Use a regular hyphen `-` everywhere - global rule across all repos. `adf.py` rewrites them in the description, but the summary and comments do not pass through it, so write those clean.
 - **Don't reference PR numbers in the ticket body.** That belongs on the PR side, not in the ticket.
 - **Don't paste raw GitHub URLs** unless the user asks for it.
@@ -340,11 +329,11 @@ The Jira category emoji (🧠, 💻, 💿, …) belongs only in the **Jira summa
 ## Authentication troubleshooting
 
 - **`acli jira auth status` says unauthorized here but your own terminal says authenticated:** rare. Claude runs `acli` *inside* the Bash sandbox, and the sandbox can reach the macOS Keychain, so `acli` normally authenticates fine from here - just run `acli jira auth status` and trust the result instead of assuming it'll fail. The only sandbox limitation is that `~/.config/acli` is read-only, which affects `acli jira auth login` only - not status, query, create, or edit. If status *genuinely* reports unauthorized, the session has lapsed (or a Keychain ACL prompt can't be answered by a spawned process): run `acli jira auth login --web` once in your own terminal, then have me re-run `acli jira auth status` to confirm. See the Auth check section above.
-- **Don't suggest API tokens, the MCP server, or `jira-cli` (Go).** Didomi's org enforces scoped tokens + SSO; classic tokens are not creatable, and scoped tokens 401 against basic-auth tools.
+- **Don't suggest API tokens, the MCP server, or `jira-cli` (Go).** Organisations that enforce scoped tokens + SSO make classic tokens uncreatable, and scoped tokens 401 against basic-auth tools; `acli`'s OAuth flow works everywhere.
 - **Verify auth at any time:** `acli jira auth status`.
 
 ## Reference
 
 - [acli docs](https://developer.atlassian.com/cloud/acli/guides/introduction/)
 - [ADF spec](https://developer.atlassian.com/cloud/jira/platform/apis/document/structure/)
-- Never define shell aliases for these commands, here or in the dotfiles repo. `## Core commands` already carries every one of them, and a tool call spells `acli` out in full: an alias is a second copy to keep in sync and is invisible to anyone reading the transcript.
+- Never define shell aliases for these commands, here or in shell configuration. `## Core commands` already carries every one of them, and a tool call spells `acli` out in full: an alias is a second copy to keep in sync and is invisible to anyone reading the transcript.
