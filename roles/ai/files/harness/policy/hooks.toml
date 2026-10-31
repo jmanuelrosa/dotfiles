@@ -95,8 +95,17 @@ command = "if [ -f ./kura.json ]; then ~/.local/bin/kura converge --quiet; fi"
 timeout = 10
 harnesses = ["claude"]
 
-# Stop and UserPromptSubmit map onto Pi's turn_end and turn_start, which guardrails does
-# not listen to yet.
+# No harness can hide a skill from the user and still leave it to the model, so a
+# dependency-only skill is refused on the prompt instead. Pi runs it from guardrails on
+# `input`, which fires before `/skill:` expands. Codex is off until its UserPromptSubmit
+# is shown to carry the raw `$skill` mention.
+[[hook]]
+id = "dependency-skill-gate"
+event = "prompt_submit"
+script = "dependency-skill-gate.sh"
+harnesses = ["claude", "pi"]
+
+# Stop maps onto Pi's turn_end, which guardrails does not listen to yet.
 [[hook]]
 id = "skill-recap"
 event = "stop"

@@ -433,6 +433,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "~/.claude/hooks/dependency-skill-gate.sh"
+          },
+          {
+            "type": "command",
             "command": "~/.claude/hooks/context-nudge.sh",
             "timeout": 10
           }
