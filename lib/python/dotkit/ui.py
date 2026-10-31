@@ -1,7 +1,7 @@
-"""The line vocabulary every script in this repo prints through.
+"""The line vocabulary a command-line tool prints through.
 
-The python half of roles/shell/files/fish/functions/ui/_ui.fish, kind for kind and glyph
-for glyph, so a fish function and a python command are indistinguishable on screen.
+The python half of the `_ui` fish function in the dotfiles repository, kind for kind and
+glyph for glyph, so a fish function and a python command are indistinguishable on screen.
 Two rules hold the whole style together:
 
     status is a coloured glyph   ✓ green, ⚠ yellow, ✗ magenta, · dim, → cyan
@@ -23,9 +23,9 @@ column zero is what lets a listing stay a listing.
 Indent defaults to 0, or 2 for `item` and `note`; pass indent= to override. Colour is
 colors.py's decision, per stream, so piping to a file yields plain text.
 
-Not one tool's: lokl and weekly-recap each import it through a `dotkit` symlink beside
-them, and any python CLI added to this repository should. The emoji vocabulary is
-listed in the repo CLAUDE.md.
+Vendored, not imported from here: the dotkit repository's `bin/dotkit-vendor` copies
+this file into each tool, and the tool's drift test rejects an edit made to the copy.
+Change it in dotkit and vendor again.
 """
 
 import os
@@ -60,9 +60,9 @@ NAME_LIMIT = 6
 def render(kind, text, indent=None, stream=None):
     """One line as a string, ready to print or to hand to a caller's own emitter.
 
-    Separated from printing because `doctor` collects its report through an `emit`
-    callback, and a helper that could only print would force it to rebuild the palette
-    by hand.
+    Separated from printing because a caller may collect its report through an `emit`
+    callback of its own, and a helper that could only print would force it to rebuild
+    the palette by hand.
     """
     glyph, colour, paint_text, default_indent = KINDS[kind]
     pad = " " * (default_indent if indent is None else indent)
@@ -124,9 +124,8 @@ def paint(text, colour, stream=None):
 def names_or_count(names, noun, limit=NAME_LIMIT):
     """Names while they still read as a list, otherwise how many there are.
 
-    A group holds as many as 37 artifacts, and an aside naming every one of them
-    scrolls the lines that matter off the screen. No fish counterpart: only the
-    group commands print these asides, and they exist here alone.
+    An aside naming every member of a large group scrolls the lines that matter off
+    the screen. No fish counterpart: only python callers print these asides.
     """
     names = list(names)
     if len(names) <= limit:
