@@ -6,8 +6,8 @@ Installs and configures AI tooling: Claude Code, Pi (`@earendil-works/pi-coding-
 
 Everything the harnesses read lives in `files/harness/`, one self-contained tree that `harness.toml` marks as its root, so nothing in it hops out to the rest of the repo by relative path.
 
-- `AGENTS.md`, `rules/`, `hooks/`, `agents/`, `statusline.json`, `rtk/`: shared by every harness, by symlink.
-- `kura/catalog/`: standalone skills and agents with their registries, plus seat and product bundles under `kura/catalog/bundles/`, projected into each harness by kura.
+- `AGENTS.md`, `rules/`, `hooks/`, `statusline.json`, `rtk/`: shared by every harness, by symlink.
+- `kura/config.json`: kura's machine config. The catalog it reads (standalone skills and agents with their registries, plus seat and product bundles) is the separate [agent-catalog](https://github.com/jmanuelrosa/agent-catalog) repository, not part of this tree.
 - `policy/`: permissions, sandbox and hooks, written once in neutral TOML.
 - `mcp.json`: user-global MCP server inventory shared across Claude, Pi and Codex without storing credentials.
 - `lib/harnessgen/` and `bin/harness-build`: the stdlib-only generator that renders `policy/` into each harness's spelling. Its suites are in `tests/`.
@@ -41,7 +41,7 @@ The rules, the per-harness translations and what each one loses are in [harnesse
 - Runs `herdr integration install` for each enabled harness among Claude and Pi, each only when `herdr integration status` does not report it current, so a herdr upgrade that ships a newer hook reinstalls on the next run.
 - Links each tool named in `AI_SCRIPTS` into `~/.local/bin/`, from `files/scripts/<name>/<name>`. Today that is `tokencost`, which prices a stretch of work from the session transcripts: `tokencost <project>` buckets Claude Code spend by skill, and `tokencost --pi <project>` buckets Pi's by `provider/model`, using the cost Pi recorded rather than a rate table.
 - Installs `kura` from its own repository: `get_url` fetches the release pinned in `KURA` to `~/.local/bin/kura` and verifies the checksum, so an upgrade and a rollback are the same edit in opposite directions.
-- Links kura's machine config from `files/harness/kura/config.json` to `~/.config/kura/config.json` (Claude Code and Pi are the global harnesses, with Pi's installed subagent extension reading `.pi/agents` in projects), and links `~/.config/kura/catalog` to `files/harness/kura/catalog`. Then runs `kura sync`, which creates the native skill and agent roots and links every global artifact into them.
+- Links kura's machine config from `files/harness/kura/config.json` to `~/.config/kura/config.json` (Claude Code and Pi are the global harnesses, with Pi's installed subagent extension reading `.pi/agents` in projects), clones the catalog named in `AGENT_CATALOG` to `~/Developer/agent-catalog`, and links `~/.config/kura/catalog` to that clone. The clone is made once and never pulled or reset (`update: false`), because `kura update` edits it in place and those edits are committed from the clone. Then runs `kura sync`, which creates the native skill and agent roots and links every global artifact into them.
 
 ## Kura
 
@@ -49,7 +49,7 @@ Skills and standalone agents declare machine roots with `global: true`; their `g
 Bundle registry rows carry names and descriptive `groups`, not global policy, and all shipped bundles remain project-scoped.
 
 The role runs `kura sync` on every play, so the global skills and agents always match the catalog.
-After editing the catalog or a `global` flag between plays, run it by hand, and repair initialized projects with:
+After editing the catalog clone or a `global` flag between plays, run it by hand, and repair initialized projects with:
 
 ```bash
 kura sync                              # project global skills and agents into both native harness views
@@ -64,6 +64,7 @@ Claude's SessionStart hook runs `kura converge --quiet` when the cwd holds a `ku
 - `BREW_PACKAGES`: formulas and casks, as above.
 - `HARNESS_DIR`, `HARNESS_ENABLED`, `HARNESS_LINKS`: where the payload is, which harnesses a machine gets, and what each one links.
 - `PI_EXTENSIONS`, `AI_SCRIPTS`, `KURA`: the Pi extension manifest, the linked scripts, and the pinned kura release.
+- `AGENT_CATALOG`: the catalog's repository URL and the path it is cloned to.
 - **There is no var for the global artifact set.** `kura sync` derives it from `global: true` in both registries and expands declared dependencies.
 
 ## Notes

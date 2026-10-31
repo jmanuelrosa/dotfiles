@@ -5,7 +5,7 @@ function _tv_kura_skill_action --description "Television skill actions, expandin
         if string match -q '@*' -- $names[1]
             kura list --type skill --group (string sub --start 2 -- $names[1])
         else
-            bat --color=always --plain --language=markdown "$DOTFILES_DIR/roles/ai/files/harness/kura/catalog/skills/$names[1]/SKILL.md" 2>/dev/null
+            bat --color=always --plain --language=markdown "$HOME/.config/kura/catalog/skills/$names[1]/SKILL.md" 2>/dev/null
             or _ui note 'Not downloaded: press Enter to install via kura add --type skill'
         end
         return $status
@@ -34,7 +34,7 @@ function _tv_kura_skill_action --description "Television skill actions, expandin
         case edit
             set -l paths
             for name in $names
-                set -a paths "$DOTFILES_DIR/roles/ai/files/harness/kura/catalog/skills/$name/SKILL.md"
+                set -a paths "$HOME/.config/kura/catalog/skills/$name/SKILL.md"
             end
             $EDITOR $paths
     end

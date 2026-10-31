@@ -17,7 +17,7 @@ output = "{split: :0}"
 # An agent lives at the catalog root or inside the bundle that ships it, and `**/` matches both.
 # The glob goes through `set` because fish prints an unmatched glob's error past any redirect.
 [preview]
-command = "set -l f $DOTFILES_DIR/roles/ai/files/harness/kura/catalog/**/agents/{split: :0}.md; test -n \"$f\"; and bat --color=always --plain --language=markdown $f; or echo 'Not in the catalog'"
+command = "set -l f $HOME/.config/kura/catalog/**/agents/{split: :0}.md; test -n \"$f\"; and bat --color=always --plain --language=markdown $f; or echo 'Not in the catalog'"
 
 [ui]
 layout = "portrait"
@@ -43,6 +43,6 @@ separator = "\n"
 
 [actions.edit]
 description = "Open the agent definition in $EDITOR"
-command = "$EDITOR {split:\\n:..|map:{split: :0|prepend:$DOTFILES_DIR/roles/ai/files/harness/kura/catalog/**/agents/|append:.md}|join: }"
+command = "$EDITOR {split:\\n:..|map:{split: :0|prepend:$HOME/.config/kura/catalog/**/agents/|append:.md}|join: }"
 mode = "execute"
 separator = "\n"

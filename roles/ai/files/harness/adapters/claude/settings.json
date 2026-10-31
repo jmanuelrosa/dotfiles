@@ -507,9 +507,9 @@
         "~/.ssh/known_hosts",
         "/etc/ssl/cert.pem",
         "~/.config/acli",
-        "~/Developer/dotfiles/roles/ai/files/harness/kura/catalog/skills",
+        "~/Developer/agent-catalog/skills",
         "~/Developer/dotfiles/roles/ai/files/harness/hooks",
-        "~/Developer/dotfiles/roles/ai/files/harness/kura/catalog/bundles",
+        "~/Developer/agent-catalog/bundles",
         "~/Developer/dotfiles/roles/ai/files/harness/adapters/claude/settings.json"
       ]
     },

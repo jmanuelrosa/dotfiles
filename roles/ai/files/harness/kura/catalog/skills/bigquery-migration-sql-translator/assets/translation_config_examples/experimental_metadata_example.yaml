@@ -1,4 +1,0 @@
-# Convert all names starting with `a_` as aliases to the same name with `a_` stripped.
-type: experimental_metadata
-nameAlias:
-  stripRegex: a_(.*)

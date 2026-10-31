@@ -25,6 +25,7 @@ imported through `lib/python` or through the `dotkit` symlink beside a tool. Not
 here may compare unresolved paths.
 """
 
+import os
 import re
 from pathlib import Path
 
@@ -35,7 +36,12 @@ REPO = Path(__file__).resolve().parents[3]
 # tree; what only one harness reads sits under adapters/<harness>/. This is the one place a
 # test names the location, so lifting the tree into its own repository is one edit here.
 HARNESS = REPO / "roles/ai/files/harness"
-CATALOG = HARNESS / "kura/catalog"
+
+# The catalog is its own repository, cloned by the ai role and linked where kura reads it.
+# AGENT_CATALOG points a run at another clone, which is how CI reaches one. A machine
+# without it skips the suites that read it rather than failing them: see conftest.py.
+CATALOG = Path(os.environ.get("AGENT_CATALOG") or "~/.config/kura/catalog").expanduser().resolve()
+CATALOG_NAMES = ("CATALOG", "SKILLS", "AGENTS", "BUNDLES", "SKILL_REGISTRY", "AGENT_REGISTRY")
 SKILLS = CATALOG / "skills"
 AGENTS = CATALOG / "agents"
 BUNDLES = CATALOG / "bundles"

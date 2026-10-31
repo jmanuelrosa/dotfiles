@@ -52,7 +52,7 @@ AI_SCRIPTS:
   - skill-drift
   - tokencost
 
-# kura manages skills through harness/kura/catalog and is no longer developed here, so it
+# kura manages skills through the agent catalog and is no longer developed here, so it
 # arrives as a released asset rather than as a link into this checkout. The release label
 # is for reading and the checksum is the identity: get_url verifies it, skips the download
 # when the file already matches, and replaces it when it does not, so an upgrade and a
@@ -61,6 +61,13 @@ KURA:
   repository: https://github.com/jmanuelrosa/kura
   release: v0.10.0
   checksum: sha256:422146e4431682c8ac4f78533481d16c7cd31b7dca99ba0c2bddf213f590fff2
+
+# The skills, agents and bundles kura installs. A working copy rather than a release:
+# `kura update` rewrites the registry and swaps skill directories in place, so changes
+# are committed from the clone. The role clones it once and never pulls or resets it.
+AGENT_CATALOG:
+  repository: https://github.com/jmanuelrosa/agent-catalog.git
+  path: "{{ HOME }}/Developer/agent-catalog"
 
 # The harness-neutral payload. Everything every harness shares sits at the top of this
 # tree; what only one harness reads sits under adapters/<harness>/. Lifting the tree

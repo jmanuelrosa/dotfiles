@@ -14,7 +14,7 @@ The hook needs no Ansible change: the symlink task globs `files/harness/hooks/*`
 
 ## Task planning in either harness
 
-The shared [to-plan skill](../../roles/ai/files/harness/kura/catalog/skills/to-plan/SKILL.md) writes `docs/plans/YYYY-MM-DD-<task-slug>.md` directly.
+The shared [to-plan skill](https://github.com/jmanuelrosa/agent-catalog/blob/main/skills/to-plan/SKILL.md) writes `docs/plans/YYYY-MM-DD-<task-slug>.md` directly.
 Use `/skill:to-plan <task>` in Pi or `/to-plan <task>` in Claude Code; both use the same output convention without requiring Claude's native plan mode or its rename hook.
 
 `to-plan` internally loads `research` in fact-only planning-groundwork mode and `grilling` for unresolved decisions, with both dependencies declared in the skill registry.

@@ -15,20 +15,19 @@ binding `REPO` off that suite's conftest.
 """
 
 import configparser
-import json
 
 import pytest
-from dotkit.testing import REPO, SKILL_REGISTRY, SKILLS
+from dotkit.testing import REPO
 
 PYTEST_INI = REPO / "pytest.ini"
 
 # A directory holding a suite, by family. Globs rather than a literal list, so a new
-# tool or a newly tested skill is discovered and then checked against pytest.ini.
+# tool is discovered and then checked against pytest.ini. Skill suites live in the
+# agent catalog, which checks its own.
 SUITE_GLOBS = (
     "roles/*/files/scripts/*/tests",
     "roles/*/files/harness/hooks/tests",
     "roles/*/files/harness/tests",
-    "roles/*/files/harness/kura/catalog/bundles/*/skills/*/scripts/tests",
     "lib/python/tests",
     "tests",
 )
@@ -42,26 +41,10 @@ def configured_testpaths():
     return [REPO / entry for entry in raw.split()]
 
 
-def local_skill_names():
-    """Skills authored here, as opposed to synced from an upstream repo.
-
-    Only these may hold a `tests/` directory. An upstream skill's tree is replaced
-    wholesale by `kura update` (upstream.copy_tree swaps the directory and
-    preserves nothing), so a suite added under one would be deleted on the next sync
-    and would read as permanently `behind` until then.
-    """
-    registry = json.loads(SKILL_REGISTRY.read_text())
-    return sorted(entry["name"] for entry in registry.get("local", []))
-
-
 def discovered_suites():
     found = set()
     for pattern in SUITE_GLOBS:
         found |= {path for path in REPO.glob(pattern) if path.is_dir()}
-    for name in local_skill_names():
-        candidate = SKILLS / name / "tests"
-        if candidate.is_dir():
-            found.add(candidate)
     return found
 
 
@@ -90,8 +73,7 @@ def test_no_suite_directory_is_left_uncollected():
     """A suite nobody runs is worse than no suite: it reports success.
 
     Discovery is scoped to the families that may legitimately hold one, rather than
-    walking the repo, so an upstream skill that one day ships its own `tests/` cannot
-    turn this red on an unrelated `kura update`.
+    walking the repo.
     """
     configured = set(configured_testpaths())
     orphaned = sorted(

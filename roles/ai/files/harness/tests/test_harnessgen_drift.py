@@ -17,11 +17,16 @@ ROOT = manifest.find_root()
 RENDERED = [emit_claude.SETTINGS, *cli.whole_files(manifest.load(ROOT))]
 ADAPTERS = [str(p.relative_to(ROOT)) for p in ROOT.glob("adapters/*/adapter.toml")]
 
+# The Claude render derives skill overrides from the catalog's registry.
+pytestmark = pytest.mark.skipif(
+    not manifest.catalog_root().is_dir(), reason=f"no agent catalog at {manifest.catalog_root()}"
+)
+
 
 @pytest.fixture
 def harness(tmp_path):
     """The inputs and outputs of one build, copied somewhere a test may write."""
-    inputs = ["harness.toml", "policy", "mcp.json", "adapters/pi/mcp.json", manifest.SKILL_REGISTRY]
+    inputs = ["harness.toml", "policy", "mcp.json", "adapters/pi/mcp.json"]
     for relative in [*inputs, *ADAPTERS, *RENDERED]:
         source, target = ROOT / relative, tmp_path / relative
         target.parent.mkdir(parents=True, exist_ok=True)

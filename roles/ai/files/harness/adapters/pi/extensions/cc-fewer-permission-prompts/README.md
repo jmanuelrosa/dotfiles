@@ -16,4 +16,4 @@ The `cc-` prefix keeps the port from colliding with the Claude Code built-in of 
 ## Verification
 
 Registration, argument forwarding and busy-session delivery are covered by `lib/python/tests/test_pi_cc_fewer_permission_prompts.py`.
-The miner itself is tested beside the skill, in `kura/catalog/skills/cc-fewer-permission-prompts/tests/`.
+The miner itself is tested beside the skill, in [skills/cc-fewer-permission-prompts/tests/](https://github.com/jmanuelrosa/agent-catalog/tree/main/skills/cc-fewer-permission-prompts/tests) in agent-catalog.

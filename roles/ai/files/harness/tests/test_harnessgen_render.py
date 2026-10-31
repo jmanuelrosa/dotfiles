@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pytest
 from harnessgen import emit_claude, emit_pi, manifest, merge
 
 ROOT = manifest.find_root()
@@ -62,6 +63,7 @@ def test_a_read_only_deny_is_not_dropped():
     assert emit_claude.path_denies(["~/.netrc"], []) == ["Read(~/.netrc)"]
 
 
+@pytest.mark.skipif(not manifest.catalog_root().is_dir(), reason="no agent catalog")
 def test_the_owned_keys_are_the_ones_the_adapter_header_names():
     header = (ROOT / "adapters/claude/adapter.toml").read_text().split("\n\n", 1)[0]
     for key in emit_claude.owned(manifest.load(ROOT)):
@@ -99,6 +101,7 @@ def test_an_adapter_override_wins_over_the_derived_one():
     assert overrides["deploy"] == "user-invocable-only"
 
 
+@pytest.mark.skipif(not manifest.catalog_root().is_dir(), reason="no agent catalog")
 def test_every_dependency_only_skill_in_the_catalog_is_rendered():
     rendered = emit_claude.owned(manifest.load(ROOT))["skillOverrides"]
     registry = manifest.load(ROOT).skill_registry()

@@ -17,6 +17,7 @@ installed command and skip when it is absent or predates the multi-harness inter
 
 import json
 import re
+import tomllib
 
 import pytest
 import yaml
@@ -42,6 +43,7 @@ KURA_CATALOG = CATALOG
 SYNC_TASK = "Sync global skills and agents with kura"
 INSTALL_TASK = "Install the pinned kura release"
 CONFIG_TASK = "Link kura's catalog and machine config"
+CLONE_TASK = "Clone the agent catalog"
 LINK_TASK = "Link AI scripts into the user bin directory"
 HOSTOF_TASK = "Install the pinned hostof release"
 
@@ -95,17 +97,47 @@ def test_kura_is_not_in_the_script_link_manifest():
 def test_the_role_links_kuras_catalog_and_machine_configuration():
     task = role_task("ai", CONFIG_TASK)
     assert task["ansible.builtin.file"] == {
-        "src": "{{ HARNESS_DIR }}/kura/{{ item }}",
-        "dest": "{{ HOME }}/.config/kura/{{ item }}",
+        "src": "{{ item.src }}",
+        "dest": "{{ HOME }}/.config/kura/{{ item.name }}",
         "state": "link",
         "force": True,
     }, "force repoints a link naming an older checkout"
-    assert task["loop"] == ["catalog", "config.json"]
+    assert task["loop"] == [
+        {"name": "catalog", "src": "{{ AGENT_CATALOG.path }}"},
+        {"name": "config.json", "src": "{{ HARNESS_DIR }}/kura/config.json"},
+    ]
     assert json.loads((HARNESS / "kura/config.json").read_text()) == {
         "schemaVersion": 1,
         "globalHarnesses": ["claude", "pi"],
         "pi": {"agents": {"global": "~/.pi/agent/agents", "project": ".pi/agents"}},
     }
+
+
+def test_the_role_clones_the_catalog_without_ever_updating_it():
+    """`kura update` edits the clone in place, so a pull or reset on a later play would
+    clobber registry and skill changes that have not been committed yet."""
+    assert ai_defaults()["AGENT_CATALOG"] == {
+        "repository": "https://github.com/jmanuelrosa/agent-catalog.git",
+        "path": "{{ HOME }}/Developer/agent-catalog",
+    }
+    task = role_task("ai", CLONE_TASK)
+    assert task["ansible.builtin.git"] == {
+        "repo": "{{ AGENT_CATALOG.repository }}",
+        "dest": "{{ AGENT_CATALOG.path }}",
+        "version": "main",
+        "update": False,
+    }
+    assert task["register"] == "agent_catalog"
+
+
+def test_the_sandbox_reads_the_catalog_where_the_role_clones_it():
+    """The sandbox checks the resolved path, so a skill script reached through
+    ~/.claude/skills is read from the clone, and a stale rule here denies every one."""
+    clone = ai_defaults()["AGENT_CATALOG"]["path"].replace("{{ HOME }}", "~")
+    with (HARNESS / "policy/sandbox.toml").open("rb") as handle:
+        reads = tomllib.load(handle)["filesystem"]["allow_read"]
+    assert f"{clone}/skills" in reads
+    assert f"{clone}/bundles" in reads
 
 
 def test_the_catalog_view_exposes_kuras_supported_inputs():
@@ -190,10 +222,13 @@ def test_the_role_syncs_global_artifacts_after_kura_can_read_the_catalog():
     assert task["ansible.builtin.command"]["removes"] == "{{ HOME }}/.local/bin/kura"
     assert task["check_mode"] is False
     assert task["changed_when"] == "', 0 changes' not in kura_sync.stdout"
+    assert task["when"] == "not (ansible_check_mode and agent_catalog is changed)", (
+        "a check run on a fresh machine has no clone for the dry run to read"
+    )
 
     tasks = yaml.safe_load(AI_TASKS.read_text())
     names = [t["name"] for t in tasks]
-    assert names.index(INSTALL_TASK) < names.index(CONFIG_TASK) < names.index(SYNC_TASK)
+    assert names.index(INSTALL_TASK) < names.index(CLONE_TASK) < names.index(CONFIG_TASK) < names.index(SYNC_TASK)
     assert not any("converge" in str(t.get("ansible.builtin.command", "")) for t in tasks)
 
 

@@ -9,7 +9,9 @@ from pathlib import Path
 MARKER = "harness.toml"
 HARNESS_PLACEHOLDER = "{harness}"
 RENDER_ROOT_ENV = "HARNESS_RENDER_ROOT"
-SKILL_REGISTRY = "kura/catalog/skill-registry.json"
+CATALOG_ENV = "AGENT_CATALOG"
+DEFAULT_CATALOG = "~/.config/kura/catalog"
+SKILL_REGISTRY = "skill-registry.json"
 
 
 def find_root(start=None):
@@ -52,12 +54,18 @@ def read(path, root):
         return expand(tomllib.load(handle), root)
 
 
+def catalog_root():
+    """The agent catalog kura reads: the ai role clones it and links it here, and CI names its own clone."""
+    return Path(os.environ.get(CATALOG_ENV) or DEFAULT_CATALOG).expanduser()
+
+
 @dataclass(frozen=True)
 class Manifest:
     root: Path
     permissions: dict
     sandbox: dict
     hooks: list
+    catalog: Path
 
     def adapter(self, name):
         return read(self.root / "adapters" / name / "adapter.toml", self.root)
@@ -66,10 +74,10 @@ class Manifest:
         return [hook for hook in self.hooks if harness in hook["harnesses"]]
 
     def skill_registry(self):
-        return json.loads((self.root / SKILL_REGISTRY).read_text())
+        return json.loads((self.catalog / SKILL_REGISTRY).read_text())
 
 
-def load(root=None):
+def load(root=None, catalog=None):
     root = Path(root) if root else find_root()
     policy = root / "policy"
     return Manifest(
@@ -77,4 +85,5 @@ def load(root=None):
         permissions=read(policy / "permissions.toml", root),
         sandbox=read(policy / "sandbox.toml", root),
         hooks=read(policy / "hooks.toml", root)["hook"],
+        catalog=Path(catalog) if catalog else catalog_root(),
     )
