@@ -1,0 +1,6 @@
+http://agent-catalog.localhost {
+	reverse_proxy 127.0.0.1:32646 [::1]:32646 {
+		lb_policy first
+		fail_duration 5s
+	}
+}
