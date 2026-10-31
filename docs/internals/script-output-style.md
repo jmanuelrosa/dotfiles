@@ -43,7 +43,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dotkit import ui
 ```
 
-That works because every python tool directory holds a **committed relative symlink** named `dotkit`, pointing at [lib/python/dotkit](../../lib/python/dotkit). The one real copy lives outside the roles because neither role can import from the other, and `weekly-recap` in `work` needs the same vocabulary `lokl` in `apps` does. A copy would be a third statement of a style that is already stated twice, so it is a link. `resolve()` follows both the `~/.local/bin` install symlink and this one, which is what makes a tool directory self-contained enough to `cp -r` anywhere and still run.
+That works because every python tool directory holds a **committed relative symlink** named `dotkit`, pointing at [lib/python/dotkit](../../lib/python/dotkit). The copy lives outside the roles because neither role can import from the other, and `weekly-recap` in `work` needs the same vocabulary `lokl` in `apps` does, so each tool links to it rather than holding another copy.
+
+`ui.py` and `colors.py` in that directory are vendored from the [dotkit](https://github.com/jmanuelrosa/dotkit) repository, which agent-catalog, kura and hostof vendor from too, and pinned in the root `dotkit.json`. Change them in dotkit and run its `bin/dotkit-vendor` against this checkout: `test_dotkit_vendored.py` fails on an edit made here. `testing.py` is this repository's own and is not vendored. `resolve()` follows both the `~/.local/bin` install symlink and this one, which is what makes a tool directory self-contained enough to `cp -r` anywhere and still run.
 
 These are not the only committed symlinks in the repo (`mode 120000`), since the root `AGENTS.md` points at `CLAUDE.md` and `.claude/skills/` holds a dozen more, but they are the ones whose breakage is silent, so `test_suites.py` asserts each resolves to the real package and that its target is relative: a clone with `core.symlinks=false` materialises them as regular files holding a path, and the resulting `ImportError` points nowhere near the cause.
 

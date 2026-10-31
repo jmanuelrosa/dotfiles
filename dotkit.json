@@ -1,0 +1,8 @@
+{
+  "target": "lib/python/dotkit",
+  "rev": "7fe841fab41885320d3f40f9104107488ea46ad7",
+  "files": {
+    "ui.py": "f6e35d697bf93dbb4c0c117159327739e85323655fc54997fe7f89764065ae61",
+    "colors.py": "f954033f20e24821b7519f3394d28ba0b0de4856ffaa7d268fa9a41d105ae457"
+  }
+}
