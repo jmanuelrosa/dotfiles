@@ -3,15 +3,15 @@
 kura used to live in `roles/ai/files/scripts/claude-kit/` and its suite ran here. It is
 released separately now, so what remains is the half this repository can break:
 
-  the installer   a pinned release and checksum, machine config and catalog links, and
-                  the `kura sync` the role runs on every play
-  the catalog     that the dedicated Kura view exposes skills, agents, bundles and their
-                  registries, that every shipped artifact is loadable, that seat routing
-                  names every implementer seat, and that `global` means what it should
+  the installer   a pinned release and checksum, machine config and catalog links, the
+                  catalog commit CI tests against, and the `kura sync` the role runs on
+                  every play
+  the harness     that every artifact this repository ships is loadable
 
 Kura manages skills, standalone agents and bundles, and owns the native roots they are
 linked into; the seats and the product pipeline are bundles inside the catalog. The tool's own behaviour is
-asserted in its own repository against a fixture catalog. Nothing here imports it: the derivations that need its answers ask the
+asserted in its own repository against a fixture catalog, and the catalog's content in the catalog's own tests.
+Nothing here imports kura: the derivations that need its answers ask the
 installed command and skip when it is absent or predates the multi-harness interface.
 """
 
@@ -22,14 +22,9 @@ import tomllib
 import pytest
 import yaml
 from dotkit.testing import (
-    AGENT_REGISTRY,
-    AGENTS,
-    BUNDLES,
-    CATALOG,
     CLAUDE_SETTINGS,
     HARNESS,
     REPO,
-    SKILLS,
     ai_defaults,
     harness_links,
 )
@@ -37,8 +32,8 @@ from dotkit.testing import (
 AI_TASKS = REPO / "roles/ai/tasks/main.yml"
 AI_DEFAULTS = REPO / "roles/ai/defaults/main.yml"
 COREUTILS_DEFAULTS = REPO / "roles/coreutils/defaults/main.yml"
+CI_WORKFLOW = REPO / ".github/workflows/pull_request.yml"
 SETTINGS = CLAUDE_SETTINGS
-KURA_CATALOG = CATALOG
 
 SYNC_TASK = "Sync global skills and agents with kura"
 INSTALL_TASK = "Install the pinned kura release"
@@ -116,10 +111,10 @@ def test_the_role_links_kuras_catalog_and_machine_configuration():
 def test_the_role_clones_the_catalog_without_ever_updating_it():
     """`kura update` edits the clone in place, so a pull or reset on a later play would
     clobber registry and skill changes that have not been committed yet."""
-    assert ai_defaults()["AGENT_CATALOG"] == {
-        "repository": "https://github.com/jmanuelrosa/agent-catalog.git",
-        "path": "{{ HOME }}/Developer/agent-catalog",
-    }
+    catalog = ai_defaults()["AGENT_CATALOG"]
+    assert catalog.keys() == {"repository", "path", "commit"}
+    assert catalog["repository"] == "https://github.com/jmanuelrosa/agent-catalog.git"
+    assert catalog["path"] == "{{ HOME }}/Developer/agent-catalog"
     task = role_task("ai", CLONE_TASK)
     assert task["ansible.builtin.git"] == {
         "repo": "{{ AGENT_CATALOG.repository }}",
@@ -130,6 +125,21 @@ def test_the_role_clones_the_catalog_without_ever_updating_it():
     assert task["register"] == "agent_catalog"
 
 
+def test_ci_tests_against_the_pinned_catalog_commit():
+    """CI cloning catalog main let a catalog-only change turn this repository red. The pin
+    is a full SHA in the defaults, and CI reads it from there so it is written only once."""
+    commit = ai_defaults()["AGENT_CATALOG"]["commit"]
+    assert re.fullmatch(r"[0-9a-f]{40}", commit)
+
+    steps = yaml.safe_load(CI_WORKFLOW.read_text())["jobs"]["test"]["steps"]
+    script = next(step["run"] for step in steps if step.get("name") == CLONE_TASK)
+    assert "roles/ai/defaults/main.yml" in script
+    assert '["AGENT_CATALOG"]' in script and '["commit"]' in script
+    assert "checkout --quiet --detach FETCH_HEAD" in script
+    assert "git clone" not in script
+    assert commit not in CI_WORKFLOW.read_text(), "the pin lives only in the ai role's defaults"
+
+
 def test_the_sandbox_reads_the_catalog_where_the_role_clones_it():
     """The sandbox checks the resolved path, so a skill script reached through
     ~/.claude/skills is read from the clone, and a stale rule here denies every one."""
@@ -138,77 +148,6 @@ def test_the_sandbox_reads_the_catalog_where_the_role_clones_it():
         reads = tomllib.load(handle)["filesystem"]["allow_read"]
     assert f"{clone}/skills" in reads
     assert f"{clone}/bundles" in reads
-
-
-def test_the_catalog_view_exposes_kuras_supported_inputs():
-    assert {entry.name for entry in KURA_CATALOG.iterdir()} >= {
-        "skills",
-        "skill-registry.json",
-        "agents",
-        "agent-registry.json",
-        "bundles",
-        "bundle-registry.json",
-    }
-    assert (KURA_CATALOG / "skills").is_dir()
-    assert (KURA_CATALOG / "skill-registry.json").is_file()
-    assert (KURA_CATALOG / "agents").is_dir()
-    assert (KURA_CATALOG / "bundles").is_dir()
-    assert (KURA_CATALOG / "agent-registry.json").is_file()
-    assert (KURA_CATALOG / "bundle-registry.json").is_file()
-    assert SKILLS == KURA_CATALOG / "skills"
-    assert AGENTS == KURA_CATALOG / "agents"
-
-
-def test_every_bundle_carries_what_kura_refuses_to_install_without():
-    """A bundle with no manifest, no agent or no skill is a catalog error kura names.
-
-    These arrived from `plugins/`, where the manifest was `.claude-plugin/plugin.json` and
-    nothing read it: Claude Code ignored the keys this repository cared about, and kura
-    never looked. `bundle.json` is read, so a missing one is now a bundle that does not
-    exist rather than one that merely looks untagged.
-    """
-    for bundle in sorted(entry for entry in BUNDLES.iterdir() if entry.is_dir()):
-        assert (bundle / "bundle.json").is_file(), bundle.name
-        assert list((bundle / "agents").glob("*.md")), bundle.name
-        assert list((bundle / "skills").glob("*/SKILL.md")), bundle.name
-
-
-def test_every_shipped_bundle_has_one_registry_entry():
-    registry = json.loads((KURA_CATALOG / "bundle-registry.json").read_text())
-    assert registry["version"] == 3
-    entries = registry["local"]
-    names = [entry["name"] for entry in entries]
-    assert len(names) == len(set(names))
-    assert set(names) == {path.name for path in BUNDLES.iterdir() if path.is_dir()}
-    for name in names:
-        manifest = json.loads((BUNDLES / name / "bundle.json").read_text())
-        assert manifest["name"] == name
-
-
-def test_bundle_groups_are_descriptive_and_project_scoped():
-    registry = json.loads((KURA_CATALOG / "bundle-registry.json").read_text())
-    unsupported = {"global", "dependencies", "dependency_only"}
-    for entry in registry["local"]:
-        assert not unsupported.intersection(entry), entry["name"]
-        groups = entry["groups"]
-        assert isinstance(groups, list) and groups, entry["name"]
-        assert all(isinstance(group, str) and group for group in groups), entry["name"]
-        assert len(groups) == len(set(groups)), entry["name"]
-        assert "global" not in groups, entry["name"]
-        manifest = json.loads((BUNDLES / entry["name"] / "bundle.json").read_text())
-        assert "groups" not in manifest, entry["name"]
-        assert "global" not in manifest, entry["name"]
-
-
-@pytest.mark.parametrize(("kind", "collection"), [("skill", "skills"), ("agent", "agents")])
-def test_global_root_policy_is_boolean_and_separate_from_groups(kind, collection):
-    registry = json.loads((KURA_CATALOG / f"{kind}-registry.json").read_text())
-    entries = registry["local"] + [
-        entry for repo in registry["upstream"].values() for entry in repo[collection]
-    ]
-    for entry in entries:
-        assert type(entry.get("global", False)) is bool, entry
-        assert "global" not in entry.get("groups", []), entry
 
 
 def test_the_role_syncs_global_artifacts_after_kura_can_read_the_catalog():
@@ -250,23 +189,6 @@ def test_standalone_agents_are_catalog_owned_and_global():
     assert "~/.pi/agent/agents" not in links
     assert "{{ HOME }}/.pi/agent/agents" not in ai_defaults()["HARNESS_LINKS"]["pi"]["dirs"]
     assert "{{ HOME }}/.claude/agents" not in ai_defaults()["HARNESS_LINKS"]["claude"]["dirs"]
-
-    registry = json.loads(AGENT_REGISTRY.read_text())
-    assert set(registry) == {"$schema", "version", "upstream", "local"}
-    assert registry["version"] == 3
-    registered = {entry["name"] for entry in registry["local"]}
-    shipped = {path.stem for path in AGENTS.glob("*.md")}
-    assert registered == shipped
-    assert all(entry["global"] is True for entry in registry["local"])
-
-
-@pytest.mark.parametrize("artifact_type", ["agent", "bundle"])
-def test_agent_and_bundle_schemas_match_the_skill_registry(artifact_type):
-    skill_registry = json.loads((CATALOG / "skill-registry.json").read_text())
-    registry = json.loads((CATALOG / f"{artifact_type}-registry.json").read_text())
-    assert registry["$schema"] == skill_registry["$schema"].replace(
-        "skill-registry.schema.json", f"{artifact_type}-registry.schema.json"
-    )
 
 
 # --- the installers that still link from this checkout ------------------------
@@ -338,13 +260,13 @@ def test_every_tool_ships_an_executable_named_after_its_directory(role, var, tas
         assert executable.stat().st_mode & stat.S_IXUSR, f"{name}/{name} is on PATH but not +x"
 
 
-# --- the catalog this repository owns -----------------------------------------
+# --- the artifacts this repository ships --------------------------------------
 
 
 def artifact_files():
-    """Catalog skills and bundle-owned artifacts both need valid frontmatter."""
+    """The catalog's own suite covers its artifacts; these are the ones the harness ships."""
     agents = [p for p in HARNESS.rglob("*.md") if p.parent.name == "agents"]
-    return sorted({*SKILLS.rglob("SKILL.md"), *HARNESS.rglob("SKILL.md"), *agents})
+    return sorted({*HARNESS.rglob("SKILL.md"), *agents})
 
 
 def frontmatter(path):
@@ -376,164 +298,3 @@ def test_every_artifact_ships_frontmatter_a_yaml_parser_accepts():
         if not isinstance(parsed, dict) or "name" not in parsed:
             offenders.append(f"{path.relative_to(REPO)}: declares no name")
     assert offenders == [], "\n".join(offenders)
-
-
-def seat_agents():
-    """Every staff-engineer agent shipped by a catalog bundle, with its frontmatter."""
-    for bundle in sorted(BUNDLES.iterdir()):
-        agents_dir = bundle / "agents"
-        if not agents_dir.is_dir():
-            continue
-        for path in sorted(agents_dir.glob("*-staff-engineer.md")):
-            block = frontmatter(path)
-            yield path, (yaml.safe_load(block) if block else {})
-
-
-def test_implementer_seats_are_the_ones_without_a_tools_allowlist():
-    """The advisor/implementer split is readable from frontmatter alone.
-
-    `tools:` is what makes a seat read-only, and a read-only seat owns no slice. Pinned
-    so the next advisor seat is a deliberate addition here rather than a silent
-    disappearance from architect's routing.
-    """
-    advisors = {p.stem for p, fm in seat_agents() if "tools" in fm}
-    assert advisors == {"security-staff-engineer"}
-
-
-def test_architect_routes_to_every_implementer_seat():
-    """A seat architect never names is a seat it never assigns work to.
-
-    This list rotted from twelve seats to seven without anyone noticing: design,
-    mobile, desktop, dx and gtm each shipped without reaching architect.md, so
-    architect silently defaulted their work to the frontend and backend seats. The
-    symptom was invisible, because defaulting is indistinguishable from routing.
-    """
-    routing = (AGENTS / "architect.md").read_text()
-    missing = sorted(
-        path.stem
-        for path, fm in seat_agents()
-        if "tools" not in fm and path.stem.removesuffix("-staff-engineer") not in routing
-    )
-    assert missing == [], (
-        f"seats absent from architect.md's enumeration: {', '.join(missing)}. "
-        f"Architect cannot assign a slice to a seat it does not name."
-    )
-
-
-def test_every_registered_skill_has_a_source_on_disk():
-    """A registry row naming nothing is a skill `sync` reports missing and refuses to
-    exit 0 over, and a row nobody notices is how that happens."""
-    registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
-    local = [entry["name"] for entry in registry["local"]]
-    missing = [name for name in local if not (SKILLS / name).is_dir()]
-    assert missing == [], f"registered skills with no directory: {missing}"
-
-
-def upstream_name(entry):
-    """The directory kura installs an upstream entry under: its `name`, else the
-    basename of `upstream_path`. A repo-root skill (`upstream_path: "."`) carries a name."""
-    return entry.get("name") or entry["upstream_path"].rstrip("/").rsplit("/", 1)[-1]
-
-
-def upstream_skill_dirs():
-    registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
-    for repo in registry["upstream"].values():
-        for entry in repo["skills"]:
-            yield SKILLS / upstream_name(entry)
-
-
-def test_no_upstream_skill_grants_itself_bash():
-    """In Claude Code `allowed-tools` runs the listed tools without a prompt for the
-    turn, so a vendored skill naming Bash pre-approves commands nobody here reviewed.
-    `kura update` replaces an upstream tree wholesale, which is how a stripped line
-    comes back."""
-    offenders = []
-    for skill in upstream_skill_dirs():
-        block = frontmatter(skill / "SKILL.md")
-        granted = (yaml.safe_load(block) if block else {}).get("allowed-tools") or []
-        if "Bash" in " ".join(map(str, granted if isinstance(granted, list) else [granted])):
-            offenders.append(skill.name)
-    assert offenders == [], (
-        f"upstream skills granting themselves Bash: {', '.join(offenders)}. "
-        "Upstream reintroduced the line; strip `allowed-tools` from the frontmatter "
-        "again after `kura update`."
-    )
-
-
-def test_to_plan_dependencies_have_registered_sources():
-    registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
-    entries = {entry["name"]: entry for entry in registry["local"]}
-    entries.update(
-        (upstream_name(entry), entry)
-        for repo in registry["upstream"].values()
-        for entry in repo["skills"]
-    )
-    assert entries["to-plan"]["dependencies"] == ["research", "grilling"]
-
-    pending = list(entries["to-plan"]["dependencies"])
-    visited = set()
-    while pending:
-        name = pending.pop()
-        if name in visited:
-            continue
-        visited.add(name)
-        assert name in entries, f"unregistered dependency: {name}"
-        assert (SKILLS / name / "SKILL.md").is_file(), f"missing dependency: {name}"
-        pending.extend(entries[name].get("dependencies", []))
-
-
-def test_teammate_dependencies_are_installed_dependency_only_skills():
-    """teammate reads its dependencies by path, so each must ship beside it and stay hidden."""
-    registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
-    upstream = {
-        upstream_name(entry): entry
-        for repo in registry["upstream"].values()
-        for entry in repo["skills"]
-    }
-    teammate = next(entry for entry in registry["local"] if entry["name"] == "teammate")
-    for name in teammate["dependencies"]:
-        assert (SKILLS / name / "SKILL.md").is_file(), f"missing dependency: {name}"
-        if name in {"how", "why", "teach", "domain-modeling"}:
-            assert upstream[name].get("dependency_only") is True, name
-
-
-def test_the_global_set_holds_exactly_the_documented_membership():
-    """Registry root policy changes the global set even while sync is disabled."""
-    registry = json.loads((KURA_CATALOG / "skill-registry.json").read_text())
-    global_roots = {entry["name"] for entry in registry["local"] if entry.get("global", False)}
-    global_roots.update(
-        upstream_name(entry)
-        for repo in registry["upstream"].values()
-        for entry in repo["skills"]
-        if entry.get("global", False)
-    )
-    assert global_roots == {
-        "ac",
-        "agent-audit",
-        "agent-writer",
-        "setup-review",
-        "setup-review-mechanics",
-        "ship",
-        "cc-fewer-permission-prompts",
-        "cloudflare",
-        "coderabbit",
-        "commit",
-        "diagram",
-        "documentation-and-adrs",
-        "feature-team",
-        "grill-me",
-        "grill-with-docs",
-        "handoff",
-        "humanizer",
-        "planning-and-task-breakdown",
-        "pr",
-        "product-lead",
-        "research",
-        "review-mechanics",
-        "skill-writer",
-        "teammate",
-        "to-plan",
-        "to-rfc",
-        "triage",
-        "watch",
-    }

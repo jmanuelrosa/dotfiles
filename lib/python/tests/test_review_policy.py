@@ -43,7 +43,6 @@ already provisioned. The policy then sits in a directory holding a dangling neig
 which is the same shape of nothing-reports-it as the three above.
 """
 
-import json
 import re
 
 import pytest
@@ -52,7 +51,6 @@ from dotkit.testing import (
     CLAUDE,
     REPO,
     RULES,
-    SKILL_REGISTRY,
     SKILLS,
     ai_defaults,
     harness_dirs,
@@ -86,12 +84,6 @@ EFFORTS = ("low", "medium", "high", "xhigh", "max", "ultra")
 
 # Every occurrence, level or not, so a bare one is a failure rather than a miss.
 CALL_SITE = re.compile(r"/code-review(?:\s+(\w+))?")
-
-# A reviewer whose axes are a subset of the policy's and whose severity scale is one of the
-# four this policy collapsed. It is upstream, so its body cannot be fixed; dropping `review`
-# from its groups is what stops `scout` and `--group review` offering it as a reviewer, and
-# that only works while kura leaves hand-maintained groups alone.
-SUPERSEDED = "code-review-and-quality"
 
 
 def call_sites():
@@ -213,23 +205,6 @@ def test_the_resident_policy_routes_to_the_mechanics_skill():
     )
 
 
-def test_the_mechanics_skill_is_a_global_root():
-    """Without global root policy it never links, so the stub points at nothing.
-
-    `kura sync` derives the user-scope set from the `global` flag, and prunes anything
-    in that tree it cannot derive.
-    """
-    entries = [
-        skill
-        for skill in json.loads(SKILL_REGISTRY.read_text())["local"]
-        if skill["name"] == "review-mechanics"
-    ]
-    assert len(entries) == 1, f"expected one local entry, found {len(entries)}"
-    assert entries[0]["global"] is True, (
-        "`review-mechanics` is not a global root, so it never reaches ~/.claude/skills"
-    )
-
-
 def test_every_seat_the_policy_routes_to_exists():
     """A route to a renamed or dropped seat is a checklist silently never opened."""
     routed = {m.group(1) for m in SEAT_ROUTE.finditer(MECHANICS.read_text())}
@@ -282,28 +257,3 @@ def test_at_least_one_call_site_exists_to_check():
 def test_the_policy_documents_every_effort_a_call_site_could_name(effort):
     """The table is the authority, so a level pinned anywhere must be described here."""
     assert f"`{effort}`" in MECHANICS.read_text(), f"the effort table omits `{effort}`"
-
-
-def test_the_superseded_reviewer_is_named_and_untagged():
-    """Three halves of one claim, and the third is the one that can rot silently.
-
-    Its body is upstream and unfixable, so the policy states precedence and the registry
-    stops advertising it as a reviewer. `registry.stamp_entry` writes only `updated_at`,
-    which is what makes a hand-maintained `groups` survive `kura update`; if that ever
-    changes, `review` comes back and this fails.
-    """
-    assert SUPERSEDED in MECHANICS.read_text(), (
-        "the mechanics skill stopped naming the rival reviewer"
-    )
-    assert (SKILLS / SUPERSEDED / "SKILL.md").is_file()
-
-    entries = [
-        skill
-        for repo in json.loads(SKILL_REGISTRY.read_text())["upstream"].values()
-        for skill in repo["skills"]
-        if skill["upstream_path"].rsplit("/", 1)[-1] == SUPERSEDED
-    ]
-    assert len(entries) == 1, f"expected one tracked entry, found {len(entries)}"
-    assert "review" not in entries[0]["groups"], (
-        f"`{SUPERSEDED}` is tagged `review` again, so scout offers it as a reviewer"
-    )

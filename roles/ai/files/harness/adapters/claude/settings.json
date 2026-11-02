@@ -336,7 +336,8 @@
     "domain-modeling": "name-only",
     "how": "name-only",
     "why": "name-only",
-    "teach": "name-only"
+    "teach": "name-only",
+    "unslop": "name-only"
   },
   "hooks": {
     "PostToolUse": [
