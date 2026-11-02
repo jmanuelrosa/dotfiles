@@ -14,6 +14,7 @@ COREUTILS_CONFIGS:
   - btop/btop.conf
   - eza/theme.yml
   - fastfetch/config.jsonc
+  - glow/glow.yml
   - ripgrep/config
 
 BREW_PACKAGES:
@@ -24,6 +25,7 @@ BREW_PACKAGES:
     - eza
     - fastfetch
     - fd
+    - glow
     - httpie
     - hyperfine
     - ripgrep

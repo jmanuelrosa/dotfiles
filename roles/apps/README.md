@@ -23,6 +23,14 @@ Caddy is never started or registered at boot: `lokl start` and `lokl stop` run i
 
 > **Convention**: prefer brew when a formula exists. There's no `NPM_PACKAGES` mechanism here today: if a future tool only ships via npm with no brew alternative, re-add a thin `tasks/npm-packages.yml` driven by an `NPM_PACKAGES` list.
 
+## Herdr
+
+Press `Ctrl+d`, then `m` to open Glow's Markdown browser in a temporary popup from the active pane's working directory.
+Quit Glow to return to the unchanged pane layout; no reader stays running after it closes.
+Glow is installed by the `coreutils` role.
+The popup passes the managed Glow config explicitly, so an already-running Herdr server does not need the new shell export.
+After editing Herdr's config, run `herdr server reload-config` or use `Ctrl+d`, then `r`.
+
 ## Sentry
 
 `~/.local/bin/sentry` shadows the Homebrew binary and sets `SENTRY_CONFIG_DIR` to `~/.config/sentry/<account>`, where the account is the one whose root is the longest prefix of the working directory.
