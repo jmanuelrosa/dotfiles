@@ -146,12 +146,37 @@ def native_mcp_tools(rule, servers):
     return [native_mcp_tool(shared, tool or "*") for shared in shared_servers(server, servers)]
 
 
+def policy_allow_read(manifest):
+    adapter = manifest.adapter(NAME)["sandbox"]
+    return unique(list(manifest.sandbox["filesystem"]["allow_read"]) + adapter["filesystem"]["allowRead"])
+
+
+def policy_deny_read(manifest):
+    filesystem = manifest.sandbox["filesystem"]
+    paths = manifest.permissions["paths"]
+    return unique(list(filesystem["deny_read"]) + [to_sandbox_pattern(p) for p in paths["deny_read"]])
+
+
+def without_carve_outs(denies, allows):
+    """The deny list minus any path the allow list names verbatim.
+
+    pi-sandbox realpaths both lists, and the runtime re-emits a literal deny last when it
+    sits inside an allowed subpath. A symlinked carve-out such as `~/.gitconfig`, whose
+    target lives in this repo, is then denied again whenever the session's cwd contains
+    that target, so git fails to start. Dropping the duplicate keeps the grant the
+    carve-out was written for; the read tool never consulted this deny anyway, and
+    `path_read` in the permission system still refuses the path to the agent.
+    """
+    granted = set(allows)
+    return [p for p in denies if p not in granted]
+
+
 def sandbox(manifest):
     network = manifest.sandbox["network"]
     filesystem = manifest.sandbox["filesystem"]
-    paths = manifest.permissions["paths"]
     adapter = manifest.adapter(NAME)["sandbox"]
     allow_write = [p for p in filesystem["allow_write"] if not p.startswith("$")]
+    allow_read = policy_allow_read(manifest)
     return {
         "enabled": True,
         "excludedCommands": list(adapter["excludedCommands"]),
@@ -163,11 +188,9 @@ def sandbox(manifest):
         },
         "filesystem": {
             "allowWrite": allow_write + [DARWIN_TEMP_ROOT],
-            "allowRead": unique(list(filesystem["allow_read"]) + adapter["filesystem"]["allowRead"]),
-            "denyRead": unique(
-                list(filesystem["deny_read"]) + [to_sandbox_pattern(p) for p in paths["deny_read"]]
-            ),
-            "denyWrite": unique(to_sandbox_pattern(p) for p in paths["deny_edit"]),
+            "allowRead": allow_read,
+            "denyRead": without_carve_outs(policy_deny_read(manifest), allow_read),
+            "denyWrite": unique(to_sandbox_pattern(p) for p in manifest.permissions["paths"]["deny_edit"]),
         },
     }
 

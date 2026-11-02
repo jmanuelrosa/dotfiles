@@ -190,8 +190,25 @@ def test_the_read_carve_outs_are_exactly_the_files_bash_cannot_work_without():
     permission grant, so it fails until somebody writes down why.
     """
     fs = pi_sandbox()["filesystem"]
-    granted = [p for p in fs["allowRead"] if any(covers(d, p) for d in fs["denyRead"])]
+    denies = emit_pi.policy_deny_read(manifest.load())
+    granted = [p for p in fs["allowRead"] if any(covers(d, p) for d in denies)]
     assert sorted(granted) == ["/etc/ssl/cert.pem", "~/.gitconfig", "~/.ssh/known_hosts"]
+
+
+def test_no_carve_out_is_also_denied_verbatim():
+    """A carve-out repeated in denyRead stops git in the repo that holds ~/.gitconfig's target.
+
+    pi-sandbox realpaths both lists, so the deny reaches the symlink's target inside this
+    repo, and the runtime re-emits a deny nested in an allowed subpath (the cwd) last,
+    where it beats the grant. Every git call then fails with `Operation not permitted`.
+    """
+    fs = pi_sandbox()["filesystem"]
+    assert not set(fs["allowRead"]) & set(fs["denyRead"])
+
+
+def test_dropping_a_carve_out_from_denyRead_keeps_every_other_deny():
+    denies = ["~/.ssh", "~/.gitconfig", "/**/*.pem"]
+    assert emit_pi.without_carve_outs(denies, ["~/.gitconfig", "/etc/ssl/cert.pem"]) == ["~/.ssh", "/**/*.pem"]
 
 
 def test_the_ssh_keys_are_not_re_allowed_by_the_known_hosts_carve_out():
