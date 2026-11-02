@@ -12,12 +12,17 @@ Installs modern replacements for traditional Unix utilities, plus the configs th
 
 ## Vars
 
-- `BREW_PACKAGES` (defaults/main.yml) — formulas only: bat, btop, duf, eza, fastfetch, fd, httpie, hyperfine, ripgrep, scc, television, vnstat, wget, zoxide, unar.
+- `BREW_PACKAGES` (defaults/main.yml) — formulas only: bat, btop, duf, eza, fastfetch, fd, glow, httpie, hyperfine, ripgrep, scc, television, vnstat, wget, zoxide, unar.
 - `COREUTILS_CONFIGS` (defaults/main.yml): config paths, relative to both `files/` and `~/.config/`.
 - `HOSTOF` (defaults/main.yml): upstream repository, release, and SHA-256 checksum for the installed `hostof` asset.
 
 ## Tools
 
+- `glow`: renders Markdown in the terminal.
+  Run `glow README.md` to read a file in a pager, or `glow` to browse Markdown files interactively.
+  The managed config enables mouse scrolling, detects the terminal theme and width, and excludes hidden and ignored files from the browser.
+  The shell exports `GLOW_CONFIG_HOME` so macOS reads `~/.config/glow/glow.yml`.
+  No login or activation is required.
 - [`hostof`](https://github.com/jmanuelrosa/hostof): reports which service and region host a site while keeping edge, origin, and network as separate facts. The standalone stdlib-only release is checksum-verified before installation. `--deep` adds conventional undocumented paths and refuses any host without an entry in `~/.config/hostof/authorized.json`.
 
 ## hostof lifecycle
@@ -28,7 +33,7 @@ Installs modern replacements for traditional Unix utilities, plus the configs th
 
 ## Files
 
-- `files/bat/config`, `files/ripgrep/config`, `files/eza/theme.yml`, `files/btop/btop.conf`, `files/fastfetch/config.jsonc` — checked-in configs symlinked into `~/.config/`.
+- `files/bat/config`, `files/ripgrep/config`, `files/eza/theme.yml`, `files/btop/btop.conf`, `files/fastfetch/config.jsonc`, `files/glow/glow.yml` - checked-in configs symlinked into `~/.config/`.
 
 ## Notes
 
