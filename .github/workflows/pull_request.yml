@@ -51,7 +51,11 @@ jobs:
       # catalog change cannot turn this repository red until a PR bumps the pin.
       - name: Clone the agent catalog
         run: |
-          pin=$(uv run --no-project --with pyyaml python -c 'import yaml; c = yaml.safe_load(open("roles/ai/defaults/main.yml"))["AGENT_CATALOG"]; print(c["repository"], c["commit"])')
+          pin=$(uv run --no-project --with pyyaml python -c '
+          import yaml
+          catalog = yaml.safe_load(open("roles/ai/defaults/main.yml"))["AGENT_CATALOG"]
+          print(catalog["repository"], catalog["commit"])
+          ')
           read -r repository commit <<< "$pin"
           git init --quiet "$RUNNER_TEMP/agent-catalog"
           git -C "$RUNNER_TEMP/agent-catalog" fetch --depth 1 "$repository" "$commit"
