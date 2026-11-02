@@ -65,9 +65,13 @@ KURA:
 # The skills, agents and bundles kura installs. A working copy rather than a release:
 # `kura update` rewrites the registry and swaps skill directories in place, so changes
 # are committed from the clone. The role clones it once and never pulls or resets it.
+# `commit` is the catalog the committed harness renders and the tests here are known to
+# match. CI checks out exactly that, so a catalog change reaches this repository only
+# through a pin bump; provisioning still clones main, where the catalog is developed.
 AGENT_CATALOG:
   repository: https://github.com/jmanuelrosa/agent-catalog.git
   path: "{{ HOME }}/Developer/agent-catalog"
+  commit: e83aee5f5daf1e6de4ce0a3d1cc5c7d43cb05b20
 
 # The harness-neutral payload. Everything every harness shares sits at the top of this
 # tree; what only one harness reads sits under adapters/<harness>/. Lifting the tree

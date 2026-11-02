@@ -43,6 +43,13 @@ The rules, the per-harness translations and what each one loses are in [harnesse
 - Installs `kura` from its own repository: `get_url` fetches the release pinned in `KURA` to `~/.local/bin/kura` and verifies the checksum, so an upgrade and a rollback are the same edit in opposite directions.
 - Links kura's machine config from `files/harness/kura/config.json` to `~/.config/kura/config.json` (Claude Code and Pi are the global harnesses, with Pi's installed subagent extension reading `.pi/agents` in projects), clones the catalog named in `AGENT_CATALOG` to `~/Developer/agent-catalog`, and links `~/.config/kura/catalog` to that clone. The clone is made once and never pulled or reset (`update: false`), because `kura update` edits it in place and those edits are committed from the clone. Then runs `kura sync`, which creates the native skill and agent roots and links every global artifact into them.
 
+### Bumping the catalog pin
+
+`AGENT_CATALOG.commit` is the catalog commit the committed harness renders and this repository's tests are known to match.
+CI fetches exactly that commit, never main, so a catalog change reaches dotfiles CI only through a PR that bumps the pin.
+That PR re-renders the harness against the new commit in the same change: run `make harness` with `AGENT_CATALOG` pointing at a checkout of it, then `make test`.
+Provisioning is unaffected, since the role keeps cloning main for development.
+
 ## Kura
 
 Skills and standalone agents declare machine roots with `global: true`; their `groups` are descriptive only.
@@ -64,7 +71,7 @@ Claude's SessionStart hook runs `kura converge --quiet` when the cwd holds a `ku
 - `BREW_PACKAGES`: formulas and casks, as above.
 - `HARNESS_DIR`, `HARNESS_ENABLED`, `HARNESS_LINKS`: where the payload is, which harnesses a machine gets, and what each one links.
 - `PI_EXTENSIONS`, `AI_SCRIPTS`, `KURA`: the Pi extension manifest, the linked scripts, and the pinned kura release.
-- `AGENT_CATALOG`: the catalog's repository URL and the path it is cloned to.
+- `AGENT_CATALOG`: the catalog's repository URL, the path it is cloned to, and the `commit` CI tests against.
 - **There is no var for the global artifact set.** `kura sync` derives it from `global: true` in both registries and expands declared dependencies.
 
 ## Notes
