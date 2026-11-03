@@ -87,7 +87,7 @@ AI_DIRS:
 
 PR_TRACK:
   label: dotfiles.pr-track
-  script: "{{ AGENT_CATALOG.path }}/skills/pr-track/scripts/track.py"
+  script: "{{ AGENT_CATALOG.path }}/skills/ship/scripts/track.py"
   interval: 180
   log: "{{ HOME }}/Library/Logs/pr-track.log"
 

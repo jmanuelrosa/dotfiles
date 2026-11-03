@@ -1,6 +1,6 @@
 # prt
 
-Shortcut for the `pr-track` skill's script, run straight from the agent catalog at `~/.config/kura/catalog`.
+Shortcut for the pr-track script in the `ship` skill, run straight from the agent catalog at `~/.config/kura/catalog`.
 
 ```fish
 prt                      # list tracked PRs and anything that needs you

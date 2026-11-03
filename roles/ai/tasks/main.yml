@@ -168,7 +168,7 @@
 
 # --- pr-track -----------------------------------------------------------------------
 #
-# The pr-track skill (agent catalog) records which PRs to watch; this launch agent polls
+# The ship skill's pr-track script (agent catalog) records which PRs to watch; this launch agent polls
 # them. Changing the plist reloads the job, since launchd reads it only on bootstrap.
 
 - name: Install the pr-track poller launch agent
