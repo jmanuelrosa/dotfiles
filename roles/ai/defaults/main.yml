@@ -71,7 +71,7 @@ KURA:
 AGENT_CATALOG:
   repository: https://github.com/jmanuelrosa/agent-catalog.git
   path: "{{ HOME }}/Developer/agent-catalog"
-  commit: e83aee5f5daf1e6de4ce0a3d1cc5c7d43cb05b20
+  commit: 2229536f58aee139eb2ff3d07c928dd2d26e99bf
 
 # The harness-neutral payload. Everything every harness shares sits at the top of this
 # tree; what only one harness reads sits under adapters/<harness>/. Lifting the tree
