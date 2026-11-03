@@ -85,11 +85,9 @@ AI_DIRS:
   - "{{ HOME }}/.local/bin"
   - "{{ HOME }}/Library/LaunchAgents"
 
-# The pr-track skill's poller. A pass with nothing tracked makes no network call and a
-# quiet PR costs one API request, so the interval bounds reaction latency, not tokens.
 PR_TRACK:
   label: dotfiles.pr-track
-  script: "{{ HOME }}/.claude/skills/pr-track/scripts/track.py"
+  script: "{{ AGENT_CATALOG.path }}/skills/pr-track/scripts/track.py"
   interval: 180
   log: "{{ HOME }}/Library/Logs/pr-track.log"
 
