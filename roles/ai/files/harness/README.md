@@ -1,7 +1,7 @@
 # harness
 
 The harness-neutral payload Claude Code, Pi and Codex CLI run over: shared instructions, rules and hooks, plus one policy rendered into each harness's config.
-How it is linked into `$HOME` and what each harness loses in translation is in the dotfiles repo's [ai role README](../../README.md) and [harnesses](../../../../docs/internals/harnesses.md).
+How it is linked into `$HOME` and what each harness loses in translation is in the dotfiles repo's [ai role README](../../README.md).
 
 ## Moving it out
 

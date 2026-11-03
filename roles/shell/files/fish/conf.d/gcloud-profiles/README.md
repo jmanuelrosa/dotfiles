@@ -36,4 +36,3 @@ Reloading preserves an outstanding restoration snapshot.
 An empty object disables all mappings and restores any captured incoming value on reload.
 If parsing fails, jq prints its diagnostic and the shell keeps its previously loaded mappings; a failed initial load leaves the incoming configuration unchanged.
 The hook never invokes cloud commands, loads `.env` or `.envrc` files, authenticates accounts, or switches Application Default Credentials used by SDKs and Terraform.
-See [the design](../../../../../../docs/design/gcloud-directory-profiles.md) for scope and verification limits.
