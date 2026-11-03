@@ -26,7 +26,7 @@ GH_EXTENSIONS:
 # stays a deliberate edit of this version rather than whatever `latest` points at today.
 CF_CLI:
   package: cf
-  version: 1.0.0-beta.23
+  version: 1.0.0-beta.24
 
 APPS_SCRIPTS:
   - lokl
