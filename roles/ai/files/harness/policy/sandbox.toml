@@ -19,6 +19,12 @@ allow_domains = [
   "context7.com",
   "*.context7.com",
   "api.anthropic.com",
+  "services.nvd.nist.gov",
+  "api.osv.dev",
+  "www.cisa.gov",
+  "api.first.org",
+  "releases.electronjs.org",
+  "nodejs.org",
 ]
 allow_local_binding = true
 
