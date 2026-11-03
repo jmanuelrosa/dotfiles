@@ -29,4 +29,3 @@ Composed fragments retain escapes unless `NO_COLOR` is set because Fish command 
 Use `color-enabled` before composing rows that will be printed outside `_ui`.
 
 A differential test keeps the Fish and Python renderers byte-for-byte aligned.
-See [script output style](../../../../../../docs/internals/script-output-style.md) for the complete contract.

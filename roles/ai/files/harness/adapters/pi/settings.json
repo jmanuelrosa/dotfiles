@@ -73,7 +73,7 @@
     "npm:@gotgenes/pi-permission-system@41.0.0",
     "npm:pi-ask-user",
     "npm:pi-subagents",
-    "npm:@mrclrchtr/supi-insights@10.0.0"
+    "npm:@mrclrchtr/supi-insights@11.1.0"
   ],
   "quietStartup": true,
   "sessionShareDestination": "gist",
