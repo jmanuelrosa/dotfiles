@@ -92,3 +92,5 @@ end
 
 alias pi:debug=pi_debug
 alias pi:log=pi_last_error
+
+alias md="glow"

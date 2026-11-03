@@ -15,6 +15,7 @@ COREUTILS_CONFIGS:
   - eza/theme.yml
   - fastfetch/config.jsonc
   - glow/glow.yml
+  - glow/solarized-dark.json
   - ripgrep/config
 
 BREW_PACKAGES:
