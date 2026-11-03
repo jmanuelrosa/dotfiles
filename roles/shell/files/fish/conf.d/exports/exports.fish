@@ -2,6 +2,7 @@ set -gx EDITOR code
 set -gx DOTFILES_DIR "$HOME/Developer/dotfiles"
 set -gx DOCKER_HOST "unix://$HOME/.colima/docker.sock"
 set -gx GLOW_CONFIG_HOME "$HOME/.config/glow"
+set -gx GLOW_STYLE "$GLOW_CONFIG_HOME/solarized-dark.json"
 
 # AI exports
 set -gx PI_ASK_USER_DISPLAY_MODE inline

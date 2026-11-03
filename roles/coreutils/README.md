@@ -20,7 +20,9 @@ Installs modern replacements for traditional Unix utilities, plus the configs th
 
 - `glow`: renders Markdown in the terminal.
   Run `glow README.md` to read a file in a pager, or `glow` to browse Markdown files interactively.
-  The managed config enables mouse scrolling, detects the terminal theme and width, and excludes hidden and ignored files from the browser.
+  The managed config enables mouse scrolling, detects the terminal width, and excludes hidden and ignored files from the browser.
+  The shell sets `GLOW_STYLE` to the absolute path of the Solarized Dark style for Markdown and code blocks; Glow does not expand `~` when loading a custom style.
+  The custom style does not change Glow's browser controls or the terminal background outside the rendered document.
   The shell exports `GLOW_CONFIG_HOME` so macOS reads `~/.config/glow/glow.yml`.
   No login or activation is required.
 - [`hostof`](https://github.com/jmanuelrosa/hostof): reports which service and region host a site while keeping edge, origin, and network as separate facts. The standalone stdlib-only release is checksum-verified before installation. `--deep` adds conventional undocumented paths and refuses any host without an entry in `~/.config/hostof/authorized.json`.
@@ -33,7 +35,7 @@ Installs modern replacements for traditional Unix utilities, plus the configs th
 
 ## Files
 
-- `files/bat/config`, `files/ripgrep/config`, `files/eza/theme.yml`, `files/btop/btop.conf`, `files/fastfetch/config.jsonc`, `files/glow/glow.yml` - checked-in configs symlinked into `~/.config/`.
+- `files/bat/config`, `files/ripgrep/config`, `files/eza/theme.yml`, `files/btop/btop.conf`, `files/fastfetch/config.jsonc`, `files/glow/glow.yml`, `files/glow/solarized-dark.json` - checked-in configs symlinked into `~/.config/`.
 
 ## Notes
 
