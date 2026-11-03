@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>{{ PR_TRACK.label }}</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/env</string>
+    <string>python3</string>
+    <string>{{ PR_TRACK.script }}</string>
+    <string>poll</string>
+    <string>--notify</string>
+    <string>--dispatch</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>{{ ansible_facts['env']['PATH'] }}</string>
+    <key>HOME</key>
+    <string>{{ HOME }}</string>
+  </dict>
+  <key>StartInterval</key>
+  <integer>{{ PR_TRACK.interval }}</integer>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>AbandonProcessGroup</key>
+  <true/>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>StandardOutPath</key>
+  <string>{{ PR_TRACK.log }}</string>
+  <key>StandardErrorPath</key>
+  <string>{{ PR_TRACK.log }}</string>
+</dict>
+</plist>

@@ -165,3 +165,34 @@
   loop: "{{ HARNESS_ENABLED | intersect(['claude', 'pi']) }}"
   when: "(item ~ ': current') not in herdr_integration.stdout"
   changed_when: true
+
+# --- pr-track -----------------------------------------------------------------------
+#
+# The ship skill's pr-track script (agent catalog) records which PRs to watch; this launch agent polls
+# them. Changing the plist reloads the job, since launchd reads it only on bootstrap.
+
+- name: Install the pr-track poller launch agent
+  ansible.builtin.template:
+    src: pr-track.plist.j2
+    dest: "{{ HOME }}/Library/LaunchAgents/{{ PR_TRACK.label }}.plist"
+    mode: "0644"
+  register: pr_track_plist
+
+- name: Check whether the pr-track poller is loaded
+  ansible.builtin.command: launchctl print gui/{{ ansible_facts['user_uid'] }}/{{ PR_TRACK.label }}
+  register: pr_track_loaded
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Unload the outdated pr-track poller
+  ansible.builtin.command: launchctl bootout gui/{{ ansible_facts['user_uid'] }}/{{ PR_TRACK.label }}
+  when: pr_track_plist is changed and pr_track_loaded.rc == 0
+  changed_when: true
+
+- name: Load the pr-track poller
+  ansible.builtin.command: >-
+    launchctl bootstrap gui/{{ ansible_facts['user_uid'] }}
+    {{ HOME }}/Library/LaunchAgents/{{ PR_TRACK.label }}.plist
+  when: pr_track_plist is changed or pr_track_loaded.rc != 0
+  changed_when: true
