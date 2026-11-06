@@ -59,6 +59,9 @@ function usage
     echo ""
     echo "connect / dump options:"
     echo "  -a, --account NAME Named gcloud configuration (default: $GCLOUD_CONFIG)"
+    echo "  Staging uses Application Default Credentials (ADC), not the selected CLI login."
+    echo "  ADC must be signed in as the selected configuration's account:"
+    echo "    gcloud auth application-default login <account-email>"
     echo ""
     echo "connect [ENV]   (the default, so 's-db staging' still works)"
     echo "  -d, --detach       Run the proxy in the background"
@@ -123,8 +126,7 @@ function get_user
     end
 end
 
-# An IAM database user is the Google account itself, so it has to be the account the
-# proxy authenticates as: the one signed in to the selected gcloud configuration.
+# ADC is separate from named gcloud configurations and must match this database user.
 function gcloud_account
     CLOUDSDK_ACTIVE_CONFIG_NAME=$GCLOUD_CONFIG gcloud config get-value account 2>/dev/null
 end
@@ -146,8 +148,11 @@ function uses_iam_auth
 end
 
 function proxy_flags
-    echo --gcloud-auth
-    uses_iam_auth $argv[1]; and echo --auto-iam-authn
+    if uses_iam_auth $argv[1]
+        echo --auto-iam-authn
+    else
+        echo --gcloud-auth
+    end
 end
 
 function get_role
@@ -416,19 +421,26 @@ end
 # Display Functions
 # ============================================================================
 
-function report_connected
+function report_iam_auth
+    uses_iam_auth $argv[1]; or return 0
+    _ui note "Application Default Credentials must be signed in as $argv[2]."
+    _ui note "If needed, sign in with: gcloud auth application-default login $argv[2]"
+end
+
+function report_connection
     set -l environment $argv[1]
     set -l port $argv[2]
     set -l instance $argv[3]
     set -l user $argv[4]
 
     _ui blank
-    _ui done "Connected to $environment"
+    _ui title "Connection details for $environment"
     _ui item "Server: localhost:$port"
     _ui item "Instance: $instance"
     _ui item "Account: $GCLOUD_CONFIG (gcloud configuration)"
     _ui item "User: $user"
     uses_iam_auth $environment; and _ui item "Password: none, the proxy signs in with IAM"
+    report_iam_auth $environment $user
 end
 
 function report_running
@@ -489,7 +501,7 @@ function cmd_connect
 
         set -l pid (spawn_proxy $port $instance $environment)
 
-        report_connected $environment $port $instance $user
+        report_connection $environment $port $instance $user
         _ui item "PID: $pid"
         _ui item "Logs: "(_ui path (proxy_log $environment))
         _ui blank
@@ -498,7 +510,7 @@ function cmd_connect
     else
         _ui step "Connecting to $environment"
 
-        report_connected $environment $port $instance $user
+        report_connection $environment $port $instance $user
         _ui note "Press Ctrl+C to stop"
 
         require_work_dir
@@ -547,6 +559,7 @@ function cmd_dump
     _ui title "📦 Dumping $environment"
     _ui item "Source: localhost:$port/$DATABASE as $user"
     needs_proxy $environment; and _ui item "Account: $GCLOUD_CONFIG (gcloud configuration)"
+    report_iam_auth $environment $user
     _ui item "File: "(_ui path $target)
 
     if set -q _flag_dry
