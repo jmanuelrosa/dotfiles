@@ -1,5 +1,6 @@
 ---
 style: auto
+width: 0
 mouse: true
 pager: true
 all: false

@@ -57,7 +57,7 @@
   ],
   "followUpMode": "one-at-a-time",
   "hideThinkingBlock": true,
-  "lastChangelogVersion": "1.4.0",
+  "lastChangelogVersion": "1.5.0",
   "defaultTools": [
     "+codemode"
   ],
@@ -176,5 +176,10 @@
   },
   "theme": "solarized-dark",
   "transport": "auto",
-  "treeFilterMode": "default"
+  "treeFilterMode": "default",
+  "extensionChangelogVersions": {
+    "{\"source\":\"npm:pi-cursor-sdk\",\"scope\":\"user\"}": "0.5.4",
+    "{\"source\":\"npm:@gotgenes/pi-permission-system@41.0.0\",\"scope\":\"user\"}": "41.0.0",
+    "{\"source\":\"npm:pi-subagents\",\"scope\":\"user\"}": "0.83.0"
+  }
 }
