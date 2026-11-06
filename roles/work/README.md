@@ -69,10 +69,16 @@ A script is its own process and cannot `cd` the shell that ran it, so landing in
 
 `connect` and `dump` accept `-a NAME` / `--account NAME`, where NAME is an existing named Google Cloud CLI configuration, not an account email.
 They default to `didomi`, regardless of the shell's active configuration: `s-db staging --account pentla` or `s-db dump staging --account pentla` selects another configuration.
-New proxies use `--gcloud-auth` with a process-scoped `CLOUDSDK_ACTIVE_CONFIG_NAME`, so credentials come from that configuration's signed-in account instead of Application Default Credentials, refresh through the CLI, and leave the globally active configuration unchanged.
+Production proxies use `--gcloud-auth` with a process-scoped `CLOUDSDK_ACTIVE_CONFIG_NAME`, so credentials come from that configuration's signed-in account, refresh through the CLI, and leave the globally active configuration unchanged.
 A running proxy is reused with its original credentials; stop it using the printed `kill` command before selecting another account.
-Staging signs in with IAM database authentication: its proxy adds `--auto-iam-authn`, and the database user is the email signed in to the selected configuration, read with `gcloud config get-value account`, with an empty password.
-An IAM user has to be the very account the proxy authenticates as, which is why it is derived from the configuration rather than stored, and why staging stops before starting the proxy when that configuration has no account signed in.
+Staging signs in with IAM database authentication using `--auto-iam-authn` and Application Default Credentials (ADC); the proxy rejects combining this flag with `--gcloud-auth`.
+The database user is the email signed in to the selected configuration, read with `gcloud config get-value account`, with an empty password.
+ADC is separate from named CLI configurations: `--account` selects the expected database user, not the proxy's credentials.
+Before connecting, run `gcloud auth application-default login <account-email>` with that same email; the proxy refreshes those credentials automatically.
+If `GOOGLE_APPLICATION_CREDENTIALS` is set, its credential file takes precedence over that ADC login and must authenticate as the same database user.
+Switching `--account` does not switch ADC; sign ADC in as the matching account separately.
+`s-db` prints the required login command but does not change credentials or verify that ADC matches the selected user.
+Staging stops before starting the proxy when the selected CLI configuration has no account signed in.
 Production still uses `postgres` with the shared password.
 Local connections, local dumps and restores need no Google Cloud credentials.
 

@@ -31,11 +31,15 @@ def run_db(tmp_path):
     cloud_call = tmp_path / "cloud-call"
 
     stubs = {
-        local / "bin/cloud-sql-proxy": """#!/bin/sh
-printf '%s\\n' "$CLOUDSDK_ACTIVE_CONFIG_NAME" "$@" > "$PROXY_CALL"
-if [ "$PROXY_BACKGROUND" = 1 ]; then
+        local / "bin/cloud-sql-proxy": f"""#!{fish}
+printf '%s\\n' "$CLOUDSDK_ACTIVE_CONFIG_NAME" $argv > "$PROXY_CALL"
+if test "$PROXY_FAILURE" = 1
+    printf '%s\\n' 'ADC login required' >&2
+    exit 1
+end
+if test "$PROXY_BACKGROUND" = 1
     exec sleep 2
-fi
+end
 """,
         bin_dir / "lsof": """#!/bin/sh
 if [ "$PROXY_REUSED" = 1 ]; then
@@ -85,7 +89,7 @@ printf '%s\\n' "$CLOUDSDK_ACTIVE_CONFIG_NAME" "$@" > "$PG_CALL"
         CLOUD_CALL=str(cloud_call),
     )
 
-    def run(*args, background=False, reused=False, signed_out=False):
+    def run(*args, background=False, reused=False, signed_out=False, proxy_failure=False):
         result = subprocess.run(
             [
                 fish,
@@ -104,6 +108,7 @@ printf '%s\\n' "$CLOUDSDK_ACTIVE_CONFIG_NAME" "$@" > "$PG_CALL"
                 "PROXY_BACKGROUND": str(int(background)),
                 "PROXY_REUSED": str(int(reused)),
                 "GCLOUD_SIGNED_OUT": str(int(signed_out)),
+                "PROXY_FAILURE": str(int(proxy_failure)),
             },
             capture_output=True,
             text=True,
@@ -129,7 +134,6 @@ def test_foreground_proxy_selects_named_configuration(run_db, command, selection
     account = "pentla" if selection else "didomi"
     assert calls["proxy"] == [
         account,
-        "--gcloud-auth",
         "--auto-iam-authn",
         "--port",
         "5433",
@@ -163,9 +167,38 @@ def test_staging_dump_signs_in_as_the_configuration_account(run_db, selection):
     result, calls = run_db("dump", "staging", *selection, background=True)
     assert result.returncode == 0, result.stderr
     account = "pentla" if selection else "didomi"
-    assert calls["proxy"][:3] == [account, "--gcloud-auth", "--auto-iam-authn"]
+    assert calls["proxy"][:2] == [account, "--auto-iam-authn"]
+    assert "--gcloud-auth" not in calls["proxy"]
     assert f"--username={account}@didomi.test" in calls["pg"]
     assert not any(arg.startswith("--password") for arg in calls["pg"])
+
+
+@pytest.mark.parametrize("selection", [[], ["--account", "pentla"]])
+def test_staging_detached_proxy_uses_adc(run_db, selection):
+    result, calls = run_db("staging", "--detach", *selection, background=True)
+    assert result.returncode == 0, result.stderr
+    assert "--auto-iam-authn" in calls["proxy"]
+    assert "--gcloud-auth" not in calls["proxy"]
+    assert "Application Default Credentials" in result.stdout
+    account = "pentla" if selection else "didomi"
+    assert f"gcloud auth application-default login {account}@didomi.test" in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("command", "error"),
+    [
+        (["staging"], "ADC login required"),
+        (["staging", "--detach"], "Failed to start cloud-sql-proxy"),
+        (["dump", "staging"], "Failed to start cloud-sql-proxy"),
+    ],
+)
+def test_proxy_failure_does_not_report_a_connection_or_dump(run_db, command, error):
+    result, calls = run_db(*command, proxy_failure=True)
+    assert result.returncode != 0
+    assert "Connected" not in result.stdout
+    assert "Dumped" not in result.stdout
+    assert calls["pg"] == []
+    assert error in result.stderr
 
 
 def test_production_keeps_the_postgres_user(run_db):
@@ -226,4 +259,5 @@ def test_help_describes_named_configuration_default(run_db):
     result, calls = run_db("--help")
     assert result.returncode == 0, result.stderr
     assert "--account NAME Named gcloud configuration (default: didomi)" in result.stdout
+    assert "Application Default Credentials" in result.stdout
     assert calls == {"proxy": [], "pg": []}
