@@ -30,9 +30,11 @@ the primary guardrail on what they may do, in three tiers:
     the Bash(<cli>:*) allow rule and run without a prompt.
 
 Under Claude it also adds context, never a decision, when a CLI that
-sandbox.excludedCommands lets out appears in a call whose shape keeps it
-confined (pipe, chain, redirect, substitution, env prefix, `cd`), since
-the credential failure that follows reads like a broken sandbox config.
+sandbox.excludedCommands lets out appears in a call that still runs
+sandboxed (another command in the call is not excluded, or the call
+redirects, substitutes, uses `cd`, `sudo`, `eval` or `xargs`), since the
+credential failure that follows reads like a broken sandbox config. It
+stays quiet where the effective sandbox is off.
 
 Segment splitting on |, ;, &, && and || is naive about quoting, so a
 quoted string containing those tokens can produce a spurious ask/block,
@@ -176,39 +178,106 @@ def decide(command):
 
 
 QUOTED_RE = re.compile(r"'[^']*'|\"(?:\\.|[^\"\\])*\"")
-SHELL_SHAPE_RE = re.compile(r"\|\||&&|[|;&<>\n`]|\$\(|^\s*[A-Za-z_][A-Za-z0-9_]*=|^\s*cd\s")
+FD_DUPLICATION_RE = re.compile(r"\d*>&(?:\d+|-)")
+REDIRECT_RE = re.compile(r"&>|>|<")
+SUBSTITUTION_SHAPE_RE = re.compile(r"`|\$\(|<\(|>\(")
+CALL_SEPARATOR_RE = re.compile(r"\|\||&&|[|;&\n]")
+ENV_ASSIGNMENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=\S*$")
+# The shapes Claude keeps sandboxed even when every command in the call is excluded.
+CONFINING_COMMANDS = {"sudo", "eval", "xargs", "cd", "pushd", "popd"}
+CONTROL_FLOW = {"if", "for", "while", "until", "case", "select", "function"}
 
 
-def excluded_prefixes():
-    """The leading words Claude's sandbox lets out, read from the live settings."""
-    config_dir = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
+def load_json(path):
     try:
-        settings = json.loads((config_dir / "settings.json").read_text())
+        return json.loads(Path(path).read_text())
     except (OSError, ValueError):
-        return []
+        return {}
+
+
+def user_settings():
+    config_dir = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
+    return load_json(config_dir / "settings.json")
+
+
+def sandbox_enabled(cwd, settings):
+    """The effective sandbox.enabled, where a project's local file beats its shared one beats the user's."""
+    if cwd:
+        home = Path.home()
+        directory = Path(cwd)
+        while directory != home and directory != directory.parent:
+            for name in ("settings.local.json", "settings.json"):
+                sandbox = load_json(directory / ".claude" / name).get("sandbox") or {}
+                if "enabled" in sandbox:
+                    return bool(sandbox["enabled"])
+            directory = directory.parent
+    return bool((settings.get("sandbox") or {}).get("enabled", True))
+
+
+def excluded_prefixes(settings):
     patterns = (settings.get("sandbox") or {}).get("excludedCommands") or []
     return [p.removesuffix(" *").strip() for p in patterns if p.strip()]
 
 
-def sandbox_shape_hint(command):
+def command_words(segment):
+    words = segment.split()
+    while words and ENV_ASSIGNMENT_RE.match(words[0]):
+        words.pop(0)
+    return words
+
+
+def covered(words, prefixes):
+    text = " ".join(words)
+    return any(text == p or text.startswith(p + " ") for p in prefixes)
+
+
+def confining_shape(bare, segments):
+    """Why the call stays sandboxed whatever it runs, or None."""
+    if SUBSTITUTION_SHAPE_RE.search(bare):
+        return "uses a command substitution"
+    if REDIRECT_RE.search(FD_DUPLICATION_RE.sub("", bare)):
+        return "redirects to a file"
+    for words in segments:
+        if not words:
+            continue
+        head = words[0]
+        if head in CONFINING_COMMANDS:
+            return f"runs `{head}`"
+        if head in CONTROL_FLOW or head.startswith(("(", "{")):
+            return "opens a subshell or control-flow block"
+        if head.startswith("$"):
+            return "takes a command name from a variable"
+    return None
+
+
+def sandbox_shape_hint(command, cwd=None):
     """Why an excluded CLI will still run sandboxed, or None when it will not.
 
-    The exemption only holds when the CLI leads the whole call, so a pipe, chain,
-    redirect, substitution, env prefix or `cd` keeps it confined, and the failure
-    that follows reads like a broken sandbox config rather than the call's shape.
+    A call leaves the sandbox only when every command in it is excluded and it has
+    none of the confining shapes, so the failure that follows otherwise reads like a
+    broken sandbox config rather than the call's shape.
     """
-    bare = QUOTED_RE.sub("''", command)
-    if not SHELL_SHAPE_RE.search(bare):
+    settings = user_settings()
+    if not sandbox_enabled(cwd, settings):
         return None
-    for prefix in excluded_prefixes():
-        if re.search(rf"(?<![\w/.-]){re.escape(prefix)}(?![\w-])", bare):
-            return (
-                f"sandbox: `{prefix}` is only exempt from the sandbox as the leading token of the whole call. "
-                "This call pipes, chains, redirects, substitutes, sets an env prefix or uses `cd`, so it runs "
-                f"sandboxed. If it fails on credentials or network, rerun `{prefix}` as its own call and "
-                "post-process its output in a second one; the sandbox config is not the cause."
-            )
-    return None
+    prefixes = excluded_prefixes(settings)
+    bare = QUOTED_RE.sub("''", command)
+    present = next(
+        (p for p in prefixes if re.search(rf"(?<![\w/.-]){re.escape(p)}(?![\w-])", bare)),
+        None,
+    )
+    if not present:
+        return None
+    segments = [command_words(s) for s in CALL_SEPARATOR_RE.split(FD_DUPLICATION_RE.sub("", bare))]
+    reason = confining_shape(bare, segments)
+    if not reason and all(covered(words, prefixes) for words in segments if words):
+        return None
+    reason = reason or "chains or pipes a command that sandbox.excludedCommands does not cover"
+    return (
+        f"sandbox: this call {reason}, so `{present}` runs sandboxed despite its sandbox.excludedCommands entry. "
+        f"If it fails on credentials or network, rerun `{present}` as its own call and post-process its output "
+        "in a second one; the sandbox config is not the cause."
+    )
 
 
 def is_claude(data):
@@ -249,7 +318,7 @@ def main():
         })
     if is_claude(data):
         try:
-            hint = sandbox_shape_hint(command)
+            hint = sandbox_shape_hint(command, data.get("cwd"))
         except Exception:
             hint = None
         if hint:

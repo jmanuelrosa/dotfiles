@@ -1,8 +1,9 @@
 """`cloud-readonly-gate.sh` tells Claude when an exempt CLI will still run sandboxed.
 
-`sandbox.excludedCommands` only lets a CLI out as the leading token of the whole
-call, so a pipe, chain, redirect, substitution, env prefix or `cd` confines it
-again. The hint is context, never a decision, so cases assert on whether
+`sandbox.excludedCommands` lets a call out only when every command in it is
+excluded and it has none of the confining shapes (a file redirect, a substitution,
+`cd`, `sudo`, `eval`, `xargs`, a subshell). An env prefix and a `2>&1` do not
+confine. The hint is context, never a decision, so cases assert on whether
 `additionalContext` is present and never on its wording.
 
 CLAUDE_CONFIG_DIR points the hook at a settings file in tmp_path, so the
@@ -31,10 +32,12 @@ def gate(tmp_path):
         ]},
     }))
 
-    def run(command, transcript=CLAUDE_TRANSCRIPT):
+    def run(command, transcript=CLAUDE_TRANSCRIPT, cwd=None):
         payload = {"tool_name": "Bash", "tool_input": {"command": command}}
         if transcript:
             payload["transcript_path"] = transcript
+        if cwd:
+            payload["cwd"] = str(cwd)
         result = subprocess.run(
             [sys.executable, str(HOOK)],
             input=json.dumps(payload), capture_output=True, text=True,
@@ -48,12 +51,14 @@ def gate(tmp_path):
 
 @pytest.mark.parametrize("command", [
     "acli jira workitem view X-1 | head",
+    "npm ci && git status",
     "cd repo && git status",
-    "FOO=1 acli jira workitem view X-1",
     "bunx ctx7 docs /x 'q' > out.txt",
-    "python3 ~/.claude/skills/commit/scripts/apply.py plan.json 2>&1",
+    "git status $(echo x)",
+    "xargs git rm",
+    "sudo git status",
 ])
-def test_an_exempt_cli_in_a_confining_shape_gets_the_hint(gate, command):
+def test_an_exempt_cli_that_still_runs_sandboxed_gets_the_hint(gate, command):
     output = gate(command)
     assert output and output.get("additionalContext")
 
@@ -63,9 +68,22 @@ def test_an_exempt_cli_in_a_confining_shape_gets_the_hint(gate, command):
     "acli jira workitem view X-1",
     "git commit -m 'a | b; c'",
     "echo hi | grep h",
+    "git add x && git commit -m y",
+    "FOO=1 acli jira workitem view X-1",
+    "python3 ~/.claude/skills/commit/scripts/apply.py plan.json 2>&1",
 ])
-def test_a_clean_call_or_an_unrelated_pipe_gets_nothing(gate, command):
+def test_a_call_that_leaves_the_sandbox_or_never_names_an_exempt_cli_gets_nothing(gate, command):
     assert gate(command) is None
+
+
+def test_no_hint_where_the_project_turns_the_sandbox_off(gate, tmp_path):
+    project = tmp_path / "project"
+    (project / ".claude").mkdir(parents=True)
+    (project / ".claude" / "settings.local.json").write_text(json.dumps({"sandbox": {"enabled": False}}))
+    (project / "sub").mkdir()
+
+    assert gate("acli jira workitem view X-1 | head", cwd=project / "sub") is None
+    assert gate("acli jira workitem view X-1 | head", cwd=tmp_path)
 
 
 def test_the_hint_rides_along_with_an_ask_rather_than_replacing_it(gate):

@@ -14,8 +14,11 @@ mcp_exclude = ["slack"]
 enabled = true
 autoAllowBashIfSandboxed = true
 allowUnsandboxedCommands = false
-# Opening com.apple.trustd.agent is only needed behind a MITM proxy with a custom CA
-# (network.httpProxyPort), which this config does not set, and it is an exfiltration path.
+# Go CLIs (gh, glab, pulumi, terraform) verify TLS through com.apple.trustd.agent, so with
+# this off they fail sandboxed with `x509: OSStatus -26276` even through the non-MITM proxy.
+# It stays off because the docs name trustd an exfiltration path; settings.json sets
+# SSL_CERT_FILE to the system PEM bundle instead, so Go reads that file and never asks trustd.
+# A CA trusted only in the Keychain is not in that bundle.
 enableWeakerNetworkIsolation = false
 excludedCommands = [
   "git *",
