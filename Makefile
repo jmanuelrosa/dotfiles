@@ -21,7 +21,7 @@ deps:
 	ansible-galaxy collection install -r requirements.yml
 
 # Static analysis
-lint: lint-static
+lint: lint-static harness-check
 	ansible-lint
 
 # Every linter that needs no vault, so CI runs these. bin/lint-files picks each one's files
