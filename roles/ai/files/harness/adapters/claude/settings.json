@@ -13,7 +13,8 @@
     "USE_BUILTIN_RIPGREP": "0",
     "GIT_PAGER": "cat",
     "PAGER": "cat",
-    "AWS_PAGER": ""
+    "AWS_PAGER": "",
+    "SSL_CERT_FILE": "/etc/ssl/cert.pem"
   },
   "attribution": {
     "commit": "",
