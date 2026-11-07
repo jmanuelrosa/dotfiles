@@ -46,6 +46,8 @@ def commits(command):
     "/usr/bin/git commit -m x",
     "env GIT_AUTHOR_NAME=x git commit -m x",
     "timeout 60 /opt/homebrew/bin/git commit -m x",
+    "python3 ~/.config/kura/catalog/skills/ship/scripts/apply.py plan.json",
+    "python3 ~/.claude/skills/ship/scripts/apply.py plan.json --from commit",
 ])
 def test_a_commit_is_recognised(command):
     assert commits(command)
@@ -54,6 +56,8 @@ def test_a_commit_is_recognised(command):
 @pytest.mark.parametrize("command", [
     "git status",
     "python3 ~/.claude/skills/pr/scripts/apply.py plan.json",
+    "python3 ~/.claude/skills/ship/scripts/apply.py plan.json --from push",
+    "python3 ~/.claude/skills/ship/scripts/apply.py plan.json --from=pr",
     "python3 other/apply.py plan.json",
     "echo /usr/bin/git commit",
     "env git status",
@@ -158,6 +162,57 @@ def test_the_repo_trust_decision(tmp_path, isolated_git):
     assert "github.com/someone/x" in stranger_reason
     assert "ghp_secret" not in stranger_reason
     assert "could not be read" in verify.untrusted_reason(str(trusted), tmp_path / "missing.json")
+
+
+# --- whether the repo already runs its own checks at commit time ---------------
+
+
+def executable(path, body="#!/bin/sh\nexit 0\n"):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(body)
+    path.chmod(0o755)
+
+
+def test_a_pre_push_only_hooks_path_does_not_count(tmp_path, isolated_git):
+    repo = make_repo(tmp_path / "repo")
+    executable(repo / ".githooks" / "pre-push")
+    git(repo, "config", "core.hooksPath", ".githooks")
+
+    assert not verify.has_own_precommit(str(repo))
+
+    executable(repo / ".githooks" / "pre-commit")
+    assert verify.has_own_precommit(str(repo))
+
+
+def test_a_default_hooks_dir_pre_commit_counts(tmp_path, isolated_git):
+    repo = make_repo(tmp_path / "repo")
+    assert not verify.has_own_precommit(str(repo))
+
+    executable(repo / ".git" / "hooks" / "pre-commit")
+    assert verify.has_own_precommit(str(repo))
+
+
+def test_husky_counts_only_with_a_pre_commit_script(tmp_path, isolated_git):
+    repo = make_repo(tmp_path / "repo")
+    executable(repo / ".husky" / "_" / "pre-commit")
+    executable(repo / ".husky" / "pre-push")
+    git(repo, "config", "core.hooksPath", ".husky/_")
+
+    assert not verify.has_own_precommit(str(repo))
+
+    (repo / ".husky" / "pre-commit").write_text("bun run lint\n")
+    assert verify.has_own_precommit(str(repo))
+
+
+def test_lefthook_counts_only_with_a_pre_commit_section(tmp_path, isolated_git):
+    repo = make_repo(tmp_path / "repo")
+    config = repo / "lefthook.yml"
+    config.write_text("pre-push:\n  commands:\n    test:\n      run: make test\n")
+
+    assert not verify.has_own_precommit(str(repo))
+
+    config.write_text(config.read_text() + "pre-commit:\n  commands:\n    lint:\n      run: make lint\n")
+    assert verify.has_own_precommit(str(repo))
 
 
 # --- end to end ----------------------------------------------------------------
