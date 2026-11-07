@@ -63,6 +63,20 @@ def test_a_read_only_deny_is_not_dropped():
     assert emit_claude.path_denies(["~/.netrc"], []) == ["Read(~/.netrc)"]
 
 
+def test_gitconfig_is_readable_without_exposing_ssh_keys_or_allowing_config_edits():
+    policy = manifest.load(ROOT)
+    permissions = emit_claude.permissions(policy.permissions)
+    filesystem = emit_claude.sandbox(policy.sandbox, policy.adapter("claude")["sandbox"])["filesystem"]
+    assert "Read(~/.gitconfig)" not in permissions["deny"]
+    assert "Edit(~/.gitconfig)" in permissions["deny"]
+    assert "~/.gitconfig" in filesystem["allowRead"]
+    assert "~/.gitconfig" not in filesystem["denyRead"]
+    assert "Read(~/.ssh/**)" in permissions["deny"]
+    assert "~/.ssh" in filesystem["denyRead"]
+    assert "~/.ssh" not in filesystem["allowRead"]
+    assert "Read(~/.git-credentials)" in permissions["deny"]
+
+
 @pytest.mark.skipif(not manifest.catalog_root().is_dir(), reason="no agent catalog")
 def test_the_owned_keys_are_the_ones_the_adapter_header_names():
     header = (ROOT / "adapters/claude/adapter.toml").read_text().split("\n\n", 1)[0]

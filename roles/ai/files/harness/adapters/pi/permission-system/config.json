@@ -802,10 +802,6 @@
         "action": "deny",
         "reason": "denied by Claude Code policy: Read(~/.git-credentials)"
       },
-      "~/.gitconfig": {
-        "action": "deny",
-        "reason": "denied by Claude Code policy: Read(~/.gitconfig)"
-      },
       "~/.aws/*": {
         "action": "deny",
         "reason": "denied by Claude Code policy: Read(~/.aws/**)"

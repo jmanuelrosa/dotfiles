@@ -246,7 +246,6 @@ deny_read = [
   "**/credentials/**",
   "**/credentials.json",
   "~/.git-credentials",
-  "~/.gitconfig",
   "~/.aws/**",
   "~/.config/gcloud/**",
   "~/.sentry/**",

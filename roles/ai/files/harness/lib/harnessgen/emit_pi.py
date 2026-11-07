@@ -164,8 +164,7 @@ def without_carve_outs(denies, allows):
     sits inside an allowed subpath. A symlinked carve-out such as `~/.gitconfig`, whose
     target lives in this repo, is then denied again whenever the session's cwd contains
     that target, so git fails to start. Dropping the duplicate keeps the grant the
-    carve-out was written for; the read tool never consulted this deny anyway, and
-    `path_read` in the permission system still refuses the path to the agent.
+    carve-out was written for; all remaining deny patterns still apply.
     """
     granted = set(allows)
     return [p for p in denies if p not in granted]

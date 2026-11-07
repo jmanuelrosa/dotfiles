@@ -42,11 +42,11 @@ Four things the translation cannot carry, verified against pi-sandbox 0.6.5 and 
   tool at `extension.ts` never consults `denyRead` at all, prompting for anything
   outside `allowRead`. Two consequences, both pinned by tests below rather than left to
   be discovered. Claude's bash carve-outs are also read-tool grants, which is why
-  `~/.gitconfig` and `~/.ssh/known_hosts` are readable in pi and denied in Claude; the
+  `~/.ssh/known_hosts` is readable in pi and denied in Claude; the
   ssh *keys* beside them are not, since nothing re-allows them. And every other `Read`
   deny degrades from a refusal to a prompt, which is the same trade `excludedCommands`
   already makes and the reason none of this is a substitute for the deny list. The
-  system CA bundle is a third carve-out: its `.pem` suffix matches the secret-file deny,
+  system CA bundle is another carve-out: its `.pem` suffix matches the secret-file deny,
   but HTTPS subprocesses need this public trust store to verify remote certificates.
   Both consequences are undone a layer up: `path_read` in `test_pi_permissions.py`
   refuses those paths to any tool or bash token that names one, while the syscall-level
@@ -180,19 +180,11 @@ def test_no_pattern_is_listed_twice():
 
 
 def test_the_read_carve_outs_are_exactly_the_files_bash_cannot_work_without():
-    """The one place Claude's policy is knowingly loosened, held to three files.
-
-    `allowRead` beats `denyRead` for bash and is the only list the read tool consults, so
-    anything named there is readable by the agent as well as by git. That is the whole
-    reason to keep the list to what a subprocess genuinely cannot work without: git needs
-    an identity to commit, ssh needs known_hosts to verify a host, and HTTPS needs the
-    public system CA bundle to verify a server. None is a credential. A fourth entry is a
-    permission grant, so it fails until somebody writes down why.
-    """
+    """Only public host keys and the system CA bundle override read denials."""
     fs = pi_sandbox()["filesystem"]
     denies = emit_pi.policy_deny_read(manifest.load())
     granted = [p for p in fs["allowRead"] if any(covers(d, p) for d in denies)]
-    assert sorted(granted) == ["/etc/ssl/cert.pem", "~/.gitconfig", "~/.ssh/known_hosts"]
+    assert sorted(granted) == ["/etc/ssl/cert.pem", "~/.ssh/known_hosts"]
 
 
 def test_no_carve_out_is_also_denied_verbatim():
