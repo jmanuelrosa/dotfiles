@@ -9,9 +9,10 @@ Runs the project's check-only verification (typecheck / lint) before any
 `git commit` so regressions surface at commit time instead of later in
 code review. Detection ladder, first match wins:
 
-  0. repo has its own pre-commit machinery (.husky/, lefthook,
-     .pre-commit-config.yaml, core.hooksPath, an executable
-     .git/hooks/pre-commit) → defer to it, exit 0
+  0. repo has its own commit-time hook (.husky/pre-commit, a lefthook
+     `pre-commit:` section, .pre-commit-config.yaml, or an executable
+     pre-commit in the resolved hooks path) → defer to it, exit 0.
+     A pre-push-only setup does not count.
   1. package.json scripts: typecheck / type-check / lint, run via the
      lockfile-matched package manager (bun / pnpm / yarn / npm)
   2. Makefile with a `lint` target → `make lint` — the universal escape
@@ -60,9 +61,12 @@ OPTIONS_WITH_SEPARATE_ARG = {
 
 SHELL_SEPARATORS = {";", "&&", "||", "|", "&"}
 
-# The commit skill commits through this script, so a commit made by /commit never
+# The commit and ship skills commit through these scripts, so a commit they make never
 # shows up as `git commit` on the command line.
-COMMIT_WRAPPER = re.compile(r"(^|/)skills/commit/scripts/apply\.py$")
+COMMIT_WRAPPER = re.compile(r"(^|/)skills/(commit|ship)/scripts/apply\.py$")
+# A ship run resumed past its commit stage makes no commit, so there is nothing to verify.
+RESUME_FLAG = "--from"
+COMMIT_STAGE = "commit"
 INTERPRETERS = {"bash", "sh", "zsh", "python", "python3"}
 
 # The same exec wrappers git-skill-gate reads past, so `env git commit` and
@@ -84,6 +88,9 @@ WRAPPERS_WITH_A_DURATION = {"timeout"}
 TRUSTED_REMOTES = Path(os.path.realpath(__file__)).parent.parent / "trusted-remotes.json"
 REMOTE_SCHEMES = {"ssh", "git", "http", "https", "git+ssh", "ssh+git"}
 GIT_PROBE_TIMEOUT = 5
+
+LEFTHOOK_CONFIGS = ("lefthook.yml", ".lefthook.yml", "lefthook.yaml", ".lefthook.yaml")
+LEFTHOOK_PRECOMMIT = re.compile(r"^pre-commit:", re.MULTILINE)
 
 
 def split_subcommands(line):
@@ -129,12 +136,21 @@ def command_index(tokens):
     return i
 
 
+def resume_stage(args):
+    for i, arg in enumerate(args):
+        if arg == RESUME_FLAG and i + 1 < len(args):
+            return args[i + 1]
+        if arg.startswith(RESUME_FLAG + "="):
+            return arg.partition("=")[2]
+    return COMMIT_STAGE
+
+
 def is_git_commit(tokens):
     i = command_index(tokens)
     if i < len(tokens) and Path(tokens[i]).name in INTERPRETERS:
         i += 1
     if i < len(tokens) and COMMIT_WRAPPER.search(tokens[i]):
-        return True
+        return resume_stage(tokens[i + 1:]) == COMMIT_STAGE
     if i >= len(tokens) or Path(tokens[i]).name != "git":
         return False
     i += 1
@@ -249,18 +265,30 @@ def untrusted_reason(root, trusted_path=TRUSTED_REMOTES):
 
 
 def has_own_precommit(root):
+    """True only when something will actually run at commit time.
+
+    A repo with only a pre-push hook still gets the checks here, or its failures
+    surface at push time, after the commits already landed.
+    """
     r = Path(root)
     if (r / ".husky").is_dir():
+        # Husky 9 points core.hooksPath at .husky/_, which stubs every hook name,
+        # so only the user's own .husky/pre-commit says a commit hook exists.
+        return (r / ".husky" / "pre-commit").is_file()
+    if (r / ".pre-commit-config.yaml").is_file():
         return True
-    if any(
-        (r / f).is_file()
-        for f in ("lefthook.yml", ".lefthook.yml", "lefthook.yaml", ".pre-commit-config.yaml")
-    ):
-        return True
-    hook = r / ".git" / "hooks" / "pre-commit"
-    if hook.is_file() and os.access(hook, os.X_OK):
-        return True
-    return bool(git_output(root, "config", "core.hooksPath"))
+    for name in LEFTHOOK_CONFIGS:
+        config = r / name
+        try:
+            if config.is_file() and LEFTHOOK_PRECOMMIT.search(config.read_text()):
+                return True
+        except OSError:
+            continue
+    resolved = git_output(root, "rev-parse", "--git-path", "hooks/pre-commit")
+    if not resolved:
+        return False
+    hook = r / resolved
+    return hook.is_file() and os.access(hook, os.X_OK)
 
 
 def package_manager(root):
