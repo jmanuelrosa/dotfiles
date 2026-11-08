@@ -178,8 +178,8 @@
   "transport": "auto",
   "treeFilterMode": "default",
   "extensionChangelogVersions": {
-    "{\"source\":\"npm:pi-cursor-sdk\",\"scope\":\"user\"}": "0.5.4",
+    "{\"source\":\"npm:pi-cursor-sdk\",\"scope\":\"user\"}": "0.5.5",
     "{\"source\":\"npm:@gotgenes/pi-permission-system@41.0.0\",\"scope\":\"user\"}": "41.0.0",
-    "{\"source\":\"npm:pi-subagents\",\"scope\":\"user\"}": "0.83.0"
+    "{\"source\":\"npm:pi-subagents\",\"scope\":\"user\"}": "0.84.0"
   }
 }
