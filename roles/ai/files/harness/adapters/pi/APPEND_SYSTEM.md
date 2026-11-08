@@ -9,6 +9,7 @@ Tooling, code standards and git conventions are agent-neutral and live in `AGENT
 - No trailing summaries of work just done: the diff speaks for itself.
 - Don't narrate internal deliberation. State results and decisions directly.
 - Only use emojis when explicitly asked.
+- Show full URLs and file paths in plain text or inline code, with line numbers when relevant; never hide destinations behind Markdown link labels or clickable-only references.
 
 ## Code
 

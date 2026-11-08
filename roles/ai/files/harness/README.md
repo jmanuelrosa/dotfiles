@@ -3,6 +3,17 @@
 The harness-neutral payload Claude Code, Pi and Codex CLI run over: shared instructions, rules and hooks, plus one policy rendered into each harness's config.
 How it is linked into `$HOME` and what each harness loses in translation is in the dotfiles repo's [ai role README](../../README.md).
 
+## Enforcement
+
+Claude Code has no sandbox command exclusions, including for shipping scripts and authenticated CLIs.
+Command permissions and skill approval do not grant access outside the sandbox.
+A workflow that needs blocked credentials or protected Git metadata must run from an ordinary terminal instead of gaining an exception or broader credential access.
+
+Pi's guardrails refuse unchecked tool calls and user prompts when their configuration, hook execution, or skill evidence fails.
+Repair the reported problem and reload Pi after hook-table changes before retrying.
+Optional command rewriting leaves the original command unchanged on failure.
+Pi's separately configured sandbox policy is unchanged.
+
 ## Moving it out
 
 The tree is built to be lifted into its own repository.
