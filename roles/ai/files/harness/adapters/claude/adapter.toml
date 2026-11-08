@@ -20,33 +20,7 @@ allowUnsandboxedCommands = false
 # SSL_CERT_FILE to the system PEM bundle instead, so Go reads that file and never asks trustd.
 # A CA trusted only in the Keychain is not in that bundle.
 enableWeakerNetworkIsolation = false
-excludedCommands = [
-  "git *",
-  "pgcli *",
-  "acli *",
-  "sentry *",
-  "bru *",
-  "ntn *",
-  "wrangler *",
-  "cf *",
-  "python3 ~/.claude/skills/commit/scripts/apply.py *",
-  "python3 ~/.claude/skills/pr/scripts/apply.py *",
-  "python3 ~/.claude/skills/ship/scripts/apply.py *",
-  "bash ~/.claude/skills/commit/scripts/context.sh",
-  "python3 ~/.claude/skills/pr/scripts/context.py",
-  "python3 ~/.claude/skills/pr/scripts/context.py *",
-  "python3 ~/.claude/skills/ship/scripts/context.py",
-  "python3 ~/.claude/skills/ship/scripts/context.py *",
-  "python3 ~/.claude/skills/coderabbit/scripts/context.py",
-  "python3 ~/.claude/skills/coderabbit/scripts/context.py *",
-  "python3 ~/.claude/skills/coderabbit/scripts/apply.py *",
-  "bunx ctx7 *",
-  "npx -y ctx7 *",
-  "aws *",
-  "gcloud *",
-  "gsutil *",
-  "bq *",
-]
+excludedCommands = []
 
 # Skill name to on | name-only | user-invocable-only | off, so an upstream skill's visibility
 # changes without editing a SKILL.md that `kura update` would overwrite. Every `dependency_only`

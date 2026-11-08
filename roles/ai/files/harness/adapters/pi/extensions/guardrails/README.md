@@ -13,7 +13,10 @@ It also exposes the shared rtk and Cursor footer statuses.
 
 The policy decisions remain in the Python hooks.
 This extension only translates events and maps hook exit status back to Pi.
-Guard execution fails open so an adapter failure does not create a refusal that no user can resolve.
+Guard execution fails closed when configuration, a hook process, or skill evidence is unavailable, or a hook returns an invalid response.
+Repair the reported failure and retry; reload Pi after hook-table changes.
+An unchecked call is never treated as allowed.
+Optional rtk rewriting remains best-effort and preserves the original command on failure.
 
 ## Verification
 

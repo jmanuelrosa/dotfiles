@@ -30,6 +30,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -124,9 +125,7 @@ def test_the_extension_ships():
 
 
 def test_the_hop_to_the_hooks_resolves(source):
-    """The extension walks out of adapters/pi/ to reach the shared hooks/, and it is reached
-    through a symlink, so the walk starts at the resolved file. A wrong hop is not an error at
-    load time: `existsSync` is false, every hook is skipped, and every call is allowed."""
+    """The hook path starts at the symlink target, not the installed extension directory."""
     line = next(line for line in source.splitlines() if line.startswith("const HOOKS_DIR"))
     hop = re.findall(r'"([^"]+)"', line)
     assert hop, "HOOKS_DIR no longer joins literal path segments; this test cannot follow it"
@@ -134,8 +133,7 @@ def test_the_hop_to_the_hooks_resolves(source):
 
 
 def test_the_hop_to_the_hook_table_resolves(source):
-    """The same walk as the hooks', to the table harness-build renders. A wrong one reads as an
-    empty table, which allows every call."""
+    """The generated hook table must resolve from the extension's real location."""
     line = next(line for line in source.splitlines() if line.startswith("const HOOK_TABLE_PATH"))
     hop = re.findall(r'"([^"]+)"', line)
     assert EXTENSION.parent.joinpath(*hop).resolve() == HOOK_TABLE.resolve()
@@ -367,7 +365,10 @@ def test_the_role_installs_the_extension():
 PI_PACKAGE = "@earendil-works/pi-coding-agent"
 
 # The private functions the executed half drives, re-exported into a copy of the extension.
-DRIVEN = ("activeSkills", "writeTranscript", "rewriteCommand", "rtkStatus", "cursorStatus", "PRE_TOOL")
+DRIVEN = (
+    "activeSkills", "writeTranscript", "rewriteCommand", "rtkStatus", "cursorStatus", "PRE_TOOL",
+    "spawnJson", "runHook", "guard", "guardPrompt",
+)
 
 
 def pi_package():
@@ -430,6 +431,7 @@ def run_in_node(runner, body, env=None):
         cwd=runner.parent,
         env=None if env is None else {**os.environ, **env},
         check=False,
+        timeout=30,
     )
     assert done.returncode == 0, done.stderr
     return json.loads(done.stdout)
@@ -548,9 +550,7 @@ def test_a_command_rtk_leaves_alone_is_left_alone(runner):
 
 
 def test_a_missing_rtk_leaves_the_command_alone(runner):
-    """Fail-open, in the direction a rewrite fails: the gates above turn a spawn error into an
-    allowed call, and here the same error has to leave the command exactly as written. PATH is
-    emptied rather than rtk moved, so the test does not depend on where brew put it."""
+    """A missing optional rewriter leaves the command unchanged, unlike a missing gate."""
     body = """
     const rtk = PRE_TOOL.find((entry) => entry.kind === "rewrite");
     const rewritten = await rewriteCommand(rtk, "ls -la", process.cwd());
@@ -631,7 +631,162 @@ def test_another_provider_shows_no_badge(runner):
 
 
 def test_the_extension_loads_the_whole_table(runner):
-    """An entry isEntry rejects is skipped silently, so a table shape the extension no longer
-    understands would leave every gate unrun. The loaded table has to be the rendered one."""
+    """The full generated table is loaded without dropping any gate."""
     loaded = run_in_node(runner, "process.stdout.write(JSON.stringify(PRE_TOOL));")
     assert loaded == PRE_TOOL
+
+
+@pytest.fixture
+def isolated_runner(tmp_path, runner):
+    (tmp_path / "node_modules").symlink_to(runner.parents[4] / "node_modules")
+    extension = tmp_path / "adapters/pi/extensions/guardrails/index.ts"
+    extension.parent.mkdir(parents=True)
+    extension.write_text(runner.read_text())
+    table = tmp_path / emit_pi.HOOKS
+    table.parent.mkdir(parents=True)
+    table.write_text(json.dumps({
+        "pre_tool": [{"id": "test-gate", "kind": "gate", "tools": ["bash"], "script": "gate.py"}],
+        "prompt_submit": [{"id": "test-prompt", "kind": "gate", "script": "gate.py"}],
+    }))
+    (tmp_path / "hooks").mkdir()
+    return extension
+
+
+def write_test_gate(runner, body):
+    script = runner.parents[4] / "hooks/gate.py"
+    script.write_text(f"#!{sys.executable}\n{body}\n")
+    script.chmod(0o755)
+    return script
+
+
+def guarded_call(runner, env=None, session_error=False):
+    session = '() => { throw new Error("session unavailable"); }' if session_error else "() => []"
+    return run_in_node(runner, f"""
+    const {{ default: register }} = await import({json.dumps(str(runner))});
+    const handlers = new Map();
+    register({{ on: (event, handler) => handlers.set(event, handler) }});
+    const ctx = {{ cwd: process.cwd(), sessionManager: {{ getBranch: {session} }} }};
+    const result = await handlers.get("tool_call")(
+      {{ type: "tool_call", toolName: "bash", input: {{ command: "echo harmless" }} }}, ctx,
+    );
+    process.stdout.write(JSON.stringify(result ?? null));
+    """, env=env)
+
+
+@pytest.mark.parametrize("body", [
+    "raise SystemExit(1)",
+    "import os, signal; os.kill(os.getpid(), signal.SIGTERM)",
+    'print("{")',
+    'print(\'{"hookSpecificOutput":{"permissionDecision":"deny"}}\')',
+    'print(\'{"hookSpecificOutput":{"permissionDecision":"unknown"}}\')',
+])
+def test_gate_failures_and_invalid_responses_block_calls(isolated_runner, body):
+    write_test_gate(isolated_runner, body)
+    result = guarded_call(isolated_runner)
+    assert result["block"] is True
+    assert result["reason"]
+
+
+def test_a_missing_gate_blocks_calls(isolated_runner):
+    result = guarded_call(isolated_runner)
+    assert result["block"] is True
+    assert "gate.py" in result["reason"]
+
+
+def test_a_gate_that_cannot_be_executed_blocks_calls(isolated_runner):
+    script = write_test_gate(isolated_runner, "pass")
+    script.chmod(0o644)
+    result = guarded_call(isolated_runner)
+    assert result["block"] is True
+    assert "gate.py" in result["reason"]
+
+
+def test_a_broken_hook_input_pipe_is_not_a_success(runner):
+    result = run_in_node(runner, """
+    const childProcess = await import("node:child_process");
+    const { syncBuiltinESMExports } = await import("node:module");
+    const { EventEmitter } = await import("node:events");
+    const child = new EventEmitter();
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.stdin = new EventEmitter();
+    child.kill = () => {};
+    child.stdin.end = () => queueMicrotask(() => {
+      child.stdin.emit("error", new Error("input pipe closed"));
+      child.emit("close", 0);
+    });
+    childProcess.default.spawn = () => child;
+    syncBuiltinESMExports();
+    const result = await spawnJson("synthetic-hook", [], {}, { timeoutMs: 1000 });
+    process.stdout.write(JSON.stringify(result));
+    """)
+    assert result["code"] != 0
+    assert "input pipe closed" in result["stderr"]
+
+
+def test_a_gate_timeout_is_not_a_success(runner):
+    result = run_in_node(runner, """
+    const result = await spawnJson(process.execPath,
+      ["-e", "setTimeout(() => {}, 60000)"], {}, { timeoutMs: 20 });
+    process.stdout.write(JSON.stringify(result));
+    """)
+    assert result["code"] != 0
+    assert "timed out" in result["stderr"]
+
+
+@pytest.mark.parametrize("table", [None, "{", "{}",
+    '{"pre_tool":[{}],"prompt_submit":[]}',
+    '{"pre_tool":[{"id":"gate","kind":"gate","tools":[1],"script":"gate.py"}],"prompt_submit":[]}',
+    '{"pre_tool":[{"id":"gate","kind":"gate","script":"gate.py"}],"prompt_submit":[]}',
+])
+def test_unavailable_hook_configuration_blocks_calls(isolated_runner, table):
+    path = isolated_runner.parents[4] / emit_pi.HOOKS
+    if table is None:
+        path.unlink()
+    else:
+        path.write_text(table)
+    result = guarded_call(isolated_runner)
+    assert result["block"] is True
+    assert "configuration" in result["reason"].lower()
+
+
+@pytest.mark.parametrize("session_error", [False, True])
+def test_missing_skill_evidence_blocks_calls(isolated_runner, tmp_path, session_error):
+    table = isolated_runner.parents[4] / emit_pi.HOOKS
+    config = json.loads(table.read_text())
+    config["pre_tool"][0]["id"] = "git-skill-gate"
+    table.write_text(json.dumps(config))
+    write_test_gate(isolated_runner, "pass")
+    env = None if session_error else {"TMPDIR": str(tmp_path / "missing")}
+    result = guarded_call(isolated_runner, env=env, session_error=session_error)
+    assert result["block"] is True
+    assert result["reason"]
+
+
+def test_a_missing_prompt_gate_stops_the_prompt(isolated_runner):
+    result = run_in_node(isolated_runner, """
+    const { default: register } = await import(""" + json.dumps(str(isolated_runner)) + """);
+    const handlers = new Map();
+    register({ on: (event, handler) => handlers.set(event, handler) });
+    const notices = [];
+    const ctx = { cwd: process.cwd(), ui: { notify: (message) => notices.push(message) } };
+    const result = await handlers.get("input")({ text: "hello", source: "interactive" }, ctx);
+    process.stdout.write(JSON.stringify({ result, notices }));
+    """)
+    assert result["result"] == {"action": "handled"}
+    assert "gate.py" in result["notices"][0]
+
+
+@pytest.mark.parametrize("body", ["pass", 'print(\'{"hookSpecificOutput":{"permissionDecision":"allow"}}\')'])
+def test_a_successful_gate_still_allows_calls(isolated_runner, body):
+    write_test_gate(isolated_runner, body)
+    assert guarded_call(isolated_runner) is None
+
+
+def test_the_real_gate_table_allows_a_harmless_call(isolated_runner):
+    root = isolated_runner.parents[4]
+    (root / emit_pi.HOOKS).write_text(json.dumps(TABLE))
+    hooks = root / "hooks"
+    hooks.rmdir()
+    hooks.symlink_to(HOOKS, target_is_directory=True)
+    assert guarded_call(isolated_runner, env={"RTK_ENABLE": ""}) is None

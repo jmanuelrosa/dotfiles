@@ -55,14 +55,9 @@
  * `--no-tools` / `--exclude-tools` do not reach Cursor's registry. Under that provider these are
  * therefore best-effort even by the standard of the paragraph below.
  *
- * Everything fails open: a missing hook, a moved checkout, a spawn error or a timeout allows the
- * call, exactly as the hooks themselves do on malformed input. These are intent friction, not a
- * security boundary. That takes deliberate care here, because Pi and Claude disagree about what a
- * broken guardrail means: a `tool_call` handler that throws blocks the call, so an unwritable
- * temp directory would turn a gate nobody can run into a gate nobody can pass. Nothing below is
- * allowed to throw. For rtk the same rule reads the other way round, since its failure mode is
- * not a refusal: an rtk that is missing, slow or unparseable leaves the command exactly as the
- * caller wrote it.
+ * Gate failures refuse the call: a check that could not run is not permission to proceed.
+ * Optional rtk rewriting stays best-effort and leaves the original command unchanged on failure.
+ * These gates complement the sandbox; they do not cover another provider's native host tools.
  */
 
 import { spawn } from "node:child_process";
@@ -140,24 +135,27 @@ interface HookEntry {
 function isEntry(candidate: unknown): candidate is HookEntry {
   const entry = candidate as Partial<HookEntry> | null;
   if (!entry || typeof entry.id !== "string") return false;
-  if (entry.tools !== undefined && !Array.isArray(entry.tools)) return false;
+  if (entry.tools !== undefined && (!Array.isArray(entry.tools) || !entry.tools.every((tool) => typeof tool === "string"))) return false;
   if (entry.kind === "gate") return typeof entry.script === "string";
   if (entry.kind === "rewrite") return Array.isArray(entry.exec) && entry.exec.length > 0;
   return false;
 }
 
-/**
- * One event's half of the table, in its order.
- *
- * A table that is missing or will not parse is an empty one, so every call is allowed: the same
- * fail-open reading a missing hook script gets, for the reason the header gives. An entry of a
- * shape this file does not know is skipped rather than guessed at.
- */
+// Keep load errors as state so Pi still registers the handlers that refuse unchecked calls.
+let configurationError: string | undefined;
+
 function hookTable(event: "pre_tool" | "prompt_submit"): HookEntry[] {
   try {
     const parsed: unknown = JSON.parse(readFileSync(HOOK_TABLE_PATH, "utf8"))?.[event];
-    return Array.isArray(parsed) ? parsed.filter(isEntry) : [];
-  } catch {
+    if (!Array.isArray(parsed) || !parsed.every(isEntry)) {
+      throw new Error(`Invalid ${event} hook table`);
+    }
+    if (event === "pre_tool" && parsed.some((entry) => !entry.tools?.length)) {
+      throw new Error("Missing tool routing in pre_tool hook table");
+    }
+    return parsed;
+  } catch (error) {
+    configurationError = `Guardrails configuration is unavailable: ${error instanceof Error ? error.message : String(error)}`;
     return [];
   }
 }
@@ -211,8 +209,6 @@ interface HookVerdict {
   stdout?: string;
 }
 
-const ALLOW: HookVerdict = { blocked: false, message: "" };
-
 interface SpawnResult {
   code: number | null;
   stdout: string;
@@ -227,19 +223,6 @@ interface SpawnOptions {
   env?: NodeJS.ProcessEnv;
 }
 
-// A process that did not run, in the only vocabulary shared by every caller. Both readings of it
-// are the permissive one: exit 0 is not the 2 a gate refuses with, and an empty stdout is not the
-// JSON a rewrite arrives in.
-const DID_NOT_RUN: SpawnResult = { code: 0, stdout: "", stderr: "" };
-
-/**
- * Every fail-open guarantee in this file, in one place.
- *
- * A settled flag so a timeout and a close cannot both answer, a SIGKILL ceiling, a spawn error
- * that reads as "did not run" rather than a throw, and a swallowed EPIPE from a child that exits
- * before reading its input. Callers translate the result into their own vocabulary; none of them
- * decides what a failure means, because for all of them the answer is the same one.
- */
 function spawnJson(exec: string, args: string[], payload: unknown, options: SpawnOptions): Promise<SpawnResult> {
   return new Promise((resolve) => {
     const child = spawn(exec, args, { stdio: ["pipe", "pipe", "pipe"], env: options.env });
@@ -257,7 +240,7 @@ function spawnJson(exec: string, args: string[], payload: unknown, options: Spaw
 
     timer = setTimeout(() => {
       child.kill("SIGKILL");
-      finish(DID_NOT_RUN);
+      finish({ code: null, stdout: "", stderr: `${exec} timed out after ${options.timeoutMs} ms.` });
     }, options.timeoutMs);
 
     child.stderr.on("data", (chunk) => {
@@ -266,10 +249,11 @@ function spawnJson(exec: string, args: string[], payload: unknown, options: Spaw
     child.stdout.on("data", (chunk) => {
       stdout += String(chunk);
     });
-    // A process that cannot be spawned at all, and a broken pipe from one that exits before
-    // reading its input, both mean the work did not happen. Neither is the caller's fault.
-    child.on("error", () => finish(DID_NOT_RUN));
-    child.stdin.on("error", () => {});
+    child.on("error", (error) => finish({ code: null, stdout: "", stderr: error.message }));
+    child.stdin.on("error", (error) => {
+      child.kill("SIGKILL");
+      finish({ code: null, stdout: "", stderr: error.message });
+    });
     child.on("close", (code) => finish({ code, stdout, stderr }));
 
     child.stdin.end(JSON.stringify(payload));
@@ -278,12 +262,22 @@ function spawnJson(exec: string, args: string[], payload: unknown, options: Spaw
 
 async function runHook(name: string, payload: HookPayload | PromptPayload): Promise<HookVerdict> {
   const script = join(HOOKS_DIR, name);
-  if (!existsSync(script)) {
-    return ALLOW;
-  }
-
   const { code, stdout, stderr } = await spawnJson(script, [], payload, { timeoutMs: HOOK_TIMEOUT_MS });
-  return { blocked: code === 2, message: stderr.trim(), stdout };
+  if (code !== 0) {
+    return {
+      blocked: true,
+      message: code === 2 ? stderr.trim() : `Guardrails hook ${name} failed: ${stderr.trim() || `exit ${code ?? "signal"}`}`,
+    };
+  }
+  const output = stdout.trim() ? JSON.parse(stdout)?.hookSpecificOutput : undefined;
+  const decision = output?.permissionDecision;
+  if (decision === "deny") {
+    return { blocked: true, message: String(output.permissionDecisionReason || `Denied by ${name}.`) };
+  }
+  if (decision !== undefined && decision !== "allow" && decision !== "ask") {
+    throw new Error(`Invalid permission decision from ${name}`);
+  }
+  return { blocked: false, message: stderr.trim(), stdout };
 }
 
 /**
@@ -299,8 +293,7 @@ async function runHook(name: string, payload: HookPayload | PromptPayload): Prom
  * side effects do not fire and RTK_HOOK_AUDIT would be dead weight. Going through the target
  * Claude Code goes through keeps one code path inside rtk for both harnesses.
  *
- * Exit status carries nothing, unlike the hooks: rtk exits 0 whether or not it rewrote anything,
- * and an empty stdout is the whole of the signal for "no rewrite".
+ * Successful rtk calls may still return no rewrite; failed calls never change the command.
  */
 async function rewriteCommand(entry: HookEntry, command: string, cwd: string): Promise<string | undefined> {
   // The opt-in, read the way settings.json and statusline.sh both read it: any non-empty value is
@@ -310,21 +303,18 @@ async function rewriteCommand(entry: HookEntry, command: string, cwd: string): P
 
   const [exec, ...args] = entry.exec ?? [];
   if (!exec) return undefined;
-  const { stdout } = await spawnJson(
-    exec,
-    args,
-    { tool_name: "Bash", tool_input: { command }, cwd },
-    { timeoutMs: REWRITE_TIMEOUT_MS, env: { ...process.env, ...entry.env } },
-  );
-
-  const raw = stdout.trim();
-  if (!raw) return undefined;
   try {
-    const rewritten = JSON.parse(raw)?.hookSpecificOutput?.updatedInput?.command;
+    const { code, stdout } = await spawnJson(
+      exec,
+      args,
+      { tool_name: "Bash", tool_input: { command }, cwd },
+      { timeoutMs: REWRITE_TIMEOUT_MS, env: { ...process.env, ...entry.env } },
+    );
+    if (code !== 0 || !stdout.trim()) return undefined;
+    const rewritten = JSON.parse(stdout)?.hookSpecificOutput?.updatedInput?.command;
     if (typeof rewritten !== "string" || !rewritten.trim()) return undefined;
     return rewritten === command ? undefined : rewritten;
   } catch {
-    // As in askedForPermission: output that will not parse has proposed nothing.
     return undefined;
   }
 }
@@ -386,12 +376,7 @@ function textOf(content: unknown): string {
  */
 function activeSkills(ctx: ExtensionContext): Set<string> {
   const found = new Set<string>();
-  let entries: unknown[];
-  try {
-    entries = ctx.sessionManager.getBranch();
-  } catch {
-    return found;
-  }
+  const entries: unknown[] = ctx.sessionManager.getBranch();
 
   const asked: string[] = [];
   for (const entry of entries) {
@@ -413,24 +398,19 @@ function activeSkills(ctx: ExtensionContext): Set<string> {
  *
  * Written even when the set is empty, and that is the load-bearing part: the hook treats a
  * transcript it cannot open as a parse failure and allows the command, so a missing file would
- * turn the gate off rather than closing it. Which is also why a write that fails is answered with
- * no path at all rather than a throw: the skill window then goes unchecked, as it does in Claude
- * when a transcript will not parse, while the hard blocks the hook applies first still stand.
+ * turn the gate off rather than closing it. A write failure propagates to the refusing handler
+ * instead of invoking the gate without its skill evidence.
  *
  * The name is generated here rather than taken from the tool call. `toolCallId` is whatever the
  * model provider returned, so it crosses a trust boundary before reaching a path: real ids already
  * carry a `|`, one carrying a `/` would make the write fail and silently leave the window
  * unchecked, and one beginning with `../` would write and then unlink a file outside tmpdir.
  */
-async function writeTranscript(skills: Set<string>): Promise<string | undefined> {
+async function writeTranscript(skills: Set<string>): Promise<string> {
   const path = join(tmpdir(), `pi-guardrails-${randomUUID()}.jsonl`);
   const lines = [...skills].map((skill) => `${JSON.stringify({ attributionSkill: skill })}\n`);
-  try {
-    await writeFile(path, lines.join(""), "utf8");
-    return path;
-  } catch {
-    return undefined;
-  }
+  await writeFile(path, lines.join(""), "utf8");
+  return path;
 }
 
 function blockResult(verdict: HookVerdict): ToolCallEventResult | undefined {
@@ -497,6 +477,7 @@ async function runGate(entry: HookEntry, payload: HookPayload, ctx: ExtensionCon
 async function guard(event: ToolCallEvent, ctx: ExtensionContext): Promise<ToolCallEventResult | undefined> {
   const payload = payloadFor(event, ctx);
   if (!payload) return undefined;
+  if (configurationError) return { block: true, reason: configurationError };
   const entries = PRE_TOOL.filter((entry) => entry.tools?.includes(event.toolName));
 
   // In table order, stopping at the first refusal: the cheap gates come first there, so a command
@@ -530,6 +511,10 @@ async function guard(event: ToolCallEvent, ctx: ExtensionContext): Promise<ToolC
  */
 async function guardPrompt(event: InputEvent, ctx: ExtensionContext): Promise<InputEventResult | undefined> {
   if (event.source === "extension") return undefined;
+  if (configurationError) {
+    ctx.ui.notify(configurationError, "error");
+    return { action: "handled" };
+  }
   const payload: PromptPayload = { prompt: event.text, cwd: ctx.cwd };
   for (const entry of PROMPT_SUBMIT) {
     const verdict = await runHook(entry.script ?? "", payload);
@@ -620,20 +605,17 @@ export default function (pi: ExtensionAPI) {
   pi.on("tool_call", async (event, ctx) => {
     try {
       return await guard(event, ctx);
-    } catch {
-      // The whole of the fail-open promise, in one place. Pi reads a throw here as a block, so
-      // without this an unreadable session or an unwritable temp file would refuse every write,
-      // edit and command in the session, and the refusal would carry no reason anyone could act on.
-      return undefined;
+    } catch (error) {
+      return { block: true, reason: `Guardrails failed: ${error instanceof Error ? error.message : String(error)}` };
     }
   });
 
   pi.on("input", async (event, ctx) => {
     try {
       return await guardPrompt(event, ctx);
-    } catch {
-      // Fail open for the same reason as tool_call: a throw must not swallow the user's prompt.
-      return undefined;
+    } catch (error) {
+      ctx.ui.notify(`Guardrails failed: ${error instanceof Error ? error.message : String(error)}`, "error");
+      return { action: "handled" };
     }
   });
 }

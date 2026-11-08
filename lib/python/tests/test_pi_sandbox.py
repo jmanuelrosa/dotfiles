@@ -17,16 +17,10 @@ last month's policy.
 Four things the translation cannot carry, verified against pi-sandbox 0.6.5 and the
 @carderne/sandbox-runtime it forks, recorded here because each is silent if forgotten:
 
-- `excludedCommands`. Claude runs fourteen entries outside its sandbox: twelve CLIs so
-  they can read their own credential stores, plus `bunx ctx7` and `npx -y ctx7`, which
-  need it for network egress rather than for credentials. pi-sandbox has no per-command
-  exclusion. Our sandbox adapter exempts direct gcloud and bq calls only, while keeping
-  the cloud read-only gate enabled. Other commands remain confined. Reads of a denied
-  path are *prompted* rather than refused, so `aws` and friends still work, with a prompt.
-  ctx7 is the one that does not degrade gracefully: a blocked request is not a prompt,
-  it is a causeless `fetch failed`, so under pi a docs question falls back to search.
-  Blanket-allowing their credential directories would undo the `denyRead` this repo
-  deliberately sets.
+- `excludedCommands`. Claude has no command exclusions. Pi's separate sandbox adapter
+  retains only direct gcloud and bq exemptions, with the cloud read-only gate enabled.
+  pi-sandbox has no native per-command exclusion, so the wrapper owns those two calls.
+  No credential directories are added to the sandbox allowlists.
 - `$TMPDIR`. Only a leading `~` is expanded, so a literal `$TMPDIR` entry would match
   nothing. `/var/folders` is what it resolves to on Darwin and stands in for it.
 - Bare tool names and command patterns. `Bash(...)` deny rules describe command shape,
