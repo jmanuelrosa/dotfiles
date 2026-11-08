@@ -45,6 +45,13 @@
   changed_when: true
   when: (item | lower) not in (fisher_installed.stdout_lines | default([]))
 
+- name: Initialize the SSH agent only in interactive fish
+  ansible.builtin.lineinfile:
+    path: "{{ HOME }}/.config/fish/conf.d/fish-ssh-agent.fish"
+    insertbefore: BOF
+    line: "status is-interactive; or return"
+    mode: "0644"
+
 - name: Ensure shell config directories exist
   ansible.builtin.file:
     path: "{{ HOME }}/{{ item }}"

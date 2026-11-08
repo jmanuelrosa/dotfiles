@@ -49,11 +49,10 @@ One thing the translation deliberately drops: `WebFetch` and `WebSearch` are all
 in Claude and are not pi tools, so naming them would be a rule about nothing.
 
 What this layer recovers that `pi-sandbox` could not is the split between Claude's two
-read layers, described at length in `test_pi_sandbox.py`. `~/.gitconfig` is a sandbox
-`allowRead` so git can commit, and a `Read` deny so the agent cannot open it. pi-sandbox
-collapses those into one list and the file becomes readable. Here the sandbox keeps the
-syscall-level grant while `path_read` denies the path to any tool or bash token that
-names it, so `git commit` still works and `cat ~/.gitconfig` does not.
+read layers, described at length in `test_pi_sandbox.py`. `~/.ssh/known_hosts` is a
+sandbox `allowRead` so ssh can verify hosts, while `Read(~/.ssh/**)` hides it from the
+agent. pi-sandbox collapses those into one list and the file becomes readable. Here
+`path_read` denies an explicit read while preserving the subprocess grant.
 """
 
 import json
@@ -237,8 +236,13 @@ def test_pgcli_is_allowed():
 def test_the_credential_paths_claude_hides_are_denied_to_every_tool():
     """The read-layer split pi-sandbox could not carry: denied to the agent, not to git."""
     reads = policy()["path_read"]
-    for path in ("~/.ssh/id_ed25519", "~/.aws/credentials", "~/.gitconfig", "~/.zsh_history"):
+    for path in ("~/.ssh/id_ed25519", "~/.aws/credentials", "~/.zsh_history"):
         assert resolve(reads, path) == "deny", f"{path} is readable by pi"
+
+
+def test_gitconfig_is_readable_but_not_writable():
+    assert resolve(policy()["path_read"], "~/.gitconfig") == "allow"
+    assert resolve(policy()["path_write"], "~/.gitconfig") == "deny"
 
 
 def test_secrets_are_denied_for_write_as_well_as_read():

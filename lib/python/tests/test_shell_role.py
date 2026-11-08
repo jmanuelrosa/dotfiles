@@ -1,3 +1,8 @@
+import os
+import shutil
+import subprocess
+
+import pytest
 import yaml
 from dotkit.testing import REPO
 
@@ -55,3 +60,43 @@ def test_a_stale_ref_of_the_same_repo_is_removed_right_before_the_pin_installs()
         "end",
         "fisher install {{ item }}",
     ]
+
+
+def test_the_ssh_agent_guard_is_applied_after_plugin_installation():
+    tasks = yaml.safe_load(SHELL_TASKS.read_text())
+    install = role_task("Install fish plugins at their pinned ref")
+    guard = role_task("Initialize the SSH agent only in interactive fish")
+    assert tasks.index(install) < tasks.index(guard)
+    assert guard["ansible.builtin.lineinfile"] == {
+        "path": "{{ HOME }}/.config/fish/conf.d/fish-ssh-agent.fish",
+        "insertbefore": "BOF",
+        "line": "status is-interactive; or return",
+        "mode": "0644",
+    }
+
+
+@pytest.mark.parametrize("interactive", [False, True])
+def test_the_ssh_agent_guard_preserves_interactive_startup(tmp_path, interactive):
+    fish = shutil.which("fish")
+    if fish is None:
+        pytest.skip("Fish is required for startup tests")
+    guard = role_task("Initialize the SSH agent only in interactive fish")
+    snippet = tmp_path / "ssh-agent.fish"
+    snippet.write_text(
+        "#!/usr/bin/env fish\n"
+        + guard["ansible.builtin.lineinfile"]["line"]
+        + '\nprintf "agent-initialized\\n"\n'
+    )
+    env = {**os.environ, "HOME": str(tmp_path), "SSH_AGENT_SNIPPET": str(snippet)}
+    subprocess.run([fish, "--no-execute", str(snippet)], check=True, env=env)
+    result = subprocess.run(
+        [fish, "--no-config", *(["--interactive"] if interactive else []), "--command",
+         'source "$SSH_AGENT_SNIPPET"; printf "command-reached\\n"'],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+    expected = "agent-initialized\ncommand-reached\n" if interactive else "command-reached\n"
+    assert result.stdout == expected

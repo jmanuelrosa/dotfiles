@@ -126,7 +126,6 @@
       "Edit(**/credentials.json)",
       "Read(~/.git-credentials)",
       "Edit(~/.git-credentials)",
-      "Read(~/.gitconfig)",
       "Edit(~/.gitconfig)",
       "Read(~/.aws/**)",
       "Edit(~/.aws/**)",
