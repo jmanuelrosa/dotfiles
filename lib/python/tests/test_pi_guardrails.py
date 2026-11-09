@@ -81,6 +81,7 @@ GATES = tuple(e["script"] for e in PRE_TOOL if e["kind"] == "gate" and "bash" in
 # claude PreToolUse event and a faithful one costs nothing, but a field nobody reads is not a
 # contract and is not listed here.
 CONTRACTS = {
+    "agent-dispatch-gate.sh": ("tool_input", "cwd", "subagent_type", "workflow"),
     "em-dash-gate.sh": ("tool_name", "tool_input", "cwd", "Write", "Edit", "file_path", "content",
                         "old_string", "new_string"),
     "git-skill-gate.sh": ("tool_input", "cwd", "command", "transcript_path", "attributionSkill"),
@@ -144,6 +145,7 @@ def test_each_driven_hook_exists(name):
     scripts = {entry.get("script") for entry in PRE_TOOL}
     assert name in scripts, f"{name} is no longer in the table the extension runs"
     assert (HOOKS / name).is_file(), f"the extension spawns {name}, which is not in {HOOKS.name}/"
+    assert os.access(HOOKS / name, os.X_OK), f"the extension spawns {name}, which is not executable"
 
 
 def test_every_gate_in_the_table_has_a_contract():

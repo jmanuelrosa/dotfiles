@@ -44,6 +44,7 @@ READERS = {
     PI_EXTENSIONS / "statusline" / "index.ts": 4,
     PI_EXTENSIONS / "velocity" / "index.ts": 4,
     PI_EXTENSIONS / "guardrails" / "index.ts": 4,
+    HOOKS / "herdr-sidebar.sh": 1,
 }
 
 # What each reader asks the vocabulary for by name. A key dropped from the file is a glyph that
@@ -52,6 +53,7 @@ REQUIRED = {
     "handoffPct": (STATUSLINE, NUDGE, PI_EXTENSIONS / "statusline" / "index.ts"),
     "bar": (STATUSLINE, PI_EXTENSIONS / "statusline" / "index.ts"),
     "packageManagers": (STATUSLINE, PI_EXTENSIONS / "statusline" / "index.ts"),
+    "herdr": (HOOKS / "herdr-sidebar.sh",),
 }
 
 
@@ -195,7 +197,7 @@ def run_statusline(tmp_path, vocabulary=True):
         input=json.dumps(PAYLOAD),
         capture_output=True,
         text=True,
-        env={**os.environ, "TMPDIR": str(tmp_path)},
+        env={**{k: v for k, v in os.environ.items() if not k.startswith("HERDR_")}, "TMPDIR": str(tmp_path)},
         check=False,
     )
     assert done.returncode == 0, done.stderr

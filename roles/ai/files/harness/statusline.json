@@ -23,6 +23,29 @@
     "gatesOff": "gates off",
     "cursor": "cursor"
   },
+  "herdr": {
+    "source": "dotfiles:sidebar",
+    "tokens": {
+      "branch": "branch",
+      "context": "ctx",
+      "handoff": "handoff",
+      "ticket": "ticket",
+      "pr": "pr"
+    },
+    "contextStepPct": 5,
+    "prRefreshSeconds": 300,
+    "prTtlSeconds": 900,
+    "branchGlyph": "",
+    "prGlyphs": { "pass": "✓", "fail": "✗", "pending": "…" },
+    "prLabels": {
+      "APPROVED": "approved",
+      "CHANGES_REQUESTED": "changes",
+      "REVIEW_REQUIRED": "review",
+      "MERGED": "merged",
+      "CLOSED": "closed"
+    },
+    "waiting": { "prefix": "waiting", "input": "input" }
+  },
   "packageManagers": [
     { "lockfile": "bun.lockb", "name": "bun" },
     { "lockfile": "bun.lock", "name": "bun" },

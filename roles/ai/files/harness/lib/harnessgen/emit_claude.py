@@ -14,6 +14,8 @@ EVENTS = {
     "session_start": "SessionStart",
     "stop": "Stop",
     "prompt_submit": "UserPromptSubmit",
+    "permission_request": "PermissionRequest",
+    "notification": "Notification",
 }
 TOOLS = {
     "bash": "Bash",
@@ -22,6 +24,7 @@ TOOLS = {
     "exit_plan_mode": "ExitPlanMode",
     "web_fetch": "WebFetch",
     "web_search": "WebSearch",
+    "subagent": "Agent",
 }
 # SessionStart takes a source matcher rather than a tool one; Stop and UserPromptSubmit take none.
 MATCH_EVERY_SOURCE = "*"
