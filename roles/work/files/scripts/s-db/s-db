@@ -1,6 +1,6 @@
 #!/usr/bin/env fish
 
-# Script to work with the addingwell databases
+# Script to work with the Addingwell and Pentla databases
 # Usage: s-db [connect] [production|staging|local] [OPTIONS]
 #        s-db dump [production|staging|local] [OPTIONS]
 #        s-db restore [FILE] [OPTIONS]
@@ -19,9 +19,6 @@ set -g PROXY_BIN "./.local/bin/cloud-sql-proxy"
 set -g GCLOUD_CONFIG didomi
 set -g DUMP_DIR "$WORK_DIR/.local/backups"
 
-# Hardcoded for the same reason the Cloud SQL instances below are, and s-release's ORG:
-# one org, and a layout that changes rarely enough that a config file would only be a
-# second place to look for it.
 set -g DATABASE addingwell
 set -g DUMP_SCHEMA public
 
@@ -107,11 +104,22 @@ function get_port
 end
 
 function get_instance
-    switch $argv[1]
-        case production
+    switch "$GCLOUD_CONFIG/$argv[1]"
+        case pentla/staging
+            echo "pentla-staging:europe-west1:pentla-api-staging-db"
+        case '*/production'
             echo "addingwell-prod:europe-west1:addingwell-prod-postgres-13"
-        case staging
+        case '*/staging'
             echo "addingwell-dev-326312:europe-west1:addingwell-dev-postgres"
+    end
+end
+
+function get_database
+    switch "$GCLOUD_CONFIG/$argv[1]"
+        case pentla/staging
+            echo pentla
+        case '*'
+            echo $DATABASE
     end
 end
 
@@ -436,7 +444,9 @@ function report_connection
     _ui blank
     _ui title "Connection details for $environment"
     _ui item "Server: localhost:$port"
+    _ui item "Project: "(string split -f 1 : -- $instance)
     _ui item "Instance: $instance"
+    _ui item "Database: "(get_database $environment)
     _ui item "Account: $GCLOUD_CONFIG (gcloud configuration)"
     _ui item "User: $user"
     uses_iam_auth $environment; and _ui item "Password: none, the proxy signs in with IAM"
@@ -530,6 +540,7 @@ function cmd_dump
 
     set -l environment $ENVIRONMENT
     set -l port (get_port $environment)
+    set -l database (get_database $environment)
     set -l user (get_user $environment)
     require_user $user
 
@@ -537,10 +548,10 @@ function cmd_dump
     if set -q _flag_out
         set target $_flag_out
     else
-        set target "$DUMP_DIR/$DATABASE-$environment-"(date +%Y%m%d-%H%M%S)".dump"
+        set target "$DUMP_DIR/$database-$environment-"(date +%Y%m%d-%H%M%S)".dump"
     end
 
-    set -l cmd pg_dump --dbname=$DATABASE --host=localhost --port=$port --username=$user \
+    set -l cmd pg_dump --dbname=$database --host=localhost --port=$port --username=$user \
         --schema=$DUMP_SCHEMA --format=custom --no-owner
 
     set -q _flag_include_dlt; or set -a cmd --exclude-table=$DUMP_EXCLUDE
@@ -557,7 +568,7 @@ function cmd_dump
     set -a cmd --file=$target
 
     _ui title "📦 Dumping $environment"
-    _ui item "Source: localhost:$port/$DATABASE as $user"
+    _ui item "Source: localhost:$port/$database as $user"
     needs_proxy $environment; and _ui item "Account: $GCLOUD_CONFIG (gcloud configuration)"
     report_iam_auth $environment $user
     _ui item "File: "(_ui path $target)

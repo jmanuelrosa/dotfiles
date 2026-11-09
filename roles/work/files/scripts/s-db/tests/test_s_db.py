@@ -7,6 +7,10 @@ import pytest
 from dotkit.testing import FISH_FUNCTIONS
 
 SCRIPT = Path(__file__).resolve().parents[1] / "s-db"
+STAGING_INSTANCES = {
+    "didomi": "addingwell-dev-326312:europe-west1:addingwell-dev-postgres",
+    "pentla": "pentla-staging:europe-west1:pentla-api-staging-db",
+}
 
 
 @pytest.fixture
@@ -127,20 +131,25 @@ printf '%s\\n' "$CLOUDSDK_ACTIVE_CONFIG_NAME" "$@" > "$PG_CALL"
 
 
 @pytest.mark.parametrize("command", [[], ["connect"]])
-@pytest.mark.parametrize("selection", [[], ["--account", "pentla"], ["-a", "pentla"]])
-def test_foreground_proxy_selects_named_configuration(run_db, command, selection):
+@pytest.mark.parametrize(
+    "selection", [[], ["--account", "didomi"], ["--account", "pentla"], ["-a", "pentla"]]
+)
+def test_foreground_proxy_selects_named_configuration_and_target(run_db, command, selection):
     result, calls = run_db(*command, "staging", *selection)
     assert result.returncode == 0, result.stderr
-    account = "pentla" if selection else "didomi"
+    account = selection[-1] if selection else "didomi"
     assert calls["proxy"] == [
         account,
         "--auto-iam-authn",
         "--port",
         "5433",
-        "addingwell-dev-326312:europe-west1:addingwell-dev-postgres",
+        STAGING_INSTANCES[account],
     ]
     assert calls["pg"] == []
+    assert f"Project: {STAGING_INSTANCES[account].split(':')[0]}" in result.stdout
+    assert f"Instance: {STAGING_INSTANCES[account]}" in result.stdout
     assert f"User: {account}@didomi.test" in result.stdout
+    assert "Password: none, the proxy signs in with IAM" in result.stdout
 
 
 @pytest.mark.parametrize("selection", [[], ["--account", "pentla"]])
@@ -167,8 +176,16 @@ def test_staging_dump_signs_in_as_the_configuration_account(run_db, selection):
     result, calls = run_db("dump", "staging", *selection, background=True)
     assert result.returncode == 0, result.stderr
     account = "pentla" if selection else "didomi"
-    assert calls["proxy"][:2] == [account, "--auto-iam-authn"]
+    assert calls["proxy"] == [
+        account,
+        "--auto-iam-authn",
+        "--port",
+        "5433",
+        STAGING_INSTANCES[account],
+    ]
     assert "--gcloud-auth" not in calls["proxy"]
+    database = "pentla" if selection else "addingwell"
+    assert f"--dbname={database}" in calls["pg"]
     assert f"--username={account}@didomi.test" in calls["pg"]
     assert not any(arg.startswith("--password") for arg in calls["pg"])
 
@@ -181,6 +198,9 @@ def test_staging_detached_proxy_uses_adc(run_db, selection):
     assert "--gcloud-auth" not in calls["proxy"]
     assert "Application Default Credentials" in result.stdout
     account = "pentla" if selection else "didomi"
+    assert calls["proxy"][-1] == STAGING_INSTANCES[account]
+    assert f"Project: {STAGING_INSTANCES[account].split(':')[0]}" in result.stdout
+    assert f"Instance: {STAGING_INSTANCES[account]}" in result.stdout
     assert f"gcloud auth application-default login {account}@didomi.test" in result.stdout
 
 
@@ -238,6 +258,7 @@ def test_dump_dry_run_shows_selection_without_starting_proxy(run_db):
     assert result.returncode == 0, result.stderr
     assert "Account: pentla (gcloud configuration)" in result.stdout
     assert "as pentla@didomi.test" in result.stdout
+    assert "--dbname=pentla" in result.stdout
     assert calls == {"proxy": [], "pg": []}
 
 
