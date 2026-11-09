@@ -39,7 +39,7 @@ PARENTS_KEY = "dispatched-by"
 MAIN_THREAD = "main conversation"
 REFUSED = 2
 
-FRONTMATTER = re.compile(r"\A---\r?\n(.*?)\r?\n---", re.S)
+FRONTMATTER = re.compile(r"\A---\r?\n(.*?)\r?\n---", re.DOTALL)
 
 
 def catalog_root():
