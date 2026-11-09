@@ -8,6 +8,7 @@ Work-only role. Runs only when `profile=work`.
 - Checks that the `spacectl` profile named in `SPACELIFT_PROFILE` exists and prints the login command when it does not. See [Spacelift (spacectl)](#spacelift-spacectl).
 - Renders `~/.config/fish/conf.d/work-secrets.fish` from `templates/exports.fish.j2` (vault values that are safe to export, mode 0600). It holds no token. See [npm token](#npm-token).
 - Stores `DID_NPM_TOKEN` from the vault in the login keychain for the shell role's `npm_token` fish wrappers. See [npm token](#npm-token).
+- Renders `~/.aws/config` from `templates/aws/config.j2` (the Didomi SSO session and every profile in the vault's `AWS_PROFILES`) and installs `session-manager-plugin`. See [AWS](#aws).
 - Symlinks each tool named in `WORK_SCRIPTS` into `~/.local/bin/`. See [Scripts](#scripts).
 - Renders `~/Library/Application Support/glab-cli/config.yml` from `templates/glab/config.yml.j2` (personal + work GitLab hosts) and verifies each host is authenticated. See [GitLab auth (glab)](#gitlab-auth-glab).
 - Symlinks the Jira Television cable (`files/television/cable/jira.toml`) and its helper fish function (`files/fish/functions/_tv_jira.fish`) into `~/.config/`. Both depend on `acli` so they live here rather than in `shell`.
@@ -69,11 +70,14 @@ A script is its own process and cannot `cd` the shell that ran it, so landing in
 
 `connect` and `dump` accept `-a NAME` / `--account NAME`, where NAME is an existing named Google Cloud CLI configuration, not an account email.
 They default to `didomi`, regardless of the shell's active configuration: `s-db staging --account pentla` or `s-db dump staging --account pentla` selects another configuration.
+Pentla staging targets `pentla-staging:europe-west1:pentla-api-staging-db` and database `pentla`; default Addingwell staging remains `addingwell-dev-326312:europe-west1:addingwell-dev-postgres`.
+Production targets are unchanged, including when selecting the `pentla` configuration.
+Connection details identify the project, instance, database and selected account's IAM username for staging.
 Production proxies use `--gcloud-auth` with a process-scoped `CLOUDSDK_ACTIVE_CONFIG_NAME`, so credentials come from that configuration's signed-in account, refresh through the CLI, and leave the globally active configuration unchanged.
 A running proxy is reused with its original credentials; stop it using the printed `kill` command before selecting another account.
 Staging signs in with IAM database authentication using `--auto-iam-authn` and Application Default Credentials (ADC); the proxy rejects combining this flag with `--gcloud-auth`.
 The database user is the email signed in to the selected configuration, read with `gcloud config get-value account`, with an empty password.
-ADC is separate from named CLI configurations: `--account` selects the expected database user, not the proxy's credentials.
+ADC is separate from named CLI configurations: `--account` selects the target and expected database user, not the proxy's credentials.
 Before connecting, run `gcloud auth application-default login <account-email>` with that same email; the proxy refreshes those credentials automatically.
 If `GOOGLE_APPLICATION_CREDENTIALS` is set, its credential file takes precedence over that ADC login and must authenticate as the same database user.
 Switching `--account` does not switch ADC; sign ADC in as the matching account separately.
@@ -83,7 +87,8 @@ Production still uses `postgres` with the shared password.
 Local connections, local dumps and restores need no Google Cloud credentials.
 
 `local` is the environment added for these subcommands, and it is the one with nothing to connect: `s-db local` says so and exits 0 rather than treating it as an error.
-Database is `addingwell` throughout. All of it is hardcoded, for the same reason the Cloud SQL instances and `s-release`'s `ORG` are: one org, and a layout that changes rarely enough that a config file would only be a second place to look.
+Database is `addingwell` except for Pentla staging, which uses `pentla`.
+Database names and Cloud SQL targets are explicitly mapped in the script.
 
 Four decisions carry the design, and the first two are the ones not to weaken:
 
@@ -94,7 +99,7 @@ Four decisions carry the design, and the first two are the ones not to weaken:
 
 `dump` brings the proxy up detached when the port is quiet and reuses it when it is already serving, so one command is the whole job; the proxy stays up afterwards and the script prints the `kill` for it.
 `s-db` reads the proxy from `$WORK_DIR/.local/bin/cloud-sql-proxy` and writes its logs to `$WORK_DIR/.local/logs/`.
-Dumps land in `$WORK_DIR/.local/backups/` as `addingwell-<env>-<YYYYMMDD-HHMMSS>.dump`, and the time is in there because a second dump on the same day must not silently overwrite the first.
+Dumps land in `$WORK_DIR/.local/backups/` as `<database>-<env>-<YYYYMMDD-HHMMSS>.dump`, and the time is in there because a second dump on the same day must not silently overwrite the first.
 `--out` overrides the path, and the listing orders by mtime rather than by name so an `--out` file still sorts where it belongs.
 
 `pg_restore` exits non-zero for warnings as well as for failures, so a non-zero exit is reported as a warning naming the code rather than as a `✓`: a half-loaded database looks fine right up until it does not.
@@ -136,6 +141,7 @@ Rotating the token is a vault edit followed by `make run-role ROLE=work PROFILE=
 - `DID_NPM_TOKEN_KEYCHAIN` (defaults/main.yml): the login keychain `service` and `account` the npm token is stored under.
 - `DID_NPM_TOKEN_AS_NPM_TOKEN_UNDER` (defaults/main.yml): the directory below which the npm token is also handed over as `NPM_TOKEN`.
 - `SPACELIFT_PROFILE` (defaults/main.yml): the `spacectl` profile `alias` and the Spacelift account `endpoint` it logs in to.
+- `AWS_SSO_SESSION` (defaults/main.yml): the SSO session name, region and registration scopes written into `~/.aws/config`.
 - Vault-encrypted secrets live in `vars/work.yml`. See `vars/work.yml.example` for the full key list.
 
 ## SSH keys
@@ -212,6 +218,19 @@ spacectl profile login --method browser --endpoint https://addingwell.app.spacel
 Check it with `spacectl profile current` and `spacectl whoami`.
 With several profiles, switch with `spacectl profile select <alias>`.
 Fish completions come with the cask, so there is nothing to link.
+
+## AWS
+
+`~/.aws/config` holds one `sso-session` and a profile per account and role from the vault's `AWS_PROFILES`.
+The account ids and the SSO start URL are Didomi-internal and this repository is public, which is why the file is rendered from the vault rather than linked.
+`aws sso login` keeps its tokens in `~/.aws/sso/cache`, so the role owns the config file outright and nothing secret is ever in it.
+A profile your access does not cover only fails when you use it.
+
+Log in once per session, from a normal terminal, and every profile on the session shares the token:
+
+```sh
+aws sso login --sso-session didomi
+```
 
 ## Profile gating
 

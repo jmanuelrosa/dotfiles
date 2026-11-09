@@ -1,0 +1,13 @@
+[sso-session {{ AWS_SSO_SESSION.name }}]
+sso_start_url = {{ AWS_SSO_START_URL }}
+sso_region = {{ AWS_SSO_SESSION.region }}
+sso_registration_scopes = {{ AWS_SSO_SESSION.scopes }}
+{% for profile in AWS_PROFILES %}
+
+[profile {{ profile.name }}]
+sso_session = {{ AWS_SSO_SESSION.name }}
+sso_account_id = {{ profile.account_id }}
+sso_role_name = {{ profile.role }}
+region = {{ AWS_SSO_SESSION.region }}
+output = json
+{% endfor %}

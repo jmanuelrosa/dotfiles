@@ -16,12 +16,22 @@ BREW_PACKAGES:
   casks:
     # Shipped as a cask, which also installs its fish completions.
     - spacectl
+    # `aws ssm start-session` hands the session to this plugin.
+    - session-manager-plugin
 
 # spacectl stores every profile's endpoint and token together in ~/.spacelift/config.json, so the
 # file cannot be tracked. The role keeps the non-secret half and checks the profile exists.
 SPACELIFT_PROFILE:
   alias: addingwell
   endpoint: https://addingwell.app.spacelift.io
+
+# The non-secret half of ~/.aws/config. The SSO start URL and the profile list (account ids
+# and roles) are Didomi-internal, so they come from vars/work.yml as AWS_SSO_START_URL and
+# AWS_PROFILES.
+AWS_SSO_SESSION:
+  name: didomi
+  region: eu-central-1
+  scopes: sso:account:access
 
 # Tools symlinked onto PATH from files/scripts/, one directory per tool with the
 # executable named after it. Same convention and the same reasons as the ai role's

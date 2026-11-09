@@ -56,6 +56,17 @@ GLAB_WORK_USER: "your-work-gitlab-username"
 #              $JIRA_PROJECT, the second step of its project-resolution chain)
 JIRA_PROJECT: "your-jira-project-key"
 
+# --- AWS ------------------------------------------------------------------
+
+# IAM Identity Center portal and the profiles rendered into ~/.aws/config, one per
+# account and role you can assume. Quote every account id: several start with 0, and an
+# unquoted one becomes a number that loses them.
+# Consumed by: roles/work/templates/aws/config.j2 (session name and region come from
+#              AWS_SSO_SESSION in roles/work/defaults/main.yml)
+AWS_SSO_START_URL: "https://your-org.awsapps.com/start/#"
+AWS_PROFILES:
+  - { name: "your-profile-name", account_id: "000000000000", role: "DefaultAccess" }
+
 # --- Tokens ---------------------------------------------------------------
 
 # NPM token for the Didomi GitLab package registry. Never exported to the shell:
