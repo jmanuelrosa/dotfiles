@@ -500,6 +500,12 @@ else
     end
 end
 
+# The issue title rides on the branch's description, which every worktree of the repo shares
+# and which outlives any session. The herdr sidebar reporter reads it to name the work beside
+# the ticket key, and setting it before `wt add` means the new workspace shows it at once.
+git config "branch.$BRANCH_NAME.description" "$ISSUE_SUMMARY"
+or _ui warn "Could not record the issue title on $BRANCH_NAME"
+
 if test $USE_WORKTREE -eq 1
     create_worktree
 end

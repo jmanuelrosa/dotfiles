@@ -97,6 +97,9 @@ function loadVocabulary(): Vocabulary {
 }
 
 const VOCAB = loadVocabulary();
+
+// The herdr sidebar reporter Claude's status line also drives, beside the vocabulary it reads.
+const SIDEBAR_SCRIPT = join(dirname(VOCABULARY_PATH), "hooks", "herdr-sidebar.sh");
 const HANDOFF_PCT = typeof VOCAB.handoffPct === "number" ? VOCAB.handoffPct : undefined;
 
 /** `<emoji> `, or nothing at all when the vocabulary could not be read. */
@@ -586,6 +589,8 @@ class DotfilesFooter implements Component {
   private readonly unsubscribe: () => void;
   private toolchain: Toolchain | undefined;
   private resolving = false;
+  private reported: string | undefined;
+  private publishing = false;
 
   constructor(
     pi: ExtensionAPI,
@@ -622,6 +627,7 @@ class DotfilesFooter implements Component {
   private rows(width: number): string[] {
     this.refreshToolchain();
     const { ctx, theme, data } = this;
+    this.publishSidebar();
     const identity: Segment[] = [
       { text: repoSegment(ctx, data, theme), keep: KEEP.repo },
       { text: contextSegment(ctx, theme, width), keep: KEEP.context },
@@ -633,6 +639,34 @@ class DotfilesFooter implements Component {
       { text: statusSegment(data), keep: KEEP.statuses },
     ];
     return [fit(identity, width, theme), fit(machine, width, theme)].filter((row) => row !== "");
+  }
+
+  /**
+   * Hands herdr's sidebar what this session knows, through hooks/herdr-sidebar.sh.
+   *
+   * The reporter owns the tokens, their caching and the PR poll, so Claude's status line and
+   * this footer cannot drift apart on what the sidebar shows. Render runs per frame, so the
+   * script is spawned only when the directory, the branch or the context reading moves, and a
+   * failed run is not retried until one of them does.
+   */
+  private publishSidebar(): void {
+    if (process.env.HERDR_ENV !== "1" || this.publishing) return;
+    const cwd = this.ctx.sessionManager.getCwd();
+    const usage = this.ctx.getContextUsage();
+    const fresh = usage && typeof usage.percent === "number" && usageFreshness(this.ctx).quality !== "unknown";
+    const percent = fresh ? Math.round(usage.percent as number) : undefined;
+    const key = [cwd, this.data.getGitBranch() ?? "", percent ?? ""].join("\n");
+    if (this.reported === key) return;
+    this.publishing = true;
+    this.reported = key;
+    const args = ["report", "--cwd", cwd];
+    if (percent !== undefined) args.push("--context-pct", String(percent));
+    this.pi
+      .exec(SIDEBAR_SCRIPT, args, { timeout: 5000 })
+      .catch(() => {})
+      .finally(() => {
+        this.publishing = false;
+      });
   }
 
   /**

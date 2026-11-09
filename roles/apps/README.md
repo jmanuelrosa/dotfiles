@@ -31,6 +31,10 @@ Glow is installed by the `coreutils` role.
 The popup passes the managed Glow config and style paths explicitly, so it does not depend on the server's shell environment.
 After editing Herdr's config, run `herdr server reload-config` or use `Ctrl+d`, then `r`.
 
+The sidebar's `$branch`, `$ctx`, `$handoff`, `$ticket` and `$pr` tokens and the tab bar's usage entry come from the ai role's `hooks/herdr-sidebar.sh`, which Claude's status line and hooks and pi's footer drive.
+Its token names, refresh intervals and PR glyphs live in the harness `statusline.json`; the colours stay here, so a renamed token or glyph has to change in both.
+s-task records each issue title as the branch description, which is where `$ticket` reads it from.
+
 ## Sentry
 
 `~/.local/bin/sentry` shadows the Homebrew binary and sets `SENTRY_CONFIG_DIR` to `~/.config/sentry/<account>`, where the account is the one whose root is the longest prefix of the working directory.

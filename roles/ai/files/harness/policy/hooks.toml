@@ -55,6 +55,17 @@ tools = ["web_fetch", "web_search"]
 script = "web-egress-gate.sh"
 harnesses = ["claude"]
 
+# An agent whose frontmatter carries `dispatched-by:` is spawned only from a parent it names.
+# Claude's payload carries the caller in `agent_type`; Pi's guardrails maps its `subagent`
+# tool onto the Agent payload, and a Pi child never loads guardrails, so there only the
+# main session's dispatch is gated. Codex is off: kura projects no agents into it.
+[[hook]]
+id = "agent-dispatch-gate"
+event = "pre_tool"
+tools = ["subagent"]
+script = "agent-dispatch-gate.sh"
+harnesses = ["claude", "pi"]
+
 [[hook]]
 id = "pre-commit-verify"
 event = "pre_tool"
@@ -117,4 +128,28 @@ id = "context-nudge"
 event = "prompt_submit"
 script = "context-nudge.sh"
 timeout = 10
+harnesses = ["claude"]
+
+# herdr's sidebar names what a blocked Claude waits on: the tool behind a permission prompt,
+# or `input` for a question. Stop clears it once per turn. Claude only: pi reports its sidebar
+# tokens from its footer and has no permission prompt to name.
+[[hook]]
+id = "herdr-sidebar-permission"
+event = "permission_request"
+script = "herdr-sidebar.sh"
+timeout = 5
+harnesses = ["claude"]
+
+[[hook]]
+id = "herdr-sidebar-notification"
+event = "notification"
+script = "herdr-sidebar.sh"
+timeout = 5
+harnesses = ["claude"]
+
+[[hook]]
+id = "herdr-sidebar-stop"
+event = "stop"
+script = "herdr-sidebar.sh"
+timeout = 5
 harnesses = ["claude"]

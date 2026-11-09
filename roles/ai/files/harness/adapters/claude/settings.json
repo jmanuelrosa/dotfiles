@@ -388,6 +388,15 @@
         ]
       },
       {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/agent-dispatch-gate.sh"
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit",
         "hooks": [
           {
@@ -425,6 +434,11 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/skill-recap.sh"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/herdr-sidebar.sh",
+            "timeout": 5
           }
         ]
       }
@@ -440,6 +454,28 @@
             "type": "command",
             "command": "~/.claude/hooks/context-nudge.sh",
             "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/herdr-sidebar.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/herdr-sidebar.sh",
+            "timeout": 5
           }
         ]
       }

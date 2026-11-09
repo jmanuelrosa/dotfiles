@@ -25,6 +25,14 @@
       "script": "cli-egress-gate.sh"
     },
     {
+      "id": "agent-dispatch-gate",
+      "tools": [
+        "subagent"
+      ],
+      "kind": "gate",
+      "script": "agent-dispatch-gate.sh"
+    },
+    {
       "id": "pre-commit-verify",
       "tools": [
         "bash"

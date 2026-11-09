@@ -11,6 +11,8 @@ Every field is optional (missing early in a session), so each segment is pulled
 defensively and dropped when unavailable; the script always exits 0 with a
 non-empty line.
 """
+import importlib.machinery
+import importlib.util
 import json
 import os
 import shutil
@@ -177,10 +179,14 @@ def git_branch(cwd):
     return out.stdout.strip() or None
 
 
-def repo_segment(workspace):
+def workspace_dir(workspace):
+    return workspace.get("current_dir") if isinstance(workspace, dict) else None
+
+
+def repo_segment(workspace, branch):
     if not isinstance(workspace, dict):
         return None
-    cwd = workspace.get("current_dir")
+    cwd = workspace_dir(workspace)
     repo = workspace.get("repo") or {}
     name = repo.get("name") if isinstance(repo, dict) else None
     if not name and cwd:
@@ -188,7 +194,6 @@ def repo_segment(workspace):
     if not name:
         return None
     shown = f"{glyph('repo')}{BOLD}{YELLOW}{name}{RESET}"
-    branch = git_branch(cwd)
     return f"{shown} ({BOLD}{CYAN}{branch}{RESET})" if branch else shown
 
 
@@ -225,6 +230,39 @@ def publish_context_pct(session_id, ctx):
         with open(context_state_file(session_id), "w", encoding="utf-8") as fh:
             json.dump({"pct": pct}, fh)
     except OSError:
+        pass
+
+
+def herdr_sidebar():
+    """hooks/herdr-sidebar.sh as a module, or None when it cannot be loaded.
+
+    Imported rather than spawned because this runs every turn and the reporter decides for
+    itself whether anything moved. Found through realpath like the vocabulary, and loaded
+    without writing bytecode, which would leave a __pycache__ in the linked hooks directory.
+    """
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "hooks", "herdr-sidebar.sh")
+    previous = sys.dont_write_bytecode
+    sys.dont_write_bytecode = True
+    try:
+        loader = importlib.machinery.SourceFileLoader("herdr_sidebar", path)
+        module = importlib.util.module_from_spec(importlib.util.spec_from_loader("herdr_sidebar", loader))
+        loader.exec_module(module)
+    except Exception:  # a missing sidebar must not cost the status line
+        return None
+    finally:
+        sys.dont_write_bytecode = previous
+    return module
+
+
+def publish_herdr(workspace, data):
+    sidebar = herdr_sidebar()
+    if sidebar is None:
+        return
+    ctx = data.get("context_window")
+    try:
+        sidebar.report_agent(workspace_dir(workspace), clamp_pct(ctx.get("used_percentage")) if isinstance(ctx, dict) else None)
+        sidebar.record_usage(data.get("rate_limits"))
+    except Exception:  # see herdr_sidebar
         pass
 
 
@@ -362,10 +400,12 @@ def main():
         data = {}
     workspace = data.get("workspace")
     publish_context_pct(data.get("session_id"), data.get("context_window"))
+    branch = git_branch(workspace_dir(workspace))
+    publish_herdr(workspace, data)
 
     rows = (
         (  # live picture: identity, context, usage windows, model
-            repo_segment(workspace),
+            repo_segment(workspace, branch),
             context_segment(data.get("context_window")),
             usage_segment(data.get("rate_limits")),
             model_segment(data.get("model")),

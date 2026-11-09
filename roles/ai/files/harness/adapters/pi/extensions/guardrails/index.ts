@@ -451,6 +451,17 @@ function payloadFor(event: ToolCallEvent, ctx: ExtensionContext): HookPayload | 
   if (isToolCallEventType("bash", event)) {
     return { tool_name: "Bash", tool_input: { command: event.input.command }, cwd: ctx.cwd };
   }
+  // pi-subagents names a direct child in `agent` and a workflow's children inside its script, so
+  // both reach the gate. No `agent_type`: a Pi child never loads guardrails, so a call that gets
+  // here is the main session's, which is the one agent-dispatch-gate refuses.
+  if (event.toolName === "subagent") {
+    const input = event.input as Record<string, unknown>;
+    return {
+      tool_name: "Agent",
+      tool_input: { subagent_type: input.agent, workflow: input.workflow },
+      cwd: ctx.cwd,
+    };
+  }
   return undefined;
 }
 
