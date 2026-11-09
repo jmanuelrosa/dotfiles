@@ -30,6 +30,21 @@
     keychain_token_service: "{{ DID_NPM_TOKEN_KEYCHAIN.service }}"
     keychain_token_account: "{{ DID_NPM_TOKEN_KEYCHAIN.account }}"
 
+- name: Ensure the AWS config directory exists
+  ansible.builtin.file:
+    path: "{{ HOME }}/.aws"
+    state: directory
+    mode: "0700"
+
+# Rendered rather than linked because the profile list lives in the vault. `aws sso login`
+# writes its tokens to ~/.aws/sso/cache, never to this file, so owning it outright is safe.
+- name: Render the AWS SSO profiles
+  ansible.builtin.template:
+    src: aws/config.j2
+    dest: "{{ HOME }}/.aws/config"
+    mode: "0600"
+    force: true
+
 # ~/.local/bin is created by the coreutils role, which runs first.
 - name: Link work scripts into the user bin directory
   ansible.builtin.file:
