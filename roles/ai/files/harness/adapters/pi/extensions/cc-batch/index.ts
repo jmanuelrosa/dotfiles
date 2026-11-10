@@ -52,7 +52,7 @@ async function handle(pi: ExtensionAPI, args: string, ctx: ExtensionCommandConte
 
 export default function registerCcBatch(pi: ExtensionAPI): void {
   pi.registerCommand(COMMAND, {
-    description: "Plan a large change, then run worktree-isolated pi-subagents workers that each open a PR",
+    description: "Plan a large change, then run parallel workers in retained git worktrees",
     handler: async (args, ctx) => handle(pi, args, ctx),
   });
 }

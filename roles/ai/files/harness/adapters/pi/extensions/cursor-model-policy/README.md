@@ -46,7 +46,7 @@ To allow another Cursor model, add its id to `cursorModels` and to `enabledModel
 
 It is not a fallback.
 It never switches a request to a different model; it only refuses.
-Model translation lives in `redirects` in `model-routing.json`, applied by [skill-model](../skill-model/README.md) for skills and by `subagents.agentOverrides` for agents.
+Model translation lives in `redirects` in `model-routing.json`, applied by [skill-model](../skill-model/README.md) to skill pins and selected session models, including subagents that load normal extensions.
 A redirect from a Cursor model to another provider rewrites a pin, but a hand-picked model or a resumed session can still reach Cursor, and that is the gap this policy covers.
 
 ## Limits

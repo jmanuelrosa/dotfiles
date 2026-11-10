@@ -64,9 +64,9 @@ When a provider runs out, add a redirect for its model and the next run lands el
 
 ## What it does not cover
 
-Agent frontmatter pins are not routed here.
-pi-subagents resolves them in the parent's preflight and throws on an unknown model before any child session exists, and local foreground children never load ambient extensions.
-Agents take the same `redirects` through `subagents.agentOverrides` in pi's `settings.json`, which `make test` keeps in sync.
+`@tintinweb/pi-subagents` resolves agent frontmatter pins itself, falling back to the parent model when a pin is unavailable.
+Children that load normal extensions also load this extension, so their selected models and skill pins follow the same run-level redirects.
+An agent that disables extensions does not receive these redirects.
 Refusing disallowed Cursor models belongs to [cursor-model-policy](../cursor-model-policy/README.md), not to this extension.
 
 ## Verification

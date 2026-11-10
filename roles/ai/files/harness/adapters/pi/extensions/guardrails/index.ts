@@ -65,7 +65,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -73,6 +73,7 @@ import {
   type ExtensionContext,
   type InputEvent,
   type InputEventResult,
+  getAgentDir,
   isToolCallEventType,
   type ToolCallEvent,
   type ToolCallEventResult,
@@ -451,16 +452,27 @@ function payloadFor(event: ToolCallEvent, ctx: ExtensionContext): HookPayload | 
   if (isToolCallEventType("bash", event)) {
     return { tool_name: "Bash", tool_input: { command: event.input.command }, cwd: ctx.cwd };
   }
-  // pi-subagents names a direct child in `agent` and a workflow's children inside its script, so
-  // both reach the gate. No `agent_type`: a Pi child never loads guardrails, so a call that gets
-  // here is the main session's, which is the one agent-dispatch-gate refuses.
-  if (event.toolName === "subagent") {
+  if (event.toolName === "Agent") {
     const input = event.input as Record<string, unknown>;
     return {
       tool_name: "Agent",
-      tool_input: { subagent_type: input.agent, workflow: input.workflow },
+      tool_input: { subagent_type: input.subagent_type },
       cwd: ctx.cwd,
     };
+  }
+  if (event.toolName === "SubagentWorkflow") {
+    const input = event.input as { script?: string; scriptPath?: string; name?: string };
+    let workflow = input.script;
+    if (input.scriptPath) {
+      workflow = readFileSync(resolve(ctx.cwd, input.scriptPath), "utf8");
+    } else if (!workflow && input.name) {
+      const directories = [join(ctx.cwd, ".pi/workflows"), join(ctx.cwd, ".agents/workflows"),
+                           join(getAgentDir(), "workflows")];
+      const path = directories.map((directory) => join(directory, `${input.name}.js`)).find(existsSync);
+      if (path) workflow = readFileSync(path, "utf8");
+    }
+    if (!workflow) throw new Error("Use script or scriptPath so guardrails can inspect the workflow before dispatch.");
+    return { tool_name: "Agent", tool_input: { workflow }, cwd: ctx.cwd };
   }
   return undefined;
 }
@@ -489,7 +501,8 @@ async function guard(event: ToolCallEvent, ctx: ExtensionContext): Promise<ToolC
   const payload = payloadFor(event, ctx);
   if (!payload) return undefined;
   if (configurationError) return { block: true, reason: configurationError };
-  const entries = PRE_TOOL.filter((entry) => entry.tools?.includes(event.toolName));
+  const toolName = event.toolName === "Agent" || event.toolName === "SubagentWorkflow" ? "subagent" : event.toolName;
+  const entries = PRE_TOOL.filter((entry) => entry.tools?.includes(toolName));
 
   // In table order, stopping at the first refusal: the cheap gates come first there, so a command
   // that was never allowed cannot also spend a project's full lint budget proving itself clean.

@@ -1,6 +1,7 @@
 """/cc-batch sends Claude Code's /batch orchestration prompt, rewritten for Pi."""
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -85,6 +86,52 @@ def invoke(extension, args, idle=True, repository=True, probe_throws=False):
 
 def test_prompt_carries_exactly_one_instruction_slot():
     assert (SOURCE / "prompt.md").read_text().count(PLACEHOLDER) == 1
+
+
+def test_prompt_uses_the_new_tools_without_automatic_worktree_cleanup():
+    prompt = (SOURCE / "prompt.md").read_text()
+    assert 'Agent({ subagent_type: "Explore"' in prompt
+    assert 'SubagentWorkflow({ scriptPath:' in prompt
+    assert "git worktree add -b" in prompt
+    assert "leave every change uncommitted" in prompt
+    assert "Do not keep uncommitted worker changes in an OS temporary directory" in prompt
+    for obsolete in ("subagents_enable", "workflowScriptPath", "runs.all", "bg_wait",
+                     "subagent_supervisor", "contact_supervisor", "artifactPaths"):
+        assert obsolete not in prompt
+    assert 'isolation: "worktree"' not in prompt
+
+
+def test_workflow_collects_ready_and_failed_units_without_committing():
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is needed to execute the workflow example")
+    prompt = (SOURCE / "prompt.md").read_text()
+    script = re.search(r"```js\n(export const meta[\s\S]*?)\n```", prompt)
+    assert script is not None, "the workflow needs a meta declaration"
+    body = script[1].replace("export const meta", "const meta", 1)
+    runner = f'''
+      import assert from 'node:assert/strict';
+      const AsyncFunction = Object.getPrototypeOf(async function () {{}}).constructor;
+      const calls = [];
+      const run = new AsyncFunction('agent', 'parallel', {json.dumps(body)});
+      const results = await run(async (task, options) => {{
+        calls.push({{ task, options }});
+        return calls.length === 1 ? 'Tests passed\\nPR: none - ready for /commit and /pr' : null;
+      }}, tasks => Promise.all(tasks.map(task => task())));
+      assert.equal(calls.length, 2);
+      assert.deepEqual(calls.map(call => call.options), [
+        {{ agentType: 'general-purpose', label: 'u1' }},
+        {{ agentType: 'general-purpose', label: 'u2' }},
+      ]);
+      assert.equal(results[0].pr, 'PR: none - ready for /commit and /pr');
+      assert.equal(results[1].pr, 'PR: none - worker failed or was skipped');
+      assert.equal(results[0].worktree, '<absolute unit 1 worktree>');
+      assert.equal(results[1].branch, '<unit 2 branch>');
+    '''
+    result = subprocess.run(
+        [node, "--input-type=module", "-e", runner], capture_output=True, text=True, check=False,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_instruction_is_substituted_into_the_orchestration_prompt(extension):

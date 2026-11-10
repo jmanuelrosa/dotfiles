@@ -56,9 +56,9 @@ script = "web-egress-gate.sh"
 harnesses = ["claude"]
 
 # An agent whose frontmatter carries `dispatched-by:` is spawned only from a parent it names.
-# Claude's payload carries the caller in `agent_type`; Pi's guardrails maps its `subagent`
-# tool onto the Agent payload, and a Pi child never loads guardrails, so there only the
-# main session's dispatch is gated. Codex is off: kura projects no agents into it.
+# Claude's payload carries the caller in `agent_type`; Pi's guardrails maps `Agent`
+# and `SubagentWorkflow` onto the same payload and inspects workflow source before dispatch.
+# Codex is off: kura projects no agents into it.
 [[hook]]
 id = "agent-dispatch-gate"
 event = "pre_tool"
