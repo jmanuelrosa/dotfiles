@@ -287,11 +287,23 @@ def test_agent_overrides_match_redirects():
         for path, frontmatter, model in catalog_pins()
         if path.parent.name == "agents" and model.lower() in redirects
     }
-    actual = settings.get("subagents", {}).get("agentOverrides", {})
+    actual = {
+        name: {"model": override["model"]}
+        for name, override in settings.get("subagents", {}).get("agentOverrides", {}).items()
+        if "model" in override
+    }
     assert actual == expected, (
-        "subagents.agentOverrides in adapters/pi/settings.json must be:\n"
+        "subagents.agentOverrides model fields in adapters/pi/settings.json must be:\n"
         + json.dumps(dict(sorted(expected.items())), indent=2)
     )
+
+
+def test_review_agents_keep_native_read_only_tools():
+    settings = json.loads((PI / "settings.json").read_text())
+    overrides = settings["subagents"]["agentOverrides"]
+    read_only = ["read", "grep", "find", "ls"]
+    assert overrides["code-reviewer"]["tools"] == [*read_only, "subagent"]
+    assert overrides["code-review-worker"]["tools"] == read_only
 
 
 def test_bundle_pins_resolve_to_enabled_models():
