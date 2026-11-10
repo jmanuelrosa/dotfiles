@@ -104,7 +104,22 @@
         "model": "openai-codex/gpt-6.1-sol"
       },
       "code-reviewer": {
-        "model": "openai-codex/gpt-6.1-sol"
+        "model": "openai-codex/gpt-6.1-sol",
+        "tools": [
+          "read",
+          "grep",
+          "find",
+          "ls",
+          "subagent"
+        ]
+      },
+      "code-review-worker": {
+        "tools": [
+          "read",
+          "grep",
+          "find",
+          "ls"
+        ]
       },
       "competitive-researcher": {
         "model": "openai-codex/gpt-6.1-sol"
