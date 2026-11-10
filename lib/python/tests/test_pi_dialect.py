@@ -39,7 +39,17 @@ def test_pi_subagents_is_declared_in_the_settings_pi_actually_loads():
     """The extension is the reason any of the above matters: without the package
     entry, pi ships no Agent tool and every path here is a directory nothing reads."""
     packages = json.loads(PI_SETTINGS.read_text())["packages"]
-    assert "npm:pi-subagents" in packages
+    assert "npm:@tintinweb/pi-subagents" in packages
+    assert "npm:pi-subagents" not in packages
+
+
+def test_old_subagent_overrides_are_removed_and_mentions_start_directly():
+    settings = json.loads(PI_SETTINGS.read_text())
+    assert "subagents" not in settings
+    assert not any("npm:pi-subagents" in key for key in settings["extensionChangelogVersions"])
+    config = json.loads((PI / "subagents.json").read_text())
+    assert config["agentMentions"] == "direct"
+    assert config["worktreeIsolation"] is False
 
 
 def test_the_role_installs_herdr_for_pi_as_well_as_claude():

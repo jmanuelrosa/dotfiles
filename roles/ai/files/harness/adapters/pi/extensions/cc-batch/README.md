@@ -2,33 +2,38 @@
 
 ## Why it exists
 
-Claude Code's `/batch` plans a large change, splits it into independent units, and runs one worktree-isolated background agent per unit that each open a PR.
-Pi ships no equivalent, so this extension ports it under a `cc-` prefix that can never collide with a Claude Code built-in.
+Claude Code's `/batch` plans a large change and runs independent worktree-isolated workers.
+This extension provides `/cc-batch <instruction>` in Pi, using `@tintinweb/pi-subagents`.
 
 ## What it does
 
-`index.ts` registers `/cc-batch <instruction>`.
-It reads `prompt.md` beside the module once at load time, substitutes the instruction for `{{instruction}}`, and sends the result as a user message, queued as a follow-up when the agent is busy.
-An empty instruction prints a usage line, and a directory outside any git repository is refused, because every worker needs a worktree.
+`index.ts` reads `prompt.md`, substitutes the instruction for `{{instruction}}`, and sends it as a user message, queued as a follow-up when the agent is busy.
+An empty instruction prints usage; a directory outside a Git repository is refused.
 
-`prompt.md` keeps the three phases of Claude Code's prompt and changes only the mechanics Pi does differently:
+The orchestration prompt has three phases:
 
-- **Plan.** Pi has no plan mode, so the plan is written to `docs/plans/YYYY-MM-DD-<slug>.md` and approved through `ask_user` from the `pi-ask-user` package.
-- **Workers.** One top-level `pi-subagents` workflow, launched with `async: true` and `worktree: true`, starts the packaged `worker` agent once per unit through `runs.all`. The script lives in a temporary file passed as `workflowScriptPath`, because raw workflow `args` are too small for 5 to 30 self-contained prompts.
-- **Clean checkout.** Managed worktrees refuse a dirty source checkout, and the plan file is a dirty path, so the orchestrator stops and asks the user to resolve it, recommending a commit because approved plans are committed. `baseRef` is pinned to the remote-tracking branch the PRs target, so that local plan commit never enters a worker's PR.
-- **Questions.** Workers cannot reach the user, so a worker that needs a decision asks through `contact_supervisor`, and the orchestrator relays it with `ask_user` and returns the answer through `subagent_supervisor`.
-- **Tracking.** `bg_wait`, supervisor polling and run status re-render the `| # | Unit | Status | PR |` table until the run settles, then the final table and an "N/M units landed as PRs" summary.
+- Research with foreground `Agent` calls using `Explore`, write the plan under `docs/plans/`, and get approval through `ask_user`.
+- Fetch and pin the target branch's commit, create one ordinary Git worktree and planned branch per unit, and launch a background `SubagentWorkflow` using `parallel()` and `agent()` with `general-purpose` workers.
+- Wait for the completion notification, report every unit's branch and retained worktree, and relay any blocked worker's question to the user before restarting that unit.
 
-## Why workers stop before committing
+Every task includes its absolute worktree path and instructs the worker to scope all file operations and shell commands to it, because workflow agents initially start in the source checkout.
+The workflow script lives beside the retained worktrees under the durable root approved in the plan and is passed through `scriptPath`.
+Uncommitted worker code is never kept in an OS temporary directory.
+Pi's `/agents` menu shows workflow progress and lets the user stop or skip workers.
 
-Claude Code's `/batch` workers commit, push and open a PR themselves.
-Here the `commit` and `pr` skills carry `disable-model-invocation: true`, which Pi honours as well: a model cannot invoke them, and only a user-typed `/skill:commit` or `/commit` writes the `<skill name="...">` marker the guardrails git-skill gate opens on.
-So each worker leaves its change uncommitted on the unit's planned branch and ends with `PR: none - commit skill is user-invoked; worktree <path>, branch <name>`.
-pi-subagents captures those uncommitted changes as a patch in a handoff manifest and may remove the worktree afterwards, so the patch, not the branch, is the authoritative copy.
-The final report gives each ready unit's branch, handoff manifest and any retained worktree, and the user lands it with `/commit` and `/pr`, applying the patch first when the worktree is gone.
+## Why worktrees are retained
+
+The package's automatic worktree cleanup commits changes with hooks skipped and removes the worktree.
+That conflicts with this harness's commit policy, so `subagents.json` disables automatic worktree isolation.
+The coordinator creates ordinary worktrees with `git worktree add -b`, and neither the workflow nor the workers remove them.
+
+Workers review and test their changes, then leave them uncommitted on the planned branches.
+The user runs `/commit` and `/pr` inside each ready worktree.
+Failed and blocked units retain their worktrees too, so their partial changes remain available.
+The source checkout's uncommitted files stay untouched; workers start from the pinned remote commit, not the local plan.
 
 ## Verification
 
-Usage, prompt substitution, and busy-session delivery are covered by `lib/python/tests/test_pi_cc_batch.py`.
-End to end, `pi -ne -e <path>/index.ts --no-session --mode json -p "/cc-batch <instruction>"` submits the orchestration prompt as the session's input.
-Print mode has no UI for the usage line, so an empty `/cc-batch` shows it as a `notify` request only in `--mode rpc`.
+Usage, prompt substitution, busy-session delivery, and execution of the workflow example are covered by `lib/python/tests/test_pi_cc_batch.py`.
+The workflow test exercises ready and failed worker results without invoking a model or creating worktrees.
+Actual multi-agent execution still requires a configured provider and manual verification in Pi.

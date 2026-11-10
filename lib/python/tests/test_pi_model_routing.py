@@ -279,19 +279,13 @@ def test_redirects_are_one_hop_to_enabled_models():
         assert target.lower() not in redirects, source
 
 
-def test_agent_overrides_match_redirects():
+def test_agent_routes_need_no_package_specific_overrides():
     redirects = json.loads((PI / "model-routing.json").read_text())["redirects"]
     settings = json.loads((PI / "settings.json").read_text())
-    expected = {
-        frontmatter["name"]: {"model": redirects[model.lower()]}
-        for path, frontmatter, model in catalog_pins()
-        if path.parent.name == "agents" and model.lower() in redirects
-    }
-    actual = settings.get("subagents", {}).get("agentOverrides", {})
-    assert actual == expected, (
-        "subagents.agentOverrides in adapters/pi/settings.json must be:\n"
-        + json.dumps(dict(sorted(expected.items())), indent=2)
-    )
+    assert "subagents" not in settings
+    for path, _, model in catalog_pins():
+        if path.parent.name == "agents" and model.lower() != "inherit":
+            assert redirects.get(model.lower(), model) in settings["enabledModels"], str(path)
 
 
 def test_bundle_pins_resolve_to_enabled_models():
