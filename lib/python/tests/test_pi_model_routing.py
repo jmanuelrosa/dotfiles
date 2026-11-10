@@ -279,17 +279,26 @@ def test_redirects_are_one_hop_to_enabled_models():
         assert target.lower() not in redirects, source
 
 
-def test_agent_overrides_match_redirects():
+@pytest.mark.parametrize("with_tool_overrides", [False, True])
+def test_agent_overrides_match_redirects(with_tool_overrides):
     redirects = json.loads((PI / "model-routing.json").read_text())["redirects"]
     settings = json.loads((PI / "settings.json").read_text())
+    if with_tool_overrides:
+        overrides = settings["subagents"]["agentOverrides"]
+        overrides["code-reviewer"]["tools"] = ["read", "grep", "find", "ls", "subagent"]
+        overrides["code-review-worker"] = {"tools": ["read", "grep", "find", "ls"]}
     expected = {
         frontmatter["name"]: {"model": redirects[model.lower()]}
         for path, frontmatter, model in catalog_pins()
         if path.parent.name == "agents" and model.lower() in redirects
     }
-    actual = settings.get("subagents", {}).get("agentOverrides", {})
+    actual = {
+        name: {"model": override["model"]}
+        for name, override in settings.get("subagents", {}).get("agentOverrides", {}).items()
+        if "model" in override
+    }
     assert actual == expected, (
-        "subagents.agentOverrides in adapters/pi/settings.json must be:\n"
+        "model overrides in adapters/pi/settings.json must be:\n"
         + json.dumps(dict(sorted(expected.items())), indent=2)
     )
 
