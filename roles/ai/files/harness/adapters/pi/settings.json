@@ -72,7 +72,7 @@
     },
     "npm:@gotgenes/pi-permission-system@41.0.0",
     "npm:pi-ask-user",
-    "npm:pi-subagents",
+    "npm:@tintinweb/pi-subagents",
     "npm:@mrclrchtr/supi-insights@11.1.0"
   ],
   "quietStartup": true,
@@ -80,97 +80,6 @@
   "showCacheMissNotices": true,
   "showHardwareCursor": true,
   "steeringMode": "all",
-  "subagents": {
-    "agentOverrides": {
-      "ac-writer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "adr-scribe": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "analytics-staff-engineer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "architect": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "backend-staff-engineer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "cc-staff-reviewer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "cloud-staff-engineer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "code-reviewer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "competitive-researcher": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "data-staff-engineer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "database-staff-engineer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "decision-judge": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "design-staff-engineer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "desktop-staff-engineer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "dx-staff-engineer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "frontend-staff-engineer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "gtm-staff-engineer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "market-sizer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "mobile-staff-engineer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "pi-staff-reviewer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "platform-staff-engineer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "pm-red-team": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "qa-staff-engineer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "security-staff-engineer": {
-        "model": "openai-codex/gpt-6-astra"
-      },
-      "seo-staff-engineer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "sre-staff-engineer": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "strategy-checker": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "user-evidence-researcher": {
-        "model": "openai-codex/gpt-6.1-sol"
-      },
-      "ux-shaper": {
-        "model": "openai-codex/gpt-6.1-sol"
-      }
-    }
-  },
   "terminal": {
     "showTerminalProgress": true
   },
@@ -180,6 +89,6 @@
   "extensionChangelogVersions": {
     "{\"source\":\"npm:pi-cursor-sdk\",\"scope\":\"user\"}": "0.5.5",
     "{\"source\":\"npm:@gotgenes/pi-permission-system@41.0.0\",\"scope\":\"user\"}": "41.0.0",
-    "{\"source\":\"npm:pi-subagents\",\"scope\":\"user\"}": "0.84.0"
+    "{\"source\":\"npm:@tintinweb/pi-subagents\",\"scope\":\"user\"}": "0.22.1"
   }
 }

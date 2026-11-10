@@ -15,10 +15,9 @@ at dispatch: an agent whose frontmatter carries
 is spawned only when the payload's `agent_type`, the agent the call is made from, is in
 that list. The main conversation carries no `agent_type` and is refused.
 
-Claude sends the Agent tool's `subagent_type`. Pi's guardrails maps its `subagent` tool onto
-the same payload, with the workflow script passed through so a child named inside
-`runs.all([...])` is caught too; a Pi child never loads guardrails, so under Pi only the
-main session's dispatch is gated, which is the one that needs it.
+Claude sends the Agent tool's `subagent_type`. Pi's guardrails maps `Agent` onto the same
+payload and passes `SubagentWorkflow` source through so a worker named in a script is
+caught too.
 
 The agent file is read on every call rather than rendered into the hook, as
 dependency-skill-gate reads the registry: the catalog's agents/ first, then the project's

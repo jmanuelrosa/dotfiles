@@ -369,7 +369,7 @@ PI_PACKAGE = "@earendil-works/pi-coding-agent"
 # The private functions the executed half drives, re-exported into a copy of the extension.
 DRIVEN = (
     "activeSkills", "writeTranscript", "rewriteCommand", "rtkStatus", "cursorStatus", "PRE_TOOL",
-    "spawnJson", "runHook", "guard", "guardPrompt",
+    "spawnJson", "runHook", "guard", "guardPrompt", "payloadFor",
 )
 
 
@@ -452,6 +452,66 @@ def skills_for(runner, entries):
     process.stdout.write(JSON.stringify([...found].sort()));
     """
     return run_in_node(runner, body)
+
+
+def test_agent_dispatch_uses_the_new_tool_input(runner):
+    result = run_in_node(runner, '''
+      const payload = payloadFor({ toolName: "Agent", input: { subagent_type: "code-review-worker" } },
+        { cwd: "/project" });
+      process.stdout.write(JSON.stringify(payload));
+    ''')
+    assert result == {
+        "tool_name": "Agent", "tool_input": {"subagent_type": "code-review-worker"},
+        "cwd": "/project",
+    }
+
+
+@pytest.mark.parametrize("source", ["inline", "file", "name", "inline-with-name", "file-with-inline"])
+def test_workflow_dispatch_inspects_the_actual_script(runner, tmp_path, source):
+    script = 'export const meta = { name: "audit", description: "Audit" }; agent("check", { agentType: "code-review-worker" });'
+    workflow = tmp_path / (".pi/workflows/audit.js" if source == "name" else "audit.js")
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text(script)
+    args = {
+        "inline": {"script": script},
+        "file": {"scriptPath": workflow.name},
+        "name": {"name": "audit"},
+        "inline-with-name": {"script": script, "name": "missing"},
+        "file-with-inline": {"scriptPath": workflow.name, "script": "not the actual workflow"},
+    }[source]
+    result = run_in_node(runner, f'''
+      const payload = payloadFor({{ toolName: "SubagentWorkflow", input: {json.dumps(args)} }},
+        {{ cwd: {json.dumps(str(tmp_path))} }});
+      process.stdout.write(JSON.stringify(payload));
+    ''')
+    assert result == {
+        "tool_name": "Agent", "tool_input": {"workflow": script}, "cwd": str(tmp_path),
+    }
+
+
+def test_workflow_dispatch_without_inspectable_source_is_refused(runner):
+    result = run_in_node(runner, '''
+      try {
+        payloadFor({ toolName: "SubagentWorkflow", input: { resumeFromRunId: "wf_example" } },
+          { cwd: "/project" });
+        process.stdout.write(JSON.stringify(null));
+      } catch (error) {
+        process.stdout.write(JSON.stringify(error.message));
+      }
+    ''')
+    assert result == "Use script or scriptPath so guardrails can inspect the workflow before dispatch."
+
+
+@pytest.mark.parametrize("tool_name", ["Agent", "SubagentWorkflow"])
+def test_new_dispatch_tools_still_reach_the_gate(runner, tool_name):
+    args = {"subagent_type": "test-worker"} if tool_name == "Agent" else {"script": "test-worker"}
+    result = run_in_node(runner, f'''
+      PRE_TOOL.unshift({{ id: "dispatch-test", kind: "gate", tools: ["subagent"], script: "missing-dispatch-test.sh" }});
+      const result = await guard({{ toolName: {json.dumps(tool_name)}, input: {json.dumps(args)} }}, {{ cwd: "/project" }});
+      process.stdout.write(JSON.stringify(result ?? null));
+    ''')
+    assert result["block"] is True
+    assert "missing-dispatch-test.sh" in result["reason"]
 
 
 def test_a_loaded_skill_survives_the_work_it_asks_for(runner):

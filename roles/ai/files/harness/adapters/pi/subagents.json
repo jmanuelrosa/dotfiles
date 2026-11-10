@@ -1,4 +1,6 @@
 {
+  "agentMentions": "direct",
   "scopeModels": true,
-  "showModel": true
+  "showModel": true,
+  "worktreeIsolation": false
 }
