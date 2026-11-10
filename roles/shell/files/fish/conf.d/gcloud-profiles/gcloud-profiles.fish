@@ -47,14 +47,29 @@ function __gcloud_directory_profile --on-variable PWD
                 set -g __gcloud_directory_had_config false
             end
         end
+        if not set -q __gcloud_directory_had_adc
+            if set -q GOOGLE_APPLICATION_CREDENTIALS
+                set -g __gcloud_directory_had_adc true
+                set -g __gcloud_directory_previous_adc "$GOOGLE_APPLICATION_CREDENTIALS"
+            else
+                set -g __gcloud_directory_had_adc false
+            end
+        end
         set -gx CLOUDSDK_ACTIVE_CONFIG_NAME "$selected"
+        set -gx GOOGLE_APPLICATION_CREDENTIALS "$HOME/.config/gcloud-profiles/adc/$selected/application_default_credentials.json"
     else if set -q __gcloud_directory_had_config
         if test "$__gcloud_directory_had_config" = true
             set -gx CLOUDSDK_ACTIVE_CONFIG_NAME $__gcloud_directory_previous_config
         else
             set -eg CLOUDSDK_ACTIVE_CONFIG_NAME
         end
+        if test "$__gcloud_directory_had_adc" = true
+            set -gx GOOGLE_APPLICATION_CREDENTIALS "$__gcloud_directory_previous_adc"
+        else
+            set -eg GOOGLE_APPLICATION_CREDENTIALS
+        end
         set -eg __gcloud_directory_had_config __gcloud_directory_previous_config
+        set -eg __gcloud_directory_had_adc __gcloud_directory_previous_adc
     end
 end
 

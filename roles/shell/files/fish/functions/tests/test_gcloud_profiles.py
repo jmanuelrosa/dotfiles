@@ -26,6 +26,11 @@ def home(tmp_path):
         "#!/bin/sh\nprintf 'unexpected cloud command\\n' >&2\nexit 1\n"
     )
     cloud_stub.chmod(0o755)
+    functions = home / ".config/fish/functions"
+    functions.mkdir(parents=True)
+    sources = SNIPPET.parents[2] / "functions"
+    for name, feature in (("gcp_adc", "gcp_adc"), ("_ui", "ui")):
+        (functions / f"{name}.fish").symlink_to(sources / feature / f"{name}.fish")
     return home
 
 
@@ -44,7 +49,8 @@ def run_fish(home, profiles_config):
         pytest.skip("Fish is required for shell behavior tests")
 
     def run(
-        script, *, configuration=None, cwd=None, interactive=True, expected_error=None
+        script, *, configuration=None, credentials=None, cwd=None, interactive=True,
+        expected_error=None
     ):
         env = os.environ.copy()
         env.update(
@@ -59,9 +65,20 @@ def run_fish(home, profiles_config):
             PATH=os.pathsep.join((str(home / "bin"), env["PATH"])),
         )
         env.pop("CLOUDSDK_ACTIVE_CONFIG_NAME", None)
+        env.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
         if configuration is not None:
             env["CLOUDSDK_ACTIVE_CONFIG_NAME"] = configuration
+        if credentials is not None:
+            env["GOOGLE_APPLICATION_CREDENTIALS"] = credentials
         commands = r"""
+set -p fish_function_path "$HOME/.config/fish/functions"
+function show_credentials
+    if set -q GOOGLE_APPLICATION_CREDENTIALS
+        printf 'set:%s\n' "$GOOGLE_APPLICATION_CREDENTIALS"
+    else
+        printf 'unset\n'
+    end
+end
 function show_profile
     if set -q CLOUDSDK_ACTIVE_CONFIG_NAME
         printf 'set:%s\n' "$CLOUDSDK_ACTIVE_CONFIG_NAME"
@@ -439,6 +456,151 @@ def test_provisioning_creates_directory_and_links_mappings():
     } in configs["loop"]
     defaults = yaml.safe_load((SNIPPET.parents[4] / "defaults/main.yml").read_text())
     assert "jq" in defaults["BREW_PACKAGES"]["formulas"]
+
+
+@pytest.mark.parametrize("credentials", [None, "", "/previous/adc.json"])
+def test_adc_selection_and_restore(run_fish, home, profiles_config, credentials):
+    profiles_config.write_text(
+        json.dumps({"~/Developer/work/addingwell": "didomi", "~/other-project": "pentla"})
+    )
+    assert run_fish(
+        r"""
+show_credentials
+cd "$HOME/Developer/work/addingwell"
+show_credentials
+source "$TEST_GCLOUD_SNIPPET"
+cd "$HOME/other-project"
+show_credentials
+cd "$HOME"
+show_credentials
+""",
+        credentials=credentials,
+    ) == [
+        profile(credentials),
+        f"set:{home}/.config/gcloud-profiles/adc/didomi/application_default_credentials.json",
+        f"set:{home}/.config/gcloud-profiles/adc/pentla/application_default_credentials.json",
+        profile(credentials),
+    ]
+
+
+def test_missing_profile_adc_does_not_fall_back_to_shared_credentials(run_fish, home):
+    assert run_fish(
+        'show_credentials; cd "$HOME"; show_credentials',
+        cwd=home / "Developer/work/addingwell",
+        credentials="/previous/adc.json",
+    ) == [
+        f"set:{home}/.config/gcloud-profiles/adc/didomi/application_default_credentials.json",
+        "set:/previous/adc.json",
+    ]
+
+
+def test_empty_mapping_reload_restores_adc(run_fish):
+    assert run_fish(
+        r"""
+cd "$HOME/Developer/work/addingwell"
+printf '{}\\n' > "$TEST_GCLOUD_CONFIG"
+source "$TEST_GCLOUD_SNIPPET"
+show_credentials
+""",
+        credentials="/previous/adc.json",
+    ) == ["set:/previous/adc.json"]
+
+
+def test_noninteractive_shell_preserves_adc(run_fish, home):
+    assert run_fish(
+        "show_credentials",
+        cwd=home / "Developer/work/addingwell",
+        credentials="/previous/adc.json",
+        interactive=False,
+    ) == ["set:/previous/adc.json"]
+
+
+@pytest.mark.parametrize("project", ["addingwell-test", ""])
+def test_adc_login_uses_an_isolated_sdk_directory(run_fish, home, project):
+    fish = shutil.which("fish")
+    flags = f" --project={project}" if project else ""
+    stub = home / "bin/gcloud"
+    stub.write_text(f"""#!{fish}
+switch (string join ' ' -- $argv)
+    case 'config get-value account'
+        test "$CLOUDSDK_ACTIVE_CONFIG_NAME" = didomi; or exit 1
+        echo jose@example.test
+    case 'config get-value project'
+        printf '%s\\n' '{project}'
+    case 'auth application-default login jose@example.test{flags}'
+        test "$CLOUDSDK_ACTIVE_CONFIG_NAME" = default; or exit 1
+        test -z "$GOOGLE_APPLICATION_CREDENTIALS"; or exit 1
+        printf '{{}}\\n' > "$CLOUDSDK_CONFIG/application_default_credentials.json"
+    case '*'
+        exit 1
+end
+""")
+    shared_adc = home / ".config/gcloud/application_default_credentials.json"
+    shared_adc.parent.mkdir()
+    shared_adc.write_text("shared credentials must not change")
+    output = run_fish(
+        'gcp_adc login didomi; or exit 1; show_credentials; show_profile',
+        configuration="pentla",
+        credentials=str(shared_adc),
+    )
+    assert output[-2:] == [f"set:{shared_adc}", "set:pentla"]
+    adc = home / ".config/gcloud-profiles/adc/didomi/application_default_credentials.json"
+    assert adc.read_text() == "{}\n"
+    assert adc.stat().st_mode & 0o777 == 0o600
+    assert adc.parent.stat().st_mode & 0o777 == 0o700
+    assert shared_adc.read_text() == "shared credentials must not change"
+
+
+def test_adc_path_defaults_to_the_selected_configuration(run_fish, home):
+    assert run_fish("gcp_adc path", configuration="pentla") == [
+        f"{home}/.config/gcloud-profiles/adc/pentla/application_default_credentials.json"
+    ]
+
+
+@pytest.mark.parametrize("account", ["", "jose@example.test"])
+def test_failed_adc_setup_does_not_claim_success(run_fish, home, account):
+    stub = home / "bin/gcloud"
+    stub.write_text(f"""#!{shutil.which('fish')}
+switch (string join ' ' -- $argv)
+    case 'config get-value account'
+        printf '%s\\n' '{account}'
+    case 'config get-value project'
+        echo addingwell-test
+    case '*'
+        printf '%s\\n' 'Login denied' >&2
+        exit 1
+end
+""")
+    output = run_fish(
+        'gcp_adc login didomi; and exit 1; echo failed',
+        expected_error="Login denied" if account else "No account is signed in",
+    )
+    assert output[-1] == "failed"
+    assert not any("ADC saved" in line for line in output)
+    assert not (home / ".config/gcloud-profiles/adc/didomi/application_default_credentials.json").exists()
+
+
+def test_adc_login_rejects_path_traversal_before_creating_files(run_fish, home):
+    assert run_fish(
+        'gcp_adc login ../other; and exit 1; true',
+        expected_error="Specify a named Google Cloud configuration",
+    ) == []
+    assert not (home / ".config/gcloud-profiles/adc").exists()
+
+
+def test_nested_shell_restores_inherited_adc(run_fish, home):
+    assert run_fish(
+        r"""
+cd "$HOME/Developer/work/addingwell"
+"$TEST_FISH_BINARY" --no-config --interactive --command 'source "$TEST_GCLOUD_SNIPPET"; cd "$HOME"; printf "%s\n" "$GOOGLE_APPLICATION_CREDENTIALS"'
+cd "$HOME"
+show_credentials
+""",
+        credentials="/previous/adc.json",
+    ) == [
+        f"{home}/.config/gcloud-profiles/adc/didomi/application_default_credentials.json",
+        "set:/previous/adc.json",
+    ]
 
 
 def test_shipped_config_contains_the_initial_mappings():
