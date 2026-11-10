@@ -16,7 +16,8 @@
 
 set -g WORK_DIR "$HOME/Developer/work/addingwell"
 set -g PROXY_BIN "./.local/bin/cloud-sql-proxy"
-set -g GCLOUD_CONFIG didomi
+set -g GCLOUD_CONFIG "$CLOUDSDK_ACTIVE_CONFIG_NAME"
+test -n "$GCLOUD_CONFIG"; or set -g GCLOUD_CONFIG didomi
 set -g DUMP_DIR "$WORK_DIR/.local/backups"
 
 set -g DATABASE addingwell
@@ -56,9 +57,10 @@ function usage
     echo ""
     echo "connect / dump options:"
     echo "  -a, --account NAME Named gcloud configuration (default: $GCLOUD_CONFIG)"
-    echo "  Staging uses Application Default Credentials (ADC), not the selected CLI login."
-    echo "  ADC must be signed in as the selected configuration's account:"
-    echo "    gcloud auth application-default login <account-email>"
+    echo "  Defaults to the directory-selected configuration, or didomi when none is selected."
+    echo "  Staging uses per-configuration Application Default Credentials (ADC)."
+    echo "  Sign in explicitly, or accept the prompt when credentials are missing:"
+    echo "    gcp_adc login $GCLOUD_CONFIG"
     echo ""
     echo "connect [ENV]   (the default, so 's-db staging' still works)"
     echo "  -d, --detach       Run the proxy in the background"
@@ -134,9 +136,9 @@ function get_user
     end
 end
 
-# ADC is separate from named gcloud configurations and must match this database user.
 function gcloud_account
-    CLOUDSDK_ACTIVE_CONFIG_NAME=$GCLOUD_CONFIG gcloud config get-value account 2>/dev/null
+    set -lx CLOUDSDK_ACTIVE_CONFIG_NAME "$GCLOUD_CONFIG"
+    gcloud config get-value account 2>/dev/null
 end
 
 function require_user
@@ -157,10 +159,33 @@ end
 
 function proxy_flags
     if uses_iam_auth $argv[1]
-        echo --auto-iam-authn
+        set -l project (string split -f 1 : -- (get_instance $argv[1]))
+        printf '%s\n' --auto-iam-authn --quota-project=$project --run-connection-test
     else
         echo --gcloud-auth
     end
+end
+
+function prepare_iam_auth
+    uses_iam_auth $argv[1]; or return 0
+
+    set -l credentials (gcp_adc path "$GCLOUD_CONFIG")
+    or die "Install the shell helpers with: make run-role ROLE=shell"
+    set -gx GOOGLE_APPLICATION_CREDENTIALS "$credentials"
+    test -r "$credentials"; and return 0
+
+    if isatty stdin
+        set -l user (get_user $argv[1])
+        _ui note "No ADC credentials saved for $GCLOUD_CONFIG."
+        read -P "Sign in as $user for $GCLOUD_CONFIG? [y/N]: " answer
+        if string match -qi -- y "$answer"
+            gcp_adc login "$GCLOUD_CONFIG"
+            or die "ADC login failed. Retry with: gcp_adc login $GCLOUD_CONFIG"
+            return 0
+        end
+    end
+
+    die "ADC credentials are missing for $GCLOUD_CONFIG. Run: gcp_adc login $GCLOUD_CONFIG"
 end
 
 function get_role
@@ -261,12 +286,15 @@ function spawn_proxy
     require_work_dir
     require_proxy_bin
 
-    CLOUDSDK_ACTIVE_CONFIG_NAME=$GCLOUD_CONFIG nohup $PROXY_BIN (proxy_flags $environment) --port $port $instance >$log_file 2>&1 &
+    set -lx CLOUDSDK_ACTIVE_CONFIG_NAME "$GCLOUD_CONFIG"
+    nohup $PROXY_BIN (proxy_flags $environment) --port $port $instance >$log_file 2>&1 &
     set -l proxy_pid $last_pid
 
     sleep 1
 
     if not kill -0 $proxy_pid 2>/dev/null
+        command tail "$log_file" >&2
+        report_iam_requirements $environment >&2
         die "Failed to start cloud-sql-proxy. Check its log: $log_file"
     end
 
@@ -288,9 +316,10 @@ function ensure_proxy
         case foreign
             die "Port $port is in use by another process (PID: "(port_pid $port)"). Stop it first or use a different port."
         case free
+            prepare_iam_auth $environment
             _ui step "Starting cloud-sql-proxy for $environment in the background"
             set -l pid (spawn_proxy $port (get_instance $environment) $environment)
-            _ui ok "Connected on localhost:$port (PID: $pid)"
+            _ui ok "Started proxy process on localhost:$port (PID: $pid)"
             _ui note "It stays up after this. Stop it with: kill $pid"
     end
 end
@@ -431,8 +460,16 @@ end
 
 function report_iam_auth
     uses_iam_auth $argv[1]; or return 0
-    _ui note "Application Default Credentials must be signed in as $argv[2]."
-    _ui note "If needed, sign in with: gcloud auth application-default login $argv[2]"
+    _ui note "Application Default Credentials: "(gcp_adc path "$GCLOUD_CONFIG")
+    _ui note "To sign in or refresh as $argv[2], run: gcp_adc login $GCLOUD_CONFIG"
+end
+
+function report_iam_requirements
+    uses_iam_auth $argv[1]; or return 0
+    set -l project (string split -f 1 : -- (get_instance $argv[1]))
+    _ui note "To refresh credentials, run: gcp_adc login $GCLOUD_CONFIG"
+    _ui note "Ask an administrator for roles/serviceusage.serviceUsageConsumer, roles/cloudsql.client and roles/cloudsql.instanceUser on $project."
+    _ui note "IAM database authentication must be enabled, with your IAM user added and granted database privileges."
 end
 
 function report_connection
@@ -505,6 +542,7 @@ function cmd_connect
 
     _ui ok "Port $port is available"
     _ui blank
+    prepare_iam_auth $environment
 
     if set -q _flag_detach
         _ui step "Connecting to $environment in the background"
@@ -525,7 +563,15 @@ function cmd_connect
 
         require_work_dir
         require_proxy_bin
-        CLOUDSDK_ACTIVE_CONFIG_NAME=$GCLOUD_CONFIG exec $PROXY_BIN (proxy_flags $environment) --port $port $instance
+        set -lx CLOUDSDK_ACTIVE_CONFIG_NAME "$GCLOUD_CONFIG"
+        if not uses_iam_auth $environment
+            exec $PROXY_BIN (proxy_flags $environment) --port $port $instance
+        end
+        $PROXY_BIN (proxy_flags $environment) --port $port $instance
+        or begin
+            report_iam_requirements $environment >&2
+            die "cloud-sql-proxy failed. Check the error above."
+        end
     end
 end
 

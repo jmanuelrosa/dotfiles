@@ -30,6 +30,7 @@ See [lns usage](docs/lns.md) and the upstream [shoo documentation](https://githu
 | Docker cleanup | [clean_docker](files/fish/functions/clean_docker/README.md) |
 | Node dependencies and caches | [clean_node](files/fish/functions/clean_node/README.md) |
 | Company-specific Git identity | [create_gitconfig](files/fish/functions/create_gitconfig/README.md) |
+| Per-configuration Google Cloud ADC login | [gcp_adc](files/fish/functions/gcp_adc/README.md) |
 | npm registry tokens from the login keychain, per call | [npm_token](files/fish/functions/npm_token/README.md) |
 | Pi failure capture | [pi_debug](files/fish/functions/pi_debug/README.md) |
 | Directory and history pickers | [television](files/fish/functions/television/README.md) |
