@@ -33,7 +33,9 @@ tiers. The gh and glab rules come first; ntn, bru and acli follow them.
     and a gated CLI reached through a wrapper or interpreter.
 
   allow (exit 0, no output): reads (list/view/status/diff/checks/...),
-    `gh search`, and GET or read-only GraphQL `api` calls.
+    `gh search`, and GET or read-only GraphQL `api` calls. The literal
+    `!gh auth git-credential` helper is also allowed inside Git's
+    `push -u origin <refspec>` form, where Git consumes its output.
 
   ntn: blocks `files create` (an upload), `workers deploy`, `workers env
     set/push` (secrets to the worker), `auth token`, and an `api` call
@@ -638,6 +640,20 @@ def substitutions_verdict(tokens, depth):
     return verdict
 
 
+def is_origin_push(tokens, start):
+    if os.path.basename(tokens[start]) != "git":
+        return False
+    i = start + 1
+    while i < len(tokens):
+        if tokens[i] in ("-c", "-C", "--git-dir", "--work-tree"):
+            i += 2
+        elif tokens[i].startswith(("--git-dir=", "--work-tree=")):
+            i += 1
+        else:
+            break
+    return tokens[i:i + 3] == ["push", "-u", "origin"] and len(tokens) == i + 4
+
+
 def segment_verdict(text, expands, piped, depth):
     tokens = tokenize(text)
     i, env_prefix = 0, False
@@ -671,6 +687,13 @@ def segment_verdict(text, expands, piped, depth):
         if runs and not argument_only:
             return worst(verdict, wrapped, cli_verdict(cli, tokens[j + 1:], stdin_fed))
         if not mentions_cli(token):
+            continue
+        if (
+            token == "credential.helper=!gh auth git-credential"
+            and tokens[j - 1] == "-c"
+            and j < len(tokens) - 4
+            and is_origin_push(tokens, i)
+        ):
             continue
         evaluated = any(os.path.basename(t) in EVALUATORS for t in tokens[i:j])
         if evaluated or SHELL_ESCAPE_RE.search(token):

@@ -395,7 +395,8 @@ function activeSkills(ctx: ExtensionContext): Set<string> {
 }
 
 /**
- * The active skills, as the JSONL git-skill-gate reads.
+ * Invocation and confirmation evidence, as the JSONL git-skill-gate reads.
+ * /ship uses the shared hook's confirmation logic rather than an unconditional skill stamp.
  *
  * Written even when the set is empty, and that is the load-bearing part: the hook treats a
  * transcript it cannot open as a parse failure and allows the command, so a missing file would
@@ -407,10 +408,35 @@ function activeSkills(ctx: ExtensionContext): Set<string> {
  * carry a `|`, one carrying a `/` would make the write fail and silently leave the window
  * unchecked, and one beginning with `../` would write and then unlink a file outside tmpdir.
  */
-async function writeTranscript(skills: Set<string>): Promise<string> {
+async function writeTranscript(ctx: ExtensionContext): Promise<string> {
   const path = join(tmpdir(), `pi-guardrails-${randomUUID()}.jsonl`);
-  const lines = [...skills].map((skill) => `${JSON.stringify({ attributionSkill: skill })}\n`);
-  await writeFile(path, lines.join(""), "utf8");
+  const events: unknown[] = [];
+  for (const entry of ctx.sessionManager.getBranch()) {
+    if (!("message" in entry)) continue;
+    const message = entry.message;
+    if (message.role === "user") {
+      const text = textOf(message.content);
+      events.push({
+        type: "user",
+        isMeta: text.includes("<skill name="),
+        message: { content: text.includes('<skill name="ship"') ? "<command-name>/ship</command-name>" : text },
+      });
+    } else if (message.role === "assistant") {
+      const content = message.content.flatMap((block) =>
+        block.type === "toolCall" && block.name === "ask_user"
+          ? [{ type: "tool_use", name: "AskUserQuestion", id: block.id }]
+          : []);
+      events.push({ type: "assistant", message: { content } });
+    } else if (message.role === "toolResult" && message.toolName === "ask_user") {
+      events.push({ type: "user", message: { content: [{
+        type: "tool_result", tool_use_id: message.toolCallId, is_error: message.isError,
+      }] } });
+    }
+  }
+  for (const skill of activeSkills(ctx)) {
+    if (skill !== "ship") events.push({ attributionSkill: skill });
+  }
+  await writeFile(path, events.map((event) => `${JSON.stringify(event)}\n`).join(""), "utf8");
   return path;
 }
 
@@ -478,7 +504,7 @@ function payloadFor(event: ToolCallEvent, ctx: ExtensionContext): HookPayload | 
 }
 
 async function runGate(entry: HookEntry, payload: HookPayload, ctx: ExtensionContext): Promise<ToolCallEventResult | undefined> {
-  const transcript = entry.id === TRANSCRIPT_GATE ? await writeTranscript(activeSkills(ctx)) : undefined;
+  const transcript = entry.id === TRANSCRIPT_GATE ? await writeTranscript(ctx) : undefined;
   let verdict: HookVerdict;
   try {
     verdict = await runHook(entry.script ?? "", transcript ? { ...payload, transcript_path: transcript } : payload);
