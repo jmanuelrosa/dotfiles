@@ -45,6 +45,7 @@ truncation_symbol = "…/"
 [directory.substitutions]
 "~/Developer/work/didomi" = "@didomi"
 "~/Developer/work/addingwell" = "@addingwell"
+"~/Developer/work/pentla" = "@pentla"
 "~/Developer/dotfiles" = "@dotfiles"
 "~/Developer/personal" = "@personal"
 "~/Developer/3bitslost" = "@3bitslost"
