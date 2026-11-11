@@ -169,6 +169,11 @@ OSX_DEFAULTS:
     type: bool
     value: false
     state: present
+  - domain: com.apple.dock
+    key: expose-group-apps
+    type: bool
+    value: true
+    state: present
   # Set the icon size of Dock items to 36 pixels (Dock stores this as a float)
   - domain: com.apple.dock
     key: tilesize
