@@ -30,7 +30,10 @@ bundle such as `-anm`, and a hook framework's env var set before git
 `core.hooksPath` or a remote's URL (`remote.*.url`, `remote.*.pushurl`,
 `url.*.insteadOf`, `url.*.pushInsteadOf`) through `-c`, `--config-env`,
 `GIT_CONFIG_PARAMETERS`, `GIT_CONFIG_KEY_<n>` or a `git config` write, and
-`git remote add`, `set-url` and `rename`. Also hard-blocks,
+`git remote add`, `set-url` and `rename`. The sole exception is a temporary
+`pushInsteadOf` switching origin from SSH to HTTPS for an authorized
+`push -u origin <refspec>`, preserving its host and repository and requiring
+identical configured fetch and push destinations. Also hard-blocks,
 regardless of skill context: any `git commit` that stages files under
 `.claude/tasks/` (local-only agent task state that must never be
 tracked), and any commit message (read from `-m`/`--message` values and
@@ -219,8 +222,8 @@ COMMIT_LONG_OPTIONS_WITH_ARG = {
     "--pathspec-from-file",
 }
 
-# Config that decides which hooks run or where a push lands. Setting it for one
-# call or for good is as good as --no-verify, or as a push to a URL.
+# Config that decides which hooks run or where a push lands. Only an authorized
+# same-origin HTTPS transport switch may change it for one push.
 PROTECTED_CONFIG_KEY = r"core\.hookspath|remote\.[^'=\s]+\.(?:push)?url|url\.[^'=\s]+\.(?:push)?insteadof"
 PROTECTED_CONFIG_KEY_RE = re.compile(rf"(?i)^(?:{PROTECTED_CONFIG_KEY})$")
 PROTECTED_CONFIG_SEARCH_RE = re.compile(rf"(?i)(?:{PROTECTED_CONFIG_KEY})")
@@ -603,7 +606,25 @@ def skips_hooks(tokens):
     return False
 
 
-def config_reason(tokens):
+def authorized_https_push(tokens, setting, cwd, transcript_path):
+    rewrite = re.fullmatch(r"(?i:url)\.https://([A-Za-z0-9.-]+)/\.(?i:pushInsteadOf)=git@\1:", setting)
+    located = git_command(tokens)
+    if not rewrite or not located:
+        return False
+    start, i = located
+    if tokens[i:i + 3] != ["push", "-u", "origin"] or len(tokens) != i + 4:
+        return False
+    active = skills_in_window(transcript_path)
+    if not active or not SKILLS_FOR_SUBCOMMAND["git push"].intersection(active):
+        return False
+    lookup = lookup_options(tokens[start + 1:i])
+    fetch = run_git([*lookup, "remote", "get-url", "--all", "origin"], cwd)
+    push = run_git([*lookup, "remote", "get-url", "--push", "--all", "origin"], cwd)
+    prefix = f"git@{rewrite[1]}:"
+    return bool(fetch and fetch == push and all(url.startswith(prefix) for url in fetch.splitlines()))
+
+
+def config_reason(tokens, cwd, transcript_path):
     """What a chunk does to config that decides which hooks run or where a push
     lands, or None."""
     start = 0
@@ -629,7 +650,9 @@ def config_reason(tokens):
         else:
             setting = ""
         key = setting.split("=", 1)[0]
-        if PROTECTED_CONFIG_KEY_RE.match(key):
+        if PROTECTED_CONFIG_KEY_RE.match(key) and (
+            tok != "-c" or not authorized_https_push(tokens, setting, cwd, transcript_path)
+        ):
             return f"Setting {key}"
         j += 2 if tok in OPTIONS_WITH_SEPARATE_ARG else 1
     if i >= len(tokens):
@@ -831,7 +854,7 @@ def main():
         )
         sys.exit(2)
 
-    reason = next((found for chunk in chunks if (found := config_reason(chunk))), None)
+    reason = next((found for chunk in chunks if (found := config_reason(chunk, cwd, transcript_path))), None)
     if reason:
         print(
             f"{reason} is blocked for agents, even inside /commit or /pr:\n"

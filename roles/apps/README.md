@@ -23,6 +23,37 @@ Caddy is never started or registered at boot: `lokl start` and `lokl stop` run i
 
 > **Convention**: prefer brew when a formula exists. There's no `NPM_PACKAGES` mechanism here today: if a future tool only ships via npm with no brew alternative, re-add a thin `tasks/npm-packages.yml` driven by an `NPM_PACKAGES` list.
 
+## AeroSpace
+
+Edit `roles/apps/files/.aerospace.toml`, linked at `~/.aerospace.toml`.
+Run `aerospace reload-config --dry-run` to validate it, then `aerospace reload-config` once to enable automatic reloads after saving.
+On a new machine, grant AeroSpace Accessibility access when prompted.
+
+Named display assignments prefer the ASUS `MB16AHV`, falling back to the main display when it is disconnected.
+Editors keeps its Dell/main assignment.
+Workspaces 6-9 and Vault are unpinned, so `Alt+Shift+Tab` can move them onto an occasional extra display.
+That shortcut cannot move workspaces with forced monitor assignments.
+
+| Shortcut | Action |
+|---|---|
+| `Alt+1` through `Alt+9` | Visit a numbered workspace |
+| `Alt+Shift+1` through `Alt+Shift+9` | Send a window there without following it |
+| `Alt+Ctrl+Tab` | Focus the next monitor without moving windows |
+| `Alt+Tab` | Return to the previous workspace |
+| `Alt+Backtick` | Return to the previous focused window |
+| `Alt+Shift+;`, then `b` | Balance window sizes without flattening groups |
+
+`Alt+Shift+F` keeps AeroSpace fullscreen rather than creating a native fullscreen Space.
+The pointer follows keyboard focus; moving the pointer does not change focus.
+App routing still explicitly tiles windows, except Bitwarden.
+If a dialog tiles awkwardly, add a specific floating exception before its app rule rather than changing every app's behavior.
+
+The macos role manages Mission Control's **Group windows by application** setting so AeroSpace's offscreen windows do not produce tiny previews.
+Apply it through `make run-role ROLE=macos`; Dock preferences may need a logout to take effect.
+Keep one native Space, or one per display when **Displays have separate Spaces** is enabled, and use AeroSpace workspaces for daily navigation.
+Remove unused native Spaces manually in Mission Control; provisioning does not close Spaces or move their windows.
+The separate-Spaces setting is left unchanged because disabling it makes native fullscreen black out the other displays.
+
 ## Herdr
 
 Press `Ctrl+d`, then `m` to open Glow's Markdown browser in a temporary popup from the active pane's working directory.
@@ -72,7 +103,9 @@ Kubernetes and Rosetta remain disabled, without adding an installation dependenc
 
 It does not start, stop or recreate the VM.
 CPU and memory changes take effect after a stop/start; Colima marks architecture, VM type and mount type as immutable after creation, so changing those on an existing VM requires a deliberate migration with container data backed up first.
-Use `colima start --save-config=false` to avoid writing startup changes back through the symlink into the repository.
+Colima saves startup configuration through the symlink into the repository, preserving changes made with CLI flags.
+Its YAML writer adds trailing spaces to blank lines, so `.gitattributes` and `.yamllint` exempt only this file from trailing-space checks; other validation remains enabled.
+Use `colima start --save-config=false` only when startup changes should not persist.
 
 ## Notes
 

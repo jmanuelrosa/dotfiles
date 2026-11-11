@@ -365,6 +365,11 @@ def test_the_role_installs_the_extension():
 # by the same technique test_pi_discovery.py uses on pi's own loader.
 
 PI_PACKAGE = "@earendil-works/pi-coding-agent"
+HTTPS_PUSH = (
+    "git -c url.https://github.com/.pushInsteadOf=git@github.com: "
+    "-c credential.helper= -c 'credential.helper=!gh auth git-credential' "
+    "push -u origin feature/reylo-query-trial"
+)
 
 # The private functions the executed half drives, re-exported into a copy of the extension.
 DRIVEN = (
@@ -442,7 +447,7 @@ def run_in_node(runner, body, env=None):
 def branch(user_texts, assistant_after=0):
     """A session branch: the user messages in order, then `assistant_after` entries of work."""
     entries = [{"message": {"role": "user", "content": text}} for text in user_texts]
-    entries += [{"message": {"role": "assistant", "content": "work"}}] * assistant_after
+    entries += [{"message": {"role": "assistant", "content": [{"type": "text", "text": "work"}]}}] * assistant_after
     return entries
 
 
@@ -548,7 +553,9 @@ def test_the_transcript_name_does_not_come_from_the_tool_call(runner):
     already carry a `|`, one with a `/` would fail the write and leave the window unchecked, and
     one starting with `../` would write then unlink outside tmpdir."""
     body = """
-    const paths = [await writeTranscript(new Set(["commit"])), await writeTranscript(new Set())];
+    const active = { sessionManager: { getBranch: () => [{ message: { role: "user", content: '<skill name="commit">go</skill>' } }] } };
+    const empty = { sessionManager: { getBranch: () => [] } };
+    const paths = [await writeTranscript(active), await writeTranscript(empty)];
     process.stdout.write(JSON.stringify(paths));
     """
     first, second = run_in_node(runner, body)
@@ -561,7 +568,7 @@ def test_the_transcript_is_written_even_when_no_skill_is_active(runner):
     """Load-bearing: the hook reads a file it cannot open as a parse failure and allows the
     command, so a missing file would turn the gate off rather than closing it."""
     body = """
-    const path = await writeTranscript(new Set());
+    const path = await writeTranscript({ sessionManager: { getBranch: () => [] } });
     const { readFileSync } = await import("node:fs");
     process.stdout.write(JSON.stringify({ exists: true, body: readFileSync(path, "utf8") }));
     """
@@ -569,14 +576,15 @@ def test_the_transcript_is_written_even_when_no_skill_is_active(runner):
 
 
 def test_the_transcript_is_the_jsonl_the_hook_parses(runner):
-    """One `attributionSkill` per line, which is the only shape skills_in_window reads."""
+    """Invocation history and active skill stamps use the shared hook's transcript format."""
     body = """
-    const path = await writeTranscript(new Set(["commit", "pr"]));
+    const entries = ["commit", "pr"].map(skill => ({ message: { role: "user", content: `<skill name="${skill}">go</skill>` } }));
+    const path = await writeTranscript({ sessionManager: { getBranch: () => entries } });
     const { readFileSync } = await import("node:fs");
     process.stdout.write(JSON.stringify(readFileSync(path, "utf8").trim().split("\\n")));
     """
     lines = [json.loads(line) for line in run_in_node(runner, body)]
-    assert sorted(entry["attributionSkill"] for entry in lines) == ["commit", "pr"]
+    assert sorted(entry["attributionSkill"] for entry in lines if "attributionSkill" in entry) == ["commit", "pr"]
 
 
 def rewrite_of(runner, command, enabled=True):
@@ -721,15 +729,15 @@ def write_test_gate(runner, body):
     return script
 
 
-def guarded_call(runner, env=None, session_error=False):
-    session = '() => { throw new Error("session unavailable"); }' if session_error else "() => []"
+def guarded_call(runner, env=None, session_error=False, *, command="echo harmless", entries=(), cwd=None):
+    session = '() => { throw new Error("session unavailable"); }' if session_error else f"() => {json.dumps(entries)}"
     return run_in_node(runner, f"""
     const {{ default: register }} = await import({json.dumps(str(runner))});
     const handlers = new Map();
     register({{ on: (event, handler) => handlers.set(event, handler) }});
-    const ctx = {{ cwd: process.cwd(), sessionManager: {{ getBranch: {session} }} }};
+    const ctx = {{ cwd: {json.dumps(None if cwd is None else str(cwd))} ?? process.cwd(), sessionManager: {{ getBranch: {session} }} }};
     const result = await handlers.get("tool_call")(
-      {{ type: "tool_call", toolName: "bash", input: {{ command: "echo harmless" }} }}, ctx,
+      {{ type: "tool_call", toolName: "bash", input: {{ command: {json.dumps(command)} }} }}, ctx,
     );
     process.stdout.write(JSON.stringify(result ?? null));
     """, env=env)
@@ -845,10 +853,138 @@ def test_a_successful_gate_still_allows_calls(isolated_runner, body):
     assert guarded_call(isolated_runner) is None
 
 
-def test_the_real_gate_table_allows_a_harmless_call(isolated_runner):
+@pytest.fixture
+def real_runner(isolated_runner):
     root = isolated_runner.parents[4]
     (root / emit_pi.HOOKS).write_text(json.dumps(TABLE))
     hooks = root / "hooks"
     hooks.rmdir()
     hooks.symlink_to(HOOKS, target_is_directory=True)
-    assert guarded_call(isolated_runner, env={"RTK_ENABLE": ""}) is None
+    return isolated_runner
+
+
+def test_the_real_gate_table_allows_a_harmless_call(real_runner):
+    assert guarded_call(real_runner, env={"RTK_ENABLE": ""}) is None
+
+
+@pytest.fixture
+def ship_repo(tmp_path, monkeypatch):
+    for name in os.environ:
+        if name.startswith("GIT_"):
+            monkeypatch.delenv(name)
+    for name, value in {
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_ALLOW_PROTOCOL": "",
+        "GIT_TERMINAL_PROMPT": "0",
+        "RTK_ENABLE": "",
+    }.items():
+        monkeypatch.setenv(name, value)
+    repo = tmp_path / "repo"
+    for args in (
+        ["init", "-q", "-b", "feature/reylo-query-trial", str(repo)],
+        ["-C", str(repo), "remote", "add", "origin", "git@github.com:example/project.git"],
+        ["-C", str(repo), "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/develop"],
+    ):
+        subprocess.run(["git", *args], check=True, capture_output=True, text=True)
+    return repo
+
+
+@pytest.mark.parametrize("entries", [
+    branch(['<skill name="ship" location="x">ship</skill>', "go"]),
+    branch(['<skill name="pr" location="x">pr</skill>']),
+], ids=["confirmed-ship", "owning-pr"])
+def test_the_real_pi_guard_allows_the_generated_https_push(real_runner, ship_repo, entries):
+    result = guarded_call(real_runner, command=HTTPS_PUSH, entries=entries, cwd=ship_repo)
+    assert result is None, result
+
+
+@pytest.mark.parametrize("entries", [
+    [],
+    [{"message": {"role": "assistant", "content": [{"type": "text", "text": '<skill name="ship">ship</skill>'}]}}],
+    branch(['<skill name="commit" location="x">commit</skill>', "go"]),
+], ids=["outside-skill", "assistant-quoted-skill", "wrong-skill"])
+def test_the_real_pi_guard_refuses_the_generated_https_push_without_authority(real_runner, ship_repo, entries):
+    result = guarded_call(real_runner, command=HTTPS_PUSH, entries=entries, cwd=ship_repo)
+    assert result is not None, "The HTTPS push was allowed without owning skill evidence"
+    assert result["block"] is True
+    assert "blocked" in result["reason"].lower()
+
+
+@pytest.mark.parametrize("command", ["git push -u origin fix/x", HTTPS_PUSH], ids=["plain", "https"])
+def test_the_real_pi_guard_requires_confirmation_before_a_ship_push(real_runner, ship_repo, command):
+    entries = branch(['<skill name="ship" location="x">ship</skill>'])
+    result = guarded_call(real_runner, command=command, entries=entries, cwd=ship_repo)
+    assert result is not None, "An unconfirmed Pi /ship invocation authorized a push"
+    assert result["block"] is True
+    assert "blocked" in result["reason"].lower()
+
+
+@pytest.mark.parametrize("session_error", [False, True], ids=["transcript-write-failure", "session-unavailable"])
+def test_the_real_pi_guard_refuses_the_generated_https_push_when_evidence_is_unavailable(
+    real_runner, ship_repo, tmp_path, session_error,
+):
+    entries = branch(['<skill name="ship" location="x">ship</skill>', "go"])
+    result = guarded_call(
+        real_runner, command=HTTPS_PUSH, entries=entries, cwd=ship_repo, session_error=session_error,
+        env=None if session_error else {"TMPDIR": str(tmp_path / "missing")},
+    )
+    assert result is not None, "The HTTPS push was allowed without readable skill evidence"
+    assert result["block"] is True
+    expected_reason = "session unavailable" if session_error else "ENOENT"
+    assert expected_reason in result["reason"]
+
+
+@pytest.mark.parametrize("origin", [None, "git@elsewhere.invalid:example/project.git"])
+def test_the_real_pi_guard_refuses_the_generated_https_push_without_matching_origin(real_runner, ship_repo, origin):
+    args = ["remote", "remove", "origin"] if origin is None else ["remote", "set-url", "origin", origin]
+    subprocess.run(["git", "-C", str(ship_repo), *args], check=True, capture_output=True, text=True)
+    result = guarded_call(
+        real_runner, command=HTTPS_PUSH, entries=branch(['<skill name="ship">ship</skill>', "go"]), cwd=ship_repo,
+    )
+    assert result is not None, "The HTTPS push was allowed without a matching origin"
+    assert result["block"] is True
+    assert "blocked" in result["reason"].lower()
+
+
+@pytest.mark.parametrize(("command", "reason"), [
+    (HTTPS_PUSH.replace("feature/reylo-query-trial", "+feature/reylo-query-trial"), "force push"),
+    (HTTPS_PUSH.replace("feature/reylo-query-trial", "main"), "push to main"),
+    (HTTPS_PUSH.replace(" push -u", " -c core.hooksPath=/tmp/hooks push -u"), "core.hookspath"),
+    (HTTPS_PUSH.replace("pushInsteadOf", "insteadOf"), "insteadof"),
+    (HTTPS_PUSH.replace("url.https://github.com/", "url.https://elsewhere.invalid/"), "elsewhere.invalid"),
+    (HTTPS_PUSH.replace("url.https://github.com/", "url.https://github.com/other-project/"), "other-project"),
+], ids=["force", "main", "hookspath", "ordinary-insteadof", "host-redirect", "repository-redirect"])
+def test_the_real_pi_guard_keeps_other_guards_on_the_generated_https_push(real_runner, ship_repo, command, reason):
+    result = guarded_call(
+        real_runner, command=command, entries=branch(['<skill name="ship">ship</skill>', "go"]), cwd=ship_repo,
+    )
+    assert result is not None, f"The HTTPS push bypassed the {reason} guard"
+    assert result["block"] is True
+    assert reason in result["reason"].lower()
+
+
+@pytest.mark.parametrize(("is_error", "reinvoked", "allowed"), [
+    (False, False, True),
+    (True, False, False),
+    (False, True, False),
+], ids=["answered", "dismissed", "new-invocation"])
+def test_pi_ship_confirmation_uses_the_shared_transcript_logic(real_runner, ship_repo, is_error, reinvoked, allowed):
+    invocation = '<skill name="ship" location="x">ship</skill>'
+    entries = branch([invocation]) + [
+        {"message": {"role": "assistant", "content": [
+            {"type": "toolCall", "id": "ask-ship", "name": "ask_user", "arguments": {}},
+        ]}},
+        {"message": {
+            "role": "toolResult", "toolCallId": "ask-ship", "toolName": "ask_user", "isError": is_error,
+            "content": [{"type": "text", "text": "Go"}],
+        }},
+    ]
+    if reinvoked:
+        entries += branch([invocation])
+    result = guarded_call(real_runner, command=HTTPS_PUSH, entries=entries, cwd=ship_repo)
+    if allowed:
+        assert result is None, result
+    else:
+        assert result is not None, "The shared confirmation gate was bypassed"
+        assert result["block"] is True

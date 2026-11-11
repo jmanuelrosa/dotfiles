@@ -158,7 +158,7 @@ command = "lazygit"
 [[keys.command]]
 key = "prefix+m"
 type = "popup"
-command = 'exec glow --config "$HOME/.config/glow/glow.yml" --style "$HOME/.config/glow/solarized-dark.json"'
+command = 'exec glow -w 0 --config "$HOME/.config/glow/glow.yml" --style "$HOME/.config/glow/solarized-dark.json"'
 description = "Browse Markdown"
 width = "80%"
 height = "80%"
