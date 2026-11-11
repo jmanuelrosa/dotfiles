@@ -1,0 +1,4 @@
+rules:
+  trailing-spaces:
+    ignore:
+      - roles/apps/files/colima/colima.yaml
