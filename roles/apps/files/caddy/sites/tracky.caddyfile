@@ -1,0 +1,6 @@
+http://tracky.localhost {
+	reverse_proxy 127.0.0.1:28538 [::1]:28538 {
+		lb_policy first
+		fail_duration 5s
+	}
+}
