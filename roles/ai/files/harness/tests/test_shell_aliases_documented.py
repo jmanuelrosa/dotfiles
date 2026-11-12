@@ -33,19 +33,42 @@ def test_every_shadowing_alias_is_documented():
     assert missing == [], f"add {missing} to the '{SECTION}' section of {AGENTS.name}"
 
 
-def test_fish_covers_internal_execution_and_sandbox_handoffs():
+def test_fish_covers_laptop_execution_and_sandbox_handoffs():
     section = terminal_section()
-    for context in ("internal shell tool calls", "temporary helper scripts", "sandbox handoffs"):
+    for context in (
+        "shell commands executed on this laptop",
+        "instructions for the user to paste into their terminal",
+        "temporary machine-local helper scripts",
+        "sandbox handoffs",
+    ):
         assert context in section, f"fish policy must cover {context}"
 
 
-def test_generated_scripts_require_fish_and_syntax_checks():
+def test_temporary_scripts_require_fish_and_syntax_checks():
     section = terminal_section()
-    for requirement in ("`.fish`", "`#!/usr/bin/env fish`", "`fish --no-execute", "Never generate Bash or Zsh"):
-        assert requirement in section, f"missing generated-script rule: {requirement}"
+    for requirement in (
+        "Temporary machine-local shell scripts",
+        "`.fish`",
+        "`#!/usr/bin/env fish`",
+        "`fish --no-execute",
+        "Never give the user Bash or Zsh terminal snippets unless they explicitly request that language",
+    ):
+        assert requirement in section, f"missing temporary-script rule: {requirement}"
+
+
+def test_project_artifacts_follow_the_target_environment():
+    section = terminal_section()
+    for requirement in (
+        "This is a laptop execution rule, not a project-language rule",
+        "Project artifacts",
+        "follow the project's conventions and target environment",
+        "Never introduce a Fish dependency, convert project artifacts to Fish, or install Fish in CI",
+        "Adding a project dependency still requires explicit approval",
+    ):
+        assert requirement in section, f"missing project-artifact boundary: {requirement}"
 
 
 def test_fish_execution_preserves_sandbox_and_existing_interpreters():
     section = terminal_section()
-    for requirement in ("`fish -c '<fish code>'`", "standalone CLI calls direct", "declared interpreter"):
+    for requirement in ("`fish --no-config -c '<fish code>'`", "standalone CLI calls direct", "declared interpreter"):
         assert requirement in section, f"missing shell-host boundary: {requirement}"

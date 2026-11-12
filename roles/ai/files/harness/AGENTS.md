@@ -28,16 +28,20 @@ If a CLI is missing or auth-broken, say so; don't silently fall back.
 ## Commands for the user's terminal
 
 The user's interactive shell is fish 4, not Bash or Zsh.
-Fish is mandatory for all newly authored shell code: commands given to the user, internal shell tool calls, temporary helper scripts, sandbox handoffs (including `!` commands), and snippets embedded in skills.
-A tool named `bash` or a Bash/Zsh host is not permission to author code in that language.
+Use Fish for shell commands executed on this laptop, instructions for the user to paste into their terminal, temporary machine-local helper scripts, and sandbox handoffs (including `!` commands).
+This is a laptop execution rule, not a project-language rule.
+A tool named `bash` or a Bash/Zsh host does not change the syntax of those laptop commands.
 
-- Use fish syntax: `set -x VAR value` (not `export`), `(cmd)` for substitution, `if ...; ...; end`, no heredocs, no `[[ ]]`. A glob that matches nothing is an error in fish, not a literal.
-- Never generate Bash or Zsh snippets or helper scripts unless the user explicitly requests that language, including when a sandbox or network failure requires the user to run a command.
-- Generated shell scripts must use a `.fish` filename, a `#!/usr/bin/env fish` shebang, and a `fish <script>.fish` invocation. Validate them with `fish --no-execute <script>.fish` before running them or asking the user to run them.
-- Existing repository and vendor scripts keep their declared interpreter; this policy does not require translating hooks, Makefile recipes, or upstream scripts.
+- For laptop commands, use fish syntax: `set -x VAR value` (not `export`), `(cmd)` for substitution, `if ...; ...; end`, no heredocs, no `[[ ]]`. A glob that matches nothing is an error in fish, not a literal.
+- Never give the user Bash or Zsh terminal snippets unless they explicitly request that language, including when a sandbox or network failure requires a manual handoff. Skill snippets intended for their terminal follow the same rule.
+- Temporary machine-local shell scripts must use a `.fish` filename, a `#!/usr/bin/env fish` shebang, and a `fish <script>.fish` invocation. Validate them with `fish --no-execute <script>.fish` before running them or asking the user to run them.
+- Project artifacts, including scripts, Git hooks, package scripts, CI workflows, Dockerfiles, Makefile recipes, and shared documentation, follow the project's conventions and target environment. When no convention exists, choose an interpreter or runtime appropriate to that target, not the user's login shell.
+- Never introduce a Fish dependency, convert project artifacts to Fish, or install Fish in CI merely because this laptop uses Fish. Adding a project dependency still requires explicit approval.
+- Existing repository and vendor scripts keep their declared interpreter. Invoke them from Fish without translating them; the calling shell does not dictate the artifact's language.
 - Account for the aliases that shadow system tools: `grep` is `rg`, `cat` and `less` are `bat`, `find` is `fd --hidden --follow --no-ignore` (plus excludes), `rm` is `rm -i`, `shutdown` is `sudo shutdown now`. Write the command for the real tool (`rg`, `fd`) or bypass the alias with `command grep ...`.
 
-When a harness requires a Bash/Zsh host, run shell logic through `fish -c '<fish code>'` or a fish script instead of changing the host shell or bypassing its sandbox.
+When a harness requires a Bash/Zsh host, run laptop shell logic through `fish --no-config -c '<fish code>'` or a temporary machine-local Fish script instead of changing the host shell or bypassing its sandbox.
+This invocation wrapper does not prescribe the language of a project script or CI step.
 Keep standalone CLI calls direct when sandbox exemptions depend on the leading command.
 Do not assume a non-interactive tool loads the user's interactive aliases or functions.
 
