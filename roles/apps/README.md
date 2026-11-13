@@ -5,7 +5,7 @@ Catch-all role for desktop apps and their configs. Browsers, chat apps, dev tool
 ## What it does
 
 1. Installs the taps, formulas and casks declared in `BREW_PACKAGES` through the shared `roles/brew/tasks/packages.yml`.
-2. Creates `APPS_DIRS` and links every config in `APPS_LINKS` (git, lazygit, superfile, npm, gh, gh-dash, diffnav, pgcli, herdr, Caddy, VSCode, Docker, Colima, lazydocker, dive, Triage, AeroSpace).
+2. Creates `APPS_DIRS` and links every config in `APPS_LINKS` (git, lazygit, superfile, npm, gh, gh-dash, diffnav, pgcli, herdr, Caddy, Neovim, VSCode, Docker, Colima, lazydocker, dive, Triage, AeroSpace).
 3. Links each tool in `APPS_SCRIPTS` into `~/.local/bin/`, and creates one private Sentry config dir per account plus the map the `sentry` wrapper reads.
 4. Fails with login instructions when `gh` is not authenticated, then installs the `GH_EXTENSIONS`.
 5. Installs the npm-only `cf` Cloudflare CLI with bun, and the missing `VSCODE_EXTENSIONS`.
@@ -22,6 +22,28 @@ Caddy is never started or registered at boot: `lokl start` and `lokl stop` run i
 - `CADDYFILE_PATH`: where Homebrew's caddy reads its config; the site directory is linked beside it.
 
 > **Convention**: prefer brew when a formula exists. There's no `NPM_PACKAGES` mechanism here today: if a future tool only ships via npm with no brew alternative, re-add a thin `tasks/npm-packages.yml` driven by an `NPM_PACKAGES` list.
+
+## Neovim
+
+Run `make run-role ROLE=apps` to install Neovim and link `roles/apps/files/nvim/init.lua` at `~/.config/nvim/init.lua`.
+The plugin-free config enables line numbers, case-insensitive search unless the pattern contains uppercase, and the system clipboard.
+Indentation, keybindings and the default shell editor stay unchanged.
+No login or activation is needed.
+
+Start with `nvim`, then type `:Tutor` and press Enter for the built-in tutorial.
+Open a file with `nvim path/to/file`.
+
+| Keys | Action |
+|---|---|
+| `i` | Enter insert mode to type |
+| `Esc` | Return to normal mode |
+| `h`, `j`, `k`, `l` | Move left, down, up, right (arrow keys also work) |
+| `:w` then Enter | Save |
+| `:q` then Enter | Quit |
+| `:q!` then Enter | Quit and discard unsaved changes |
+| `u`, `Ctrl+r` | Undo, redo |
+| `/text` then Enter | Search; `n` goes to the next match |
+| `:help` then Enter | Open the built-in help |
 
 ## AeroSpace
 
