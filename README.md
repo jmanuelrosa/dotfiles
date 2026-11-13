@@ -177,7 +177,7 @@ Custom channels (cables) live in [roles/shell/files/television/cable/](roles/she
 
 ### Editors
 
-VS Code
+VS Code, Neovim (plugin-free starter config; run `:Tutor` to learn the basics)
 
 ### Databases
 

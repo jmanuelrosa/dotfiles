@@ -63,6 +63,7 @@ APPS_DIRS:
   - "{{ HOME }}/.config/gh-dash"
   - "{{ HOME }}/.config/diffnav"
   - "{{ HOME }}/.config/pgcli"
+  - "{{ HOME }}/.config/nvim"
   - "{{ HOME }}/.config/herdr"
   - "{{ HOME }}/.config/dive"
   - "{{ HOME }}/.config/triage"
@@ -106,6 +107,8 @@ APPS_LINKS:
   - src: caddy/sites
     dest: "{{ CADDYFILE_PATH | dirname }}/sites"
   # Editors
+  - src: nvim/init.lua
+    dest: "{{ HOME }}/.config/nvim/init.lua"
   - src: vscode/settings.json
     dest: "{{ HOME }}/Library/Application Support/Code/User/settings.json"
   - src: vscode/keybindings.json
@@ -168,6 +171,8 @@ BREW_PACKAGES:
     - pnpm
     - getsentry/tools/sentry
     - herdr
+    # Editors
+    - neovim
     # Databases
     - libpq
     - pgcli
