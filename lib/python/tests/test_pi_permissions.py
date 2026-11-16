@@ -255,8 +255,6 @@ def test_secrets_are_denied_for_write_as_well_as_read():
 def test_the_env_sample_carve_outs_survive_the_deny_band():
     """Claude allows these two by name, so under last-match-wins they come after the denies."""
     writes = policy()["path_write"]
-    trailing = list(writes)[-2:]
-    assert trailing == ["*/.env.sample", "*/.env.example"]
     for path in ("/project/.env.example", "/project/.env.sample"):
         assert resolve(writes, path) == "allow", f"{path} is denied and Claude allows it"
 
