@@ -27,22 +27,18 @@ If a CLI is missing or auth-broken, say so; don't silently fall back.
 
 ## Commands for the user's terminal
 
-The user's interactive shell is fish 4, not Bash or Zsh.
-Use Fish for shell commands executed on this laptop, instructions for the user to paste into their terminal, temporary machine-local helper scripts, and sandbox handoffs (including `!` commands).
-This is a laptop execution rule, not a project-language rule.
-A tool named `bash` or a Bash/Zsh host does not change the syntax of those laptop commands.
+The user's interactive shell is fish 4.
+When sharing Unix-shell commands for the user to paste into their terminal, use syntax compatible with their shell unless they explicitly request another shell.
+This applies to terminal snippets and manual handoffs, not to the agent's tool execution or the language of scripts and project artifacts.
 
-- For laptop commands, use fish syntax: `set -x VAR value` (not `export`), `(cmd)` for substitution, `if ...; ...; end`, no heredocs, no `[[ ]]`. A glob that matches nothing is an error in fish, not a literal.
-- Never give the user Bash or Zsh terminal snippets unless they explicitly request that language, including when a sandbox or network failure requires a manual handoff. Skill snippets intended for their terminal follow the same rule.
-- Temporary machine-local shell scripts must use a `.fish` filename, a `#!/usr/bin/env fish` shebang, and a `fish <script>.fish` invocation. Validate them with `fish --no-execute <script>.fish` before running them or asking the user to run them.
-- Project artifacts, including scripts, Git hooks, package scripts, CI workflows, Dockerfiles, Makefile recipes, and shared documentation, follow the project's conventions and target environment. When no convention exists, choose an interpreter or runtime appropriate to that target, not the user's login shell.
-- Never introduce a Fish dependency, convert project artifacts to Fish, or install Fish in CI merely because this laptop uses Fish. Adding a project dependency still requires explicit approval.
-- Existing repository and vendor scripts keep their declared interpreter. Invoke them from Fish without translating them; the calling shell does not dictate the artifact's language.
-- Account for the aliases that shadow system tools: `grep` is `rg`, `cat` and `less` are `bat`, `find` is `fd --hidden --follow --no-ignore` (plus excludes), `rm` is `rm -i`, `shutdown` is `sudo shutdown now`. Write the command for the real tool (`rg`, `fd`) or bypass the alias with `command grep ...`.
+- Plain CLI commands that already work in Fish need no changes, wrapper, or script file.
+- When a user-facing snippet needs shell-specific syntax, use Fish: `set -x VAR value` for environment variables, `(cmd)` for command substitution, and `if ...; ...; end` for conditionals, not Bash/Zsh syntax such as `export`, heredocs, or `[[ ]]`.
+- Agent tool calls use the tool's execution shell; do not wrap commands in Fish merely because the user's terminal runs Fish.
+- Scripts, Git hooks, package scripts, CI workflows, Dockerfiles, Makefile recipes, and shared documentation follow the project's conventions and target environment, not the user's login shell.
+- Existing repository and vendor scripts keep their declared interpreter; a Fish-compatible command can invoke a script written in another language without translating it.
+- Do not create Fish scripts or introduce a Fish dependency merely because the user runs Fish.
+- In commands shared for the user's terminal, account for aliases that shadow system tools: `grep` is `rg`, `cat` and `less` are `bat`, `find` is `fd --hidden --follow --no-ignore` (plus excludes), `rm` is `rm -i`, `shutdown` is `sudo shutdown now`. Write the command for the real tool (`rg`, `fd`) or bypass the alias with `command grep ...`.
 
-When a harness requires a Bash/Zsh host, run laptop shell logic through `fish --no-config -c '<fish code>'` or a temporary machine-local Fish script instead of changing the host shell or bypassing its sandbox.
-This invocation wrapper does not prescribe the language of a project script or CI step.
-Keep standalone CLI calls direct when sandbox exemptions depend on the leading command.
 Do not assume a non-interactive tool loads the user's interactive aliases or functions.
 
 The aliases live in `~/.config/fish/conf.d/aliases/aliases.fish`; read it when a command uses a name not listed here.

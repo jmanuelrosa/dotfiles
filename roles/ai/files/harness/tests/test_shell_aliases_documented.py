@@ -1,4 +1,4 @@
-"""Shared instructions require fish code and document aliases that shadow system tools."""
+"""Shared instructions scope Fish syntax to user-terminal snippets and document aliases."""
 
 import re
 from pathlib import Path
@@ -33,42 +33,32 @@ def test_every_shadowing_alias_is_documented():
     assert missing == [], f"add {missing} to the '{SECTION}' section of {AGENTS.name}"
 
 
-def test_fish_covers_laptop_execution_and_sandbox_handoffs():
-    section = terminal_section()
-    for context in (
-        "shell commands executed on this laptop",
-        "instructions for the user to paste into their terminal",
-        "temporary machine-local helper scripts",
-        "sandbox handoffs",
-    ):
-        assert context in section, f"fish policy must cover {context}"
-
-
-def test_temporary_scripts_require_fish_and_syntax_checks():
+def test_fish_syntax_is_for_user_terminal_snippets():
     section = terminal_section()
     for requirement in (
-        "Temporary machine-local shell scripts",
-        "`.fish`",
-        "`#!/usr/bin/env fish`",
-        "`fish --no-execute",
-        "Never give the user Bash or Zsh terminal snippets unless they explicitly request that language",
+        "The user's interactive shell is fish 4",
+        "commands for the user to paste into their terminal",
+        "use syntax compatible with their shell unless they explicitly request another shell",
+        "terminal snippets and manual handoffs, not to the agent's tool execution",
     ):
-        assert requirement in section, f"missing temporary-script rule: {requirement}"
+        assert requirement in section, f"missing user-terminal boundary: {requirement}"
+
+
+def test_plain_commands_need_no_wrappers_or_scripts():
+    section = terminal_section()
+    assert "Plain CLI commands that already work in Fish need no changes, wrapper, or script file" in section
+    assert "Do not create Fish scripts or introduce a Fish dependency merely because the user runs Fish" in section
+    assert "`fish --no-config -c '<fish code>'`" not in section
+    assert "Temporary machine-local shell scripts must" not in section
 
 
 def test_project_artifacts_follow_the_target_environment():
     section = terminal_section()
-    for requirement in (
-        "This is a laptop execution rule, not a project-language rule",
-        "Project artifacts",
-        "follow the project's conventions and target environment",
-        "Never introduce a Fish dependency, convert project artifacts to Fish, or install Fish in CI",
-        "Adding a project dependency still requires explicit approval",
-    ):
-        assert requirement in section, f"missing project-artifact boundary: {requirement}"
+    assert "follow the project's conventions and target environment, not the user's login shell" in section
+    assert "Existing repository and vendor scripts keep their declared interpreter" in section
 
 
-def test_fish_execution_preserves_sandbox_and_existing_interpreters():
+def test_agent_tools_use_their_execution_shell():
     section = terminal_section()
-    for requirement in ("`fish --no-config -c '<fish code>'`", "standalone CLI calls direct", "declared interpreter"):
-        assert requirement in section, f"missing shell-host boundary: {requirement}"
+    assert "Agent tool calls use the tool's execution shell" in section
+    assert "do not wrap commands in Fish merely because the user's terminal runs Fish" in section
