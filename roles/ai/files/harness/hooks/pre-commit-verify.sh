@@ -5,7 +5,7 @@
 # determines execution.
 """pre-commit-verify.sh — PreToolUse hook for Claude Code.
 
-Runs the project's check-only verification (typecheck / lint) before any
+Runs the project's check-only verification (verify / typecheck / lint) before any
 `git commit` so regressions surface at commit time instead of later in
 code review. Detection ladder, first match wins:
 
@@ -13,7 +13,7 @@ code review. Detection ladder, first match wins:
      `pre-commit:` section, .pre-commit-config.yaml, or an executable
      pre-commit in the resolved hooks path) → defer to it, exit 0.
      A pre-push-only setup does not count.
-  1. package.json scripts: typecheck / type-check / lint, run via the
+  1. package.json scripts: verify, else typecheck / type-check / lint, via the
      lockfile-matched package manager (bun / pnpm / yarn / npm)
   2. Makefile with a `lint` target → `make lint` — the universal escape
      hatch: any ecosystem (Swift, Zig, …) can expose one
@@ -311,6 +311,8 @@ def detect_commands(root):
             scripts = json.loads(pkg.read_text()).get("scripts") or {}
         except Exception:
             scripts = {}
+        if "verify" in scripts:
+            return [[package_manager(root), "run", "verify"]]
         names = [s for s in ("typecheck", "type-check", "lint") if s in scripts]
         if names:
             pm = package_manager(root)

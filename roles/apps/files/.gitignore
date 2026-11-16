@@ -6,6 +6,8 @@
 **/.claude/.cc-writes/
 **/.claude/state/
 **/.claude/claude-kit.json
+.work/
+.work-archive/
 
 # Secrets
 .env

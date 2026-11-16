@@ -84,39 +84,6 @@
         }
       }
     },
-    "anthropic": {
-      "modelOverrides": {
-        "claude-opus-5-5": {
-          "name": "Claude Opus 5.5",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "xhigh": "xhigh"
-          },
-          "contextWindow": 1000000,
-          "maxTokens": 128000
-        },
-
-        "claude-opus-5": {
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "xhigh": "xhigh"
-          },
-          "contextWindow": 1000000,
-          "maxTokens": 128000
-        },
-        "claude-sonnet-5": {
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "xhigh": "xhigh"
-          },
-          "contextWindow": 1000000,
-          "maxTokens": 128000
-        }
-      }
-    },
     "ollama-cloud": {
       "baseUrl": "https://ollama.com/v1",
       "api": "openai-completions",

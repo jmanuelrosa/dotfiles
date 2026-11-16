@@ -10,9 +10,7 @@
   "defaultProvider": "openai-codex",
   "defaultThinkingLevel": "high",
   "modelThinkingLevels": {
-    "anthropic/claude-opus-5": "xhigh",
-    "anthropic/claude-sonnet-5": "xhigh",
-    "openai-codex/gpt-6.1-sol": "xhigh",
+    "openai-codex/gpt-6.1-sol": "high",
     "openai-codex/gpt-6.1-terra": "xhigh",
     "openai-codex/gpt-6-sol": "xhigh",
     "openai-codex/gpt-6-luna": "xhigh",
