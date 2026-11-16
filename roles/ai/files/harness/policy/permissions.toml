@@ -312,6 +312,8 @@ deny_edit = [
 allow_edit = [
   "**/.env.sample",
   "**/.env.example",
+  "~/.work/**",
+  "~/.work-archive/**",
 ]
 
 [tools]

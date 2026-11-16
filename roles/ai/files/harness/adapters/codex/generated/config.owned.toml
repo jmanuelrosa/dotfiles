@@ -5,5 +5,5 @@ approval_policy = "on-request"
 web_search = "cached"
 
 [sandbox_workspace_write]
-writable_roots = ["/tmp", "~/.bun/install/cache", "~/.npm/_cacache", "~/.npm/_npx", "~/.cache/uv"]
+writable_roots = ["/tmp", "~/.bun/install/cache", "~/.npm/_cacache", "~/.npm/_npx", "~/.cache/uv", "~/.work", "~/.work-archive"]
 network_access = false

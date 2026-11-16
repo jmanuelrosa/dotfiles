@@ -61,7 +61,9 @@
       "Bash(kura sync:*)",
       "Bash(cf auth whoami)",
       "Edit(**/.env.sample)",
-      "Edit(**/.env.example)"
+      "Edit(**/.env.example)",
+      "Edit(~/.work/**)",
+      "Edit(~/.work-archive/**)"
     ],
     "deny": [
       "Workflow",
@@ -533,7 +535,9 @@
         "~/.bun/install/cache",
         "~/.npm/_cacache",
         "~/.npm/_npx",
-        "~/.cache/uv"
+        "~/.cache/uv",
+        "~/.work",
+        "~/.work-archive"
       ],
       "denyRead": [
         "~/.ssh",

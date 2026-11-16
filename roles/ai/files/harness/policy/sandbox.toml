@@ -37,6 +37,8 @@ allow_write = [
   "~/.npm/_cacache",
   "~/.npm/_npx",
   "~/.cache/uv",
+  "~/.work",
+  "~/.work-archive",
 ]
 allow_read = [
   "~/.config/gh",
