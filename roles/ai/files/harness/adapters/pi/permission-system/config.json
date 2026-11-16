@@ -1046,7 +1046,9 @@
         "reason": "denied by Claude Code policy: Edit(**/service-account*.json)"
       },
       "*/.env.sample": "allow",
-      "*/.env.example": "allow"
+      "*/.env.example": "allow",
+      "~/.work/*": "allow",
+      "~/.work-archive/*": "allow"
     },
     "external_directory": {
       "*": "ask",

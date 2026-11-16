@@ -41,6 +41,8 @@
       "~/.npm/_cacache",
       "~/.npm/_npx",
       "~/.cache/uv",
+      "~/.work",
+      "~/.work-archive",
       "/var/folders"
     ],
     "allowRead": [
