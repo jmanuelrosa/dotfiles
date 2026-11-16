@@ -2,12 +2,11 @@ import importlib.machinery
 import importlib.util
 import io
 import json
-from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
-
 
 HOOK = Path(__file__).resolve().parents[1] / "hooks" / "pre-commit-verify.sh"
 LOADER = importlib.machinery.SourceFileLoader("pre_commit_verify", str(HOOK))
@@ -39,7 +38,7 @@ class VerificationEntrypointTests(unittest.TestCase):
                 patch.object(
                     VERIFY.Path,
                     "is_file",
-                    lambda path: path.name in {"package.json", lockfile},
+                    lambda path, lockfile=lockfile: path.name in {"package.json", lockfile},
                 ),
             ):
                 self.assertEqual(
