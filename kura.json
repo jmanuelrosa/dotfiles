@@ -5,24 +5,13 @@
     "pi"
   ],
   "skills": [
-    "code-review-and-quality",
-    "code-simplification",
-    "incremental-implementation",
-    "knip",
     "owasp",
-    "performance-optimization",
     "ponytail",
-    "spec-driven-development",
     "test-driven-development",
     "unslop"
   ],
   "agents": [],
   "bundles": [
-    "cloud",
-    "dx",
-    "platform",
-    "qa",
-    "security",
-    "sre"
+    "security"
   ]
 }
