@@ -1,0 +1,27 @@
+---
+- name: Check whether DBeaver has created its workspace preferences
+  ansible.builtin.stat:
+    path: "{{ DBEAVER_PREFERENCES_PATH }}"
+    get_checksum: false
+    get_mime: false
+  register: dbeaver_preferences_file
+
+- name: Configure shortcuts in an existing DBeaver workspace
+  when: dbeaver_preferences_file.stat.exists
+  block:
+    - name: Require DBeaver to be quit (pgrep must return 1, not running or an error)
+      ansible.builtin.command: pgrep -x dbeaver
+      register: dbeaver_process
+      changed_when: false
+      failed_when: dbeaver_process.rc != 1
+      check_mode: false
+
+    - name: Restore DBeaver custom keybindings with a local backup
+      ansible.builtin.lineinfile:
+        path: "{{ DBEAVER_PREFERENCES_PATH }}"
+        regexp: '^org\.eclipse\.ui\.commands='
+        line: "{{ lookup('ansible.builtin.file', role_path ~ '/files/dbeaver/keybindings.prefs') }}"
+        mode: "0600"
+        backup: true
+      diff: false
+      no_log: true

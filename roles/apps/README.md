@@ -81,6 +81,9 @@ The separate-Spaces setting is left unchanged because disabling it makes native 
 
 ## Herdr
 
+Press `Ctrl+d`, then `b` to toggle the sidebar: `b` stands for bar, matching VS Code's `Cmd+b` while keeping terminal commands behind Herdr's prefix.
+Press `Ctrl+d`, then `?` to look up less frequent shortcuts.
+
 Press `Ctrl+d`, then `m` to open Glow's Markdown browser in a temporary popup from the active pane's working directory.
 Quit Glow to return to the unchanged pane layout; no reader stays running after it closes.
 Glow is installed by the `coreutils` role.
@@ -90,6 +93,42 @@ After editing Herdr's config, run `herdr server reload-config` or use `Ctrl+d`, 
 The sidebar's `$branch`, `$ctx`, `$handoff`, `$ticket` and `$pr` tokens and the tab bar's usage entry come from the ai role's `hooks/herdr-sidebar.sh`, which Claude's status line and hooks and pi's footer drive.
 Its token names, refresh intervals and PR glyphs live in the harness `statusline.json`; the colours stay here, so a renamed token or glyph has to change in both.
 s-task records each issue title as the branch description, which is where `$ticket` reads it from.
+
+## Helium
+
+`Cmd+b` toggles the vertical-tab sidebar; `Cmd+s` saves the page again.
+Only the configured `Default` profile (`HELIUM_PROFILE_DIR`) is managed; browser profiles stay local, not linked into this repo.
+Launch Helium once to create its profile, then quit it fully and run `make run-role ROLE=helium` without reinstalling apps.
+Missing profiles are skipped; a running browser or an unreadable process list blocks changes.
+The tasks preserve unrelated settings and shortcuts, and create a local `Preferences.*` backup beside the profile before each change.
+Resolve conflicting custom `Cmd+b` or `Cmd+s` bindings in Helium's Settings before retrying.
+Reopen Helium afterward to activate the shortcuts.
+
+## Bruno and DBeaver
+
+`Ctrl+Tab` and `Ctrl+Shift+Tab` move forward and backward through tabs.
+Bruno cycles within the active collection.
+DBeaver uses window tab navigation rather than the recent-editor switcher; dialogs keep their own navigation.
+
+Launch each app once to create its settings, quit both fully, then run `make run-role ROLE=bruno,dbeaver` and reopen them.
+Missing settings are skipped; a running app or unreadable process list blocks its changes.
+Both tasks keep local backups and leave unrelated preferences untouched.
+Bruno merges only the two macOS shortcuts, preserving its Windows bindings and other custom shortcuts.
+DBeaver currently has no custom keybindings; its custom-keybinding property is owned by `roles/apps/files/dbeaver/keybindings.prefs`, so make subsequent DBeaver shortcut changes there rather than in its UI.
+`BRUNO_PREFERENCES_PATH` and `DBEAVER_PREFERENCES_PATH` select the settings files; DBeaver defaults to `workspace6`.
+
+## Tab navigation
+
+Use visible tab order rather than recently used order.
+VS Code switches within the current editor group; its Quick Open picker keeps its own navigation.
+
+| Apps | Next tab | Previous tab |
+|---|---|---|
+| VS Code, Helium, Chrome, Bruno, DBeaver | `Ctrl+Tab` | `Ctrl+Shift+Tab` |
+| Herdr | `Ctrl+d`, then `Tab` | `Ctrl+d`, then `Shift+Tab` |
+
+Herdr keeps its prefix so direct shortcuts remain available to nested programs when the terminal passes them through.
+Ghostty's own tab shortcuts are unchanged.
 
 ## Sentry
 

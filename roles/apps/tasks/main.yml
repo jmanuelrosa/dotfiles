@@ -34,6 +34,18 @@
   loop_control:
     label: "{{ item.domain }} {{ item.key }}"
 
+- name: Configure Helium shortcuts
+  ansible.builtin.import_tasks: helium.yml
+  tags: [helium]
+
+- name: Configure Bruno shortcuts
+  ansible.builtin.import_tasks: bruno.yml
+  tags: [bruno]
+
+- name: Configure DBeaver shortcuts
+  ansible.builtin.import_tasks: dbeaver.yml
+  tags: [dbeaver]
+
 # ~/.local/bin is created by the coreutils role, which runs before this one in every profile.
 - name: Link app scripts into the user bin directory
   ansible.builtin.file:
