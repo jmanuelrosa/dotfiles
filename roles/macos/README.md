@@ -7,10 +7,12 @@ Applies macOS user preferences (`defaults write`) and a few firmware-level tweak
 - Loops `community.general.osx_defaults` over `OSX_DEFAULTS` to set keyboard repeat, Finder/Dock options, screensaver password, etc.
 - Mutes the boot sound (`nvram SystemAudioVolume=" "`).
 - Disables hibernation and the sleep image (`pmset`, `chflags`).
+- Switches off the system shortcuts in `MACOS_DISABLED_HOTKEYS` and reloads them so the change applies without logging out. `Ctrl+Space` (previous input source) is freed this way for Herdr's prefix.
 
 ## Vars
 
 - `OSX_DEFAULTS` (defaults/main.yml) — list of `{domain, key, type, value, state}` dicts. Override per-profile in `host_vars/<profile>.yml`.
+- `MACOS_DISABLED_HOTKEYS` (defaults/main.yml): list of `{id, parameters}` dicts, one per `AppleSymbolicHotKeys` entry to disable. `parameters` is the chord macOS stores for that shortcut.
 
 ## Side effects
 

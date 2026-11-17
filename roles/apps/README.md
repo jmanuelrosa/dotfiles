@@ -81,14 +81,24 @@ The separate-Spaces setting is left unchanged because disabling it makes native 
 
 ## Herdr
 
-Press `Ctrl+d`, then `b` to toggle the sidebar: `b` stands for bar, matching VS Code's `Cmd+b` while keeping terminal commands behind Herdr's prefix.
-Press `Ctrl+d`, then `?` to look up less frequent shortcuts.
+The prefix is `Ctrl+Space`, which nothing inside a pane uses; the `macos` role disables the system input-source shortcut that would otherwise take it.
+Every binding belongs to one of four families, so a forgotten key can be rebuilt from its family instead of looked up:
 
-Press `Ctrl+d`, then `m` to open Glow's Markdown browser in a temporary popup from the active pane's working directory.
+| Family | Keys | Plain | Shift | Ctrl |
+|---|---|---|---|---|
+| Make | `t` tab, `w` workspace, `g` worktree, `p` pane (name only) | create | name it (`T`, `W`, `P`); `G` opens an existing worktree | |
+| Move | `i` `j` `k` `l`, as in Ghostty | focus | swap the pane | |
+| Erase | `x` | close pane | close tab | close workspace (`Ctrl+g` removes a worktree) |
+| Jump | `Space` anywhere, `s` workspaces, `Tab` tabs, `a` agents, `o` notification, `Backspace` back, `1..9` | forward | backward (`Shift+1..9` picks an agent) | |
+
+Ctrl after the prefix always destroys something big.
+The rest: `\` and `-` split along the line the key draws, `z` zoom, `b` sidebar (bar, as VS Code's `Cmd+b`), `r` resize mode, `[` copy mode, `e` scrollback in `$EDITOR`, `,` settings, `?` help, `Shift+r` reload, `q` detach.
+
+Press `Ctrl+Space`, then `m` to open Glow's Markdown browser in a temporary popup from the active pane's working directory.
 Quit Glow to return to the unchanged pane layout; no reader stays running after it closes.
 Glow is installed by the `coreutils` role.
 The popup passes the managed Glow config and style paths explicitly, so it does not depend on the server's shell environment.
-After editing Herdr's config, run `herdr server reload-config` or use `Ctrl+d`, then `r`.
+After editing Herdr's config, run `herdr server reload-config` or use `Ctrl+Space`, then `Shift+r`.
 
 The sidebar's `$branch`, `$ctx`, `$handoff`, `$ticket` and `$pr` tokens and the tab bar's usage entry come from the ai role's `hooks/herdr-sidebar.sh`, which Claude's status line and hooks and pi's footer drive.
 Its token names, refresh intervals and PR glyphs live in the harness `statusline.json`; the colours stay here, so a renamed token or glyph has to change in both.
@@ -125,7 +135,7 @@ VS Code switches within the current editor group; its Quick Open picker keeps it
 | Apps | Next tab | Previous tab |
 |---|---|---|
 | VS Code, Helium, Chrome, Bruno, DBeaver | `Ctrl+Tab` | `Ctrl+Shift+Tab` |
-| Herdr | `Ctrl+d`, then `Tab` | `Ctrl+d`, then `Shift+Tab` |
+| Herdr | `Ctrl+Space`, then `Tab` | `Ctrl+Space`, then `Shift+Tab` |
 
 Herdr keeps its prefix so direct shortcuts remain available to nested programs when the terminal passes them through.
 Ghostty's own tab shortcuts are unchanged.

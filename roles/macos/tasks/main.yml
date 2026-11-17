@@ -41,3 +41,35 @@
     chflags uchg /private/var/vm/sleepimage
   when: "'uchg' not in macos_firmware_state.results[2].stdout"
   changed_when: true
+
+- name: Read system shortcut state
+  ansible.builtin.command:
+    argv:
+      - /usr/libexec/PlistBuddy
+      - -c
+      - "Print :AppleSymbolicHotKeys:{{ item.id }}:enabled"
+      - "{{ HOME }}/Library/Preferences/com.apple.symbolichotkeys.plist"
+  loop: "{{ MACOS_DISABLED_HOTKEYS }}"
+  register: macos_hotkey_state
+  changed_when: false
+  failed_when: false
+
+- name: Disable system shortcuts
+  ansible.builtin.command:
+    argv:
+      - defaults
+      - write
+      - com.apple.symbolichotkeys
+      - AppleSymbolicHotKeys
+      - -dict-add
+      - "{{ item.item.id }}"
+      - >-
+        <dict><key>enabled</key><false/><key>value</key><dict><key>parameters</key><array>
+        {%- for parameter in item.item.parameters %}<integer>{{ parameter }}</integer>{% endfor -%}
+        </array><key>type</key><string>standard</string></dict></dict>
+  loop: "{{ macos_hotkey_state.results }}"
+  loop_control:
+    label: "{{ item.item.id }}"
+  when: item.stdout != 'false'
+  changed_when: true
+  notify: Reload system shortcuts

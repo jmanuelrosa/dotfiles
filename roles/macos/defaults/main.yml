@@ -287,3 +287,11 @@ OSX_DEFAULTS:
     type: int
     value: 0
     state: present
+
+# System shortcuts to switch off, keyed by their AppleSymbolicHotKeys id.
+# `parameters` is the stored chord (character code, key code, modifier mask), which
+# macOS needs written back alongside the disabled flag.
+MACOS_DISABLED_HOTKEYS:
+  # Select the previous input source (Ctrl+Space), freed for Herdr's prefix
+  - id: 60
+    parameters: [32, 49, 262144]
