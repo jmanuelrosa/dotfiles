@@ -19,4 +19,5 @@ Applies macOS user preferences (`defaults write`) and a few firmware-level tweak
 
 ## Notes
 
-Tasks intentionally use `changed_when: false` for the firmware-level commands — they're idempotent in effect, but their stdout doesn't expose state.
+Only the task that reads firmware and power state (`nvram`, `pmset -g`, `ls -lO`) uses `changed_when: false`.
+Each mutating firmware task is `changed_when: true` and gated by a `when` on that read, so it runs and reports a change only when the state differs.
