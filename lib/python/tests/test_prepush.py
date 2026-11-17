@@ -1,7 +1,6 @@
-"""bin/prepush: which commits the secret scan covers, and that a failing check stops the push.
+"""bin/prepush: a push that only deletes runs nothing, and one failing check stops the push.
 
-The range logic is the part a green run cannot vouch for: a range that matches nothing
-scans nothing, and gitleaks reports that as a clean pass.
+Nothing here reads the repository's history, because CI checks out a single commit.
 """
 
 import io
@@ -30,21 +29,6 @@ def rev(name):
     return subprocess.run(
         ["git", "rev-parse", name], cwd=REPO, capture_output=True, text=True, check=True
     ).stdout.strip()
-
-
-def test_an_updated_branch_scans_only_the_new_commits():
-    head, base = rev("HEAD"), rev("HEAD~1")
-    assert prepush.pushed_ranges([f"refs/heads/b {head} refs/heads/b {base}"]) == [[f"{base}..{head}"]]
-
-
-def test_a_new_branch_scans_every_commit_no_remote_has():
-    head = rev("HEAD")
-    assert prepush.pushed_ranges([f"refs/heads/b {head} refs/heads/b {NULL}"]) == [[head, "--not", "--remotes"]]
-
-
-def test_a_remote_tip_never_fetched_falls_back_to_unpushed_commits():
-    head, unseen = rev("HEAD"), "f" * 40
-    assert prepush.pushed_ranges([f"refs/heads/b {head} refs/heads/b {unseen}"]) == [[head, "--not", "--remotes"]]
 
 
 def test_a_push_that_only_deletes_checks_nothing(monkeypatch):

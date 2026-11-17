@@ -51,17 +51,17 @@ def has_commit(repository, sha):
 
 
 def pushed_ranges(lines):
-    """`git log` arguments for each pushed ref, or None when every ref is a deletion."""
+    """`git log` arguments for each pushed ref, empty when every ref is a deletion.
+
+    Every commit no remote has yet, rather than remote..local: commits already on the
+    remote branch drop out on their own, and nothing depends on the remote tip being here.
+    """
     ranges = []
     for line in lines:
         fields = line.split()
-        if len(fields) != 4:
+        if len(fields) != 4 or is_null(fields[1]):
             continue
-        _, local_sha, _, remote_sha = fields
-        if is_null(local_sha):
-            continue
-        known = not is_null(remote_sha) and has_commit(ROOT, remote_sha)
-        ranges.append([f"{remote_sha}..{local_sha}"] if known else [local_sha, "--not", "--remotes"])
+        ranges.append([fields[1], "--not", "--remotes"])
     return ranges
 
 
