@@ -135,7 +135,7 @@ split_horizontal = "prefix+h"
 
 zoom = "prefix+z"       # legacy alias: fullscreen
 resize_mode = ""
-toggle_sidebar = "prefix+s"
+toggle_sidebar = "prefix+b"
 
 # Navigate-mode movement. These local shortcuts win while navigate mode is open.
 # They are independent from focus_pane_*. Do not include prefix+, esc, enter, tab, or 1..9 here.

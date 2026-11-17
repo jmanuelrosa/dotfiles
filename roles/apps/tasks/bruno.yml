@@ -1,0 +1,62 @@
+---
+- name: Check whether Bruno has created its profile preferences
+  ansible.builtin.stat:
+    path: "{{ BRUNO_PREFERENCES_PATH }}"
+    get_checksum: false
+    get_mime: false
+  register: bruno_preferences_file
+
+- name: Configure shortcuts in an existing Bruno profile
+  when: bruno_preferences_file.stat.exists
+  block:
+    - name: Require Bruno to be quit (pgrep must return 1, not running or an error)
+      ansible.builtin.command: pgrep -x Bruno
+      register: bruno_process
+      changed_when: false
+      failed_when: bruno_process.rc != 1
+      check_mode: false
+
+    - name: Read local Bruno preferences privately
+      ansible.builtin.slurp:
+        src: "{{ BRUNO_PREFERENCES_PATH }}"
+      register: bruno_preferences_raw
+      no_log: true
+
+    - name: Parse local Bruno preferences privately
+      ansible.builtin.set_fact:
+        bruno_preferences: "{{ bruno_preferences_raw.content | b64decode | from_json }}"
+      no_log: true
+
+    - name: Require Bruno keybindings to be enabled
+      ansible.builtin.assert:
+        that:
+          - bruno_preferences.get('preferences', {}).get('keybindingsEnabled', true) != false
+        fail_msg: Enable keybindings in Bruno Preferences before retrying.
+      no_log: true
+
+    - name: Require Bruno tab shortcuts unclaimed by other custom Mac bindings
+      ansible.builtin.assert:
+        that:
+          - >-
+            item.key in ['switchToNextTab', 'switchToPreviousTab'] or
+            (item.value.get('mac', '').lower().split('+bind+') | unique | sort)
+            not in [['ctrl', 'tab'], ['ctrl', 'shift', 'tab']]
+        fail_msg: Resolve conflicting Ctrl+Tab or Ctrl+Shift+Tab bindings in Bruno Preferences before retrying.
+      loop: "{{ bruno_preferences.get('preferences', {}).get('keyBindings', {}) | dict2items }}"
+      no_log: true
+
+    - name: Merge only managed Bruno shortcut preferences
+      ansible.builtin.set_fact:
+        bruno_preferences_merged: "{{ bruno_preferences | combine(BRUNO_SHORTCUT_PREFS, recursive=true) }}"
+      no_log: true
+
+    - name: Save changed Bruno preferences atomically with a local backup
+      ansible.builtin.copy:
+        dest: "{{ BRUNO_PREFERENCES_PATH }}"
+        content: "{{ bruno_preferences_merged | to_nice_json }}\n"
+        mode: "0600"
+        backup: true
+        unsafe_writes: false
+      when: bruno_preferences_merged != bruno_preferences
+      diff: false
+      no_log: true

@@ -1,0 +1,55 @@
+---
+- name: Check whether Helium has created its profile preferences
+  ansible.builtin.stat:
+    path: "{{ HELIUM_PROFILE_DIR }}/Preferences"
+    get_checksum: false
+    get_mime: false
+  register: helium_preferences_file
+
+- name: Configure shortcuts in an existing Helium profile
+  when: helium_preferences_file.stat.exists
+  block:
+    - name: Require Helium to be quit (pgrep must return 1, not running or an error)
+      ansible.builtin.command: pgrep -x Helium
+      register: helium_process
+      changed_when: false
+      failed_when: helium_process.rc != 1
+      check_mode: false
+
+    - name: Read local Helium preferences privately
+      ansible.builtin.slurp:
+        src: "{{ HELIUM_PROFILE_DIR }}/Preferences"
+      register: helium_preferences_raw
+      no_log: true
+
+    - name: Parse local Helium preferences privately
+      ansible.builtin.set_fact:
+        helium_preferences: "{{ helium_preferences_raw.content | b64decode | from_json }}"
+      no_log: true
+
+    - name: Require Cmd+B unclaimed and Cmd+S unchanged in Helium custom shortcuts
+      ansible.builtin.assert:
+        that:
+          - item.key == '34061' or 'Meta+KeyB' not in item.value.get('added', [])
+          - item.key in ['34090', '35004'] or 'Meta+KeyS' not in item.value.get('added', [])
+          - item.key != '34090' or 'Meta+KeyS' not in item.value.get('removed', [])
+        fail_msg: Resolve conflicting Cmd+B or Cmd+S bindings in Helium Settings before retrying.
+      loop: "{{ helium_preferences.get('helium', {}).get('browser', {}).get('custom_accelerators', {}) | dict2items }}"
+      no_log: true
+
+    - name: Merge only managed Helium shortcut preferences
+      ansible.builtin.set_fact:
+        helium_preferences_merged: >-
+          {{ helium_preferences | combine(HELIUM_SHORTCUT_PREFS, recursive=true, list_merge='append_rp') }}
+      no_log: true
+
+    - name: Save changed Helium preferences atomically with a local backup
+      ansible.builtin.copy:
+        dest: "{{ HELIUM_PROFILE_DIR }}/Preferences"
+        content: "{{ helium_preferences_merged | to_nice_json }}\n"
+        mode: "0600"
+        backup: true
+        unsafe_writes: false
+      when: helium_preferences_merged != helium_preferences
+      diff: false
+      no_log: true
