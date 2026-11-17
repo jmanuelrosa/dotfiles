@@ -8,7 +8,6 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "DISABLE_AUTOUPDATER": "1",
     "DISABLE_ERROR_REPORTING": "1",
-    "ENABLE_TOOL_SEARCH": "auto:5",
     "RTK_HOOK_AUDIT": "1",
     "USE_BUILTIN_RIPGREP": "0",
     "GIT_PAGER": "cat",
@@ -339,7 +338,17 @@
     "how": "name-only",
     "why": "name-only",
     "teach": "name-only",
-    "unslop": "name-only"
+    "unslop": "name-only",
+    "artifact-capabilities": "off",
+    "artifact-design": "off",
+    "artifact-diagramming": "off",
+    "workflow-authoring": "off",
+    "dataviz": "user-invocable-only",
+    "keybindings-help": "user-invocable-only",
+    "loop": "user-invocable-only",
+    "plugin-authoring": "user-invocable-only",
+    "run": "user-invocable-only",
+    "schedule": "user-invocable-only"
   },
   "hooks": {
     "PostToolUse": [
@@ -493,8 +502,7 @@
   },
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true,
-    "swift-lsp@claude-plugins-official": true,
-    "miro@claude-plugins-official": true
+    "swift-lsp@claude-plugins-official": false
   },
   "outputStyle": "Concise",
   "sandbox": {
@@ -610,5 +618,82 @@
   "voiceEnabled": false,
   "allowUnixSockets": [
     "~/.colima/default/docker.sock"
+  ],
+  "deniedMcpServers": [
+    {
+      "serverUrl": "https://mcp.notion.com/*"
+    },
+    {
+      "serverName": "claude.ai Atlassian"
+    },
+    {
+      "serverName": "claude.ai Claude Data"
+    },
+    {
+      "serverName": "claude.ai Google Drive"
+    },
+    {
+      "serverName": "claude.ai Figma"
+    },
+    {
+      "serverName": "claude.ai Claude Docs"
+    },
+    {
+      "serverName": "claude.ai Asana"
+    },
+    {
+      "serverName": "claude.ai Box"
+    },
+    {
+      "serverName": "claude.ai Canva"
+    },
+    {
+      "serverName": "claude.ai Clay"
+    },
+    {
+      "serverName": "claude.ai Excalidraw"
+    },
+    {
+      "serverName": "claude.ai Forrester AI"
+    },
+    {
+      "serverName": "claude.ai Gmail"
+    },
+    {
+      "serverName": "claude.ai Google Docs"
+    },
+    {
+      "serverName": "claude.ai Google Sheets"
+    },
+    {
+      "serverName": "claude.ai Google Slides"
+    },
+    {
+      "serverName": "claude.ai Granola"
+    },
+    {
+      "serverName": "claude.ai HubSpot"
+    },
+    {
+      "serverName": "claude.ai Intercom"
+    },
+    {
+      "serverName": "claude.ai Linear"
+    },
+    {
+      "serverName": "claude.ai Webflow"
+    },
+    {
+      "serverName": "claude.ai monday.com"
+    },
+    {
+      "serverName": "claude.ai n8n"
+    },
+    {
+      "serverName": "claude.ai Deepika Daily Claude Cleaning"
+    },
+    {
+      "serverName": "claude.ai Didomi File Content Tools"
+    }
   ]
 }
