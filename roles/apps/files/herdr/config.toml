@@ -82,69 +82,81 @@ new_cwd = "follow"
 # Named punctuation such as minus, comma, ampersand, plus, and backtick is also accepted.
 # Most reliable direct bindings are ctrl+letter, function keys, and explicit modified chords.
 # alt+..., cmd/super, and punctuation-with-modifiers may depend on your terminal/tmux setup.
-prefix = "ctrl+d"
+# Ctrl+Space is free in fish, Claude Code, lazygit and Television; the macos role
+# disables the system input-source shortcut that would otherwise take it.
+prefix = "ctrl+space"
 
-# Prefix-mode actions
-# help = "prefix+?"
-# settings = "prefix+s"
-# detach = "prefix+q"
-reload_config = "prefix+r"
-# open_notification_target = "prefix+o"
+# The keymap is four families, each with one meaning per modifier:
+#   Make  (noun initial: t tab, w workspace, g worktree, p pane): plain creates, Shift names.
+#   Move  (i/j/k/l, as in Ghostty): plain focuses, Shift carries the pane.
+#   Erase (x): plain pane, Shift tab, Ctrl workspace. Ctrl after the prefix always destroys something big.
+#   Jump  (Space, s, Tab, a, o, Backspace, 1..9): plain goes forward, Shift goes backward.
 
-workspace_picker = "prefix+shift+w"
-goto = "prefix+shift+g"
-new_workspace = "prefix+w"
-rename_workspace = "prefix+shift+r"
-# close_workspace = "prefix+shift+d"
+# Jump
+goto = "prefix+space"
+workspace_picker = "prefix+s"
+open_notification_target = "prefix+o"
+last_pane = "prefix+backspace"
+next_tab = "prefix+tab"
+previous_tab = "prefix+shift+tab"
+switch_tab = "prefix+1..9"
+next_agent = "prefix+a"
+previous_agent = "prefix+shift+a"
+focus_agent = "prefix+shift+1..9"
 # previous_workspace = "" # optional, unset by default
 # next_workspace = ""     # optional, unset by default
 # switch_workspace = ""   # optional indexed binding, e.g. "prefix+shift+1..9"
 
-# Worktree creation is routed through the wt fish helper via the
-# [[keys.command]] block below (bound to prefix+g), not herdr's built-in.
-new_worktree = "prefix+ctrl+shift+w"
-open_worktree = "prefix+ctrl+shift+o"
-remove_worktree = "prefix+ctrl+shift+d"
-
-# previous_agent = ""     # optional, unset by default
-# next_agent = ""         # optional, unset by default
-focus_agent = "prefix+shift+1..9"
-
+# Make
 new_tab = "prefix+t"
-rename_tab = "prefix+ctrl+t"
-previous_tab = "prefix+shift+tab"
-next_tab = "prefix+tab"
-switch_tab = "prefix+1..9"
-# close_tab = "prefix+shift+x"
+new_workspace = "prefix+w"
+new_worktree = "prefix+g"
+rename_tab = "prefix+shift+t"
+rename_workspace = "prefix+shift+w"
+rename_pane = "prefix+shift+p"
+open_worktree = "prefix+shift+g"
 
-# remote_image_paste = "ctrl+v" # only active in herdr --remote; empty disables raw-key image paste
-
-# rename_pane = "prefix+shift+p"
-# edit_scrollback = "prefix+e"
+# Move
 focus_pane_left = "prefix+j"
 focus_pane_down = "prefix+k"
 focus_pane_up = "prefix+i"
 focus_pane_right = "prefix+l"
+swap_pane_left = "prefix+shift+j"
+swap_pane_down = "prefix+shift+k"
+swap_pane_up = "prefix+shift+i"
+swap_pane_right = "prefix+shift+l"
 cycle_pane_next = ""
 cycle_pane_previous = ""
-# last_pane = ""          # optional, unset by default; bind e.g. "prefix+tab" for global back-and-forth
+resize_mode = "prefix+r"
+
+# Erase
 close_pane = "prefix+x"
+close_tab = "prefix+shift+x"
+close_workspace = "prefix+ctrl+x"
+remove_worktree = "prefix+ctrl+g"
 
-split_vertical = "prefix+v"
-split_horizontal = "prefix+h"
-
+# Tools. Each split key looks like the divider it draws.
+split_vertical = "prefix+backslash"
+split_horizontal = "prefix+minus"
 zoom = "prefix+z"       # legacy alias: fullscreen
-resize_mode = ""
 toggle_sidebar = "prefix+b"
+copy_mode = "prefix+["
+edit_scrollback = "prefix+e"
+help = "prefix+?"
+settings = "prefix+comma"
+reload_config = "prefix+shift+r"
+detach = "prefix+q"
+
+# remote_image_paste = "ctrl+v" # only active in herdr --remote; empty disables raw-key image paste
 
 # Navigate-mode movement. These local shortcuts win while navigate mode is open.
 # They are independent from focus_pane_*. Do not include prefix+, esc, enter, tab, or 1..9 here.
 # navigate_workspace_up = "up"
 # navigate_workspace_down = "down"
-# navigate_pane_left = "h"      # left arrow always focuses the pane to the left
-# navigate_pane_down = "j"
-# navigate_pane_up = "k"
-# navigate_pane_right = "l"     # right arrow always focuses the pane to the right
+navigate_pane_left = "j"
+navigate_pane_down = "k"
+navigate_pane_up = "i"
+navigate_pane_right = "l"
 
 # Custom commands use the same binding syntax.
 # type = "shell" runs detached in the background.
