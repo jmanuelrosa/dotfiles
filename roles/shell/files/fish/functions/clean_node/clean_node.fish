@@ -1,6 +1,6 @@
 function clean_node --description "Delete node_modules under the current tree, clear the package caches and lock files"
     _ui title "📦 Deleting node_modules ..."
-    find node_modules --type dir --no-ignore --absolute-path --prune | while read dir
+    command fd --glob node_modules --type dir --hidden --no-ignore --absolute-path --prune | while read dir
         _ui item (_ui path "$dir")
         rm -rf "$dir"
     end

@@ -15,7 +15,7 @@ Most plays prompt for the vault password (decrypts `vars/secrets.yml` / `vars/wo
 
 | Command | Purpose |
 |---|---|
-| `make lint` | `lint-static`, then `ansible-lint` (config in [.ansible-lint](.ansible-lint)). No vault password, so it runs unattended |
+| `make lint` | `lint-static` and `harness-check`, then `ansible-lint` (config in [.ansible-lint](.ansible-lint)). No vault password, so it runs unattended |
 | `make lint-static` | markdownlint, ruff, shellcheck and fish checks, with no vault, so it runs unattended. [bin/lint-files](bin/lint-files) picks each linter's files by shebang |
 | `make prepush` | Every CI check in parallel: a secret scan of the unpushed commits, static lint, ansible-lint, both syntax checks, and the tests against the pinned agent catalog. The [.githooks/pre-push](.githooks/pre-push) hook runs it on every push, and `git push --no-verify` skips it. Run `make hooks` once per clone to activate the hook |
 | `make test` | pytest over every python suite. Roots live in [pytest.ini](pytest.ini), not the Makefile. No vault, no become password, no network, so it runs unattended, as do the `harness-check` and `harness-report` targets |

@@ -23,6 +23,17 @@
   loop_control:
     label: "{{ item.dest }}"
 
+- name: Apply app preferences
+  community.general.osx_defaults:
+    domain: "{{ item.domain }}"
+    key: "{{ item.key }}"
+    type: "{{ item.type }}"
+    value: "{{ item.value }}"
+    state: present
+  loop: "{{ APPS_OSX_DEFAULTS }}"
+  loop_control:
+    label: "{{ item.domain }} {{ item.key }}"
+
 # ~/.local/bin is created by the coreutils role, which runs before this one in every profile.
 - name: Link app scripts into the user bin directory
   ansible.builtin.file:

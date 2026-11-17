@@ -19,4 +19,3 @@ Its metadata entries use the `context-continuity` custom type.
 ## Verification
 
 Behavior and public Pi API usage are covered by `lib/python/tests/test_pi_context_continuity.py`.
-The wider design is recorded in `docs/design/cross-model-context-consistency.md`.

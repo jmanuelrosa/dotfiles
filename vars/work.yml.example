@@ -22,7 +22,7 @@
 #
 # Paste the full file contents (including header/footer lines) as a YAML
 # block scalar. Mode 0600 / 0644 is set automatically by the role.
-# Consumed by: roles/work/tasks/main.yml
+# Consumed by: host_vars/work.yml (SSH_KEYS_EXTRA), deployed by roles/ssh/tasks/main.yml
 
 SSH_DIDOMI_PUBLIC: "ssh-ed25519 AAAA...replace with id_didomi.pub contents... your-work-email@example.com"
 SSH_DIDOMI_KEY: |

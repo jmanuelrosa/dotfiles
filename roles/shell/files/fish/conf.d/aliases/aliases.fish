@@ -19,7 +19,6 @@ alias restart='sudo shutdown -r now'
 alias shutdown='sudo shutdown now'
 
 #navigation
-alias ..='cd ..' # Exists by default in fish
 alias l='eza --color=auto --icons=auto --long --git --group-directories-first --all --sort=name'
 alias lt="eza --tree --level=2 --color=auto --icons=auto --long --all --git --ignore-glob node_modules"
 
@@ -64,25 +63,6 @@ alias clean:all=clean_all
 # DOCKER_HOST points at that VM's socket in conf.d/exports/exports.fish.
 alias docker:start='colima start'
 alias docker:stop='colima stop'
-
-# Dev environments. The five lokl: aliases that lived here are gone: `lokl` is a real
-# command now (roles/apps/files/scripts/lokl), and it owns the domains as well as the
-# proxy, because a domain is a hosts entry and a Caddy site file that have to agree.
-#
-#   lokl add my-custom-project       lokl list      lokl start
-#   lokl remove my-custom-project    lokl sync      lokl status
-#
-# A project with several services nests them under one parent, so all of them share the
-# registrable domain and therefore the cookie jar:
-#
-#   lokl add my-project --sub app --sub api    # my-project.localhost, app.my-project.localhost, ...
-#   lokl remove my-project --tree              # the parent and every subdomain under it
-#
-# The port is derived from the working directory when `add` is given none, and
-# `lokl port <name>` prints it for a dev script to read. No `--host`: that binds every
-# interface, and Caddy already dials loopback.
-#
-#   astro dev --port (lokl port my-custom-project)
 
 # kura. Functions rather than aliases: fish's alias builtin appends $argv to the
 # body unconditionally, so an alias holding $argv passes every argument twice.

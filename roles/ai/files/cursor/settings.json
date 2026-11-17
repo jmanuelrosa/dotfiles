@@ -1,0 +1,200 @@
+{
+    "breadcrumbs.enabled": true,
+    "debug.console.fontSize": 10,
+    "editor.accessibilitySupport": "off",
+    "editor.autoIndent": "keep",
+    "editor.bracketPairColorization.enabled": true,
+    "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
+    "editor.fontFamily": "FiraCode Nerd Font",
+    "editor.fontLigatures": true,
+    "editor.fontSize": 12,
+    "editor.formatOnPaste": false,
+    "editor.guides.bracketPairs": "active",
+    "editor.inlayHints.enabled": "off",
+    "editor.inlineSuggest.enabled": true,
+    "editor.linkedEditing": true,
+    "editor.minimap.enabled": false,
+    "editor.multiCursorModifier": "ctrlCmd",
+    "editor.rulers": [
+        80
+    ],
+    "editor.stickyScroll.enabled": true,
+    "editor.tabSize": 2,
+    "emmet.includeLanguages": {
+        "javascript": "javascriptreact"
+    },
+    "emmet.syntaxProfiles": {
+        "javascript": "javascriptreact"
+    },
+    "explorer.autoReveal": true,
+    "explorer.compactFolders": false,
+    "explorer.confirmDelete": false,
+    "explorer.confirmDragAndDrop": false,
+    "explorer.fileNesting.enabled": true,
+    "files.associations": {
+        "*.css": "postcss",
+    },
+    "files.exclude": {},
+    "git.allowNoVerifyCommit": true,
+    "git.confirmNoVerifyCommit": false,
+    "git.confirmSync": false,
+    "gitlens.showWhatsNewAfterUpgrades": false,
+    "html.autoClosingTags": false,
+    "html.completion.attributeDefaultValue": "singlequotes",
+    "javascript.inlayHints.functionLikeReturnTypes.enabled": true,
+    "javascript.inlayHints.parameterNames.enabled": "all",
+    "javascript.inlayHints.parameterTypes.enabled": true,
+    "javascript.inlayHints.propertyDeclarationTypes.enabled": true,
+    "javascript.inlayHints.variableTypes.enabled": true,
+    "javascript.updateImportsOnFileMove.enabled": "never",
+    "scm.alwaysShowRepositories": true,
+    "search.mode": "newEditor",
+    "search.sortOrder": "modified",
+    "security.workspace.trust.emptyWindow": false,
+    "security.workspace.trust.enabled": false,
+    "security.workspace.trust.startupPrompt": "never",
+    "security.workspace.trust.untrustedFiles": "open",
+    "tailwindCSS.classAttributes": [
+        "class",
+        "className",
+        "class:list"
+    ],
+    "tailwindCSS.includeLanguages": {
+        "astro": "html",
+        "html": "html",
+        "javascript": "javascript",
+        "javascriptreact": "javascript",
+        "typescript": "typescript",
+        "typescriptreact": "typescript",
+        "css": "css"
+    },
+    "telemetry.telemetryLevel": "off",
+    "terminal.integrated.fontFamily": "monospace",
+    "todo-tree.general.tags": [
+        "BUG",
+        "HACK",
+        "FIXME",
+        "TODO",
+        "[ ]",
+        "[x]",
+        "CHANGE",
+        "PERSONAL"
+    ],
+    "todo-tree.highlights.customHighlight": {
+        "BUG": {
+            "background": "orange",
+            "foreground": "black",
+            "icon": "bug"
+        },
+        "CHANGE": {
+            "background": "red",
+            "foreground": "white",
+            "icon": "alert"
+        },
+        "FIXME": {
+            "background": "orange",
+            "foreground": "black",
+            "icon": "flame"
+        },
+        "HACK": {
+            "background": "black",
+            "foreground": "white",
+            "icon": "tools"
+        },
+        "TODO": {
+            "background": "blue",
+            "foreground": "white",
+            "icon": "tools"
+        },
+        "[ ]": {
+            "background": "white",
+            "foreground": "black",
+            "icon": "issue-draft"
+        },
+        "[x]": {
+            "background": "white",
+            "foreground": "black",
+            "icon": "issue-closed"
+        },
+        "PERSONAL": {
+            "background": "red",
+            "foreground": "white",
+            "icon": "issue-closed"
+        }
+    },
+    "todo-tree.highlights.foregroundColourScheme": [
+        "orange",
+        "black",
+        "orange",
+        "blue",
+        "white",
+        "white",
+        "red"
+    ],
+    "typescript.inlayHints.enumMemberValues.enabled": true,
+    "typescript.inlayHints.functionLikeReturnTypes.enabled": true,
+    "typescript.inlayHints.parameterNames.enabled": "all",
+    "typescript.inlayHints.parameterTypes.enabled": true,
+    "typescript.inlayHints.propertyDeclarationTypes.enabled": true,
+    "typescript.inlayHints.variableTypes.enabled": true,
+    "typescript.updateImportsOnFileMove.enabled": "never",
+    "update.showReleaseNotes": false,
+    "workbench.colorCustomizations": {},
+    "workbench.editor.decorations.badges": true,
+    "workbench.editor.decorations.colors": true,
+    "workbench.editor.enablePreviewFromQuickOpen": false,
+    "workbench.panel.defaultLocation": "right",
+    "terminal.integrated.env.osx": {
+        "FIG_NEW_SESSION": "1"
+    },
+    "diffEditor.ignoreTrimWhitespace": false,
+    "git.suggestSmartCommit": false,
+    "typescript.tsserver.experimental.useVsCodeWatcher": false,
+    "typescript.tsserver.watchOptions": {
+        "watchFile": "useFsEvents"
+    },
+
+    // Disable extensions
+    "biome.enabled": false,
+    "biome.suggestInstallingGlobally": false,
+    "containers.enableComposeLanguageService": false,
+    "eslint.enable": true,
+    "prettier.enable": false,
+    "twind.enable": false,
+    "jest.enable": false,
+
+    "php.validate.enable": false,
+    "php.suggest.basic": false,
+    "prisma.fileWatcher": false,
+    "prisma.enableCodeLens": false,
+    "editor.quickSuggestions": {
+        "strings": "on"
+    },
+    "cursor.cpp.disabledLanguages": [
+        "markdown",
+        "plaintext"
+    ],
+    "terraform.languageServer.enable": false,
+    "terraform.validation.enableEnhancedValidation": false,
+
+    "workbench.activityBar.orientation": "vertical",
+    "workbench.colorTheme": "GitHub Dark Dimmed",
+    "cSpell.userWords": [
+        "cirqle",
+        "daisyui",
+        "didomi",
+        "José",
+        "networkidle",
+        "nord",
+        "oklch",
+        "tabler"
+    ],
+    "workbench.editor.enablePreview": false,
+    "workbench.editorAssociations": {
+    "*.svg": "default"
+},
+"workbench.preferredDarkColorTheme": "GitHub Dark Dimmed",
+"workbench.preferredLightColorTheme": "GitHub Light Default",
+"window.autoDetectColorScheme": false,
+"cursor.composer.codeBlockWordWrap": true,
+}

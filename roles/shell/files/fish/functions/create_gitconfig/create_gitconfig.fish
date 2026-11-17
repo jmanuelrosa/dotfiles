@@ -1,4 +1,4 @@
-function create_gitconfig --description "Create a per-company .gitconfig under ~/developer/<company>"
+function create_gitconfig --description "Create ~/Developer/work/.gitconfig.<company>, the identity ~/.gitconfig includes for ~/Developer/work/<company>"
     _ui title "🔧 New per-company git identity"
 
     read -P "  Company name: " company_name
@@ -10,11 +10,11 @@ function create_gitconfig --description "Create a per-company .gitconfig under ~
         return 1
     end
 
-    set -l company_dir ~/developer/$company_name
-    set -l gitconfig_file "$company_dir/.gitconfig.$company_name"
+    set -l work_dir ~/Developer/work
+    set -l gitconfig_file "$work_dir/.gitconfig.$company_name"
 
-    if not mkdir -p "$company_dir"
-        _ui err "Cannot create "(_ui path "$company_dir")"."
+    if not mkdir -p "$work_dir"
+        _ui err "Cannot create "(_ui path "$work_dir")"."
         return 1
     end
 
@@ -25,5 +25,5 @@ function create_gitconfig --description "Create a per-company .gitconfig under ~
     end
 
     _ui done "Wrote "(_ui path "$gitconfig_file")
-    _ui note "Point your ~/.gitconfig at it with an includeIf gitdir directive."
+    _ui note "Add an includeIf for gitdir/i:$work_dir/$company_name to ~/.gitconfig if it has none yet."
 end

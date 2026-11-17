@@ -35,9 +35,7 @@ zoxide init fish | source
 fnm env --use-on-cd | source
 
 fish_add_path $HOME/.local/bin
-fish_add_path $HOME/.node/bin
 fish_add_path $HOME/.bun/bin
-fish_add_path $HOME/.claude
 
 # brew specific paths
 fish_add_path /opt/homebrew/sbin
@@ -51,14 +49,9 @@ set -gx BROWSER open
 set -gx FILE spf
 set -gx PAGER "bat --plain"
 set -gx TERMINAL ghostty
-set -gx VISUAL zed
-set -gx RIPGREP_CONFIG_PATH "$HOME/.config/ripgrep/config"
 
 # ripgrep options
 set -gx RIPGREP_CONFIG_PATH $HOME/.config/ripgrep/config
-
-# SSH environment file
-set -gx SSH_ENV $HOME/.ssh/environment
 
 # pi: route shell, file and edit work through pi's own tools under the cursor provider.
 # Cursor's native host tools bypass the guardrail hooks and pi-sandbox entirely.
@@ -72,7 +65,7 @@ set -gx _ZO_ECHO 1
 
 # franciscolourenco/done config
 set -g __done_min_cmd_duration 10000
-set -g __done_exclude '^(nano|less|more|man|ssh|claude|lazygit|lazydocker|btop|htop|dive|spf|fish|bash)'
+set -g __done_exclude '^(nano|less|more|man|ssh|claude|lazygit|lazydocker|btop|dive|spf|fish|bash)'
 
 # Television
 source $HOME/.config/television/shell/integration.fish

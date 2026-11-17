@@ -1,6 +1,6 @@
 function pi_last_error --description "Print the most recent pi-cursor-sdk failure captured by pi_debug"
     set -l debug_dir "$HOME/.pi/agent/cursor-sdk-debug"
-    set -l latest (find "$debug_dir/sessions" -name errors.jsonl -type f 2>/dev/null | xargs -I{} stat -f '%m %N' {} 2>/dev/null | sort -rn | head -n 1 | cut -d' ' -f2-)
+    set -l latest (command find "$debug_dir/sessions" -name errors.jsonl -type f 2>/dev/null | xargs -I{} stat -f '%m %N' {} 2>/dev/null | sort -rn | head -n 1 | cut -d' ' -f2-)
 
     if test -z "$latest"
         _ui warn "No captured pi-cursor-sdk errors under "(_ui path "$debug_dir")

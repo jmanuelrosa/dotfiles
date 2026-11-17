@@ -77,11 +77,17 @@ All commands are available through the Makefile.
 
 | Command | Description |
 |---------|-------------|
-| `make lint` | Run the static linters, then ansible-lint |
+| `make lint` | Run the static linters and the harness drift check, then ansible-lint |
 | `make lint-static` | Lint Markdown, Python, shell and fish (no vault password) |
 | `make syntax` | Validate playbook syntax (no vault needed) |
 | `make check` | Dry-run preview of all changes (no changes applied) |
 | `make check-role ROLE=shell` | Dry-run preview of a specific role |
+| `make test` | Run every python suite listed in `pytest.ini` (no vault or become password, no network) |
+| `make harness` | Render every harness's config from `roles/ai/files/harness/policy/` (close Claude sessions first, it writes Claude's `settings.json`) |
+| `make harness-check` | Name the rendered files or owned keys that drifted from the policy |
+| `make harness-apply` | Merge the policy into `~/.codex/config.toml` and install the Codex rules; `CHECK=1` only reports |
+| `make harness-report` | List the policy rules each harness cannot carry |
+| `make skill-drift` | List upstream commits since each pinned skill SHA that touch a vendored skill (read-only, needs a `gh` login and the network) |
 
 ### Execution
 
@@ -123,7 +129,7 @@ This repo is set up for the author's machines, but is intended to be forkable.
 
 1. Fork the repo and clone it.
 2. Replace `vars/secrets.yml` with your own vault-encrypted file. Start from the keys listed in [`vars/work.yml.example`](vars/work.yml.example) and the secrets referenced under [`roles/shell/templates/secrets.fish.j2`](roles/shell/templates/secrets.fish.j2).
-3. Drop or replace the `work` role if you don't need work-specific tooling.
+3. Drop or replace the `work` role if you don't need work-specific tooling. `dotfiles.yml` loads `vars/work.yml` on every profile, so keep a vault-encrypted file there (built from [`vars/work.yml.example`](vars/work.yml.example)) or remove it from the `pre_tasks` loop.
 4. Adjust `BREW_PACKAGES` (and other overridable values like `VSCODE_EXTENSIONS`, `FISH_PLUGINS`, `OSX_DEFAULTS`) in each role's `defaults/main.yml`. Per-profile overrides go in `host_vars/<profile>.yml`.
 5. Run `make check` first to preview, then `make run`.
 
@@ -139,11 +145,13 @@ See [`AGENTS.md`](AGENTS.md) for layout conventions, commit style, and role anat
 - [Ghostty](https://ghostty.org) terminal
 - [Starship](https://starship.rs) prompt
 - GnuPG
+- jq (JSON processor)
+- [lns](https://github.com/jmanuelrosa/lns) (lists and prunes symlinks) and [shoo](https://github.com/jmanuelrosa/shoo) (shows which process holds a port)
 - Fish plugins: ssh-agent, done, autopair, replay, puffer-fish
 
 ### CLI Utilities
 
-bat, btop, duf, eza, fastfetch, fd, httpie, hyperfine, ripgrep, scc, television, vnstat, wget, zoxide, unar (modern Unix replacements; configs managed under `roles/coreutils/files/`)
+bat, btop, duf, eza, fastfetch, fd, glow, hostof, httpie, hyperfine, ripgrep, scc, television, vnstat, wget, zoxide, unar (modern Unix replacements; configs managed under `roles/coreutils/files/`)
 
 ### Browsers
 
@@ -151,11 +159,11 @@ Google Chrome, Brave, Zen, Helium
 
 ### Development
 
-Git, git-delta, LazyGit, GitHub CLI, GitLab CLI (glab), fnm (Node version manager), Bun, Sentry CLI, Bruno (API client) + Bruno CLI
+Ansible + ansible-lint, Git, git-delta, git-filter-repo, diffnav, LazyGit, superfile (file manager), herdr, GitHub CLI, GitLab CLI (glab), act, actionlint, fnm (Node version manager), Bun, pnpm, Sentry CLI, Bruno (API client) + Bruno CLI
 
 ### AI
 
-ChatGPT, Claude, Claude Code, Cursor
+ChatGPT, Claude, Claude Code, Cursor, Pi (coding agent), rtk (token-saving command proxy), uv (runs Python skill scripts), draw.io (diagram export for the `diagram` skill)
 
 Claude Code and Pi skills are managed with [`kura`](https://github.com/jmanuelrosa/kura), installed by the `ai` role as a pinned release at `~/.local/bin/kura` and pointed at the [agent-catalog](https://github.com/jmanuelrosa/agent-catalog) repository, cloned to `~/Developer/agent-catalog` and linked at `~/.config/kura/catalog`. The catalog exposes skills, standalone agents, bundles, and their registries; Kura owns the native artifact links, while existing project plugin links remain project-owned legacy state.
 Global skill and agent roots now use `global: true`, not a group tag.
@@ -167,7 +175,7 @@ kura remove vercel-react-best-practices --type skill # Remove it
 kura scout                                           # What this project's stack suggests
 ```
 
-Two larger systems ship here. **Product Team** is a gated pipeline that takes a raw idea to an engineering-ready GitHub backlog through numbered stages (`/0-refine-idea` to `/7-push-to-board`), and a **staff-engineer bench** of implementation agents (`architect` plus frontend, mobile, design, backend, platform, cloud, sre, data, analytics, gtm, database, qa, and security seats) builds what the pipeline specs out. See [`roles/ai/files/harness/adapters/claude/README.md`](roles/ai/files/harness/adapters/claude/README.md) for the full guide.
+Two larger systems ship here. **Product Team** is a gated pipeline that takes a raw idea to an engineering-ready GitHub backlog through numbered stages (`/0-refine-idea` to `/7-push-to-board`), and a **staff-engineer bench** of implementation agents (`architect` plus frontend, mobile, design, backend, platform, cloud, sre, data, analytics, gtm, database, qa, and security seats) builds what the pipeline specs out. Both live in the [agent-catalog](https://github.com/jmanuelrosa/agent-catalog) repository.
 
 ### Television (interactive fuzzy picker)
 
@@ -185,15 +193,15 @@ libpq, pgcli, DBeaver
 
 ### Infrastructure
 
-AWS CLI, Colima, Docker, Docker Compose, Docker Buildx, docker-credential-helper, lazydocker, dive, Google Cloud CLI
+AWS CLI, Colima, Docker, Docker Compose, Docker Buildx, docker-credential-helper, lazydocker, dive, Google Cloud CLI, Cloudflare Wrangler + cf CLI, Caddy
 
 ### Multimedia
 
-mpv, Spotify, VLC
+mpv, Spotify, VLC, ImageMagick
 
 ### System & Window Management
 
-Aerospace (tiling window manager), FiraCode Nerd Font, Logi Options+, Mole, Maccy (clipboard manager)
+Aerospace (tiling window manager), FiraCode Nerd Font, mas (Mac App Store CLI), Logi Options+, Mole, Maccy (clipboard manager), Triage (browser router)
 
 ### Communication
 
@@ -201,7 +209,11 @@ Slack, Discord, WhatsApp
 
 ### Other
 
-TradingView, Bitwarden, Notion, Figma, SF Symbols, NextDNS
+TradingView, Bitwarden, Notion + Notion CLI, Figma, SF Symbols, NextDNS (Mac App Store app)
+
+### Work profile
+
+Atlassian CLI (acli), Spacelift CLI (spacectl), AWS Session Manager plugin
 
 ## License
 

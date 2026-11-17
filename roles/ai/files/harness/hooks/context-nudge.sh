@@ -6,7 +6,7 @@
 # avoids a jq runtime dependency.
 """context-nudge.sh: UserPromptSubmit hook for Claude Code.
 
-Past the wrap-up threshold in docs/internals/context-hygiene.md, say so:
+Past the context-hygiene wrap-up threshold, say so:
 
     🧭 Context 41%: /handoff then /clear costs less than carrying this further
 

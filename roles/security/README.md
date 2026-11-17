@@ -16,6 +16,10 @@ Installs Mac App Store security apps (currently NextDNS).
 - Requires `mas` (installed by the `brew` role).
 - Requires the user to be signed into the App Store (`mas signin` is interactive and not scripted).
 
-## Notes
+## Unmanaged settings
 
-Replaced an earlier broken implementation that ran `mas search nextdns` (a read-only search that never installed anything).
+This app is installed but its settings are not restored, for the reason given.
+
+| App | Why | Manual step |
+|---|---|---|
+| NextDNS | Filtering rules live in the NextDNS account; the app stores only its private configuration ID and two toggles inside its sandbox container | Open the app, enter the configuration ID from my.nextdns.io, and enable start at login |

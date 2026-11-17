@@ -137,6 +137,61 @@ APPS_LINKS:
   - src: .aerospace.toml
     dest: "{{ HOME }}/.aerospace.toml"
 
+# Maccy is sandboxed: `defaults` resolves its domain to the app container, which
+# only exists after the first launch.
+APPS_OSX_DEFAULTS:
+  - domain: org.p0deje.Maccy
+    key: historySize
+    type: int
+    value: 100
+  - domain: org.p0deje.Maccy
+    key: menuIcon
+    type: string
+    value: clipboard
+  - domain: org.p0deje.Maccy
+    key: enabledPasteboardTypes
+    type: array
+    value:
+      - public.utf8-plain-text
+      - public.rtf
+      - public.html
+      - public.png
+      - public.jpeg
+      - public.heic
+      - public.tiff
+  - domain: org.p0deje.Maccy
+    key: KeyboardShortcuts_popup
+    type: string
+    value: '{"carbonKeyCode":4,"carbonModifiers":768}'
+  - domain: org.p0deje.Maccy
+    key: KeyboardShortcuts_pin
+    type: string
+    value: '{"carbonKeyCode":35,"carbonModifiers":2048}'
+  - domain: org.p0deje.Maccy
+    key: KeyboardShortcuts_delete
+    type: string
+    value: '{"carbonKeyCode":51,"carbonModifiers":2048}'
+  - domain: org.p0deje.Maccy
+    key: KeyboardShortcuts_togglePreview
+    type: string
+    value: '{"carbonKeyCode":49,"carbonModifiers":4096}'
+  - domain: org.p0deje.Maccy
+    key: showSearch
+    type: bool
+    value: true
+  - domain: org.p0deje.Maccy
+    key: showTitle
+    type: bool
+    value: true
+  - domain: org.p0deje.Maccy
+    key: showFooter
+    type: bool
+    value: true
+  - domain: org.p0deje.Maccy
+    key: suppressClearAlert
+    type: bool
+    value: true
+
 BREW_PACKAGES:
   taps:
     - oven-sh/bun
@@ -194,7 +249,6 @@ BREW_PACKAGES:
     - mpv
     # Network
     - caddy
-    - nextdns
     # System / window management
     - mole
   casks:

@@ -186,7 +186,7 @@ OSX_DEFAULTS:
     type: bool
     value: true
     state: present
-  # Minimize windows into their application's icon
+  # Show indicator lights for open applications
   - domain: com.apple.dock
     key: show-process-indicators
     type: bool
@@ -198,13 +198,13 @@ OSX_DEFAULTS:
     type: float
     value: 0.1
     state: present
-  # Speed up Mission Control animations
+  # Make Dock icons of hidden applications translucent
   - domain: com.apple.dock
     key: showhidden
     type: bool
     value: true
     state: present
-  # Speed up Mission Control animations
+  # Don't show recent applications in the Dock
   - domain: com.apple.dock
     key: show-recents
     type: bool

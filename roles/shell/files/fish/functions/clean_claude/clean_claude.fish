@@ -146,7 +146,7 @@ function clean_claude --description "Remove Claude Code artifacts under a direct
 
     switch $mode
         case skills agents
-            _ui done "Removed $removed $label. Restore skills with 'kura add <name> --type skill'; agents and plugins are project-owned in Kura v0.3."
+            _ui done "Removed $removed $label. Restore one with 'kura add <name> --type "(string trim --right --chars s $mode)"', or run 'kura restore' in a project to re-link what its kura.json declares."
         case project
             if test $removed -eq 0
                 _ui done "Purged Claude state under "(_ui path "$root")"; there was no $label to remove."

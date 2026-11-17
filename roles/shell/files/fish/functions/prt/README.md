@@ -3,13 +3,16 @@
 Shortcut for the pr-track script in the `ship` skill, run straight from the agent catalog at `~/.config/kura/catalog`.
 
 ```fish
-prt                      # list tracked PRs and anything that needs you
+prt                      # list tracked PRs and anything that needs you (same as prt ls [--json])
 prt ack <ref>            # clear a PR's "needs you" items
 prt drafts <ref>         # replies drafted for teammates, to post yourself
 prt add <url>            # track a PR from its repo, merging it once ready
 prt merge <ref> [--off]  # keep tracking without merging, or see what the merge waits for
 prt rm <ref> [--force]   # stop tracking
 prt take <ref>           # apply work a rejected push left behind, then /ship
+prt events <ref>         # print the PR's pending events
+prt watch [<ref>...]     # stream new events in the foreground until every watched PR closes
+prt poll                 # one background refresh pass, as the launch agent runs it
 ```
 
 `<ref>` is the URL, or the PR number when only one tracked PR has it.

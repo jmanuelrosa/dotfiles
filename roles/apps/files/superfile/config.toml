@@ -13,7 +13,7 @@
 
 #-- File Editor
 # Default: $EDITOR
-editor = "zed"
+editor = ""
 
 #-- Directory Editor
 # 

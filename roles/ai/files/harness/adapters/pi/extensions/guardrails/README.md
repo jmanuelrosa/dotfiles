@@ -25,4 +25,3 @@ Optional rtk rewriting remains best-effort and preserves the original command on
 ## Verification
 
 Adapter behavior and policy-boundary checks are covered by `lib/python/tests/test_pi_guardrails.py`.
-The two-layer Pi permission design is documented in `docs/internals/harnesses.md`.

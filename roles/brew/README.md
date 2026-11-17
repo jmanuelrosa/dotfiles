@@ -6,7 +6,7 @@ Homebrew itself is installed by `bootstrap.sh`, because Ansible is installed thr
 ## What it does
 
 - Runs `brew update`.
-- Installs `BREW_PACKAGES.formulas`: `mas` (used by the `security` role), `ansible` and `ansible-lint` (used by `make lint` and CI), and `gitleaks` (the pre-push secret scan).
+- Installs `BREW_PACKAGES.formulas`: `mas` (used by the `security` role), `ansible` and `ansible-lint` (used by `make lint`; CI installs `ansible-lint` with pip in its own venv), and `gitleaks` (the pre-push secret scan).
 
 ## Shared package install
 

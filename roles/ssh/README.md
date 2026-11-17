@@ -6,6 +6,7 @@ Deploys SSH key pairs into `~/.ssh/`.
 
 - Ensures `~/.ssh/` exists with mode `0700`.
 - Loops over `SSH_KEYS + SSH_KEYS_EXTRA`, writing each entry's `content` to `~/.ssh/<name>` (mode `0600`) and `public` to `~/.ssh/<name>.pub` (mode `0644`).
+- On the `work` profile only, copies `files/config` to `~/.ssh/config` (mode `0600`, backing up the file it replaces) for multi-account routing.
 
 ## Vars
 

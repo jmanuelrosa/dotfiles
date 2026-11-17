@@ -33,8 +33,10 @@ See [lns usage](docs/lns.md) and the upstream [shoo documentation](https://githu
 | Per-configuration Google Cloud ADC login | [gcp_adc](files/fish/functions/gcp_adc/README.md) |
 | npm registry tokens from the login keychain, per call | [npm_token](files/fish/functions/npm_token/README.md) |
 | Pi failure capture | [pi_debug](files/fish/functions/pi_debug/README.md) |
+| Tracked PRs from the ship skill's pr-track script | [prt](files/fish/functions/prt/README.md) |
 | Directory and history pickers | [television](files/fish/functions/television/README.md) |
 | Kura skill picker helpers | [kura](files/fish/functions/kura/README.md) |
+| superfile, changing the shell to its last directory on quit | [superfile](files/fish/functions/superfile/README.md) |
 | Shared output vocabulary | [ui](files/fish/functions/ui/README.md) |
 | Git worktrees | [wt](files/fish/functions/wt/README.md) |
 

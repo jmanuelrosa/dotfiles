@@ -20,6 +20,16 @@
     force: true
   loop: "{{ AI_SCRIPTS }}"
 
+- name: Link AI app configs
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/{{ item.src }}"
+    dest: "{{ item.dest }}"
+    state: link
+    force: true
+  loop: "{{ AI_APP_LINKS }}"
+  loop_control:
+    label: "{{ item.dest }}"
+
 # --- kura ---------------------------------------------------------------------------
 #
 # Kura owns every global skill and agent link, and the native roots they live in

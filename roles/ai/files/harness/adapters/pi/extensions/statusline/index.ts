@@ -4,8 +4,8 @@
  * Pi's own footer already carries the numbers: cwd with branch, token totals, cache hit rate,
  * cost, context percentage, model, provider, thinking level. What it does not carry is any of
  * the *reading* Claude's status line does for those numbers. A context figure of `36.4%/200k`
- * is a fact; `context [▓▓▓░░░░░] 73k (36%) handoff` is the same fact with the wrap-up threshold
- * from docs/internals/context-hygiene.md applied to it, and that threshold is the whole reason
+ * is a fact; `context [▓▓▓░░░░░] 73k (36%) handoff` is the same fact with the context-hygiene
+ * wrap-up threshold applied to it, and that threshold is the whole reason
  * the gauge is worth footer width. The same goes for the toolchain: which node and which package
  * manager a session is about to shell out to is a thing pi never shows and Claude always does.
  *
@@ -345,7 +345,7 @@ const THINKING_COLORS = {
  *
  * The provider is always named, where pi names it only when more than one is configured. This
  * footer is read on a machine whose default provider routes tool calls through Cursor's own host
- * tools (docs/internals/harnesses.md), and which provider is answering decides whether the
+ * tools, and which provider is answering decides whether the
  * guardrail gates run at all, so it is never the field to drop for width.
  */
 function modelSegment(ctx: ExtensionContext, theme: Theme): string {

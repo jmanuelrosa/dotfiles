@@ -6,7 +6,6 @@ from dotkit.testing import PI, REPO
 EXTENSIONS = PI / "extensions"
 DEFAULTS = REPO / "roles" / "ai" / "defaults" / "main.yml"
 TASKS = REPO / "roles" / "ai" / "tasks" / "main.yml"
-DISABLED = {"claude-ui"}
 
 
 def task(name):
@@ -37,12 +36,11 @@ def test_every_extension_has_code_and_documentation():
         assert (directory / "README.md").read_text().startswith("# "), str(directory)
 
 
-def test_manifest_activates_every_extension_except_the_parked_experiment():
+def test_manifest_activates_every_extension():
     configured = set(yaml.safe_load(DEFAULTS.read_text())["PI_EXTENSIONS"])
     present = {path.name for path in extension_directories(EXTENSIONS)}
 
-    assert configured == present - DISABLED
-    assert configured.isdisjoint(DISABLED)
+    assert configured == present
 
 
 def test_role_links_documented_extension_directories():
