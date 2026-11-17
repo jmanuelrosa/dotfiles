@@ -258,7 +258,7 @@ gaps.outer.right =      0
     run= ["layout tiling", 'move-node-to-workspace Didomi']
 
 [[on-window-detected]]
-    if.app-id = 'company.thebrowser.Browser'
+    if.app-id = 'com.brave.Browser'
     run= ["layout tiling", 'move-node-to-workspace Pentla']
 
 [[on-window-detected]]
