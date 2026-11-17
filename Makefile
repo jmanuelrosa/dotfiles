@@ -1,4 +1,4 @@
-.PHONY: deps lint lint-static syntax check check-role run run-role test verify harness harness-check harness-apply harness-report skill-drift vm-create vm-start vm-ssh vm-destroy
+.PHONY: deps lint lint-static prepush hooks syntax check check-role run run-role test verify harness harness-check harness-apply harness-report skill-drift vm-create vm-start vm-ssh vm-destroy
 
 # Active profile. Override at the CLI: `make run PROFILE=work`.
 PROFILE ?= personal
@@ -32,6 +32,15 @@ lint-static:
 	$(SHELLCHECK) $$(bin/lint-files shell)
 	@for f in $$(bin/lint-files fish); do fish --no-execute "$$f" || exit 1; done
 	fish_indent --check $$(bin/lint-files fish)
+
+# Every check CI runs, in parallel, against the pinned agent catalog. The pre-push hook in
+# .githooks calls this; run by hand it scans every commit no remote has yet for secrets.
+prepush:
+	@uv run --quiet --no-project --with pyyaml python bin/prepush
+
+# git never activates a tracked hook on its own, so each clone runs this once.
+hooks:
+	git config core.hooksPath .githooks
 
 # Every python suite: the tools, the registries, the skill scripts, the hook, and the
 # suite layout itself. Fast, hermetic, no vault or become password.

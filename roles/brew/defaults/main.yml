@@ -6,6 +6,7 @@
 #   ansible      — bootstrap.sh installs this manually on a fresh machine,
 #                  but declaring it here keeps re-runs honest
 #   ansible-lint — used by `make lint` and CI
+#   gitleaks     - the pre-push hook's secret scan, mirroring CI
 ---
 
 BREW_PACKAGES:
@@ -13,3 +14,4 @@ BREW_PACKAGES:
     - mas
     - ansible
     - ansible-lint
+    - gitleaks
