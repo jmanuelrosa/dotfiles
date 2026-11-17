@@ -7,7 +7,6 @@ on:
 
 env:
   CI: true
-  HUSKY: 0
 
 permissions:
   contents: read
