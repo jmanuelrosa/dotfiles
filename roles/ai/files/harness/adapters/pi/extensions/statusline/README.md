@@ -16,4 +16,3 @@ A missing optional value removes only its segment.
 ## Verification
 
 Rendering, width priorities, session arithmetic, package-manager detection, and public API compatibility are covered by `lib/python/tests/test_pi_statusline.py` and `lib/python/tests/test_statusline_shared.py`.
-The ownership trade is documented in `docs/internals/harnesses.md`.

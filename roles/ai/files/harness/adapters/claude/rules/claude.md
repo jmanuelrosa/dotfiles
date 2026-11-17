@@ -12,7 +12,7 @@ The tooling, code standards and git conventions are agent-neutral and live in `A
 ## Plan mode
 
 - Plan mode writes through the `plansDirectory` setting in `settings.json`, which points at the repo's `docs/plans/`.
-- Approved plans are date-prefixed to `YYYY-MM-DD-<slug>.md` by the `plan-date-stamp.sh` hook on `ExitPlanMode`, and they are committed. Don't rename one by hand, and don't write the date into the plan's own body: the filename carries it.
+- Approved plans are date-prefixed to `YYYY-MM-DD-<slug>.md` by the `plan-date-stamp.sh` hook on `ExitPlanMode`, and they are never committed: `docs/plans/` is git-ignored. Don't rename one by hand, and don't write the date into the plan's own body: the filename carries it.
 
 ## Git & sandbox
 

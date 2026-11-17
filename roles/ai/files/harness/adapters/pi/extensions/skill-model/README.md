@@ -72,4 +72,3 @@ Refusing disallowed Cursor models belongs to [cursor-model-policy](../cursor-mod
 ## Verification
 
 Resolution, redirects, persistence and restoration are covered by `lib/python/tests/test_pi_skill_model.py` and `lib/python/tests/test_pi_model_routing.py`.
-The routing policy is documented in `docs/internals/harnesses.md`.

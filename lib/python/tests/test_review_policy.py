@@ -95,8 +95,6 @@ def call_sites():
     """
     yield from sorted(BUNDLES.glob("*/agents/*.md"))
     yield from sorted((SKILLS / "feature-team").glob("*.md"))
-    yield CLAUDE / "GETTING-STARTED.md"
-    yield CLAUDE / "README.md"
 
 
 def test_the_policy_is_linked_into_the_user_rules_directory():

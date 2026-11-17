@@ -15,4 +15,3 @@ Minion is enabled only when `MINION_ENABLE=1`.
 ## Verification
 
 The extension and unattended runtime are covered by `lib/python/tests/test_pi_minion.py`.
-The approved product behavior is specified in `docs/specs/minion.md`.
