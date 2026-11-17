@@ -14,7 +14,10 @@ $nodejs\
 $custom\
 $git_branch\
 $git_status\
+$git_state\
+$git_metrics\
 $line_break\
+$sudo\
 $character"""
 
 [sudo]
@@ -22,18 +25,9 @@ style = 'bold yellow'
 symbol = '🧙'
 disabled = false
 
-[aws]
-disabled = true
-
-[cmd_duration]
-disabled = true
-
 [env_var.STARSHIP_HUMANIZED_DURATION]
 format = "[Took $env_value]($style)\n"
 style = "dimmed white"
-
-[memory_usage]
-disabled=true
 
 [directory]
 style = "bold cyan"
@@ -49,12 +43,6 @@ truncation_symbol = "…/"
 "~/Developer/dotfiles" = "@dotfiles"
 "~/Developer/personal" = "@personal"
 "~/Developer/3bitslost" = "@3bitslost"
-
-[docker_context]
-disabled = true
-
-[gcloud]
-disabled = true
 
 [git_state]
 disabled=false
@@ -90,9 +78,6 @@ up_to_date = '✓'
 
 [line_break]
 disabled = false
-
-[mise]
-disabled = true
 
 [nodejs]
 symbol = " "

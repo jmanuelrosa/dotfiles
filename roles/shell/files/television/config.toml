@@ -69,7 +69,7 @@ show_channel_descriptions = true
 sort_alphabetically = true
 # disabled = false
 
-# Keybindings — kept close to defaults. These apply inside tv itself.
+# Keybindings: kept close to defaults. These apply inside tv itself.
 [keybindings]
 esc = "quit"
 ctrl-c = "quit"
@@ -138,7 +138,7 @@ ctrl-e = "go_to_input_end"
 mouse-scroll-up = "scroll_preview_up"
 mouse-scroll-down = "scroll_preview_down"
 
-# Shell integration — active in fish via `source $HOME/.config/television/shell/integration.fish`
+# Shell integration, active in fish via `source $HOME/.config/television/shell/integration.fish`
 # in config.fish. Powers the context-aware autocomplete and history widgets bound
 # to Ctrl-T / Ctrl-R / Alt-C.
 [shell_integration]
@@ -161,8 +161,6 @@ fallback_channel = "files"
 # "dirs" = ["ls"]
 # "files" = ["cat", "cp"]
 # ```
-"alias" = ["alias", "unalias"]
-"env" = ["export", "unset"]
 "dirs" = ["cd", "ls", "rmdir", "rm -rf", "z"]
 "files" = [
   "cat",
@@ -186,23 +184,7 @@ fallback_channel = "files"
   "gunzip",
   "xz"
 ]
-"git-diff" = ["git add", "git restore"]
-"git-branch" = [
-  "g co",
-  "git checkout",
-  "git branch",
-  "git merge",
-  "git rebase",
-  "git pull",
-  "git push",
-]
-"git-log" = ["git log", "git show"]
-"git-stash" = ["git stash"]
 "git-worktrees" = ["git worktree", "wt"]
-"docker-images" = ["docker run"]
-"git-repos" = ["zed", "code", "nvim", "hx", "git clone"]
-"text" = ["rg", "grep"]
-"ssh-hosts" = ["ssh", "scp", "rsync"]
 "kura-skills" = [
   "kura add --type skill",
   "kura remove --type skill",
