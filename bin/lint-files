@@ -8,6 +8,7 @@ Git-ignored tracked files are left out, since an edit to one cannot be committed
 `git add -f`.
 """
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -58,7 +59,8 @@ def main():
     excluded = SKIPPED.get(wanted, ())
     for name in filter(None, tracked):
         path = Path(name)
-        if name in ignored or is_under(path, excluded):
+        # A deletion not yet staged is still in the index, and ruff fails on a missing path.
+        if name in ignored or is_under(path, excluded) or not os.path.exists(ROOT / path):
             continue
         if language(path) == wanted:
             print(path)

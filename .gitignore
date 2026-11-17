@@ -4,7 +4,6 @@ vault_pass
 
 # AI docs
 docs/plans/*
-!docs/plans/2026-10-06-bundle-registry-metadata.md
 docs/specs
 docs/research
 /tasks
@@ -13,6 +12,7 @@ docs/research
 /.agents/
 /.claude/
 /.pi/agents/
+/.pi/agent-memory/
 
 # logs
 *.log

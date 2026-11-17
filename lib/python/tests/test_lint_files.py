@@ -41,3 +41,13 @@ def test_git_ignored_tracked_files_are_skipped():
         pytest.skip("no tracked file is git-ignored")
     leaked = sorted(ignored & files("markdown"))
     assert not leaked, f"git-ignored files reached the markdown linter: {leaked}"
+
+
+def test_unstaged_deletions_are_skipped():
+    result = subprocess.run(["git", "ls-files", "--deleted"], cwd=REPO, capture_output=True, text=True, check=True)
+    deleted = {Path(line) for line in result.stdout.splitlines()}
+    if not deleted:
+        pytest.skip("no tracked file is deleted from the working tree")
+    for language in ("markdown", "python", "shell", "fish"):
+        leaked = sorted(deleted & files(language))
+        assert not leaked, f"deleted files reached the {language} linter: {leaked}"

@@ -7,7 +7,6 @@ on:
 
 env:
   CI: true
-  HUSKY: 0
 
 permissions:
   contents: read
@@ -64,9 +63,9 @@ jobs:
       # No vault password needed: these tests read registries and drive the fish
       # functions against a throwaway HOME, never the playbook.
       #
-      # The roots come from pytest.ini, so this covers claude-kit, the registries, the
-      # skill scripts, the git hook and the suite layout itself. It once named a single
-      # path and reported success while four suites were not being collected at all.
+      # The roots come from pytest.ini, so this covers the harness and its hooks, the
+      # registries, the role scripts, the fish functions and the suite layout itself. It once
+      # named a single path and reported success while four suites were not being collected.
       - name: Run tests
         env:
           PYTHONDONTWRITEBYTECODE: "1"
