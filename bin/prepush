@@ -1,0 +1,197 @@
+#!/usr/bin/env python3
+"""Run the checks CI runs, before a push leaves the machine.
+
+.githooks/pre-push calls this through `make prepush` with git's pushed refs on stdin, so
+the secret scan covers exactly the commits being pushed. Run by hand, stdin is a terminal
+and the scan covers every commit no remote has yet.
+
+The tests run against the agent-catalog commit the ai role pins, as CI does, rather than
+whatever the local clone has checked out, so a local pass means a CI pass.
+
+Inside an agent sandbox the tools' home directories are read-only, so each is pointed at
+a scratch directory instead. Outside one nothing is redirected.
+"""
+
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+
+import yaml
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "lib/python"))
+from dotkit import ui
+
+AI_DEFAULTS = ROOT / "roles/ai/defaults/main.yml"
+HARNESS = Path("roles/ai/files/harness")
+PROFILES = ROOT / "host_vars"
+SCRATCH = Path(tempfile.gettempdir()) / "dotfiles-prepush"
+UNPUSHED = ["HEAD", "--not", "--remotes"]
+REQUIRED = ("gitleaks", "ansible-lint", "uv", "fish")
+
+
+def git(*args, cwd=ROOT, check=True):
+    return subprocess.run(
+        ["git", *args], cwd=cwd, capture_output=True, text=True, check=check
+    ).stdout.strip()
+
+
+def is_null(sha):
+    return set(sha) == {"0"}
+
+
+def has_commit(repository, sha):
+    return subprocess.run(
+        ["git", "cat-file", "-e", f"{sha}^{{commit}}"], cwd=repository, capture_output=True
+    ).returncode == 0
+
+
+def pushed_ranges(lines):
+    """`git log` arguments for each pushed ref, empty when every ref is a deletion.
+
+    Every commit no remote has yet, rather than remote..local: commits already on the
+    remote branch drop out on their own, and nothing depends on the remote tip being here.
+    """
+    ranges = []
+    for line in lines:
+        fields = line.split()
+        if len(fields) != 4 or is_null(fields[1]):
+            continue
+        ranges.append([fields[1], "--not", "--remotes"])
+    return ranges
+
+
+def pinned_catalog():
+    """A checkout of the pinned catalog commit, cloned from the local catalog when it has it."""
+    pin = yaml.safe_load(AI_DEFAULTS.read_text())["AGENT_CATALOG"]
+    commit = pin["commit"]
+    target = SCRATCH / f"agent-catalog-{commit}"
+    if (target / ".git").is_dir() and git("rev-parse", "HEAD", cwd=target, check=False) == commit:
+        return target
+    subprocess.run(["rm", "-rf", str(target)], check=True)
+    local = Path(pin["path"].replace("{{ HOME }}", str(Path.home())))
+    if local.is_dir() and has_commit(local, commit):
+        git("clone", "--quiet", "--shared", "--no-checkout", str(local), str(target))
+    else:
+        target.mkdir(parents=True)
+        git("init", "--quiet", cwd=target)
+        git("fetch", "--quiet", "--depth", "1", pin["repository"], commit, cwd=target)
+    git("checkout", "--quiet", "--detach", commit, cwd=target)
+    return target
+
+
+def render_root():
+    """The harness path the committed renders name: the main checkout's, even from a worktree."""
+    main = Path(git("rev-parse", "--path-format=absolute", "--git-common-dir")).parent
+    try:
+        return "~/" + str((main / HARNESS).relative_to(Path.home()))
+    except ValueError:
+        return str(main / HARNESS)
+
+
+def writable(path):
+    path = Path(path).expanduser()
+    while not path.exists():
+        path = path.parent
+    return os.access(path, os.W_OK)
+
+
+def sandbox_redirects():
+    env = {}
+    ansible_home = Path(os.environ.get("ANSIBLE_HOME", "~/.ansible")).expanduser()
+    if not writable(ansible_home):
+        env["ANSIBLE_HOME"] = str(SCRATCH / "ansible")
+        env["ANSIBLE_LOCAL_TEMP"] = str(SCRATCH / "ansible/tmp")
+        env.setdefault("ANSIBLE_COLLECTIONS_PATH", str(ansible_home / "collections"))
+    uv_tools = output_of(["uv", "tool", "dir"])
+    if uv_tools and not writable(uv_tools):
+        env["UV_TOOL_DIR"] = str(SCRATCH / "uv-tools")
+    return env
+
+
+def output_of(command):
+    result = subprocess.run(command, capture_output=True, text=True)
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def checks(ranges, env):
+    found = [
+        ("Markdown, Python, Shell & Fish lint", ["make", "--no-print-directory", "lint-static"]),
+        ("Ansible lint", ["ansible-lint", "--offline"]),
+        *(
+            (f"Syntax check ({profile})", ["make", "--no-print-directory", "syntax", f"PROFILE={profile}"])
+            for profile in sorted(p.stem for p in PROFILES.glob("*.yml"))
+        ),
+        ("Python & Fish tests", ["make", "--no-print-directory", "test"]),
+    ]
+    for log_opts in ranges:
+        found.insert(0, (
+            f"Secret scan ({' '.join(log_opts)})",
+            ["gitleaks", "git", "--no-banner", "--redact", f"--log-opts={' '.join(log_opts)}", "."],
+        ))
+    return [(name, command, env) for name, command in found]
+
+
+def run(name, command, env):
+    result = subprocess.run(
+        command, cwd=ROOT, env=env, stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+    )
+    return name, result.returncode, result.stdout
+
+
+def main():
+    lines = [] if sys.stdin.isatty() else sys.stdin.read().splitlines()
+    ranges = pushed_ranges(lines) if lines else [UNPUSHED]
+    if not ranges:
+        return 0
+
+    missing = [tool for tool in REQUIRED if not shutil.which(tool)]
+    if missing:
+        ui.err(f"Missing {', '.join(missing)}")
+        ui.note("make run-role ROLE=brew installs them, or push with --no-verify to skip", stream=sys.stderr)
+        return 1
+
+    if git("status", "--porcelain"):
+        ui.warn("Uncommitted changes: these checks see the working tree, not only what is pushed")
+
+    SCRATCH.mkdir(parents=True, exist_ok=True)
+    ui.step("Checking out the pinned agent catalog")
+    env = {
+        **os.environ,
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "AGENT_CATALOG": str(pinned_catalog()),
+        "HARNESS_RENDER_ROOT": render_root(),
+        **sandbox_redirects(),
+    }
+
+    ui.title("🚦 Pre-push checks")
+    failures = []
+    with ThreadPoolExecutor() as pool:
+        for future in as_completed([pool.submit(run, *check) for check in checks(ranges, env)]):
+            name, code, output = future.result()
+            if code == 0:
+                ui.ok(name)
+            else:
+                ui.err(name)
+                failures.append((name, output))
+
+    for name, output in failures:
+        ui.blank()
+        ui.title(name)
+        print(output.rstrip())
+
+    ui.blank()
+    if failures:
+        ui.err(f"{len(failures)} check(s) failed; fix them, or push with --no-verify to skip")
+        return 1
+    ui.done("Every CI check passed")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

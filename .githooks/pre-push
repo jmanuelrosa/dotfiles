@@ -1,0 +1,3 @@
+#!/bin/sh
+# git hands the pushed refs over on stdin, and bin/prepush scans exactly those commits for secrets.
+exec make --no-print-directory prepush
