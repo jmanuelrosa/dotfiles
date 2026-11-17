@@ -23,7 +23,7 @@ BREW_PACKAGES:
     - drawio
 
 # Directories symlinked into Pi's global extension root. Every entry contains the
-# auto-discovered index.ts and a README; claude-ui is deliberately not active.
+# auto-discovered index.ts and a README.
 PI_EXTENSIONS:
   - cc-batch
   - cc-fewer-permission-prompts
@@ -78,12 +78,22 @@ AGENT_CATALOG:
 # into its own repository is this one edit.
 HARNESS_DIR: "{{ role_path }}/files/harness"
 
-# Directories the role writes into that belong to no harness: kura's config and the
-# bin directory the scripts and the kura release land in.
+# Directories the role writes into that belong to no harness: kura's config, the bin
+# directory the scripts and the kura release land in, and the AI apps' config dirs.
 AI_DIRS:
   - "{{ HOME }}/.config/kura"
   - "{{ HOME }}/.local/bin"
   - "{{ HOME }}/Library/LaunchAgents"
+  - "{{ HOME }}/Library/Application Support/Cursor/User/snippets"
+
+# App configs, kept apart from the harness payload. `src` is relative to files/.
+AI_APP_LINKS:
+  - src: cursor/settings.json
+    dest: "{{ HOME }}/Library/Application Support/Cursor/User/settings.json"
+  - src: cursor/keybindings.json
+    dest: "{{ HOME }}/Library/Application Support/Cursor/User/keybindings.json"
+  - src: cursor/snippets/clg.code-snippets
+    dest: "{{ HOME }}/Library/Application Support/Cursor/User/snippets/clg.code-snippets"
 
 PR_TRACK:
   label: dotfiles.pr-track

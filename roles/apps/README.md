@@ -5,10 +5,11 @@ Catch-all role for desktop apps and their configs. Browsers, chat apps, dev tool
 ## What it does
 
 1. Installs the taps, formulas and casks declared in `BREW_PACKAGES` through the shared `roles/brew/tasks/packages.yml`.
-2. Creates `APPS_DIRS` and links every config in `APPS_LINKS` (git, lazygit, superfile, npm, gh, gh-dash, diffnav, pgcli, herdr, Caddy, Neovim, VSCode, Docker, Colima, lazydocker, dive, Triage, AeroSpace).
+2. Creates `APPS_DIRS` and links every config in `APPS_LINKS` (git, lazygit, superfile, npm, gh, gh-dash, diffnav, pgcli, herdr, Caddy, Neovim, VSCode, Docker, Colima, act, lazydocker, dive, Triage, AeroSpace), then writes the plist preferences in `APPS_OSX_DEFAULTS` (Maccy).
 3. Links each tool in `APPS_SCRIPTS` into `~/.local/bin/`, and creates one private Sentry config dir per account plus the map the `sentry` wrapper reads.
-4. Fails with login instructions when `gh` is not authenticated, then installs the `GH_EXTENSIONS`.
-5. Installs the npm-only `cf` Cloudflare CLI with bun, and the missing `VSCODE_EXTENSIONS`.
+4. Creates the empty `GCLOUD_NEUTRAL_CONFIG` gcloud configuration, leaving an existing one untouched, and makes it the global active configuration.
+5. Fails with login instructions when `gh` is not authenticated, then installs the `GH_EXTENSIONS`.
+6. Installs the npm-only `cf` Cloudflare CLI with bun, and the missing `VSCODE_EXTENSIONS`.
 
 Caddy is never started or registered at boot: `lokl start` and `lokl stop` run it on demand.
 
@@ -16,9 +17,11 @@ Caddy is never started or registered at boot: `lokl start` and `lokl stop` run i
 
 - `BREW_PACKAGES`: taps, formulas, casks for browsers, dev tools, databases, infra, multimedia, system, and other apps.
 - `APPS_DIRS`, `APPS_LINKS`: the directories to create and the configs to link, `src` relative to `files/`.
+- `APPS_OSX_DEFAULTS`: `domain`, `key`, `type` and `value` of each app preference written with `defaults`, the same shape as the macos role's `OSX_DEFAULTS`.
 - `APPS_SCRIPTS`, `GH_EXTENSIONS`, `VSCODE_EXTENSIONS`: linked tools, gh extensions as `repository` plus pinned `release` tag, VSCode extension IDs.
 - `CF_CLI`: the npm package and exact version of Cloudflare's `cf`, reinstalled whenever the installed version differs.
 - `SENTRY_ACCOUNTS`: account `name` and the directory `roots` it claims. `SENTRY_ACCOUNTS_DIR` is where their config dirs live.
+- `GCLOUD_CONFIG_DIR`, `GCLOUD_NEUTRAL_CONFIG`: gcloud's config directory and the empty configuration made globally active, so a command outside a gcloud-profiles mapping fails instead of writing into a work configuration.
 - `CADDYFILE_PATH`: where Homebrew's caddy reads its config; the site directory is linked beside it.
 
 > **Convention**: prefer brew when a formula exists. There's no `NPM_PACKAGES` mechanism here today: if a future tool only ships via npm with no brew alternative, re-add a thin `tasks/npm-packages.yml` driven by an `NPM_PACKAGES` list.
@@ -128,6 +131,29 @@ CPU and memory changes take effect after a stop/start; Colima marks architecture
 Colima saves startup configuration through the symlink into the repository, preserving changes made with CLI flags.
 Its YAML writer adds trailing spaces to blank lines, so `.gitattributes` and `.yamllint` exempt only this file from trailing-space checks; other validation remains enabled.
 Use `colima start --save-config=false` only when startup changes should not persist.
+
+## Maccy
+
+`APPS_OSX_DEFAULTS` restores the history size, menu bar icon, clipboard types, keyboard shortcuts and popup layout.
+Maccy is sandboxed, so `defaults` writes into its container, which macOS creates on the first launch.
+On a new machine, launch Maccy once and quit it before `make run-role ROLE=apps`, then grant Accessibility access when it asks so paste works.
+After changing a setting in Maccy, read it with `defaults read org.p0deje.Maccy` and update `APPS_OSX_DEFAULTS`.
+
+## Unmanaged settings
+
+These apps are installed but their settings are not restored, for the reason given.
+
+| App | Why | Manual step |
+|---|---|---|
+| mpv, VLC, SF Symbols, mole | Nothing customized: no `mpv.conf`, VLC's `vlcrc` holds only the volume and audio device, SF Symbols and mole store only window frames and a log | Import the file into `files/` and link it the first time a setting changes |
+| ImageMagick | CLI with no user configuration | None |
+| Brave | The profile's `Preferences` mixes settings with account, history and machine state | Turn on Brave Sync for settings and extensions |
+| Slack, Discord, WhatsApp, Notion, Figma, TradingView, Spotify | Settings live in the account or in Electron storage beside sessions and caches; Spotify's `prefs` and Figma's `settings.json` also hold login and client ids | Sign in; settings follow the account |
+| Bitwarden | `data.json` keeps app settings in the same file as access tokens, key material and the account email | Sign in, then re-enable unlock with Touch ID and the browser integration |
+| Logi Options+ | Proprietary store | Sign in to Logi and restore from its cloud backup |
+| Bruno | `preferences.json` holds proxy and cloud credential fields beside window state, and collections carry environments and secrets | Re-open the collections from their repositories |
+| DBeaver | `data-sources.json` holds connections and credentials, and the workspace `.prefs` mix settings with machine paths and update timestamps | Use **File > Export > Preferences** and **File > Import** for settings; add connections by hand |
+| Wrangler | Its global config holds the OAuth login | Run `wrangler login` |
 
 ## Notes
 

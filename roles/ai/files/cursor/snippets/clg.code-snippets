@@ -1,0 +1,10 @@
+{
+	"Debug Console Log": {
+		"scope": "javascript,javascriptreact,typescript,typescriptreact",
+		"prefix": "clg",
+		"body": [
+			"console.log('DEBUG ${1:${TM_SELECTED_TEXT}}', ${1:${TM_SELECTED_TEXT}});"
+		],
+		"description": "Insert console.log debug with selected variable"
+	}
+}

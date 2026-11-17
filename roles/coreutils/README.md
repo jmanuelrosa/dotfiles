@@ -37,6 +37,16 @@ Installs modern replacements for traditional Unix utilities, plus the configs th
 
 - `files/bat/config`, `files/ripgrep/config`, `files/eza/theme.yml`, `files/btop/btop.conf`, `files/fastfetch/config.jsonc`, `files/glow/glow.yml`, `files/glow/solarized-dark.json` - checked-in configs symlinked into `~/.config/`.
 
+## Unmanaged settings
+
+These tools are installed but have no settings to restore, for the reason given.
+
+| App | Why | Manual step |
+|---|---|---|
+| httpie | No `~/.config/httpie/config.json`; it runs on defaults | Import the file into `files/` and add it to `COREUTILS_CONFIGS` the first time a default changes |
+| duf, scc, hyperfine | No config file; every option is a command-line flag | None |
+| vnstat | `$(brew --prefix)/etc/vnstat.conf` is identical to the bottle's default, and the traffic database is machine-local data | Start the daemon once with `sudo brew services start vnstat` so it collects traffic |
+
 ## Notes
 
 Configs are symlinked with `force: true` — edits in the repo are immediately reflected in `~/.config/`.

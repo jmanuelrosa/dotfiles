@@ -1,6 +1,8 @@
 # ai
 
-Installs and configures AI tooling: Claude Code, Pi (`@earendil-works/pi-coding-agent`, brewed as `pi-coding-agent`), Codex CLI, ChatGPT desktop, Cursor and Ollama.
+Installs and configures AI tooling: Claude Code, Pi (`@earendil-works/pi-coding-agent`, brewed as `pi-coding-agent`), ChatGPT desktop and Cursor.
+Pi reaches Ollama Cloud through `models.json`, with no local Ollama install.
+The Codex adapter is still rendered, but its cask and its `HARNESS_ENABLED` entry are commented out, so Codex is neither installed nor linked.
 
 ## Layout
 
@@ -23,8 +25,9 @@ Claude's `settings.json` is merged key by key rather than written whole, because
 
 ## What it does
 
-- Installs pi-coding-agent, rtk and uv, plus casks for ChatGPT, Claude, Claude Code, Codex and Cursor, via `BREW_PACKAGES`.
+- Installs pi-coding-agent, rtk and uv, plus casks for ChatGPT, Claude, Claude Code and Cursor, via `BREW_PACKAGES`.
 - Installs the draw.io Desktop cask so the `diagram` skill can export `.drawio` sources to SVG and PNG with the `drawio` command. It is used as a headless exporter only: its preferences under `~/Library/Application Support/draw.io/` stay at their defaults and are not tracked.
+- Links Cursor's user `settings.json`, `keybindings.json` and the `clg` snippet from `files/cursor/` into `~/Library/Application Support/Cursor/User/` through `AI_APP_LINKS`, kept apart from the harness payload. Edits made in Cursor's settings UI land in the repo. Extensions are not installed by the role.
 - Links each enabled harness's files from `HARNESS_LINKS`: `~/.claude/` for Claude Code, `~/.pi/agent/` for Pi, `~/.codex/` for Codex. Kura owns the global skill and agent links. The neutral `AGENTS.md` is Claude's `~/.claude/CLAUDE.md`, Pi's `~/.pi/agent/AGENTS.md` and Codex's `~/.codex/AGENTS.md`.
 - Renders the shared `mcp.json` with Pi's Slack OAuth settings into `adapters/pi/generated/mcp.json` and links it to Pi's native `~/.pi/agent/mcp.json`. Claude and Codex receive the shared servers. The draw.io server is the hosted `https://mcp.draw.io/mcp` endpoint, used by the `diagram` skill for draw.io's XML reference and shape search; it needs no sign-in. Notion's existing MCP tool denies remain in force for Claude and Pi. Run `pi mcp list`, sign in with `pi mcp login <server>` as needed, then `/reload` in Pi.
 - Runs `harness-build apply` for each enabled harness among Claude and Codex. For Claude it merges the shared MCP servers into `~/.claude.json`. For Codex it merges owned keys and MCP server names into `~/.codex/config.toml` and writes `~/.codex/rules/dotfiles.rules` as a real file. Neither is a link, because Codex writes both locations itself. After a first run, trust the two hooks once in Codex's `/hooks`.
@@ -34,12 +37,12 @@ Claude's `settings.json` is merged key by key rather than written whole, because
 - Pi's Cursor models come from the `npm:pi-cursor-sdk` package in `adapters/pi/settings.json`, not from a `cursor` block in `models.json`, which is only for HTTP APIs Pi already speaks. Auth is a Cursor SDK API key saved once with `/login` (or `CURSOR_API_KEY`), then `/cursor-refresh-models` if you logged in after startup. Desktop/CLI login is not reused, and the key stays out of the repo.
 - Cursor-backed tool failures only ever show a canned reason (`missing completion`, `aborted`, `SDK run failed`, `run ended during drain`). `pi_debug` and `pi_last_error`, from the shell role's fish functions, launch pi with the package's debug capture on and print the real error back afterward.
 - Links `adapters/pi/APPEND_SYSTEM.md` rather than a `SYSTEM.md`, because Pi reads the latter as a *replacement* for its own system prompt.
-- Links the extension directories named by `PI_EXTENSIONS` into `~/.pi/agent/extensions/`, where Pi discovers each `index.ts`. Every directory carries a README explaining why it exists, what it owns and how it is verified. The `claude-ui` experiment is documented in the source tree but left out of the manifest, so it is not loaded.
+- Links the extension directories named by `PI_EXTENSIONS` into `~/.pi/agent/extensions/`, where Pi discovers each `index.ts`. Every directory carries a README explaining why it exists, what it owns and how it is verified.
 - Gives Pi the same two permission layers Claude has: `adapters/pi/sandbox.json` for `pi-sandbox`, the layer that *contains*, and `adapters/pi/permission-system/config.json` for `@gotgenes/pi-permission-system`, the layer that *decides*. Both are rendered from `policy/`. The permission package is the one `packages` entry pinned to a version, because its breaking releases are fail-closed corrections that `pi update` must not move.
 - `statusline.json` holds the values Claude's status line and Pi's footer both render, so a threshold or glyph is written once.
 - `trusted-remotes.json` lists the `host/namespace` remotes whose own lint and typecheck `pre-commit-verify.sh` will run; anywhere else it skips them.
 - Runs `herdr integration install` for each enabled harness among Claude and Pi, each only when `herdr integration status` does not report it current, so a herdr upgrade that ships a newer hook reinstalls on the next run.
-- Links each tool named in `AI_SCRIPTS` into `~/.local/bin/`, from `files/scripts/<name>/<name>`. Today that is `tokencost`, which prices a stretch of work from the session transcripts: `tokencost <project>` buckets Claude Code spend by skill, and `tokencost --pi <project>` buckets Pi's by `provider/model`, using the cost Pi recorded rather than a rate table.
+- Links each tool named in `AI_SCRIPTS` into `~/.local/bin/`, from `files/scripts/<name>/<name>`. Today those are `skill-drift`, which lists the upstream commits since each pinned skill SHA that touch a vendored skill, and `tokencost`, which prices a stretch of work from the session transcripts: `tokencost <project>` buckets Claude Code spend by skill, and `tokencost --pi <project>` buckets Pi's by `provider/model`, using the cost Pi recorded rather than a rate table.
 - Installs the `dotfiles.pr-track` launch agent from `templates/pr-track.plist.j2`, which runs the pr-track script from the catalog's `ship` skill every `PR_TRACK.interval` seconds and logs to `PR_TRACK.log`. It polls only the PRs `/ship` or `/pr` were told to track and starts the agent that shipped a PR only for events it can act on, inside a scratch worktree. The script then commits, pushes the PR's own branch (never forced, never the base or default branch), replies to bots and drafts replies to teammates, and merges the PR once the host says it can (squash when the repo allows it, otherwise the repo's strategy). It notifies only for judgment calls, stuck runs, requested changes, failed merges, and a PR being merged or closed. That push is the one push outside `/ship` and `/pr`: the poller runs from launchd, not as an agent tool call, so `git-skill-gate.sh` never sees it, and the agent it starts has no commit or push permission of its own. The plist carries the playbook's `PATH`, because launchd gives a job none of the shell's. The first notification may need allowing for Script Editor in System Settings, Notifications. `prt` in the shell role is the command line for it.
 - Installs `kura` from its own repository: `get_url` fetches the release pinned in `KURA` to `~/.local/bin/kura` and verifies the checksum, so an upgrade and a rollback are the same edit in opposite directions.
 - Links kura's machine config from `files/harness/kura/config.json` to `~/.config/kura/config.json` (Claude Code and Pi are the global harnesses, with Pi's installed subagent extension reading `.pi/agents` in projects), clones the catalog named in `AGENT_CATALOG` to `~/Developer/agent-catalog`, and links `~/.config/kura/catalog` to that clone. The clone is made once and never pulled or reset (`update: false`), because `kura update` edits it in place and those edits are committed from the clone. Then runs `kura sync`, which creates the native skill and agent roots and links every global artifact into them.
@@ -73,8 +76,19 @@ Claude's SessionStart hook runs `kura converge --quiet` when the cwd holds a `ku
 - `HARNESS_DIR`, `HARNESS_ENABLED`, `HARNESS_LINKS`: where the payload is, which harnesses a machine gets, and what each one links.
 - `PI_EXTENSIONS`, `AI_SCRIPTS`, `KURA`: the Pi extension manifest, the linked scripts, and the pinned kura release.
 - `AGENT_CATALOG`: the catalog's repository URL, the path it is cloned to, and the `commit` CI tests against.
+- `AI_DIRS`: the directories the role creates outside any harness home, for kura's config, the linked scripts and kura release, the pr-track launch agent, and Cursor's snippets.
+- `AI_APP_LINKS`: app configs linked from `files/`, today Cursor's.
 - `PR_TRACK`: the poller's launchd label, script path, interval and log file.
 - **There is no var for the global artifact set.** `kura sync` derives it from `global: true` in both registries and expands declared dependencies.
+
+## Unmanaged settings
+
+These apps are installed but their settings are not restored, for the reason given.
+
+| App | Why | Manual step |
+|---|---|---|
+| ChatGPT | Preferences sync with the OpenAI account; the local plist holds only default shortcuts, per-account caches, device ids and window state | Sign in |
+| Claude (desktop) | `claude_desktop_config.json` declares no MCP servers and mixes the few UI toggles with account-keyed entries and a local path the app rewrites; the plist holds only window state | Sign in, then set the menu bar and quick-entry options in Settings |
 
 ## Notes
 
