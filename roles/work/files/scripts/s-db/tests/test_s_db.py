@@ -11,6 +11,7 @@ STAGING_INSTANCES = {
     "didomi": "addingwell-dev-326312:europe-west1:addingwell-dev-postgres",
     "pentla": "pentla-staging:europe-west1:pentla-api-staging-db",
 }
+PRODUCTION_INSTANCE = "addingwell-prod:europe-west1:addingwell-prod-postgres-13"
 
 
 @pytest.fixture
@@ -198,10 +199,12 @@ def test_background_proxy_selects_named_configuration(run_db, tmp_path, selectio
     assert log.is_file()
     assert calls["proxy"] == [
         "pentla" if selection else "didomi",
-        "--gcloud-auth",
+        "--auto-iam-authn",
+        f"--quota-project={PRODUCTION_INSTANCE.split(':')[0]}",
+        "--run-connection-test",
         "--port",
         "5434",
-        "addingwell-prod:europe-west1:addingwell-prod-postgres-13",
+        PRODUCTION_INSTANCE,
     ]
     if command[0] == "dump":
         assert calls["pg"][0] == "didomi"
@@ -263,15 +266,35 @@ def test_proxy_failure_does_not_report_a_connection_or_dump(run_db, command, err
     assert "roles/cloudsql.instanceUser" in result.stderr
 
 
-def test_production_keeps_the_postgres_user(run_db):
+@pytest.mark.parametrize("command", [["production"], ["production", "--detach"]])
+def test_production_connects_with_iam_only(run_db, command):
+    result, calls = run_db(*command, background="--detach" in command)
+    assert result.returncode == 0, result.stderr
+    assert "--gcloud-auth" not in calls["proxy"]
+    assert "User: didomi@didomi.test" in result.stdout
+    assert "Password: none, the proxy signs in with IAM" in result.stdout
+    assert "gcp_adc login didomi" in result.stdout
+
+
+def test_production_dump_signs_in_as_the_configuration_account(run_db):
     result, calls = run_db("dump", "production", background=True)
     assert result.returncode == 0, result.stderr
-    assert "--auto-iam-authn" not in calls["proxy"]
-    assert "--username=postgres" in calls["pg"]
+    assert "--username=didomi@didomi.test" in calls["pg"]
+    assert "--username=postgres" not in calls["pg"]
+    assert not any(arg.startswith("--password") for arg in calls["pg"])
 
 
-@pytest.mark.parametrize("command", [["staging"], ["dump", "staging"]])
-def test_staging_without_a_signed_in_account_stops_before_the_proxy(run_db, command):
+def test_production_without_adc_does_not_start_the_proxy(run_db):
+    result, calls = run_db("production", missing_adc=True)
+    assert result.returncode != 0
+    assert "gcp_adc login didomi" in result.stderr
+    assert calls == {"proxy": [], "pg": []}
+
+
+@pytest.mark.parametrize(
+    "command", [["staging"], ["dump", "staging"], ["production"], ["dump", "production"]]
+)
+def test_proxied_environment_without_a_signed_in_account_stops_before_the_proxy(run_db, command):
     result, calls = run_db(*command, signed_out=True)
     assert result.returncode != 0
     assert "No account is signed in to the 'didomi' gcloud configuration" in result.stderr

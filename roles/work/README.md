@@ -64,7 +64,7 @@ A script is its own process and cannot `cd` the shell that ran it, so landing in
 
 | env | port | proxy | user | role |
 |---|---|---|---|---|
-| `production` | 5434 | yes | `postgres` | - |
+| `production` | 5434 | yes | the gcloud account's email (IAM) | - |
 | `staging` | 5433 | yes | the gcloud account's email (IAM) | - |
 | `local` | 5432 | no | `testuser` | `testuser` |
 
@@ -73,12 +73,12 @@ They inherit the directory-selected `CLOUDSDK_ACTIVE_CONFIG_NAME`, falling back 
 `s-db staging --account pentla` or `s-db dump staging --account pentla` overrides both the target and credential selection.
 Pentla staging targets `pentla-staging:europe-west1:pentla-api-staging-db` and database `pentla`; default Addingwell staging remains `addingwell-dev-326312:europe-west1:addingwell-dev-postgres`.
 Production targets are unchanged, including when selecting the `pentla` configuration.
-Connection details identify the project, instance, database and selected account's IAM username for staging.
-Production proxies use `--gcloud-auth` with a process-scoped `CLOUDSDK_ACTIVE_CONFIG_NAME`, so credentials come from that configuration's signed-in account, refresh through the CLI, and leave the globally active configuration unchanged.
+Connection details identify the project, instance, database and selected account's IAM username.
+Production and staging accept IAM database authentication only, so there is no password path and no `--gcloud-auth` mode.
 A running proxy is reused with its original credentials; stop it using the printed `kill` command before selecting another account.
-Staging signs in with IAM database authentication using `--auto-iam-authn` and Application Default Credentials (ADC); the proxy rejects combining this flag with `--gcloud-auth`.
+Both sign in with IAM database authentication using `--auto-iam-authn` and Application Default Credentials (ADC), with a process-scoped `CLOUDSDK_ACTIVE_CONFIG_NAME` that leaves the globally active configuration unchanged.
 The database user is the email signed in to the selected configuration, read with `gcloud config get-value account`, with an empty password.
-Staging selects the profile's ADC file at `~/.config/gcloud-profiles/adc/<configuration>/application_default_credentials.json`, overriding an inherited credential-file selection for the proxy process.
+The proxy selects the profile's ADC file at `~/.config/gcloud-profiles/adc/<configuration>/application_default_credentials.json`, overriding an inherited credential-file selection for the proxy process.
 Set it up explicitly with `gcp_adc login didomi` or `gcp_adc login pentla`.
 The helper signs in using the named configuration's account, isolates its SDK directory, and leaves shared ADC and the caller's environment unchanged.
 If the profile has no readable ADC file, an interactive connection asks before login; declining or running without a terminal stops with the setup command.
@@ -89,8 +89,7 @@ Startup failures print the original proxy error and IAM setup guidance.
 An administrator must enable IAM database authentication, add the IAM user with database privileges, and grant `roles/cloudsql.client`, `roles/cloudsql.instanceUser`, and `roles/serviceusage.serviceUsageConsumer` on the target project.
 Login does not grant these permissions.
 A detached startup reports the process PID, not a verified database login; follow its printed log path for failures after launch.
-Staging stops before starting the proxy when the selected CLI configuration has no account signed in.
-Production still uses `postgres` with the shared password.
+Production and staging stop before starting the proxy when the selected CLI configuration has no account signed in.
 Local connections, local dumps and restores need no Google Cloud credentials.
 
 `local` is the environment added for these subcommands, and it is the one with nothing to connect: `s-db local` says so and exits 0 rather than treating it as an error.
