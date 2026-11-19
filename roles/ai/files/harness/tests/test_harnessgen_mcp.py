@@ -28,6 +28,7 @@ def harness(tmp_path, monkeypatch):
         target.parent.mkdir(parents=True, exist_ok=True)
         (shutil.copytree if source.is_dir() else shutil.copy)(source, target)
     inventory(tmp_path / "source", FIXTURE_SERVERS)
+    claude_excludes(tmp_path / "source", ["slack"])
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     return tmp_path / "source", tmp_path / "home"
 
