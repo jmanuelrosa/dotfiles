@@ -51,14 +51,14 @@ function usage
     echo "Connects the Cloud SQL proxy, dumps a database, or loads a dump into local."
     echo ""
     echo "Environments:"
-    echo "  production  - Port 5434, via the Cloud SQL proxy"
+    echo "  production  - Port 5434, via the Cloud SQL proxy, IAM login as the gcloud account"
     echo "  staging     - Port 5433, via the Cloud SQL proxy, IAM login as the gcloud account"
     echo "  local       - Port 5432, already on localhost, no proxy"
     echo ""
     echo "connect / dump options:"
     echo "  -a, --account NAME Named gcloud configuration (default: $GCLOUD_CONFIG)"
     echo "  Defaults to the directory-selected configuration, or didomi when none is selected."
-    echo "  Staging uses per-configuration Application Default Credentials (ADC)."
+    echo "  Production and staging use per-configuration Application Default Credentials (ADC)."
     echo "  Sign in explicitly, or accept the prompt when credentials are missing:"
     echo "    gcp_adc login $GCLOUD_CONFIG"
     echo ""
@@ -127,9 +127,7 @@ end
 
 function get_user
     switch $argv[1]
-        case production
-            echo postgres
-        case staging
+        case production staging
             gcloud_account
         case local
             echo testuser
@@ -147,27 +145,13 @@ function require_user
     end
 end
 
-# Production still signs in with the shared postgres password.
-function uses_iam_auth
-    switch $argv[1]
-        case staging
-            return 0
-        case '*'
-            return 1
-    end
-end
-
 function proxy_flags
-    if uses_iam_auth $argv[1]
-        set -l project (string split -f 1 : -- (get_instance $argv[1]))
-        printf '%s\n' --auto-iam-authn --quota-project=$project --run-connection-test
-    else
-        echo --gcloud-auth
-    end
+    set -l project (string split -f 1 : -- (get_instance $argv[1]))
+    printf '%s\n' --auto-iam-authn --quota-project=$project --run-connection-test
 end
 
 function prepare_iam_auth
-    uses_iam_auth $argv[1]; or return 0
+    needs_proxy $argv[1]; or return 0
 
     set -l credentials (gcp_adc path "$GCLOUD_CONFIG")
     or die "Install the shell helpers with: make run-role ROLE=shell"
@@ -196,6 +180,7 @@ function get_role
 end
 
 # Local is already on localhost, so it is the one environment with nothing to connect.
+# Every proxied environment signs in with IAM: the databases no longer accept passwords.
 function needs_proxy
     switch $argv[1]
         case production staging
@@ -459,13 +444,13 @@ end
 # ============================================================================
 
 function report_iam_auth
-    uses_iam_auth $argv[1]; or return 0
+    needs_proxy $argv[1]; or return 0
     _ui note "Application Default Credentials: "(gcp_adc path "$GCLOUD_CONFIG")
     _ui note "To sign in or refresh as $argv[2], run: gcp_adc login $GCLOUD_CONFIG"
 end
 
 function report_iam_requirements
-    uses_iam_auth $argv[1]; or return 0
+    needs_proxy $argv[1]; or return 0
     set -l project (string split -f 1 : -- (get_instance $argv[1]))
     _ui note "To refresh credentials, run: gcp_adc login $GCLOUD_CONFIG"
     _ui note "Ask an administrator for roles/serviceusage.serviceUsageConsumer, roles/cloudsql.client and roles/cloudsql.instanceUser on $project."
@@ -486,7 +471,7 @@ function report_connection
     _ui item "Database: "(get_database $environment)
     _ui item "Account: $GCLOUD_CONFIG (gcloud configuration)"
     _ui item "User: $user"
-    uses_iam_auth $environment; and _ui item "Password: none, the proxy signs in with IAM"
+    _ui item "Password: none, the proxy signs in with IAM"
     report_iam_auth $environment $user
 end
 
@@ -564,9 +549,6 @@ function cmd_connect
         require_work_dir
         require_proxy_bin
         set -lx CLOUDSDK_ACTIVE_CONFIG_NAME "$GCLOUD_CONFIG"
-        if not uses_iam_auth $environment
-            exec $PROXY_BIN (proxy_flags $environment) --port $port $instance
-        end
         $PROXY_BIN (proxy_flags $environment) --port $port $instance
         or begin
             report_iam_requirements $environment >&2
