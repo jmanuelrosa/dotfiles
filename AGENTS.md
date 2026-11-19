@@ -75,6 +75,8 @@ Two rules that apply without opening anything: a **name must mean one artifact**
   Keep credentials in the existing vault or runtime authentication flow; never track logs, caches, sessions or other machine-local data.
   Document any app with no configurable settings, settings that cannot be exported or restored, and unavoidable activation, login or permission steps in the owning role\'s README rather than silently leaving it unmanaged.
 - **Idempotency is mandatory.** Every task must be safe to re-run. If a task isn't naturally idempotent, gate it with a `stat` / `register` check.
+- **Dry-run the playbook before shipping.** When a diff about to be shipped touches `dotfiles.yml`, `roles/`, `group_vars/`, `host_vars/` or `vars/`, ask the user to run `make check-role ROLE=<role>` for each touched role (or `make check` when `dotfiles.yml` or `group_vars/` changed) in their own terminal, and wait for them to report a pass before confirming the ship.
+  The agent cannot run it: the playbook prompts for the vault and become passwords.
 - **Commits and branch names follow the global conventions**, defined in the global instructions ([roles/ai/files/harness/AGENTS.md](roles/ai/files/harness/AGENTS.md)) and the commit skill, not per-repo.
 - **Lint exclusions** ([.ansible-lint](.ansible-lint)) skip `yaml[truthy]` and `var-naming` (uppercase Ansible vars are intentional). Don't fight the linter on those, they're conscious choices.
 - **A new script prints through the shared vocabulary**: `_ui` in fish, `dotkit.ui` in python. No hand-rolled colours, no invented glyphs, emoji only on a heading or the closing summary.
