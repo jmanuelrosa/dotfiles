@@ -27,6 +27,12 @@ def test_triage_settings_are_linked_without_runtime_logs():
         assert (APPS / "files" / link["src"]).is_file()
 
 
+def test_opentofu_is_installed_with_a_managed_default_config():
+    assert "opentofu" in DEFAULTS["BREW_PACKAGES"]["formulas"]
+    assert {"src": ".tofurc", "dest": "{{ HOME }}/.tofurc"} in DEFAULTS["APPS_LINKS"]
+    assert (APPS / "files/.tofurc").read_text() == ""
+
+
 def test_cf_cli_is_pinned_to_an_exact_version():
     version = DEFAULTS["CF_CLI"]["version"]
     assert EXACT_SEMVER.fullmatch(version), f"CF_CLI.version {version!r} must be an exact version, not a tag or range"
