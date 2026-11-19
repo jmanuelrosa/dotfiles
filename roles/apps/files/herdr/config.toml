@@ -90,7 +90,8 @@ prefix = "ctrl+space"
 #   Make  (noun initial: t tab, w workspace, g worktree, p pane): plain creates, Shift names.
 #   Move  (i/j/k/l, as in Ghostty): plain focuses, Shift carries the pane.
 #   Erase (x): plain pane, Shift tab, Ctrl workspace. Ctrl after the prefix always destroys something big.
-#   Jump  (Space, s, Tab, a, o, Backspace, 1..9): plain goes forward, Shift goes backward.
+#   Jump  (Space, s, `, Tab, a, o, Backspace): plain goes forward, Shift goes backward.
+#   Numbers follow the sidebar: 1..9 workspaces, Shift agents, Option tabs.
 
 # Jump
 goto = "prefix+space"
@@ -99,13 +100,13 @@ open_notification_target = "prefix+o"
 last_pane = "prefix+backspace"
 next_tab = "prefix+tab"
 previous_tab = "prefix+shift+tab"
-switch_tab = "prefix+1..9"
+switch_tab = "prefix+alt+1..9"
 next_agent = "prefix+a"
 previous_agent = "prefix+shift+a"
 focus_agent = "prefix+shift+1..9"
-# previous_workspace = "" # optional, unset by default
-# next_workspace = ""     # optional, unset by default
-# switch_workspace = ""   # optional indexed binding, e.g. "prefix+shift+1..9"
+next_workspace = "prefix+backtick"
+previous_workspace = "prefix+shift+backtick"
+switch_workspace = "prefix+1..9"
 
 # Make
 new_tab = "prefix+t"

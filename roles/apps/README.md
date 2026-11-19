@@ -89,7 +89,9 @@ Every binding belongs to one of four families, so a forgotten key can be rebuilt
 | Make | `t` tab, `w` workspace, `g` worktree, `p` pane (name only) | create | name it (`T`, `W`, `P`); `G` opens an existing worktree | |
 | Move | `i` `j` `k` `l`, as in Ghostty | focus | swap the pane | |
 | Erase | `x` | close pane | close tab | close workspace (`Ctrl+g` removes a worktree) |
-| Jump | `Space` anywhere, `s` workspaces, `Tab` tabs, `a` agents, `o` notification, `Backspace` back, `1..9` | forward | backward (`Shift+1..9` picks an agent) | |
+| Jump | `Space` anywhere, `s` workspaces, `` ` `` next workspace, `Tab` tabs, `a` agents, `o` notification, `Backspace` back | forward | backward | |
+
+Numbers follow the sidebar: `1..9` jumps to a workspace by its row, `Shift+1..9` to an agent, and `Option+1..9` to a tab.
 
 Ctrl after the prefix always destroys something big.
 The rest: `\` and `-` split along the line the key draws, `z` zoom, `b` sidebar (bar, as VS Code's `Cmd+b`), `r` resize mode, `[` copy mode, `e` scrollback in `$EDITOR`, `,` settings, `?` help, `Shift+r` reload, `q` detach.
