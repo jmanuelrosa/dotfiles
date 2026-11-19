@@ -5,7 +5,7 @@ Catch-all role for desktop apps and their configs. Browsers, chat apps, dev tool
 ## What it does
 
 1. Installs the taps, formulas and casks declared in `BREW_PACKAGES` through the shared `roles/brew/tasks/packages.yml`.
-2. Creates `APPS_DIRS` and links every config in `APPS_LINKS` (git, lazygit, superfile, npm, gh, gh-dash, diffnav, pgcli, herdr, Caddy, Neovim, VSCode, Docker, Colima, act, lazydocker, dive, Triage, AeroSpace), then writes the plist preferences in `APPS_OSX_DEFAULTS` (Maccy).
+2. Creates `APPS_DIRS` and links every config in `APPS_LINKS` (git, lazygit, superfile, npm, gh, gh-dash, diffnav, pgcli, herdr, Caddy, Neovim, VSCode, OpenTofu, Docker, Colima, act, lazydocker, dive, Triage, AeroSpace), then writes the plist preferences in `APPS_OSX_DEFAULTS` (Maccy).
 3. Links each tool in `APPS_SCRIPTS` into `~/.local/bin/`, and creates one private Sentry config dir per account plus the map the `sentry` wrapper reads.
 4. Creates the empty `GCLOUD_NEUTRAL_CONFIG` gcloud configuration, leaving an existing one untouched, and makes it the global active configuration.
 5. Fails with login instructions when `gh` is not authenticated, then installs the `GH_EXTENSIONS`.
@@ -168,6 +168,14 @@ If you use that menu, import the resulting file into `files/triage/fallback-brow
 On a new machine, launch Triage, select **Set as Default Web Browser** and confirm the macOS prompt, then enable **Launch at Login** from its menu.
 Chrome profiles named `Jose Manuel`, `Jose Manuel [Dev]` and `3bitslost` must exist; their account sessions are not dotfiles.
 Allow Triage to read Chrome's profile index when macOS requests Application Data access so those friendly profile names resolve.
+
+## OpenTofu
+
+The role installs the `opentofu` Homebrew formula and links `roles/apps/files/.tofurc` at `~/.tofurc`.
+The config is empty, keeping OpenTofu defaults without a shared provider cache.
+Make future non-secret CLI settings changes in the managed file; credentials, project state and downloaded providers stay outside this repository.
+The `.tofurc` file takes precedence over legacy `.terraformrc` settings, so import any non-secret settings you want to preserve before provisioning.
+OpenTofu itself needs no activation; authenticate with each provider separately.
 
 ## Colima
 
