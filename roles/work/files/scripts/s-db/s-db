@@ -146,8 +146,7 @@ function require_user
 end
 
 function proxy_flags
-    set -l project (string split -f 1 : -- (get_instance $argv[1]))
-    printf '%s\n' --auto-iam-authn --quota-project=$project --run-connection-test
+    printf '%s\n' --auto-iam-authn --run-connection-test
 end
 
 function prepare_iam_auth
@@ -453,7 +452,7 @@ function report_iam_requirements
     needs_proxy $argv[1]; or return 0
     set -l project (string split -f 1 : -- (get_instance $argv[1]))
     _ui note "To refresh credentials, run: gcp_adc login $GCLOUD_CONFIG"
-    _ui note "Ask an administrator for roles/serviceusage.serviceUsageConsumer, roles/cloudsql.client and roles/cloudsql.instanceUser on $project."
+    _ui note "Ask an administrator for roles/cloudsql.client and roles/cloudsql.instanceUser on $project."
     _ui note "IAM database authentication must be enabled, with your IAM user added and granted database privileges."
 end
 

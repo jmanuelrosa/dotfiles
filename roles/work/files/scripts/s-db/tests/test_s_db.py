@@ -177,7 +177,6 @@ def test_foreground_proxy_selects_named_configuration_and_target(run_db, command
     assert calls["proxy"] == [
         account,
         "--auto-iam-authn",
-        f"--quota-project={STAGING_INSTANCES[account].split(':')[0]}",
         "--run-connection-test",
         "--port",
         "5433",
@@ -200,7 +199,6 @@ def test_background_proxy_selects_named_configuration(run_db, tmp_path, selectio
     assert calls["proxy"] == [
         "pentla" if selection else "didomi",
         "--auto-iam-authn",
-        f"--quota-project={PRODUCTION_INSTANCE.split(':')[0]}",
         "--run-connection-test",
         "--port",
         "5434",
@@ -219,7 +217,6 @@ def test_staging_dump_signs_in_as_the_configuration_account(run_db, selection):
     assert calls["proxy"] == [
         account,
         "--auto-iam-authn",
-        f"--quota-project={STAGING_INSTANCES[account].split(':')[0]}",
         "--run-connection-test",
         "--port",
         "5433",
@@ -261,7 +258,6 @@ def test_proxy_failure_does_not_report_a_connection_or_dump(run_db, command, err
     assert "Dumped" not in result.stdout
     assert calls["pg"] == []
     assert error in result.stderr
-    assert "roles/serviceusage.serviceUsageConsumer" in result.stderr
     assert "roles/cloudsql.client" in result.stderr
     assert "roles/cloudsql.instanceUser" in result.stderr
 
