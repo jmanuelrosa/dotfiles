@@ -84,9 +84,10 @@ The helper signs in using the named configuration's account, isolates its SDK di
 If the profile has no readable ADC file, an interactive connection asks before login; declining or running without a terminal stops with the setup command.
 Dry runs and reused proxies do not trigger login.
 Changing a configuration's account requires repeating its ADC login.
-The proxy uses `--quota-project` derived from the instance project and `--run-connection-test` to detect startup connection failures before serving clients.
+The proxy uses `--run-connection-test` to detect startup connection failures before serving clients.
+It passes no `--quota-project`, so the Cloud SQL Admin API needs no `serviceusage.services.use` grant on the instance project.
 Startup failures print the original proxy error and IAM setup guidance.
-An administrator must enable IAM database authentication, add the IAM user with database privileges, and grant `roles/cloudsql.client`, `roles/cloudsql.instanceUser`, and `roles/serviceusage.serviceUsageConsumer` on the target project.
+An administrator must enable IAM database authentication, add the IAM user with database privileges, and grant `roles/cloudsql.client` and `roles/cloudsql.instanceUser` on the target project.
 Login does not grant these permissions.
 A detached startup reports the process PID, not a verified database login; follow its printed log path for failures after launch.
 Production and staging stop before starting the proxy when the selected CLI configuration has no account signed in.
