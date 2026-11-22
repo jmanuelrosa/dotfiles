@@ -1,0 +1,16 @@
+[metadata]
+name = "aws-profiles"
+description = "Pick an AWS CLI profile and preview its config section"
+requirements = ["aws", "awk"]
+
+[source]
+command = "aws configure list-profiles"
+
+[preview]
+command = '''awk -v section='[profile {}]' '$0 == section { found = 1; next } /^\[/ { found = 0 } found && NF' "${AWS_CONFIG_FILE:-$HOME/.aws/config}"'''
+
+[ui.input_bar]
+header = "AWS profiles | Enter select"
+
+[ui.preview_panel]
+header = "{}"

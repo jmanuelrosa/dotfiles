@@ -23,6 +23,7 @@ See [lns usage](docs/lns.md) and the upstream [shoo documentation](https://githu
 
 | Feature | Documentation |
 |---|---|
+| AWS profile switching and SSO sign-in | [aws](files/fish/functions/aws/README.md) |
 | Shared AI cleanup helpers | [clean_ai](files/fish/functions/clean_ai/README.md) |
 | Claude artifacts and stored state | [clean_claude](files/fish/functions/clean_claude/README.md) |
 | Pi artifacts and sessions | [clean_pi](files/fish/functions/clean_pi/README.md) |
