@@ -58,8 +58,8 @@ Credential files are machine-local secrets, not provisioning inputs or repositor
 See ../../functions/gcp_adc/README.md for the helper's commands and file permissions.
 
 For Cloud SQL IAM access, an administrator must enable IAM database authentication, add the IAM database user, and grant database privileges.
-The account needs `roles/cloudsql.client` and `roles/cloudsql.instanceUser` on the instance's project, plus `roles/serviceusage.serviceUsageConsumer` on the quota project.
+The account needs `roles/cloudsql.client` and `roles/cloudsql.instanceUser` on the instance's project.
 Login does not grant these permissions.
-`s-db` sets its proxy quota project from the selected instance rather than trusting a stale ADC quota project.
+`s-db` passes no `--quota-project`, so it needs no `roles/serviceusage.serviceUsageConsumer` grant on the instance's project.
 
 Google documentation: <https://docs.cloud.google.com/docs/authentication/application-default-credentials> and <https://docs.cloud.google.com/sql/docs/postgres/iam-logins>.
