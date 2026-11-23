@@ -14,8 +14,10 @@ import {
 const CONFIG_PATH = join(dirname(realpathSync(fileURLToPath(import.meta.url))), "..", "..", "sandbox.json");
 const excludedCommands: string[] = JSON.parse(readFileSync(CONFIG_PATH, "utf8")).excludedCommands;
 
+// Guardrails may have already rewritten the call through rtk, which must not cost an exempted
+// CLI its exemption.
 function isExcludedCommand(command: string): boolean {
-  const executable = /^[ \t]*([a-z][a-z0-9-]*)(?:[ \t]|$)/.exec(command)?.[1];
+  const executable = /^[ \t]*(?:rtk[ \t]+)?([a-z][a-z0-9-]*)(?:[ \t]|$)/.exec(command)?.[1];
   return executable !== undefined && excludedCommands.includes(executable) && !/[;&|<>`$\\\r\n()]/.test(command);
 }
 
