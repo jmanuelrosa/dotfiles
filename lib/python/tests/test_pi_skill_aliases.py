@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from dotkit.testing import PI_EXTENSIONS
+from dotkit.testing import PI_EXTENSIONS, SKILLS
 
 EXTENSION = PI_EXTENSIONS / "skill-aliases" / "index.ts"
 PI_PACKAGE = "@earendil-works/pi-coding-agent"
@@ -70,7 +70,7 @@ def invoke(extension, name, args="", idle=True):
 def test_commit_alias_expands_the_skill_and_forwards_arguments(extension):
     result = invoke(extension, "commit", "dashboard")
 
-    assert result["names"] == ["commit", "pr", "ship"]
+    assert result["names"] == ["cc-fewer-permission-prompts", "commit", "pr", "ship"]
     assert result["sent"] == [["/skill:commit dashboard", {"expandPromptTemplates": True}]]
 
 
@@ -81,3 +81,17 @@ def test_pr_alias_queues_the_expanded_skill_when_the_agent_is_busy(extension):
         "/skill:pr develop",
         {"expandPromptTemplates": True, "deliverAs": "followUp"},
     ]]
+
+
+def test_permission_prompt_alias_forwards_arguments(extension):
+    result = invoke(extension, "cc-fewer-permission-prompts", " --min-count 5 ")
+
+    assert result["sent"] == [[
+        "/skill:cc-fewer-permission-prompts --min-count 5",
+        {"expandPromptTemplates": True},
+    ]]
+
+
+def test_every_aliased_skill_exists():
+    for name in ("commit", "pr", "ship", "cc-fewer-permission-prompts"):
+        assert (SKILLS / name / "SKILL.md").is_file(), name
