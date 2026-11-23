@@ -23,7 +23,7 @@ PI_PACKAGE = "@earendil-works/pi-coding-agent"
 
 CATALOGUE = [
     "openai-codex/gpt-6-astra",
-    "openai-codex/gpt-6.1-sol",
+    "openai-codex/gpt-6.2-sol",
     "openai-codex/gpt-6-sol",
     "openai-codex/gpt-6-luna",
     "openai-codex/gpt-5.6-terra",
@@ -167,6 +167,9 @@ def harness(tmp_path_factory):
         "codex-terra": "name: codex-terra\nmodel: openai-codex/gpt-5.6-terra",
         "anthropic-opus-5-5": "name: anthropic-opus-5-5\nmodel: anthropic/claude-opus-5-5",
         "unpinned": "name: unpinned\ndescription: no model here",
+        "effort-pinned": "name: effort-pinned\nmodel: opus\neffort: medium",
+        "effort-only": "name: effort-only\neffort: low",
+        "effort-unknown": "name: effort-unknown\neffort: turbo",
     }.items():
         skill = skills / name
         skill.mkdir(parents=True)
@@ -273,7 +276,7 @@ def test_default_model_uses_the_codex_subscription():
     settings = json.loads((PI / "settings.json").read_text())
 
     assert settings["defaultProvider"] == "openai-codex"
-    assert settings["defaultModel"] == "gpt-6.1-sol"
+    assert settings["defaultModel"] == "gpt-6.2-sol"
     assert f'{settings["defaultProvider"]}/{settings["defaultModel"]}' in settings["enabledModels"]
 
 
@@ -457,3 +460,28 @@ def test_an_account_error_is_left_to_pi_rather_than_switching_models(harness):
 
     assert result["setModel"] == ["cursor/composer-2-5"]
     assert result["replacements"] == []
+
+
+def test_a_declared_effort_lands_after_the_model_switch_and_is_restored(harness):
+    result = run(harness, [invoke("effort-pinned"), SETTLED], thinking="xhigh")
+
+    assert result["setModel"] == ["anthropic/claude-opus-5-5", DEFAULT]
+    assert result["setThinkingLevel"] == ["medium", "xhigh"]
+    assert result["thinking"] == "xhigh"
+    assert result["status"][0] == ["dotfiles-skill-model", "effort-pinned on claude-opus-5-5, medium effort"]
+
+
+def test_an_effort_without_a_model_pins_only_the_thinking_level(harness):
+    result = run(harness, [invoke("effort-only"), SETTLED], thinking="high")
+
+    assert result["setModel"] == []
+    assert result["setThinkingLevel"] == ["low", "high"]
+    assert [entry["data"]["state"] for entry in result["entries"]] == ["pinned", "released"]
+
+
+def test_an_effort_matching_the_session_or_unknown_to_pi_is_left_alone(harness):
+    for skill, thinking in (("effort-only", "low"), ("effort-unknown", "high")):
+        result = run(harness, [invoke(skill), SETTLED], thinking=thinking)
+
+        assert result["setThinkingLevel"] == []
+        assert result["entries"] == []

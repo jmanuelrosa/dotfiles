@@ -2,11 +2,11 @@
 
 ## In one sentence
 
-A skill that declares `model:` runs on that model in pi too, after `redirects` translate it to a model pi can serve.
+A skill that declares `model:` or `effort:` runs on that model and thinking level in pi too, after `redirects` translate the model to one pi can serve.
 
 ## Why it exists
 
-Claude Code honours the `model:` field in shared skill frontmatter, but pi's skill loader drops it.
+Claude Code honours the `model:` and `effort:` fields in shared skill frontmatter, but pi's skill loader drops them.
 The catalog is shared with Claude Code, so its pins name Claude models (`opus`, `anthropic/claude-sonnet-5`) that pi has no auth for.
 This extension makes the same frontmatter mean something in pi, without a second, pi-only declaration.
 
@@ -15,7 +15,9 @@ This extension makes the same frontmatter mean something in pi, without a second
 ### 1. Detect the skill
 
 A pin starts on `/skill:<name>`, looked up through `pi.getCommands()`, or when the model `read`s any `SKILL.md` itself.
-No `model:` key, or `model: inherit`, leaves the session alone.
+No `model:` key, or `model: inherit`, leaves the session model alone.
+An `effort:` value is applied as the thinking level after any model switch, since a switch resets it; Claude Code's effort names (`low` to `max`) are all pi thinking levels, and a value pi does not know is ignored.
+The run's end restores the previous model, then the previous thinking level.
 
 ### 2. Redirect, then resolve
 
