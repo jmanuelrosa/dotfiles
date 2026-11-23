@@ -49,7 +49,6 @@ PI_EXTENSIONS:
 # used to keep the README off PATH, and gates per tool instead of per role.
 AI_SCRIPTS:
   - skill-drift
-  - tokencost
 
 # kura manages skills through the agent catalog and is no longer developed here, so it
 # arrives as a released asset rather than as a link into this checkout. The release label
