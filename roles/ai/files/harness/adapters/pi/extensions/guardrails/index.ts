@@ -328,9 +328,9 @@ async function rewriteCommand(entry: HookEntry, command: string, cwd: string): P
  * cloud-readonly-gate's middle tier, the one covering every non-read-only cloud command,
  * has no counterpart and has to fall to one side.
  *
- * It falls to blocked, and the direction is deliberate. Those four CLIs are the ones
- * Claude excludes from its sandbox so they can reach their own credential stores, which
- * makes this gate their only guardrail there; in Pi there is no prompt to fall back on,
+ * It falls to blocked, and the direction is deliberate. Those four CLIs reach their own
+ * credential stores, and the ones Pi's sandbox exempts for that reason (sandbox.json) have
+ * this gate as their only guardrail; in Pi there is no prompt to fall back on,
  * so allowing would mean running them unasked. The reason still comes from the hook, so
  * the caller is told which command to run in a real terminal instead.
  *
@@ -444,7 +444,7 @@ function blockResult(verdict: HookVerdict): ToolCallEventResult | undefined {
   if (!verdict.blocked) return undefined;
   const message = verdict.message || "Blocked by a guardrails hook.";
   const translated = message.includes("is blocked outside")
-    ? `${message}\n\nIn pi, /commit and /pr load /skill:commit and /skill:pr. Load the right one, then retry.`
+    ? `${message}\n\nIn pi, /commit, /pr and /ship load /skill:commit, /skill:pr and /skill:ship. Load the right one, then retry.`
     : message;
   return { block: true, reason: translated };
 }
@@ -617,8 +617,8 @@ function rtkStatus(ctx: ExtensionContext): string | undefined {
  * failure the warning half exists to make visible.
  *
  * The quiet half is a badge rather than nothing, which is a deliberate reversal of what this
- * segment used to do. Cursor is this machine's default provider and the one whose tool calls take
- * a different path through the harness entirely, so which side of that line a session is on is
+ * segment used to do. Cursor is the provider whose tool calls take a different path through the
+ * harness entirely, so which side of that line a session is on is
  * worth a word even when the answer is the good one: a badge that only ever appears when
  * something is wrong cannot be told apart from a badge that failed to render.
  *
