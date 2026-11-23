@@ -106,7 +106,11 @@ for (const command of ["gcloud projects list", "  gcloud compute instances list"
   const result = await bash.execute("test", { command }, undefined, undefined, ctx);
   assert.match(result.content[0].text, /native-(gcloud|bq)/);
 }
-for (const command of ["echo hello", "aws s3 ls", "gsutil ls", "gcloudish projects list",
+for (const command of ["rtk gcloud projects list", "rtk bq ls"]) {
+  assert.equal(await toolCall(call(command), ctx), undefined);
+  assert.equal(await userBash({ command }, ctx), undefined);
+}
+for (const command of ["echo hello", "aws s3 ls", "gsutil ls", "gcloudish projects list", "rtk aws s3 ls", "rtk gcloud projects list | head",
                        "/usr/bin/gcloud projects list", "env gcloud projects list",
                        "gcloud projects list | head", "gcloud projects list && echo hello",
                        "gcloud projects list; echo hello", "gcloud projects list &",

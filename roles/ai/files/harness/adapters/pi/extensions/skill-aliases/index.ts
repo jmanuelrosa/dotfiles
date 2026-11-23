@@ -4,6 +4,7 @@ const SKILLS = {
   commit: "Stage changes and create approved conventional commits",
   pr: "Push the branch and open a pull request or merge request",
   ship: "Commit, push and open a pull request after one confirmation",
+  "cc-fewer-permission-prompts": "Mine transcripts for read-only commands and add them to the shared permission policy",
 } as const;
 
 type SkillName = keyof typeof SKILLS;

@@ -2,10 +2,11 @@
  * skill-model - a skill that names a model runs on that model.
  *
  * Pi's skill loader reads `name`, `description` and `disable-model-invocation` from a
- * SKILL.md and drops everything else, so `model:` is inert under pi while Claude Code
- * honours it. This closes that gap without a second declaration: the key stays one plain
- * string in the shared SKILL.md, and bare values resolve against this session's scoped
- * catalogue, so reordering `enabledModels` reorders which model a bare `opus` wins.
+ * SKILL.md and drops everything else, so `model:` and `effort:` are inert under pi while
+ * Claude Code honours them. This closes that gap without a second declaration: the keys stay
+ * plain strings in the shared SKILL.md, and bare model values resolve against this session's
+ * scoped catalogue, so reordering `enabledModels` reorders which model a bare `opus` wins.
+ * Claude Code's effort names are a subset of pi's thinking levels, so `effort:` maps one to one.
  *
  * model-routing.json `redirects` translate a declared spec to the model pi should run
  * instead, before lookup, because the shared catalog names models pi has no auth for.
@@ -38,6 +39,8 @@ const STATUS_KEY = "dotfiles-skill-model";
 const SKILL_COMMAND = /^\/skill:([A-Za-z0-9_.-]+)/;
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---/;
 const MODEL_FIELD = /^model:[ \t]*(.+?)[ \t]*$/m;
+const EFFORT_FIELD = /^effort:[ \t]*(.+?)[ \t]*$/m;
+const THINKING_LEVELS: readonly ThinkingLevel[] = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
 const SKILL_FILE = "SKILL.md";
 const INHERIT = "inherit";
 const routingPath = resolve(dirname(realpathSync(fileURLToPath(import.meta.url))), "../../model-routing.json");
@@ -89,18 +92,32 @@ function redirected(spec: string): string {
   return redirects[spec.toLowerCase()] ?? spec;
 }
 
-function declaredModel(skillPath: string): string | null {
+interface Declared {
+  model: string | null;
+  effort: ThinkingLevel | null;
+}
+
+function fieldValue(frontmatter: string, field: RegExp): string | null {
+  const match = field.exec(frontmatter);
+  if (!match) return null;
+  return match[1].replace(/^["']|["']$/g, "").trim() || null;
+}
+
+function declared(skillPath: string): Declared {
   let text: string;
   try {
     text = readFileSync(skillPath, "utf8");
   } catch {
-    return null;
+    return { model: null, effort: null };
   }
-  const frontmatter = FRONTMATTER.exec(text);
-  if (!frontmatter) return null;
-  const field = MODEL_FIELD.exec(frontmatter[1]);
-  if (!field) return null;
-  return field[1].replace(/^["']|["']$/g, "").trim() || null;
+  const frontmatter = FRONTMATTER.exec(text)?.[1];
+  if (!frontmatter) return { model: null, effort: null };
+  const model = fieldValue(frontmatter, MODEL_FIELD);
+  const effort = fieldValue(frontmatter, EFFORT_FIELD)?.toLowerCase() as ThinkingLevel | undefined;
+  return {
+    model: model && model.toLowerCase() !== INHERIT ? model : null,
+    effort: effort && THINKING_LEVELS.includes(effort) ? effort : null,
+  };
 }
 
 function skillPath(pi: ExtensionAPI, name: string): string | null {
@@ -128,34 +145,40 @@ export default function registerSkillModel(pi: ExtensionAPI): void {
 
   const pin = async (skill: string, path: string, ctx: ExtensionContext) => {
     if (active) return;
-    const spec = declaredModel(path);
-    if (!spec || spec.toLowerCase() === INHERIT) return;
+    const { model: spec, effort } = declared(path);
+    if (!spec && !effort) return;
 
-    const target = resolveSpec(ctx, redirected(spec));
-    if (!target) {
-      ctx.ui.notify(`${skill} wants "${spec}", which no enabled model matches`, "warning");
-      return;
-    }
-    const targetReference = reference(target);
     const previousModel = ctx.model ? reference(ctx.model) : null;
-    if (previousModel === targetReference) return;
-
     const previousThinking = pi.getThinkingLevel();
-    if (!(await pi.setModel(target))) {
-      ctx.ui.notify(`${skill} wants ${targetReference}, which has no configured auth`, "warning");
-      return;
+    let switchedTo: Model | null = null;
+    if (spec) {
+      const target = resolveSpec(ctx, redirected(spec));
+      if (!target) {
+        ctx.ui.notify(`${skill} wants "${spec}", which no enabled model matches`, "warning");
+      } else if (reference(target) !== previousModel) {
+        if (!(await pi.setModel(target))) {
+          ctx.ui.notify(`${skill} wants ${reference(target)}, which has no configured auth`, "warning");
+          return;
+        }
+        switchedTo = target;
+      }
     }
+    // A model switch resets the thinking level, so the declared effort goes on after it.
+    const changesThinking = effort !== null && (switchedTo !== null || effort !== previousThinking);
+    if (!switchedTo && !changesThinking) return;
+    if (changesThinking) pi.setThinkingLevel(effort);
 
     active = {
       version: 1,
       state: "pinned",
       skill,
-      model: targetReference,
+      model: switchedTo ? reference(switchedTo) : (previousModel ?? ""),
       previousModel,
       previousThinking,
     };
     pi.appendEntry(CUSTOM_TYPE, active);
-    ctx.ui.setStatus(STATUS_KEY, ctx.ui.theme.fg("accent", `${skill} on ${target.id}`));
+    const on = [switchedTo?.id, changesThinking ? `${effort} effort` : undefined].filter(Boolean).join(", ");
+    ctx.ui.setStatus(STATUS_KEY, ctx.ui.theme.fg("accent", `${skill} on ${on}`));
   };
 
   const redirectRun = async (ctx: ExtensionContext) => {
@@ -177,7 +200,8 @@ export default function registerSkillModel(pi: ExtensionAPI): void {
     if (!pinned) return;
     active = null;
 
-    const previous = pinned.previousModel ? fromReference(ctx, pinned.previousModel) : undefined;
+    const switched = pinned.model !== (pinned.previousModel ?? "");
+    const previous = switched && pinned.previousModel ? fromReference(ctx, pinned.previousModel) : undefined;
     if (previous) await pi.setModel(previous);
     pi.setThinkingLevel(pinned.previousThinking);
     pi.appendEntry(CUSTOM_TYPE, { ...pinned, state: "released" });

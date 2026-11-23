@@ -26,7 +26,6 @@ BREW_PACKAGES:
 # auto-discovered index.ts and a README.
 PI_EXTENSIONS:
   - cc-batch
-  - cc-fewer-permission-prompts
   - cc-loop
   - context-continuity
   - cursor-model-policy
