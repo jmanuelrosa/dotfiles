@@ -69,7 +69,6 @@ SEVERITIES = ("blocker", "important", "nit", "pre-existing")
 # policy banning something that no longer exists while the renamed skill goes unbanned.
 MUTATORS = (
     "code-simplification",
-    "knip",
     "coderabbit",
     "pr",
     "performance-optimization",
