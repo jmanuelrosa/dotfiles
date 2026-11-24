@@ -349,7 +349,24 @@
     "loop": "user-invocable-only",
     "plugin-authoring": "user-invocable-only",
     "run": "user-invocable-only",
-    "schedule": "user-invocable-only"
+    "schedule": "user-invocable-only",
+    "code-review": "user-invocable-only",
+    "fewer-permission-prompts": "user-invocable-only",
+    "init": "user-invocable-only",
+    "security-review": "user-invocable-only",
+    "ship": "user-invocable-only",
+    "simplify": "user-invocable-only",
+    "steward": "user-invocable-only",
+    "claude-approvals": "off",
+    "owasp": "name-only",
+    "k6": "name-only",
+    "vuln-lookup": "name-only",
+    "cloud-failure-modes": "name-only",
+    "dx-failure-modes": "name-only",
+    "platform-failure-modes": "name-only",
+    "qa-failure-modes": "name-only",
+    "security-failure-modes": "name-only",
+    "sre-failure-modes": "name-only"
   },
   "deniedMcpServers": [
     {
