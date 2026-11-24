@@ -16,7 +16,7 @@ The tooling, code standards and git conventions are agent-neutral and live in `A
 
 ## Git & sandbox
 
-- A hook enforces the `/commit`, `/pr` and `/ship` route, and `/pr` and `/ship` carry the only working push path. `/ship` is model-invocable, so the hook opens it only once a human turn follows its invocation.
+- A hook enforces the `/commit`, `/pr` and `/deliver` route, and `/pr` and `/deliver` carry the only working push path. `/deliver` is model-invocable, so the hook opens it only once a human turn follows its invocation.
 - Force-push, branch deletion, a push to the default branch, and lockfile writes remain denied even inside `/pr`.
 - Every command remains sandboxed, including approved skill scripts and standalone CLIs: `sandbox.excludedCommands` is empty and `allowUnsandboxedCommands` is false.
 - Skill approval does not grant access to blocked credentials, protected Git metadata, or disallowed network destinations. Report the actual failure and let the user run the approved operation from their own terminal; do not add exclusions, widen credential access, or retry through another command shape.

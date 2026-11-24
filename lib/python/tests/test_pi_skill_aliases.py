@@ -70,7 +70,7 @@ def invoke(extension, name, args="", idle=True):
 def test_commit_alias_expands_the_skill_and_forwards_arguments(extension):
     result = invoke(extension, "commit", "dashboard")
 
-    assert result["names"] == ["cc-fewer-permission-prompts", "commit", "pr", "ship"]
+    assert result["names"] == ["cc-fewer-permission-prompts", "commit", "deliver", "pr"]
     assert result["sent"] == [["/skill:commit dashboard", {"expandPromptTemplates": True}]]
 
 
@@ -93,5 +93,5 @@ def test_permission_prompt_alias_forwards_arguments(extension):
 
 
 def test_every_aliased_skill_exists():
-    for name in ("commit", "pr", "ship", "cc-fewer-permission-prompts"):
+    for name in ("commit", "pr", "deliver", "cc-fewer-permission-prompts"):
         assert (SKILLS / name / "SKILL.md").is_file(), name

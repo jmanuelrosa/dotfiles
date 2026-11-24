@@ -46,8 +46,8 @@ def commits(command):
     "/usr/bin/git commit -m x",
     "env GIT_AUTHOR_NAME=x git commit -m x",
     "timeout 60 /opt/homebrew/bin/git commit -m x",
-    "python3 ~/.config/kura/catalog/skills/ship/scripts/apply.py plan.json",
-    "python3 ~/.claude/skills/ship/scripts/apply.py plan.json --from commit",
+    "python3 ~/.config/kura/catalog/skills/deliver/scripts/apply.py plan.json",
+    "python3 ~/.claude/skills/deliver/scripts/apply.py plan.json --from commit",
 ])
 def test_a_commit_is_recognised(command):
     assert commits(command)
@@ -56,8 +56,8 @@ def test_a_commit_is_recognised(command):
 @pytest.mark.parametrize("command", [
     "git status",
     "python3 ~/.claude/skills/pr/scripts/apply.py plan.json",
-    "python3 ~/.claude/skills/ship/scripts/apply.py plan.json --from push",
-    "python3 ~/.claude/skills/ship/scripts/apply.py plan.json --from=pr",
+    "python3 ~/.claude/skills/deliver/scripts/apply.py plan.json --from push",
+    "python3 ~/.claude/skills/deliver/scripts/apply.py plan.json --from=pr",
     "python3 other/apply.py plan.json",
     "echo /usr/bin/git commit",
     "env git status",

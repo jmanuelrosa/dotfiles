@@ -868,7 +868,7 @@ def test_the_real_gate_table_allows_a_harmless_call(real_runner):
 
 
 @pytest.fixture
-def ship_repo(tmp_path, monkeypatch):
+def deliver_repo(tmp_path, monkeypatch):
     for name in os.environ:
         if name.startswith("GIT_"):
             monkeypatch.delenv(name)
@@ -891,42 +891,42 @@ def ship_repo(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("entries", [
-    branch(['<skill name="ship" location="x">ship</skill>', "go"]),
+    branch(['<skill name="deliver" location="x">deliver</skill>', "go"]),
     branch(['<skill name="pr" location="x">pr</skill>']),
-], ids=["confirmed-ship", "owning-pr"])
-def test_the_real_pi_guard_allows_the_generated_https_push(real_runner, ship_repo, entries):
-    result = guarded_call(real_runner, command=HTTPS_PUSH, entries=entries, cwd=ship_repo)
+], ids=["confirmed-deliver", "owning-pr"])
+def test_the_real_pi_guard_allows_the_generated_https_push(real_runner, deliver_repo, entries):
+    result = guarded_call(real_runner, command=HTTPS_PUSH, entries=entries, cwd=deliver_repo)
     assert result is None, result
 
 
 @pytest.mark.parametrize("entries", [
     [],
-    [{"message": {"role": "assistant", "content": [{"type": "text", "text": '<skill name="ship">ship</skill>'}]}}],
+    [{"message": {"role": "assistant", "content": [{"type": "text", "text": '<skill name="deliver">deliver</skill>'}]}}],
     branch(['<skill name="commit" location="x">commit</skill>', "go"]),
 ], ids=["outside-skill", "assistant-quoted-skill", "wrong-skill"])
-def test_the_real_pi_guard_refuses_the_generated_https_push_without_authority(real_runner, ship_repo, entries):
-    result = guarded_call(real_runner, command=HTTPS_PUSH, entries=entries, cwd=ship_repo)
+def test_the_real_pi_guard_refuses_the_generated_https_push_without_authority(real_runner, deliver_repo, entries):
+    result = guarded_call(real_runner, command=HTTPS_PUSH, entries=entries, cwd=deliver_repo)
     assert result is not None, "The HTTPS push was allowed without owning skill evidence"
     assert result["block"] is True
     assert "blocked" in result["reason"].lower()
 
 
 @pytest.mark.parametrize("command", ["git push -u origin fix/x", HTTPS_PUSH], ids=["plain", "https"])
-def test_the_real_pi_guard_requires_confirmation_before_a_ship_push(real_runner, ship_repo, command):
-    entries = branch(['<skill name="ship" location="x">ship</skill>'])
-    result = guarded_call(real_runner, command=command, entries=entries, cwd=ship_repo)
-    assert result is not None, "An unconfirmed Pi /ship invocation authorized a push"
+def test_the_real_pi_guard_requires_confirmation_before_a_deliver_push(real_runner, deliver_repo, command):
+    entries = branch(['<skill name="deliver" location="x">deliver</skill>'])
+    result = guarded_call(real_runner, command=command, entries=entries, cwd=deliver_repo)
+    assert result is not None, "An unconfirmed Pi /deliver invocation authorized a push"
     assert result["block"] is True
     assert "blocked" in result["reason"].lower()
 
 
 @pytest.mark.parametrize("session_error", [False, True], ids=["transcript-write-failure", "session-unavailable"])
 def test_the_real_pi_guard_refuses_the_generated_https_push_when_evidence_is_unavailable(
-    real_runner, ship_repo, tmp_path, session_error,
+    real_runner, deliver_repo, tmp_path, session_error,
 ):
-    entries = branch(['<skill name="ship" location="x">ship</skill>', "go"])
+    entries = branch(['<skill name="deliver" location="x">deliver</skill>', "go"])
     result = guarded_call(
-        real_runner, command=HTTPS_PUSH, entries=entries, cwd=ship_repo, session_error=session_error,
+        real_runner, command=HTTPS_PUSH, entries=entries, cwd=deliver_repo, session_error=session_error,
         env=None if session_error else {"TMPDIR": str(tmp_path / "missing")},
     )
     assert result is not None, "The HTTPS push was allowed without readable skill evidence"
@@ -936,11 +936,11 @@ def test_the_real_pi_guard_refuses_the_generated_https_push_when_evidence_is_una
 
 
 @pytest.mark.parametrize("origin", [None, "git@elsewhere.invalid:example/project.git"])
-def test_the_real_pi_guard_refuses_the_generated_https_push_without_matching_origin(real_runner, ship_repo, origin):
+def test_the_real_pi_guard_refuses_the_generated_https_push_without_matching_origin(real_runner, deliver_repo, origin):
     args = ["remote", "remove", "origin"] if origin is None else ["remote", "set-url", "origin", origin]
-    subprocess.run(["git", "-C", str(ship_repo), *args], check=True, capture_output=True, text=True)
+    subprocess.run(["git", "-C", str(deliver_repo), *args], check=True, capture_output=True, text=True)
     result = guarded_call(
-        real_runner, command=HTTPS_PUSH, entries=branch(['<skill name="ship">ship</skill>', "go"]), cwd=ship_repo,
+        real_runner, command=HTTPS_PUSH, entries=branch(['<skill name="deliver">deliver</skill>', "go"]), cwd=deliver_repo,
     )
     assert result is not None, "The HTTPS push was allowed without a matching origin"
     assert result["block"] is True
@@ -955,9 +955,9 @@ def test_the_real_pi_guard_refuses_the_generated_https_push_without_matching_ori
     (HTTPS_PUSH.replace("url.https://github.com/", "url.https://elsewhere.invalid/"), "elsewhere.invalid"),
     (HTTPS_PUSH.replace("url.https://github.com/", "url.https://github.com/other-project/"), "other-project"),
 ], ids=["force", "main", "hookspath", "ordinary-insteadof", "host-redirect", "repository-redirect"])
-def test_the_real_pi_guard_keeps_other_guards_on_the_generated_https_push(real_runner, ship_repo, command, reason):
+def test_the_real_pi_guard_keeps_other_guards_on_the_generated_https_push(real_runner, deliver_repo, command, reason):
     result = guarded_call(
-        real_runner, command=command, entries=branch(['<skill name="ship">ship</skill>', "go"]), cwd=ship_repo,
+        real_runner, command=command, entries=branch(['<skill name="deliver">deliver</skill>', "go"]), cwd=deliver_repo,
     )
     assert result is not None, f"The HTTPS push bypassed the {reason} guard"
     assert result["block"] is True
@@ -969,20 +969,20 @@ def test_the_real_pi_guard_keeps_other_guards_on_the_generated_https_push(real_r
     (True, False, False),
     (False, True, False),
 ], ids=["answered", "dismissed", "new-invocation"])
-def test_pi_ship_confirmation_uses_the_shared_transcript_logic(real_runner, ship_repo, is_error, reinvoked, allowed):
-    invocation = '<skill name="ship" location="x">ship</skill>'
+def test_pi_deliver_confirmation_uses_the_shared_transcript_logic(real_runner, deliver_repo, is_error, reinvoked, allowed):
+    invocation = '<skill name="deliver" location="x">deliver</skill>'
     entries = branch([invocation]) + [
         {"message": {"role": "assistant", "content": [
-            {"type": "toolCall", "id": "ask-ship", "name": "ask_user", "arguments": {}},
+            {"type": "toolCall", "id": "ask-deliver", "name": "ask_user", "arguments": {}},
         ]}},
         {"message": {
-            "role": "toolResult", "toolCallId": "ask-ship", "toolName": "ask_user", "isError": is_error,
+            "role": "toolResult", "toolCallId": "ask-deliver", "toolName": "ask_user", "isError": is_error,
             "content": [{"type": "text", "text": "Go"}],
         }},
     ]
     if reinvoked:
         entries += branch([invocation])
-    result = guarded_call(real_runner, command=HTTPS_PUSH, entries=entries, cwd=ship_repo)
+    result = guarded_call(real_runner, command=HTTPS_PUSH, entries=entries, cwd=deliver_repo)
     if allowed:
         assert result is None, result
     else:

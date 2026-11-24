@@ -61,10 +61,10 @@ OPTIONS_WITH_SEPARATE_ARG = {
 
 SHELL_SEPARATORS = {";", "&&", "||", "|", "&"}
 
-# The commit and ship skills commit through these scripts, so a commit they make never
+# The commit and deliver skills commit through these scripts, so a commit they make never
 # shows up as `git commit` on the command line.
-COMMIT_WRAPPER = re.compile(r"(^|/)skills/(commit|ship)/scripts/apply\.py$")
-# A ship run resumed past its commit stage makes no commit, so there is nothing to verify.
+COMMIT_WRAPPER = re.compile(r"(^|/)skills/(commit|deliver)/scripts/apply\.py$")
+# A deliver run resumed past its commit stage makes no commit, so there is nothing to verify.
 RESUME_FLAG = "--from"
 COMMIT_STAGE = "commit"
 INTERPRETERS = {"bash", "sh", "zsh", "python", "python3"}

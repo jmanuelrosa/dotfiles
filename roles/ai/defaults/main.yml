@@ -95,7 +95,7 @@ AI_APP_LINKS:
 
 PR_TRACK:
   label: dotfiles.pr-track
-  script: "{{ AGENT_CATALOG.path }}/skills/ship/scripts/track.py"
+  script: "{{ AGENT_CATALOG.path }}/skills/deliver/scripts/track.py"
   interval: 180
   log: "{{ HOME }}/Library/Logs/pr-track.log"
 
