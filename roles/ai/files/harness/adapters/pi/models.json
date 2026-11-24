@@ -3,7 +3,8 @@
   "providers": {
     "openai-codex": {
       "modelOverrides": {
-        "gpt-6-astra": {
+        "gpt-6.2-astra": {
+          "name": "GPT-6.2 Astra",
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
@@ -14,8 +15,8 @@
           "maxTokens": 128000
         },
 
-        "gpt-6.1-sol": {
-          "name": "GPT-6 Sol",
+        "gpt-6.2-sol": {
+          "name": "GPT-6.2 Sol",
           "reasoning": true,
           "thinkingLevelMap": {
             "low": "low",
@@ -27,7 +28,7 @@
           "maxTokens": 128000
         },
         "gpt-6.1-terra": {
-          "name": "GPT-6 Terra",
+          "name": "GPT-6.1 Terra",
           "reasoning": true,
           "thinkingLevelMap": {
             "low": "low",
@@ -38,16 +39,6 @@
           "contextWindow": 1050000,
           "maxTokens": 128000
         },
-        "gpt-6-sol": {
-          "name": "GPT-6 Sol",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "xhigh": "xhigh"
-          },
-          "contextWindow": 272000,
-          "maxTokens": 128000
-        },
         "gpt-6-luna": {
           "name": "GPT-6 Luna",
           "reasoning": true,
@@ -56,81 +47,6 @@
             "xhigh": "xhigh"
           },
           "contextWindow": 272000
-        },
-
-        "gpt-5.6-sol": {
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "xhigh": "xhigh"
-          },
-          "contextWindow": 1050000
-        },
-        "gpt-5.6-luna": {
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "xhigh": "xhigh"
-          },
-          "contextWindow": 1050000
-        },
-        "gpt-5.6-terra": {
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "xhigh": "xhigh"
-          },
-          "contextWindow": 1050000
-        }
-      }
-    },
-    "ollama-cloud": {
-      "baseUrl": "https://ollama.com/v1",
-      "api": "openai-completions",
-      "models": [
-        {
-          "id": "nemotron-3-ultra",
-          "name": "Nemotron 3 Ultra (Ollama Cloud)",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "xhigh": "max"
-          },
-          "contextWindow": 262144,
-          "maxTokens": 32768
-        },
-        {
-          "id": "gpt-oss:120b",
-          "name": "GPT-OSS 120B (Ollama Cloud)",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "xhigh": null
-          },
-          "contextWindow": 131072,
-          "maxTokens": 32768
-        }
-      ]
-    },
-    "xai": {
-      "modelOverrides": {
-        "grok-4.7": {
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "xhigh": "xhigh"
-          },
-          "contextWindow": 500000,
-          "maxTokens": 500000
-        },
-        "grok-4.6": {
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "xhigh": "xhigh"
-          },
-          "contextWindow": 500000,
-          "maxTokens": 131072
         }
       }
     }
