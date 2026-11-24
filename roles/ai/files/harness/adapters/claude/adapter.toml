@@ -41,6 +41,26 @@ loop = "user-invocable-only"
 plugin-authoring = "user-invocable-only"
 run = "user-invocable-only"
 schedule = "user-invocable-only"
+code-review = "user-invocable-only"
+fewer-permission-prompts = "user-invocable-only"
+init = "user-invocable-only"
+security-review = "user-invocable-only"
+ship = "user-invocable-only"
+simplify = "user-invocable-only"
+steward = "user-invocable-only"
+# Built-in skill for a GitHub App policy file no project here uses.
+claude-approvals = "off"
+# Named by the staff-engineer seats that load them, so the description buys nothing in every
+# other session. Not dependency_only in the catalog, which would also refuse `kura add owasp`.
+owasp = "name-only"
+k6 = "name-only"
+vuln-lookup = "name-only"
+cloud-failure-modes = "name-only"
+dx-failure-modes = "name-only"
+platform-failure-modes = "name-only"
+qa-failure-modes = "name-only"
+security-failure-modes = "name-only"
+sre-failure-modes = "name-only"
 
 [plugin_configs."agents-md@builtin".options]
 instructionFiles = "claude-md-and-agents-md"
