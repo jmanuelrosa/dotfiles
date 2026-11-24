@@ -46,16 +46,16 @@ With this `model-routing.json`:
 
 ```json
 "redirects": {
-  "sonnet": "openai-codex/gpt-6-sol",
-  "cursor/composer-2-5": "openai-codex/gpt-6-luna"
+  "sonnet": "openai-codex/gpt-6.2-sol",
+  "cursor/composer-2-5": "cursor/composer-latest"
 }
 ```
 
 | Skill frontmatter | What happens |
 |---|---|
-| `model: sonnet` | Redirected, then pinned to `openai-codex/gpt-6-sol` for the run |
-| `model: cursor/composer-2-5` | Redirected, then pinned to `openai-codex/gpt-6-luna` |
-| `model: cursor/grok-4.6` | No redirect: pinned to Grok as declared |
+| `model: sonnet` | Redirected, then pinned to `openai-codex/gpt-6.2-sol` for the run |
+| `model: cursor/composer-2-5` | Redirected, then pinned to `cursor/composer-latest` |
+| `model: cursor/grok-4.7@256k` | No redirect: pinned to Grok as declared |
 | `model: gemini-9` | Matches nothing enabled: warning, session unchanged |
 | `model: inherit` or no key | Runs on the session model |
 

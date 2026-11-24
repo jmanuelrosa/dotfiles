@@ -1,7 +1,6 @@
 # ai
 
 Installs and configures AI tooling: Claude Code, Pi (`@earendil-works/pi-coding-agent`, brewed as `pi-coding-agent`), ChatGPT desktop and Cursor.
-Pi reaches Ollama Cloud through `models.json`, with no local Ollama install.
 The Codex adapter is still rendered, but its cask and its `HARNESS_ENABLED` entry are commented out, so Codex is neither installed nor linked.
 
 ## Layout
@@ -31,7 +30,6 @@ Claude's `settings.json` is merged key by key rather than written whole, because
 - Links each enabled harness's files from `HARNESS_LINKS`: `~/.claude/` for Claude Code, `~/.pi/agent/` for Pi, `~/.codex/` for Codex. Kura owns the global skill and agent links. The neutral `AGENTS.md` is Claude's `~/.claude/CLAUDE.md`, Pi's `~/.pi/agent/AGENTS.md` and Codex's `~/.codex/AGENTS.md`.
 - Renders the shared `mcp.json` with Pi's Slack OAuth settings into `adapters/pi/generated/mcp.json` and links it to Pi's native `~/.pi/agent/mcp.json`. Claude and Codex receive the shared servers. The draw.io server is the hosted `https://mcp.draw.io/mcp` endpoint, used by the `diagram` skill for draw.io's XML reference and shape search; it needs no sign-in. Notion's existing MCP tool denies remain in force for Claude and Pi. Run `pi mcp list`, sign in with `pi mcp login <server>` as needed, then `/reload` in Pi.
 - Runs `harness-build apply` for each enabled harness among Claude and Codex. For Claude it merges the shared MCP servers into `~/.claude.json`. For Codex it merges owned keys and MCP server names into `~/.codex/config.toml` and writes `~/.codex/rules/dotfiles.rules` as a real file. Neither is a link, because Codex writes both locations itself. After a first run, trust the two hooks once in Codex's `/hooks`.
-- Configures Pi to call Ollama Cloud directly through `models.json`, without `pi-ollama-cloud` or a local Ollama server. `nemotron-3-ultra` and `gpt-oss:120b` are enabled as coding models available on the free account. In Pi, run `/login`, choose API key authentication, select `ollama-cloud`, and paste a key from the Ollama account settings.
 - Loads `@tintinweb/pi-subagents` for explicit `@agent-name <task>` invocation and `/agents` management, using the existing global and project agent roots. `adapters/pi/subagents.json` selects direct mentions, so a new agent receives the typed task without an off-screen model call. Automatic worktree isolation is disabled because the package's cleanup commits with hooks skipped; `/cc-batch` uses manually created, retained worktrees and leaves changes uncommitted.
 - Loads `pi-context-view` from Pi's `packages` with its default settings. Run `/reload` after adding it, then `/context` for context usage or `/context injections` to inspect prompts, tool definitions and extension contributions.
 - Pi's Cursor models come from the `npm:pi-cursor-sdk` package in `adapters/pi/settings.json`, not from a `cursor` block in `models.json`, which is only for HTTP APIs Pi already speaks. Auth is a Cursor SDK API key saved once with `/login` (or `CURSOR_API_KEY`), then `/cursor-refresh-models` if you logged in after startup. Desktop/CLI login is not reused, and the key stays out of the repo.

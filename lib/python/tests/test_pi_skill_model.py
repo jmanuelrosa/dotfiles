@@ -22,7 +22,7 @@ EXTENSION = PI_EXTENSIONS / "skill-model" / "index.ts"
 PI_PACKAGE = "@earendil-works/pi-coding-agent"
 
 CATALOGUE = [
-    "openai-codex/gpt-6-astra",
+    "openai-codex/gpt-6.2-astra",
     "openai-codex/gpt-6.2-sol",
     "openai-codex/gpt-6-sol",
     "openai-codex/gpt-6-luna",
@@ -37,7 +37,6 @@ CATALOGUE = [
     "cursor/composer-2-5",
     "cursor/grok-4.7@256k",
     "cursor/grok-4.7@500k",
-    "cursor/grok-4.6",
     "cursor/claude-fable-5-1@1m",
     "cursor/claude-fable-5-1@300k",
     "cursor/claude-opus-5@1m",

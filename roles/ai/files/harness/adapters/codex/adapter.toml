@@ -9,7 +9,7 @@
 # web_search is pinned because Codex's default turns live under a full-access sandbox, and
 # live search fetches whatever URL a prompt injection names. The cached index fetches nothing.
 [config]
-model = "gpt-6.1-sol"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "xhigh"
 sandbox_mode = "workspace-write"
 approval_policy = "on-request"

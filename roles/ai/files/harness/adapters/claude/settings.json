@@ -328,6 +328,7 @@
   ],
   "availableModels": [
     "fable",
+    "opus[1m]",
     "opus",
     "sonnet",
     "haiku"
@@ -362,9 +363,6 @@
     },
     {
       "serverName": "claude.ai Google Drive"
-    },
-    {
-      "serverName": "claude.ai Figma"
     },
     {
       "serverName": "claude.ai Claude Docs"

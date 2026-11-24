@@ -31,13 +31,14 @@ Authentication, request options and transport remain owned by `pi-cursor-sdk`.
 
 ## Example
 
-With `"cursorModels": ["composer-2-5", "grok-4.6"]`:
+With the current allowlist:
 
 | Request | Result |
 |---|---|
-| `/model cursor/composer-2-5` | Selected, and requests go to Cursor |
+| `/model cursor/composer-latest` | Selected, and requests go to Cursor |
+| `/model cursor/grok-4.7@256k` | Selected, and requests go to Cursor |
 | `/model cursor/claude-opus-5` | Not offered: the model is filtered out of the catalog |
-| Resumed session saved on `cursor/claude-opus-5` | First request fails with `Cursor model "claude-opus-5" is disabled by model-routing.json; use composer-2-5 or grok-4.6` |
+| Request from a resumed session still using `cursor/claude-opus-5` | Rejected before reaching Cursor; the error lists the allowed models |
 | Skill pinned to `opus` with no redirect | Cannot land on Cursor's `opus` alias, because the alias is filtered out |
 
 To allow another Cursor model, add its id to `cursorModels` and to `enabledModels` in pi's `settings.json`.
