@@ -38,7 +38,8 @@
         "bash"
       ],
       "kind": "gate",
-      "script": "pre-commit-verify.sh"
+      "script": "pre-commit-verify.sh",
+      "timeout": 180
     },
     {
       "id": "rtk",
@@ -66,11 +67,32 @@
       "script": "em-dash-gate.sh"
     }
   ],
+  "session_start": [
+    {
+      "id": "kura-converge",
+      "kind": "gate",
+      "command": "if [ -f ./kura.json ]; then ~/.local/bin/kura converge --quiet; fi",
+      "timeout": 10
+    }
+  ],
   "prompt_submit": [
     {
       "id": "dependency-skill-gate",
       "kind": "gate",
       "script": "dependency-skill-gate.sh"
+    },
+    {
+      "id": "context-nudge",
+      "kind": "gate",
+      "script": "context-nudge.sh",
+      "timeout": 10
+    }
+  ],
+  "stop": [
+    {
+      "id": "skill-recap",
+      "kind": "gate",
+      "script": "skill-recap.sh"
     }
   ]
 }

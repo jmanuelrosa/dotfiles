@@ -25,6 +25,8 @@ the hook table, settings.json and statusline.sh rather than off a hook, plus the
 guardrails.ts as a whole: the rewrite has to happen after every gate has read the command.
 """
 
+import importlib.machinery
+import importlib.util
 import json
 import os
 import re
@@ -96,6 +98,7 @@ CONTRACTS = {
 # UserPromptSubmit fields rather than a tool call.
 PROMPT_CONTRACTS = {
     "dependency-skill-gate.sh": ("prompt",),
+    "context-nudge.sh": ("session_id",),
 }
 
 # The fingerprints of each hook's own logic. Written as escapes for the two dash characters so
@@ -253,10 +256,12 @@ def test_stdout_is_captured_or_the_ask_tier_cannot_be_seen(source):
     assert 'stdio: ["pipe", "pipe", "pipe"]' in source, "stdout is not captured"
 
 
-def test_the_refusal_says_why_pi_cannot_ask(source):
-    """A caller told only "blocked" for a command Claude would have asked about has no
-    way to know the difference is the harness rather than the command."""
-    assert "no confirmation prompt" in source
+def test_the_ask_tier_is_put_to_the_person_and_refused_without_one(source):
+    """Claude's permission prompt is a confirm dialog in pi, and a session with no UI refuses, as
+    Claude's print mode does, rather than reading an unanswerable question as a yes."""
+    assert "ctx.ui.confirm" in source
+    assert "ctx.hasUI" in source
+    assert "no UI to confirm in" in source
 
 
 def test_the_rtk_opt_in_is_read_before_anything_is_spawned(source):
@@ -988,3 +993,197 @@ def test_pi_deliver_confirmation_uses_the_shared_transcript_logic(real_runner, d
     else:
         assert result is not None, "The shared confirmation gate was bypassed"
         assert result["block"] is True
+
+
+def write_ask_gate(runner):
+    write_test_gate(runner, 'print(\'{"hookSpecificOutput":{"permissionDecision":"ask","permissionDecisionReason":"cloud write"}}\')')
+
+
+def asked_call(runner, has_ui, answer=False):
+    return run_in_node(runner, f"""
+    const {{ default: register }} = await import({json.dumps(str(runner))});
+    const handlers = new Map();
+    register({{ on: (event, handler) => handlers.set(event, handler) }});
+    const asked = [];
+    const ctx = {{
+      cwd: process.cwd(), hasUI: {json.dumps(has_ui)},
+      sessionManager: {{ getBranch: () => [] }},
+      ui: {{ confirm: async (title, body) => {{ asked.push(body); return {json.dumps(answer)}; }} }},
+    }};
+    const result = await handlers.get("tool_call")(
+      {{ type: "tool_call", toolName: "bash", input: {{ command: "gcloud run deploy" }} }}, ctx,
+    );
+    process.stdout.write(JSON.stringify({{ result: result ?? null, asked }}));
+    """)
+
+
+def test_an_approved_ask_runs(isolated_runner):
+    write_ask_gate(isolated_runner)
+    outcome = asked_call(isolated_runner, has_ui=True, answer=True)
+    assert outcome["result"] is None
+    assert "gcloud run deploy" in outcome["asked"][0] and "cloud write" in outcome["asked"][0]
+
+
+def test_a_declined_ask_is_refused(isolated_runner):
+    write_ask_gate(isolated_runner)
+    outcome = asked_call(isolated_runner, has_ui=True, answer=False)
+    assert outcome["result"]["block"] is True
+    assert "Declined" in outcome["result"]["reason"]
+
+
+def test_an_ask_with_nobody_to_answer_is_refused_unasked(isolated_runner):
+    write_ask_gate(isolated_runner)
+    outcome = asked_call(isolated_runner, has_ui=False)
+    assert outcome["result"]["block"] is True
+    assert outcome["asked"] == []
+
+
+SKILL_FILE = "/skills/deliver/SKILL.md"
+
+
+def transcript_events(runner, entries, listed):
+    """The JSONL writeTranscript produces once before_agent_start has listed `listed` skills."""
+    return run_in_node(runner, f"""
+    const {{ default: register }} = await import({json.dumps(str(runner))});
+    const handlers = new Map();
+    register({{ on: (event, handler) => handlers.set(event, handler) }});
+    await handlers.get("before_agent_start")({{ systemPromptOptions: {{ skills: {json.dumps(listed)} }} }}, {{}});
+    const {{ readFileSync }} = await import("node:fs");
+    const path = await writeTranscript({{ cwd: "/", sessionManager: {{ getBranch: () => {json.dumps(entries)} }} }});
+    process.stdout.write(JSON.stringify(readFileSync(path, "utf8").trim().split("\\n").map((line) => JSON.parse(line))));
+    """)
+
+
+def read_call(path):
+    return {"message": {"role": "assistant", "content": [
+        {"type": "toolCall", "id": "r1", "name": "read", "arguments": {"path": path}},
+    ]}}
+
+
+def test_the_model_loading_a_listed_skill_is_logged_as_a_skill_call(runner):
+    """pi's model loads a skill by reading the SKILL.md its prompt lists; Claude logs a Skill call,
+    which is what lets git-skill-gate see a model-started /deliver."""
+    events = transcript_events(runner, [read_call(SKILL_FILE)], [{"name": "deliver", "filePath": SKILL_FILE}])
+    assert events[-1]["message"]["content"] == [
+        {"type": "tool_use", "name": "Skill", "id": "r1", "input": {"skill": "deliver"}},
+    ]
+
+
+def test_reading_an_unlisted_skill_file_is_just_a_read(runner):
+    """Editing the catalog's own SKILL.md is not invoking that skill."""
+    events = transcript_events(runner, [read_call("/catalog/skills/deliver/SKILL.md")], [{"name": "deliver", "filePath": SKILL_FILE}])
+    assert events[-1]["message"]["content"] == []
+
+
+def test_the_gate_sees_a_model_started_deliver_once_a_human_answers(real_runner):
+    """The hook's own deliver_confirmed, run on the transcript pi writes."""
+    loader = importlib.machinery.SourceFileLoader("git_skill_gate", str(HOOKS / "git-skill-gate.sh"))
+    module = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
+    loader.exec_module(module)
+    entries = [
+        {"message": {"role": "user", "content": "ship it"}},
+        read_call(SKILL_FILE),
+        {"message": {"role": "user", "content": "yes, go"}},
+    ]
+    events = transcript_events(real_runner, entries, [{"name": "deliver", "filePath": SKILL_FILE}])
+    assert module.deliver_confirmed(events) is True
+    assert module.deliver_confirmed(events[:-1]) is False
+
+
+def session_runner(runner, table):
+    root = runner.parents[4]
+    (root / emit_pi.HOOKS).write_text(json.dumps({"pre_tool": [], **table}))
+    return runner
+
+
+def run_handlers(runner, body):
+    return run_in_node(runner, f"""
+    const {{ default: register }} = await import({json.dumps(str(runner))});
+    const handlers = new Map();
+    register({{ on: (event, handler) => handlers.set(event, handler) }});
+    const notices = [];
+    const theme = {{ fg: (_c, text) => text, bold: (text) => text }};
+    const ui = {{ notify: (message, level) => notices.push([message, level]), setStatus: () => {{}}, theme }};
+    {body}
+    """)
+
+
+def test_a_session_start_command_runs_in_the_session_directory(isolated_runner, tmp_path):
+    marker = tmp_path / "ran"
+    session_runner(isolated_runner, {"session_start": [
+        {"id": "probe", "kind": "gate", "command": f"pwd > {marker}", "timeout": 5},
+    ]})
+    run_handlers(isolated_runner, f"""
+    await handlers.get("session_start")({{ reason: "startup" }}, {{ cwd: {json.dumps(str(tmp_path))}, ui, sessionManager: {{ getSessionId: () => "s1" }} }});
+    process.stdout.write(JSON.stringify(notices));
+    """)
+    assert Path(marker.read_text().strip()).resolve() == tmp_path.resolve()
+
+
+def test_a_failing_session_hook_is_shown_and_never_stops_the_session(isolated_runner, tmp_path):
+    session_runner(isolated_runner, {"session_start": [
+        {"id": "probe", "kind": "gate", "command": "echo broken >&2; exit 1", "timeout": 5},
+    ]})
+    notices = run_handlers(isolated_runner, f"""
+    const result = await handlers.get("session_start")({{ reason: "startup" }}, {{ cwd: {json.dumps(str(tmp_path))}, ui, sessionManager: {{ getSessionId: () => "s1" }} }});
+    process.stdout.write(JSON.stringify(notices));
+    """)
+    assert notices and notices[0][1] == "warning" and "broken" in notices[0][0]
+
+
+def stop_notices(runner, entries, aborted=False):
+    return run_handlers(runner, f"""
+    await handlers.get("agent_settled")({{ aborted: {json.dumps(aborted)} }}, {{
+      cwd: "/", ui, sessionManager: {{ getBranch: () => {json.dumps(entries)}, getSessionId: () => "s1" }},
+    }});
+    process.stdout.write(JSON.stringify(notices));
+    """)
+
+
+@pytest.fixture
+def recap_runner(real_runner):
+    root = real_runner.parents[4]
+    (root / emit_pi.HOOKS).write_text(json.dumps({"pre_tool": [], "stop": TABLE["stop"]}))
+    return real_runner
+
+
+def test_skill_recap_names_the_skills_this_turn_ran(recap_runner):
+    entries = [
+        {"message": {"role": "user", "content": '<skill name="commit">old</skill>'}},
+        {"message": {"role": "user", "content": '<skill name="deliver" location="x">go</skill>'}},
+        {"message": {"role": "assistant", "content": [{"type": "text", "text": "done"}]}},
+    ]
+    notices = stop_notices(recap_runner, entries)
+    assert len(notices) == 1 and notices[0][0].endswith("deliver")
+
+
+def test_an_interrupted_turn_has_no_recap(recap_runner):
+    entries = [{"message": {"role": "user", "content": '<skill name="deliver">go</skill>'}}]
+    assert stop_notices(recap_runner, entries, aborted=True) == []
+
+
+def test_a_prompt_hooks_context_reaches_the_next_run(isolated_runner):
+    write_test_gate(isolated_runner, 'print(\'{"systemMessage":"for you","hookSpecificOutput":{"additionalContext":"for the model"}}\')')
+    outcome = run_handlers(isolated_runner, """
+    const ctx = { cwd: process.cwd(), ui, sessionManager: { getSessionId: () => "s1" } };
+    const input = await handlers.get("input")({ text: "hello", source: "interactive" }, ctx);
+    const first = await handlers.get("before_agent_start")({ systemPromptOptions: { skills: [] } }, ctx);
+    const second = await handlers.get("before_agent_start")({ systemPromptOptions: { skills: [] } }, ctx);
+    process.stdout.write(JSON.stringify({ input: input ?? null, first, second: second ?? null, notices }));
+    """)
+    assert outcome["input"] is None
+    assert outcome["notices"] == [["for you", "info"]]
+    assert outcome["first"]["message"]["content"] == "for the model"
+    assert outcome["first"]["message"]["display"] is False
+    assert outcome["second"] is None
+
+
+def test_the_context_percentage_is_published_where_the_nudge_reads_it(isolated_runner, tmp_path):
+    write_test_gate(isolated_runner, "pass")
+    run_handlers(isolated_runner, """
+    const ctx = { cwd: process.cwd(), ui, getContextUsage: () => ({ percent: 41.6 }), sessionManager: { getSessionId: () => "s-1" } };
+    await handlers.get("input")({ text: "hello", source: "interactive" }, ctx);
+    process.stdout.write("null");
+    """.replace("process.stdout", "process.stdout"))
+    published = Path(tempfile.gettempdir()) / "claude-context-s-1.json"
+    assert json.loads(published.read_text()) == {"pct": 42}

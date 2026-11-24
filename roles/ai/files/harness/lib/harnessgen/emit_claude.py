@@ -1,4 +1,4 @@
-"""Claude Code's `permissions`, `sandbox`, `pluginConfigs`, `skillOverrides` and `hooks` keys, from the neutral policy."""
+"""Claude Code's `permissions`, `sandbox`, `pluginConfigs`, `skillOverrides`, `hooks` and shared `env` keys, from the neutral policy."""
 
 import re
 from pathlib import PurePosixPath
@@ -89,6 +89,7 @@ def sandbox(policy, knobs):
     network, filesystem = policy["network"], policy["filesystem"]
     return {
         **knobs,
+        "excludedCommands": list(policy["excluded_commands"]),
         "network": {
             "allowedDomains": list(network["allow_domains"]),
             "allowLocalBinding": network["allow_local_binding"],
@@ -230,6 +231,9 @@ def owned(manifest):
     }
     for plugin, config in adapter.get("plugin_configs", {}).items():
         rendered[f"pluginConfigs.{plugin}"] = config
+    # Key by key, because `env` also carries Claude-only variables kept by hand.
+    for variable, value in manifest.sandbox["env"].items():
+        rendered[f"env.{variable}"] = value
     return rendered
 
 

@@ -64,7 +64,8 @@ tiers. The gh and glab rules come first; ntn, bru and acli follow them.
     above. Allows listing keychains, certificates and identities, and
     blocks everything else: secret reads, exports, interactive mode (it
     runs whatever it reads), and every write. There is no ask tier,
-    since Codex lets an ask through and pi refuses it anyway. As an
+    since Codex lets an ask through and a keychain secret is never worth
+    a prompt. As an
     argument the word counts only where it would run (followed by one of
     its options or subcommands, or fed by a pipe), so `git log --grep
     security` is left alone.

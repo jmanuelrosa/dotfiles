@@ -350,11 +350,11 @@
     "plugin-authoring": "user-invocable-only",
     "run": "user-invocable-only",
     "schedule": "user-invocable-only",
+    "ship-local": "off",
     "code-review": "user-invocable-only",
     "fewer-permission-prompts": "user-invocable-only",
     "init": "user-invocable-only",
     "security-review": "user-invocable-only",
-    "ship": "user-invocable-only",
     "simplify": "user-invocable-only",
     "steward": "user-invocable-only",
     "claude-approvals": "off",
@@ -665,7 +665,10 @@
       ]
     },
     "enableWeakerNetworkIsolation": false,
-    "excludedCommands": []
+    "excludedCommands": [
+      "gcloud",
+      "bq"
+    ]
   },
   "feedbackSurveyRate": 0,
   "subagentPromptCacheTtl": "1h",
