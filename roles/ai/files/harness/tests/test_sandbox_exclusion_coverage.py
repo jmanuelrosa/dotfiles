@@ -1,10 +1,11 @@
-"""Claude commands stay sandboxed even when a skill or command permission allows them."""
+"""Claude commands stay sandboxed even when a skill or command permission allows them, except the
+executables the shared policy exempts in every harness."""
 
 import fnmatch
 import re
 
 import pytest
-from harnessgen import manifest
+from harnessgen import emit_claude, emit_pi, manifest
 
 POLICY = manifest.load()
 CLAUDE_RULE_RE = re.compile(r"^Bash\((.*)\)$")
@@ -14,7 +15,13 @@ def test_no_claude_command_bypasses_the_sandbox():
     sandbox = POLICY.adapter("claude")["sandbox"]
     assert sandbox["enabled"] is True
     assert sandbox["allowUnsandboxedCommands"] is False
-    assert sandbox["excludedCommands"] == []
+    assert "excludedCommands" not in sandbox, "exemptions belong in policy/sandbox.toml, shared with Pi"
+
+
+def test_both_harnesses_exempt_the_same_commands():
+    claude = emit_claude.sandbox(POLICY.sandbox, POLICY.adapter("claude")["sandbox"])
+    assert claude["excludedCommands"] == emit_pi.sandbox(POLICY)["excludedCommands"]
+    assert claude["excludedCommands"] == ["gcloud", "bq"]
 
 
 @pytest.mark.parametrize("probe", [

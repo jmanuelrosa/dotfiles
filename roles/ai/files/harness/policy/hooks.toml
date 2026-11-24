@@ -26,8 +26,9 @@ script = "git-skill-gate.sh"
 codex_args = ["--skip-skill-route"]
 harnesses = ["claude", "pi", "codex"]
 
-# Codex refuses this gate's `ask` answer and runs the command anyway, so there only its
-# blocks hold. Codex's sandbox has no network, which makes a cloud call ask to leave it.
+# Pi's guardrails turns this gate's `ask` into a confirm dialog, and refuses it when the session
+# has no UI, as Claude does in print mode. Codex refuses the `ask` answer and runs the command
+# anyway, so there only its blocks hold. Codex's sandbox has no network, which makes a cloud call ask to leave it.
 [[hook]]
 id = "cloud-readonly-gate"
 event = "pre_tool"
@@ -36,8 +37,8 @@ script = "cloud-readonly-gate.sh"
 harnesses = ["claude", "pi", "codex"]
 
 # gh, glab, ntn, bru and acli. No claude_if, like the cloud gate: a call chained after
-# `cd` or hidden in a wrapper must still reach it. Pi turns its ask tier into a refusal,
-# so there a mutating verb of those five runs from a real terminal; Codex keeps only its blocks.
+# `cd` or hidden in a wrapper must still reach it. Pi asks through guardrails' confirm dialog,
+# like Claude's permission prompt; Codex keeps only its blocks.
 [[hook]]
 id = "cli-egress-gate"
 event = "pre_tool"
@@ -99,12 +100,13 @@ tools = ["exit_plan_mode"]
 script = "plan-date-stamp.sh"
 harnesses = ["claude"]
 
+# Pi runs it from guardrails on `session_start`, in the session's directory.
 [[hook]]
 id = "kura-converge"
 event = "session_start"
 command = "if [ -f ./kura.json ]; then ~/.local/bin/kura converge --quiet; fi"
 timeout = 10
-harnesses = ["claude"]
+harnesses = ["claude", "pi"]
 
 # No harness can hide a skill from the user and still leave it to the model, so a
 # dependency-only skill is refused on the prompt instead. Pi runs it from guardrails on
@@ -116,23 +118,26 @@ event = "prompt_submit"
 script = "dependency-skill-gate.sh"
 harnesses = ["claude", "pi"]
 
-# Stop maps onto Pi's turn_end, which guardrails does not listen to yet.
+# Stop maps onto Pi's `agent_settled`, the end of a run with nothing queued after it. Guardrails
+# hands it a transcript of the turn in the shape it parses and shows its systemMessage.
 [[hook]]
 id = "skill-recap"
 event = "stop"
 script = "skill-recap.sh"
-harnesses = ["claude"]
+harnesses = ["claude", "pi"]
 
+# Pi publishes the percentage statusline.sh publishes in Claude, then shows the systemMessage
+# and hands the additionalContext to the model on the run the prompt starts.
 [[hook]]
 id = "context-nudge"
 event = "prompt_submit"
 script = "context-nudge.sh"
 timeout = 10
-harnesses = ["claude"]
+harnesses = ["claude", "pi"]
 
 # herdr's sidebar names what a blocked Claude waits on: the tool behind a permission prompt,
 # or `input` for a question. Stop clears it once per turn. Claude only: pi reports its sidebar
-# tokens from its footer and has no permission prompt to name.
+# tokens from its footer, and herdr's own pi extension sees pi's confirm dialogs.
 [[hook]]
 id = "herdr-sidebar-permission"
 event = "permission_request"

@@ -27,6 +27,7 @@ BREW_PACKAGES:
 PI_EXTENSIONS:
   - cc-batch
   - cc-loop
+  - cc-skill-overrides
   - context-continuity
   - cursor-model-policy
   - guardrails
