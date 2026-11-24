@@ -1,10 +1,11 @@
 /**
- * guardrails - Claude Code's PreToolUse hooks, running in Pi.
+ * guardrails - Claude Code's hooks, running in Pi.
  *
  * An adapter and nothing else. Every decision is made by the python scripts under
- * roles/ai/files/harness/hooks/, which Claude Code runs as PreToolUse hooks and which carry their
- * own pytest suite. This file maps Pi's `tool_call` event onto the JSON they read on stdin and
- * maps their exit 2 back onto Pi's block result. Nothing here parses a command, counts a dash, or
+ * roles/ai/files/harness/hooks/, which Claude Code runs as hooks and which carry their own pytest
+ * suite. This file maps Pi's events onto the JSON they read on stdin and maps their answers back:
+ * `tool_call` for PreToolUse, `input` for UserPromptSubmit, `session_start` for SessionStart and
+ * `agent_settled` for Stop. Nothing here parses a command, counts a dash, or
  * knows which lint a project runs: a second copy of any of that is a copy that drifts, and the
  * python half is the tested one.
  *
@@ -19,20 +20,19 @@
  *   thing deciding what a gated command is.
  * - The hook's refusal names Claude's /commit skill and ~/.claude/settings.json. Pi exposes
  *   /commit as an alias, so the actionable message gets the explicit /skill spelling appended.
- * - Claude has three answers to a PreToolUse hook and Pi has two. The `ask` tier of
- *   cloud-readonly-gate and cli-egress-gate becomes a refusal, for the reasons at
+ * - Claude has three answers to a PreToolUse hook and Pi's `tool_call` has two. The `ask` tier of
+ *   cloud-readonly-gate and cli-egress-gate becomes a confirm dialog, for the reasons at
  *   `askedForPermission`.
+ * - Pi has no Skill tool. The model loads a skill by reading the SKILL.md its prompt lists, so
+ *   that read is written into a transcript as the Skill call Claude would have logged.
  *
  * Which hooks run, on which tools and in what order, is not decided here. It is read from
  * generated/hooks.json, which harness-build renders from policy/hooks.toml, the same table
  * Claude's `settings.hooks` is rendered from. So a hook added there reaches both harnesses, and
  * what stays in this file is keyed by tool or by id: the payload shape per tool, the transcript
  * for git-skill-gate, the ask tier for whichever gate prints one. The hooks the table gives only
- * to Claude are on events this file does not listen to: plan-date-stamp.sh is PostToolUse on
- * ExitPlanMode and Pi has no plan mode at all, while skill-recap.sh (Stop) and context-nudge.sh
- * (UserPromptSubmit, but it writes Claude's advisory JSON rather than refusing) are deliberately
- * left for their own pass. The UserPromptSubmit gates the table gives Pi run on `input`, at
- * `guardPrompt`.
+ * to Claude have nothing in Pi to attach to: plan-date-stamp.sh is PostToolUse on ExitPlanMode
+ * and Pi has no plan mode, and herdr-sidebar.sh names Claude's own permission prompt.
  *
  * One entry in the table is the odd one out: rtk rewrites a command rather than refusing one, so
  * it is a gate in position only. It lives in this file rather than in an extension of its own
@@ -62,9 +62,9 @@
 
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { unlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -124,20 +124,24 @@ const HOOK_TABLE_PATH = join(dirname(realpathSync(fileURLToPath(import.meta.url)
 
 interface HookEntry {
   id: string;
-  // Absent on a prompt_submit entry, which no tool routes.
+  // Absent on an entry no tool routes: prompt_submit, session_start and stop.
   tools?: string[];
   kind: "gate" | "rewrite";
   script?: string;
+  // A shell line run as written, where Claude would run it, instead of a script in hooks/.
+  command?: string;
   exec?: string[];
   requires_env?: string;
   env?: Record<string, string>;
+  timeout?: number;
 }
 
 function isEntry(candidate: unknown): candidate is HookEntry {
   const entry = candidate as Partial<HookEntry> | null;
   if (!entry || typeof entry.id !== "string") return false;
   if (entry.tools !== undefined && (!Array.isArray(entry.tools) || !entry.tools.every((tool) => typeof tool === "string"))) return false;
-  if (entry.kind === "gate") return typeof entry.script === "string";
+  if (entry.timeout !== undefined && typeof entry.timeout !== "number") return false;
+  if (entry.kind === "gate") return typeof entry.script === "string" || typeof entry.command === "string";
   if (entry.kind === "rewrite") return Array.isArray(entry.exec) && entry.exec.length > 0;
   return false;
 }
@@ -145,9 +149,13 @@ function isEntry(candidate: unknown): candidate is HookEntry {
 // Keep load errors as state so Pi still registers the handlers that refuse unchecked calls.
 let configurationError: string | undefined;
 
-function hookTable(event: "pre_tool" | "prompt_submit"): HookEntry[] {
+type HookEvent = "pre_tool" | "prompt_submit" | "session_start" | "stop";
+
+function hookTable(event: HookEvent): HookEntry[] {
   try {
-    const parsed: unknown = JSON.parse(readFileSync(HOOK_TABLE_PATH, "utf8"))?.[event];
+    // Only pre_tool is required: a table with no session or stop hooks has nothing to run there.
+    const table = JSON.parse(readFileSync(HOOK_TABLE_PATH, "utf8"));
+    const parsed: unknown = table?.[event] ?? (event === "pre_tool" ? undefined : []);
     if (!Array.isArray(parsed) || !parsed.every(isEntry)) {
       throw new Error(`Invalid ${event} hook table`);
     }
@@ -163,6 +171,9 @@ function hookTable(event: "pre_tool" | "prompt_submit"): HookEntry[] {
 
 const PRE_TOOL = hookTable("pre_tool");
 const PROMPT_SUBMIT = hookTable("prompt_submit").filter((entry) => entry.kind === "gate");
+// Notification-only, as in Claude: a failure is shown and never stops the session or the turn.
+const SESSION_START = hookTable("session_start").filter((entry) => entry.kind === "gate");
+const STOP = hookTable("stop").filter((entry) => entry.kind === "gate");
 
 // The one gate that reads a transcript, which pi has none of in the shape it parses.
 const TRANSCRIPT_GATE = "git-skill-gate";
@@ -196,10 +207,21 @@ interface HookPayload {
   transcript_path?: string;
 }
 
-// Claude's UserPromptSubmit fields that a prompt gate reads.
+// Claude's UserPromptSubmit fields that a prompt hook reads.
 interface PromptPayload {
   prompt: string;
   cwd: string;
+  session_id?: string;
+  hook_event_name: "UserPromptSubmit";
+}
+
+// Claude's SessionStart and Stop fields that a session hook reads.
+interface SessionPayload {
+  cwd: string;
+  session_id?: string;
+  hook_event_name: "SessionStart" | "Stop";
+  source?: string;
+  transcript_path?: string;
 }
 
 interface HookVerdict {
@@ -222,11 +244,13 @@ interface SpawnOptions {
   // Claude hands rtk a variable through a settings `env` block that pi's settings have no
   // counterpart for, so the table carries it instead.
   env?: NodeJS.ProcessEnv;
+  // Only a `command` entry passes one, since Claude runs those in the session's directory.
+  cwd?: string;
 }
 
 function spawnJson(exec: string, args: string[], payload: unknown, options: SpawnOptions): Promise<SpawnResult> {
   return new Promise((resolve) => {
-    const child = spawn(exec, args, { stdio: ["pipe", "pipe", "pipe"], env: options.env });
+    const child = spawn(exec, args, { stdio: ["pipe", "pipe", "pipe"], env: options.env, cwd: options.cwd });
     let stderr = "";
     let stdout = "";
     let settled = false;
@@ -261,9 +285,15 @@ function spawnJson(exec: string, args: string[], payload: unknown, options: Spaw
   });
 }
 
-async function runHook(name: string, payload: HookPayload | PromptPayload): Promise<HookVerdict> {
-  const script = join(HOOKS_DIR, name);
-  const { code, stdout, stderr } = await spawnJson(script, [], payload, { timeoutMs: HOOK_TIMEOUT_MS });
+async function runHook(
+  name: string,
+  payload: HookPayload | PromptPayload | SessionPayload,
+  entry?: HookEntry,
+): Promise<HookVerdict> {
+  const timeoutMs = entry?.timeout ? entry.timeout * 1000 : HOOK_TIMEOUT_MS;
+  const { code, stdout, stderr } = entry?.command
+    ? await spawnJson("sh", ["-c", entry.command], payload, { timeoutMs, cwd: payload.cwd })
+    : await spawnJson(join(HOOKS_DIR, name), [], payload, { timeoutMs });
   if (code !== 0) {
     return {
       blocked: true,
@@ -321,18 +351,17 @@ async function rewriteCommand(entry: HookEntry, command: string, cwd: string): P
 }
 
 /**
- * A hook's `ask` decision, which in Pi can only become a refusal.
+ * A hook's `ask` decision, which Pi answers with a confirm dialog.
  *
- * Claude Code has three answers to a PreToolUse hook and Pi has two: a `tool_call`
- * handler returns `{ block }` or nothing, and Pi ships no permission prompt at all. So
- * cloud-readonly-gate's middle tier, the one covering every non-read-only cloud command,
- * has no counterpart and has to fall to one side.
+ * Claude Code has three answers to a PreToolUse hook and a `tool_call` handler has two: it
+ * returns `{ block }` or nothing. Pi ships no permission prompt of its own, but a handler may
+ * await `ctx.ui.confirm`, so the middle tier asks the person at the keyboard exactly as Claude's
+ * permission prompt does, and a decline is a refusal.
  *
- * It falls to blocked, and the direction is deliberate. Those four CLIs reach their own
- * credential stores, and the ones Pi's sandbox exempts for that reason (sandbox.json) have
- * this gate as their only guardrail; in Pi there is no prompt to fall back on,
- * so allowing would mean running them unasked. The reason still comes from the hook, so
- * the caller is told which command to run in a real terminal instead.
+ * With no UI (print or RPC mode) there is nobody to ask and the call is refused, which is what
+ * Claude does with an `ask` in print mode. Those CLIs reach their own credential stores, and the
+ * ones the sandbox exempts have this gate as their only guardrail, so an unanswerable question
+ * never becomes a yes.
  *
  * The decision is read rather than inferred: the hook prints it as JSON and exits 0, so
  * exit status alone reports the same thing for `ask` and for `allow`.
@@ -408,8 +437,36 @@ function activeSkills(ctx: ExtensionContext): Set<string> {
  * carry a `|`, one carrying a `/` would make the write fail and silently leave the window
  * unchecked, and one beginning with `../` would write and then unlink a file outside tmpdir.
  */
+// The SKILL.md paths pi's prompt advertises, by resolved path, refreshed on every run. Only these
+// count as a skill load: a session editing the catalog's own SKILL.md is not invoking that skill.
+const listedSkills = new Map<string, string>();
+
+function rememberSkills(skills: readonly { name: string; filePath: string }[] | undefined): void {
+  listedSkills.clear();
+  for (const skill of skills ?? []) listedSkills.set(resolve(skill.filePath), skill.name);
+}
+
+function expandHome(path: string): string {
+  return path === "~" || path.startsWith("~/") ? join(homedir(), path.slice(1)) : path;
+}
+
+/**
+ * The Skill call Claude would have logged for a pi `read` of a listed SKILL.md, or nothing.
+ *
+ * pi's model loads a skill by reading the file its prompt names, where Claude's calls the Skill
+ * tool. git-skill-gate (a model-started /ship) and skill-recap both look for that call.
+ */
+function skillCall(block: { type?: string; name?: string; id?: string; arguments?: unknown }, cwd: string) {
+  if (block.type !== "toolCall" || block.name !== "read") return [];
+  const path = (block.arguments as { path?: unknown } | undefined)?.path;
+  if (typeof path !== "string") return [];
+  const skill = listedSkills.get(resolve(cwd, expandHome(path)));
+  return skill ? [{ type: "tool_use", name: "Skill", id: block.id, input: { skill } }] : [];
+}
+
 async function writeTranscript(ctx: ExtensionContext): Promise<string> {
   const path = join(tmpdir(), `pi-guardrails-${randomUUID()}.jsonl`);
+  const cwd = ctx.cwd ?? process.cwd();
   const events: unknown[] = [];
   for (const entry of ctx.sessionManager.getBranch()) {
     if (!("message" in entry)) continue;
@@ -425,7 +482,7 @@ async function writeTranscript(ctx: ExtensionContext): Promise<string> {
       const content = message.content.flatMap((block) =>
         block.type === "toolCall" && block.name === "ask_user"
           ? [{ type: "tool_use", name: "AskUserQuestion", id: block.id }]
-          : []);
+          : skillCall(block, cwd));
       events.push({ type: "assistant", message: { content } });
     } else if (message.role === "toolResult" && message.toolName === "ask_user") {
       events.push({ type: "user", message: { content: [{
@@ -507,20 +564,23 @@ async function runGate(entry: HookEntry, payload: HookPayload, ctx: ExtensionCon
   const transcript = entry.id === TRANSCRIPT_GATE ? await writeTranscript(ctx) : undefined;
   let verdict: HookVerdict;
   try {
-    verdict = await runHook(entry.script ?? "", transcript ? { ...payload, transcript_path: transcript } : payload);
+    verdict = await runHook(entry.script ?? "", transcript ? { ...payload, transcript_path: transcript } : payload, entry);
   } finally {
     if (transcript) await unlink(transcript).catch(() => {});
   }
   if (verdict.blocked) return blockResult(verdict);
 
   const asked = askedForPermission(verdict);
-  if (asked) {
+  if (!asked) return undefined;
+  if (!ctx.hasUI) {
     return {
       block: true,
-      reason: `${asked}\n\nPi has no confirmation prompt, so this is refused rather than asked. Run it in a real terminal if you meant it.`,
+      reason: `${asked}\n\nThis session has no UI to confirm in, so this is refused rather than asked. Run it in a real terminal if you meant it.`,
     };
   }
-  return undefined;
+  const command = (payload.tool_input as { command?: unknown }).command;
+  const approved = await ctx.ui.confirm(`${entry.id} asks before running this`, [typeof command === "string" ? command : payload.tool_name, "", asked].join("\n"));
+  return approved ? undefined : { block: true, reason: `${asked}\n\nDeclined at the confirmation prompt.` };
 }
 
 async function guard(event: ToolCallEvent, ctx: ExtensionContext): Promise<ToolCallEventResult | undefined> {
@@ -565,15 +625,150 @@ async function guardPrompt(event: InputEvent, ctx: ExtensionContext): Promise<In
     ctx.ui.notify(configurationError, "error");
     return { action: "handled" };
   }
-  const payload: PromptPayload = { prompt: event.text, cwd: ctx.cwd };
+  const sessionId = sessionIdOf(ctx);
+  publishContext(ctx, sessionId);
+  const payload: PromptPayload = { prompt: event.text, cwd: ctx.cwd, session_id: sessionId, hook_event_name: "UserPromptSubmit" };
   for (const entry of PROMPT_SUBMIT) {
-    const verdict = await runHook(entry.script ?? "", payload);
+    const verdict = await runHook(entry.script ?? "", payload, entry);
     if (verdict.blocked) {
       ctx.ui.notify(verdict.message, "warning");
       return { action: "handled" };
     }
+    const output = hookOutput(verdict.stdout);
+    if (output.systemMessage) ctx.ui.notify(output.systemMessage, "info");
+    if (output.additionalContext) pendingContext.push(output.additionalContext);
   }
   return undefined;
+}
+
+// What a prompt hook asked to hand the model, held until the run that prompt starts. Claude adds
+// it beside the prompt; pi's `input` cannot, so it rides on `before_agent_start` instead.
+const pendingContext: string[] = [];
+
+const CONTEXT_MESSAGE_TYPE = "guardrails-context";
+
+interface HookOutput {
+  systemMessage?: string;
+  additionalContext?: string;
+}
+
+// The two advisory fields Claude reads from a hook's stdout. Anything that is not that JSON says
+// nothing, which is how Claude treats it as well.
+function hookOutput(stdout: string | undefined): HookOutput {
+  if (!stdout?.trim()) return {};
+  try {
+    const parsed = JSON.parse(stdout);
+    const message = parsed?.systemMessage;
+    const context = parsed?.hookSpecificOutput?.additionalContext;
+    return {
+      systemMessage: typeof message === "string" && message ? message : undefined,
+      additionalContext: typeof context === "string" && context ? context : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function sessionIdOf(ctx: ExtensionContext): string | undefined {
+  try {
+    return ctx.sessionManager?.getSessionId?.();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The context percentage, where context-nudge.sh reads it.
+ *
+ * In Claude statusline.sh publishes it, because only the status line is told the window size;
+ * pi hands it to any extension, so it is written here just before the prompt hooks read it. A
+ * reading pi cannot vouch for, as after a compaction, is published as null, never as a guess.
+ */
+function publishContext(ctx: ExtensionContext, sessionId: string | undefined): void {
+  if (!sessionId || !/^[A-Za-z0-9_-]+$/.test(sessionId)) return;
+  try {
+    const usage = ctx.getContextUsage?.();
+    const percent = usage?.percent;
+    const pct = typeof percent === "number" ? Math.max(0, Math.min(100, Math.round(percent))) : null;
+    writeFileSync(join(tmpdir(), `claude-context-${sessionId}.json`), JSON.stringify({ pct }));
+  } catch {
+    // An advisory reading never stops a prompt; context-nudge reads a missing file as no nudge.
+  }
+}
+
+/**
+ * The just-finished turn, in the shape skill-recap.sh parses: the last user message as the
+ * prompt that opened it, a stamp for each skill that message invoked, and the Skill calls after it.
+ */
+async function writeTurnTranscript(ctx: ExtensionContext): Promise<string> {
+  const path = join(tmpdir(), `pi-guardrails-${randomUUID()}.jsonl`);
+  const branch = ctx.sessionManager.getBranch();
+  const cwd = ctx.cwd ?? process.cwd();
+  let start = -1;
+  for (let index = branch.length - 1; index >= 0; index--) {
+    const entry = branch[index];
+    if ("message" in entry && entry.message.role === "user") {
+      start = index;
+      break;
+    }
+  }
+  const events: unknown[] = [];
+  if (start >= 0) {
+    for (const [index, entry] of branch.slice(start).entries()) {
+      if (!("message" in entry)) continue;
+      const message = entry.message;
+      if (index === 0 && message.role === "user") {
+        const text = textOf(message.content);
+        events.push({ type: "user", promptId: TURN_PROMPT_ID, message: { content: text } });
+        for (const match of text.matchAll(/<skill name="([^"]+)"/g)) events.push({ attributionSkill: match[1] });
+      } else if (message.role === "assistant") {
+        events.push({ type: "assistant", message: { content: message.content.flatMap((block) => skillCall(block, cwd)) } });
+      }
+    }
+  }
+  await writeFile(path, events.map((event) => `${JSON.stringify(event)}\n`).join(""), "utf8");
+  return path;
+}
+
+const TURN_PROMPT_ID = "pi-turn";
+
+async function runSessionHooks(
+  entries: HookEntry[],
+  payload: SessionPayload,
+  ctx: ExtensionContext,
+): Promise<void> {
+  for (const entry of entries) {
+    try {
+      const verdict = await runHook(entry.script ?? entry.id, payload, entry);
+      if (verdict.blocked) {
+        ctx.ui.notify(verdict.message || `Guardrails hook ${entry.id} failed.`, "warning");
+        continue;
+      }
+      const output = hookOutput(verdict.stdout);
+      if (output.systemMessage) ctx.ui.notify(output.systemMessage, "info");
+    } catch (error) {
+      ctx.ui.notify(`Guardrails hook ${entry.id} failed: ${error instanceof Error ? error.message : String(error)}`, "warning");
+    }
+  }
+}
+
+async function sessionStart(reason: string | undefined, ctx: ExtensionContext): Promise<void> {
+  if (configurationError || !SESSION_START.length) return;
+  await runSessionHooks(SESSION_START, {
+    cwd: ctx.cwd, session_id: sessionIdOf(ctx), hook_event_name: "SessionStart", source: reason,
+  }, ctx);
+}
+
+async function stop(ctx: ExtensionContext): Promise<void> {
+  if (configurationError || !STOP.length) return;
+  const transcript = await writeTurnTranscript(ctx);
+  try {
+    await runSessionHooks(STOP, {
+      cwd: ctx.cwd, session_id: sessionIdOf(ctx), hook_event_name: "Stop", transcript_path: transcript,
+    }, ctx);
+  } finally {
+    await unlink(transcript).catch(() => {});
+  }
 }
 
 // Namespaces the footer slot, for the reason velocity.ts records at its own key: pi keys statuses
@@ -644,7 +839,24 @@ export default function (pi: ExtensionAPI) {
     }
   };
 
-  pi.on("session_start", async (_event, ctx) => paint(ctx));
+  pi.on("session_start", async (event, ctx) => {
+    paint(ctx);
+    await sessionStart((event as { reason?: string }).reason, ctx);
+  });
+
+  pi.on("before_agent_start", async (event) => {
+    rememberSkills(event.systemPromptOptions?.skills);
+    if (!pendingContext.length) return undefined;
+    const content = pendingContext.splice(0).join("\n\n");
+    return { message: { customType: CONTEXT_MESSAGE_TYPE, content, display: false } };
+  });
+
+  // Claude's Stop: the end of a run with no retry, compaction or queued message after it. An
+  // interrupted run is skipped, as Claude skips Stop on an interrupt.
+  pi.on("agent_settled", async (event, ctx) => {
+    if (event.aborted) return;
+    await stop(ctx);
+  });
 
   // Repainted on a model switch as well, because cursorStatus reads the provider: session_start
   // alone would leave a session that started on a pi-native model showing nothing after /model
