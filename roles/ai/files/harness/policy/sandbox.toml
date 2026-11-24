@@ -1,6 +1,23 @@
 # What a sandboxed command may reach. `{harness}` is this directory, wherever it is checked out.
 # `make harness` renders it into each harness's own files; edit here, never there.
 
+# Run outside the sandbox in every harness, by executable name. gcloud and bq keep their
+# credentials and token cache under ~/.config/gcloud, which deny_read fences off, so sandboxed
+# they cannot authenticate at all. cloud-readonly-gate still stands in front of every
+# mutating verb, and Pi exempts only a direct call with no chaining, pipes or substitution.
+excluded_commands = ["gcloud", "bq"]
+
+# Set for every command an agent starts, hooks included.
+# SSL_CERT_FILE is the half of the trustd decision in adapters/claude/adapter.toml that every
+# harness needs: Go CLIs (gh, glab, pulumi, terraform) read this bundle instead of asking
+# com.apple.trustd.agent, which the sandbox keeps closed. A CA trusted only in the Keychain
+# is not in that bundle. The pagers are off because no agent can drive an interactive one.
+[env]
+SSL_CERT_FILE = "/etc/ssl/cert.pem"
+GIT_PAGER = "cat"
+PAGER = "cat"
+AWS_PAGER = ""
+
 [network]
 allow_domains = [
   "registry.npmjs.org",

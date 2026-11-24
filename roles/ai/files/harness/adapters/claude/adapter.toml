@@ -1,5 +1,6 @@
 # Claude Code knobs with no counterpart in the neutral policy.
-# harness-build owns `permissions`, `sandbox`, `skillOverrides` and `pluginConfigs.agents-md@builtin` in settings.json,
+# harness-build owns `permissions`, `sandbox`, `skillOverrides`, `pluginConfigs.agents-md@builtin` and the shared
+# `env.SSL_CERT_FILE`, `env.GIT_PAGER`, `env.PAGER` and `env.AWS_PAGER` from policy/sandbox.toml in settings.json,
 # plus every entry of `hooks` whose command policy/hooks.toml renders (herdr's own entries are kept);
 # every other key there stays hand-edited.
 
@@ -17,11 +18,11 @@ autoAllowBashIfSandboxed = true
 allowUnsandboxedCommands = false
 # Go CLIs (gh, glab, pulumi, terraform) verify TLS through com.apple.trustd.agent, so with
 # this off they fail sandboxed with `x509: OSStatus -26276` even through the non-MITM proxy.
-# It stays off because the docs name trustd an exfiltration path; settings.json sets
-# SSL_CERT_FILE to the system PEM bundle instead, so Go reads that file and never asks trustd.
+# It stays off because the docs name trustd an exfiltration path; policy/sandbox.toml's [env]
+# sets SSL_CERT_FILE to the system PEM bundle instead, so Go reads that file and never asks trustd.
 # A CA trusted only in the Keychain is not in that bundle.
+# excludedCommands is policy/sandbox.toml's excluded_commands, shared with Pi.
 enableWeakerNetworkIsolation = false
-excludedCommands = []
 
 # Skill name to on | name-only | user-invocable-only | off, so an upstream skill's visibility
 # changes without editing a SKILL.md that `kura update` would overwrite. Every `dependency_only`
@@ -29,6 +30,10 @@ excludedCommands = []
 # name-only only trims the model's listing and keeps the skill in the `/` menu: what refuses
 # the user typing it is the dependency-skill-gate hook.
 [skill_overrides]
+# The bundled skill behind /ship. While it is on, Claude reserves /ship and never loads the
+# catalog's `ship`, so /ship ran a different workflow here than in Pi. Off, /ship is the catalog
+# skill in both harnesses; /steward stays for watching a pull request.
+ship-local = "off"
 # Built-in skills whose tool the policy denies (Artifact, Workflow).
 artifact-capabilities = "off"
 artifact-design = "off"

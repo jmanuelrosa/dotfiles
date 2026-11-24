@@ -18,10 +18,12 @@ SANDBOX = "adapters/pi/sandbox.json"
 PERMISSIONS = "adapters/pi/permission-system/config.json"
 HOOKS = "adapters/pi/generated/hooks.json"
 MCP = "adapters/pi/generated/mcp.json"
+ENV = "adapters/pi/generated/env.json"
+SKILL_OVERRIDES = "adapters/pi/generated/skill-overrides.json"
 
-# What guardrails needs from an entry. Timeouts stay in the extension, which states why
-# a gate and a rewrite get different ones.
-HOOK_FIELDS = ("id", "tools", "kind", "script", "exec", "requires_env", "env")
+# What guardrails needs from an entry. Gate and rewrite timeouts stay in the extension, which
+# states why they differ; a session hook's comes from the table, as Claude's does.
+HOOK_FIELDS = ("id", "tools", "kind", "script", "command", "exec", "requires_env", "env", "timeout")
 
 # Reads the harness itself makes of its own installed trees, which are outside any
 # project and would otherwise meet `external_directory: ask` on every session. This is
@@ -178,7 +180,7 @@ def sandbox(manifest):
     allow_read = policy_allow_read(manifest)
     return {
         "enabled": True,
-        "excludedCommands": list(adapter["excludedCommands"]),
+        "excludedCommands": list(manifest.sandbox["excluded_commands"]),
         "permissionPromptTimeoutSeconds": adapter["permissionPromptTimeoutSeconds"],
         "permissionPromptMaxAttempts": adapter["permissionPromptMaxAttempts"],
         "network": {
@@ -259,6 +261,15 @@ def hooks(manifest):
     return out
 
 
+def skill_overrides(manifest):
+    """Claude's `skillOverrides` for the catalog, which the cc-skill-overrides extension applies.
+
+    Only the derived dependency-only entries and Pi's own: Claude's adapter entries name Claude's
+    bundled skills, which Pi does not have.
+    """
+    return emit_claude.skill_overrides(manifest.skill_registry(), manifest.adapter(NAME).get("skill_overrides", {}))
+
+
 def files(manifest):
     """Relative path to the whole document, for every file this generator owns outright."""
     servers = mcp.load(manifest.root)
@@ -267,4 +278,5 @@ def files(manifest):
         raise ValueError("Pi MCP overrides must name shared servers")
     pi_servers = {name: {**entry, **overrides.get(name, {})} for name, entry in servers.items()}
     return {SANDBOX: sandbox(manifest), PERMISSIONS: permissions(manifest), HOOKS: hooks(manifest),
-            MCP: {"mcpServers": pi_servers}}
+            MCP: {"mcpServers": pi_servers}, ENV: dict(manifest.sandbox["env"]),
+            SKILL_OVERRIDES: skill_overrides(manifest)}

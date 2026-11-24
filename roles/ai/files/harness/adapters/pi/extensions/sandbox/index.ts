@@ -11,8 +11,14 @@ import {
   type ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
 
-const CONFIG_PATH = join(dirname(realpathSync(fileURLToPath(import.meta.url))), "..", "..", "sandbox.json");
+const ADAPTER_DIR = join(dirname(realpathSync(fileURLToPath(import.meta.url))), "..", "..");
+const CONFIG_PATH = join(ADAPTER_DIR, "sandbox.json");
 const excludedCommands: string[] = JSON.parse(readFileSync(CONFIG_PATH, "utf8")).excludedCommands;
+
+// policy/sandbox.toml's [env], which Claude reads from settings.json. Set on pi's own process at
+// load, so every command it starts sees it, sandboxed or exempt, hooks included, as in Claude.
+const ENV_PATH = join(ADAPTER_DIR, "generated", "env.json");
+const sharedEnv: Record<string, string> = JSON.parse(readFileSync(ENV_PATH, "utf8"));
 
 // Guardrails may have already rewritten the call through rtk, which must not cost an exempted
 // CLI its exemption.
@@ -22,6 +28,7 @@ function isExcludedCommand(command: string): boolean {
 }
 
 export default async function (pi: ExtensionAPI) {
+  Object.assign(process.env, sharedEnv);
   const localCwd = process.cwd();
   const shellPath = SettingsManager.create(localCwd).getShellPath();
   const localBash = createBashToolDefinition(localCwd, { shellPath });
