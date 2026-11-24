@@ -198,7 +198,7 @@ const SKILL_WINDOW_USER_MESSAGES = 30;
 
 // The skills git-skill-gate gates on, by name only: which command needs which one stays the hook's
 // business, and this list exists solely to be looked for in the session.
-const GATED_SKILLS = ["commit", "pr", "ship"] as const;
+const GATED_SKILLS = ["commit", "pr", "deliver"] as const;
 
 interface HookPayload {
   tool_name: string;
@@ -425,7 +425,7 @@ function activeSkills(ctx: ExtensionContext): Set<string> {
 
 /**
  * Invocation and confirmation evidence, as the JSONL git-skill-gate reads.
- * /ship uses the shared hook's confirmation logic rather than an unconditional skill stamp.
+ * /deliver uses the shared hook's confirmation logic rather than an unconditional skill stamp.
  *
  * Written even when the set is empty, and that is the load-bearing part: the hook treats a
  * transcript it cannot open as a parse failure and allows the command, so a missing file would
@@ -454,7 +454,7 @@ function expandHome(path: string): string {
  * The Skill call Claude would have logged for a pi `read` of a listed SKILL.md, or nothing.
  *
  * pi's model loads a skill by reading the file its prompt names, where Claude's calls the Skill
- * tool. git-skill-gate (a model-started /ship) and skill-recap both look for that call.
+ * tool. git-skill-gate (a model-started /deliver) and skill-recap both look for that call.
  */
 function skillCall(block: { type?: string; name?: string; id?: string; arguments?: unknown }, cwd: string) {
   if (block.type !== "toolCall" || block.name !== "read") return [];
@@ -476,7 +476,7 @@ async function writeTranscript(ctx: ExtensionContext): Promise<string> {
       events.push({
         type: "user",
         isMeta: text.includes("<skill name="),
-        message: { content: text.includes('<skill name="ship"') ? "<command-name>/ship</command-name>" : text },
+        message: { content: text.includes('<skill name="deliver"') ? "<command-name>/deliver</command-name>" : text },
       });
     } else if (message.role === "assistant") {
       const content = message.content.flatMap((block) =>
@@ -491,7 +491,7 @@ async function writeTranscript(ctx: ExtensionContext): Promise<string> {
     }
   }
   for (const skill of activeSkills(ctx)) {
-    if (skill !== "ship") events.push({ attributionSkill: skill });
+    if (skill !== "deliver") events.push({ attributionSkill: skill });
   }
   await writeFile(path, events.map((event) => `${JSON.stringify(event)}\n`).join(""), "utf8");
   return path;
@@ -501,7 +501,7 @@ function blockResult(verdict: HookVerdict): ToolCallEventResult | undefined {
   if (!verdict.blocked) return undefined;
   const message = verdict.message || "Blocked by a guardrails hook.";
   const translated = message.includes("is blocked outside")
-    ? `${message}\n\nIn pi, /commit, /pr and /ship load /skill:commit, /skill:pr and /skill:ship. Load the right one, then retry.`
+    ? `${message}\n\nIn pi, /commit, /pr and /deliver load /skill:commit, /skill:pr and /skill:deliver. Load the right one, then retry.`
     : message;
   return { block: true, reason: translated };
 }

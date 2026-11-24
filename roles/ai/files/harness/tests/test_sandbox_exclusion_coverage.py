@@ -26,7 +26,7 @@ def test_both_harnesses_exempt_the_same_commands():
 
 @pytest.mark.parametrize("probe", [
     f"{launcher}~/.claude/skills/{skill}/scripts/apply.py plan.json"
-    for skill in ("commit", "pr", "ship")
+    for skill in ("commit", "pr", "deliver")
     for launcher in ("python3 ", "python ", "bash ", "")
 ])
 def test_every_spelling_of_a_skill_script_reaches_git_skill_gate_under_claude(probe):

@@ -30,9 +30,9 @@ enableWeakerNetworkIsolation = false
 # name-only only trims the model's listing and keeps the skill in the `/` menu: what refuses
 # the user typing it is the dependency-skill-gate hook.
 [skill_overrides]
-# The bundled skill behind /ship. While it is on, Claude reserves /ship and never loads the
-# catalog's `ship`, so /ship ran a different workflow here than in Pi. Off, /ship is the catalog
-# skill in both harnesses; /steward stays for watching a pull request.
+# The bundled skill behind /ship, a second shipping workflow beside the catalog's `deliver`
+# that Pi does not have. Off, /deliver is the one route in both harnesses; /steward stays for
+# watching a pull request.
 ship-local = "off"
 # Built-in skills whose tool the policy denies (Artifact, Workflow).
 artifact-capabilities = "off"
@@ -46,6 +46,25 @@ loop = "user-invocable-only"
 plugin-authoring = "user-invocable-only"
 run = "user-invocable-only"
 schedule = "user-invocable-only"
+code-review = "user-invocable-only"
+fewer-permission-prompts = "user-invocable-only"
+init = "user-invocable-only"
+security-review = "user-invocable-only"
+simplify = "user-invocable-only"
+steward = "user-invocable-only"
+# Built-in skill for a GitHub App policy file no project here uses.
+claude-approvals = "off"
+# Named by the staff-engineer seats that load them, so the description buys nothing in every
+# other session. Not dependency_only in the catalog, which would also refuse `kura add owasp`.
+owasp = "name-only"
+k6 = "name-only"
+vuln-lookup = "name-only"
+cloud-failure-modes = "name-only"
+dx-failure-modes = "name-only"
+platform-failure-modes = "name-only"
+qa-failure-modes = "name-only"
+security-failure-modes = "name-only"
+sre-failure-modes = "name-only"
 
 [plugin_configs."agents-md@builtin".options]
 instructionFiles = "claude-md-and-agents-md"

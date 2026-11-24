@@ -13,7 +13,7 @@ The table's `session_start` hooks run on `session_start`, a `command` entry in t
 Both are notification-only: a failure is shown and never stops the session.
 A hook's `ask` decision opens a `ctx.ui.confirm` dialog, Pi's counterpart to Claude's permission prompt; declining refuses the call, and a session without a UI refuses it unasked, as Claude's print mode does.
 It bridges edit payloads, active skill detection, Pi-specific refusal guidance, and the cloud read-only decision shape.
-Pi has no Skill tool, so a `read` of a SKILL.md the prompt lists is written into git-skill-gate's transcript as the Skill call Claude would log; a model-started `/ship` then opens the gate after a human answer, as in Claude.
+Pi has no Skill tool, so a `read` of a SKILL.md the prompt lists is written into git-skill-gate's transcript as the Skill call Claude would log; a model-started `/deliver` then opens the gate after a human answer, as in Claude.
 `Agent` and `SubagentWorkflow` calls reach the shared dispatch gate; inline scripts, script paths and local saved workflow names are inspected before execution.
 For a package-provided workflow or a replay without source, supply its `scriptPath` so the gate can inspect it.
 Direct user-typed `@agent` starts do not emit an `Agent` tool call, so they intentionally bypass the parent-only dispatch check; the user chose direct invocation with this limitation.

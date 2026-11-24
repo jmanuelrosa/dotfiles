@@ -61,11 +61,11 @@ buys only the validated commit path. The staged `.claude/tasks/` block
 covers the commit script too; its plan's messages are checked by the
 script itself, since the hook never sees them on the command line.
 
-`skills/ship/scripts/apply.py` commits, pushes and opens the PR in one call,
-and needs /ship, which also buys a raw `git push` for its sandbox fallback.
-/ship is the one model-invocable skill here, so it is recognised by its
+`skills/deliver/scripts/apply.py` commits, pushes and opens the PR in one call,
+and needs /deliver, which also buys a raw `git push` for its sandbox fallback.
+/deliver is the one model-invocable skill here, so it is recognised by its
 invocation plus a later human turn as well as by `attributionSkill`
-(SHIP_WINDOW_EVENTS explains why).
+(DELIVER_WINDOW_EVENTS explains why).
 
 `s-task` (~/.local/bin/s-task, from this repo's `work` role) pushes, and
 that push is deliberately allowed rather than gated. It exists so a
@@ -126,25 +126,25 @@ WINDOW_EVENTS = 30
 SKIP_SKILL_ROUTE_FLAG = "--skip-skill-route"
 COMMIT_SCRIPT = "skills/commit/scripts/apply.py"
 PR_SCRIPT = "skills/pr/scripts/apply.py"
-SHIP_SCRIPT = "skills/ship/scripts/apply.py"
+DELIVER_SCRIPT = "skills/deliver/scripts/apply.py"
 SKILLS_FOR_SUBCOMMAND = {
     "git commit": {"commit"},
     COMMIT_SCRIPT: {"commit", "pr"},
     PR_SCRIPT: {"pr"},
-    SHIP_SCRIPT: {"ship"},
-    "git push": {"pr", "ship"},
+    DELIVER_SCRIPT: {"deliver"},
+    "git push": {"pr", "deliver"},
     "gh pr create": {"pr"},
     "glab mr create": {"pr"},
 }
 
-# /ship is model-invocable, and a model-invoked skill gets no `attributionSkill`
-# stamp, nor does any turn after a prose reply. So /ship is also active when its
-# invocation (a `/ship` command or a Skill tool call) sits in this window and a
+# /deliver is model-invocable, and a model-invoked skill gets no `attributionSkill`
+# stamp, nor does any turn after a prose reply. So /deliver is also active when its
+# invocation (a `/deliver` command or a Skill tool call) sits in this window and a
 # human turn follows it: a typed message or an answered AskUserQuestion. That
 # second half is the confirmation the skill must ask for before it writes.
-SHIP_SKILL = "ship"
-SHIP_WINDOW_EVENTS = 400
-SHIP_COMMAND_MARKER = "<command-name>/ship</command-name>"
+DELIVER_SKILL = "deliver"
+DELIVER_WINDOW_EVENTS = 400
+DELIVER_COMMAND_MARKER = "<command-name>/deliver</command-name>"
 NOT_A_HUMAN_TURN = ("<command-", "<local-command", "<task-notification", "<bash-")
 
 # A skill's apply.py runs the gated command in a subprocess, with no `git
@@ -154,9 +154,9 @@ NOT_A_HUMAN_TURN = ("<command-", "<local-command", "<task-notification", "<bash-
 WRAPPER_SCRIPTS = (
     (re.compile(r"(^|/)skills/commit/scripts/apply\.py$"), COMMIT_SCRIPT),
     (re.compile(r"(^|/)skills/pr/scripts/apply\.py$"), PR_SCRIPT),
-    (re.compile(r"(^|/)skills/ship/scripts/apply\.py$"), SHIP_SCRIPT),
+    (re.compile(r"(^|/)skills/deliver/scripts/apply\.py$"), DELIVER_SCRIPT),
 )
-COMMITTING = {"git commit", COMMIT_SCRIPT, SHIP_SCRIPT}
+COMMITTING = {"git commit", COMMIT_SCRIPT, DELIVER_SCRIPT}
 INTERPRETERS = {"bash", "sh", "zsh", "python", "python3"}
 
 # A command word spelled by path is reduced to its name, so `/opt/homebrew/bin/git`
@@ -699,8 +699,8 @@ def skills_in_window(transcript_path):
             for event in events[-WINDOW_EVENTS:]
             if event.get("attributionSkill")
         }
-        if ship_confirmed(events[-SHIP_WINDOW_EVENTS:]):
-            active.add(SHIP_SKILL)
+        if deliver_confirmed(events[-DELIVER_WINDOW_EVENTS:]):
+            active.add(DELIVER_SKILL)
         return active
     except Exception:
         return None
@@ -713,15 +713,15 @@ def event_blocks(event):
     return [block for block in content or [] if isinstance(block, dict)]
 
 
-def invokes_ship(event):
+def invokes_deliver(event):
     for block in event_blocks(event):
-        if event.get("type") == "user" and SHIP_COMMAND_MARKER in str(block.get("text", "")):
+        if event.get("type") == "user" and DELIVER_COMMAND_MARKER in str(block.get("text", "")):
             return True
         if (
             event.get("type") == "assistant"
             and block.get("type") == "tool_use"
             and block.get("name") == "Skill"
-            and (block.get("input") or {}).get("skill") == SHIP_SKILL
+            and (block.get("input") or {}).get("skill") == DELIVER_SKILL
         ):
             return True
     return False
@@ -740,9 +740,9 @@ def is_human_prose(event):
     return bool(text) and not text.startswith(NOT_A_HUMAN_TURN)
 
 
-def ship_confirmed(events):
-    """True when /ship was invoked in `events` and a human answered after it."""
-    start = next((i for i in range(len(events) - 1, -1, -1) if invokes_ship(events[i])), None)
+def deliver_confirmed(events):
+    """True when /deliver was invoked in `events` and a human answered after it."""
+    start = next((i for i in range(len(events) - 1, -1, -1) if invokes_deliver(events[i])), None)
     if start is None:
         return False
     questions = set()
@@ -937,7 +937,7 @@ def main():
         "Use:\n"
         "  /commit   (stage and commit through the structured flow)\n"
         "  /pr       (push and open the PR/MR)\n"
-        "  /ship     (commit, push and open the PR/MR after one confirmation)\n"
+        "  /deliver     (commit, push and open the PR/MR after one confirmation)\n"
         "\n"
         "To bypass for a one-off, the user can run the command in a terminal\n"
         "or temporarily disable this hook in ~/.claude/settings.json\n"

@@ -1,5 +1,5 @@
 function prt --description "Tracked PRs: ls (default), add, merge, rm, ack, drafts, events, take, watch, poll"
-    set -l script ~/.config/kura/catalog/skills/ship/scripts/track.py
+    set -l script ~/.config/kura/catalog/skills/deliver/scripts/track.py
     if not test -f $script
         _ui err "pr-track is not in the agent catalog. Run: make run-role ROLE=ai"
         return 1
