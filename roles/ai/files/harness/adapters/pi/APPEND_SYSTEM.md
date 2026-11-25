@@ -29,6 +29,8 @@ Tooling, code standards and git conventions are agent-neutral and live in `AGENT
 ## Tools
 
 - When `pi__*` tools are available, use them for every shell command, write and edit, in preference to any host-native equivalent. Only the `pi__*` path runs the session's guardrails, so work done outside it is unchecked.
+- In codemode, return only what the answer needs: filter inside the script (`grep`, line ranges, `head`) and `text()` the extracted lines, not whole files or raw command output.
+- Keep a codemode script's output under about 2,000 tokens unless the task needs more. Set `// @options: {"max_output_tokens": N}` on the first line only when a larger result is the answer, since output past the limit is cut.
 - `Cursor shell did not complete` and `missing completion` are an SDK failure, not a refusal. Nothing inspected the command and nothing decided anything about it. Retry through `pi__bash`, which is where a real gate would speak.
 - The sandbox exempts only direct `gcloud` and `bq` commands, so ctx7 remains confined. A fresh session is `/new`.
 - Never report a failure as a hook or guardrail block unless you have the refusal text. A gate refusal arrives as the tool call's block reason and names the gate or the rule it enforces; a git-skill-gate refusal also ends with `In pi, /commit, /pr and /deliver load /skill:commit, /skill:pr and /skill:deliver`. Without a block reason, say the tool call failed and say which tool.
