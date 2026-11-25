@@ -75,6 +75,8 @@ Skipping work to save tokens is the wrong trade every time; the point is to stop
 - **Read narrowly when you already know the target.** Use `offset` and `limit` for the part you need instead of pulling a whole large file.
 - **Never re-read a file to confirm an edit landed.** The edit and write tools fail loudly, and the harness tracks file state.
 - **Do not let a command dump its output into the context.** Filter, slice or count at the source (`| head`, `| wc -l`, a `grep` pattern, a `--json` flag with a projection) rather than printing everything and reading past it.
+- **Scan with a search, not `cat`.** `cat` puts the whole file in context, while `rg -n <pattern>` or a ranged `Read` puts only the lines needed.
+  Inside a subagent this matters more, because the whole file is paid again on each of its turns.
 - **Read a file once.** If it is already in context, work from what is there.
 
 ### Say something before the session gets expensive
