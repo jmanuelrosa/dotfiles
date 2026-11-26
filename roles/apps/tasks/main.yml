@@ -46,6 +46,12 @@
   ansible.builtin.import_tasks: dbeaver.yml
   tags: [dbeaver]
 
+# After the Homebrew install above, which is what puts herdr on the PATH.
+- name: Publish herdr through Ovis
+  ansible.builtin.import_tasks: ovis.yml
+  when: OVIS_ENABLED
+  tags: [ovis]
+
 # ~/.local/bin is created by the coreutils role, which runs before this one in every profile.
 - name: Link app scripts into the user bin directory
   ansible.builtin.file:

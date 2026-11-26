@@ -1,0 +1,14 @@
+tunnel: {{ OVIS_TUNNEL_CREDENTIALS.TunnelID }}
+credentials-file: {{ OVIS_TUNNEL.config_dir }}/{{ OVIS_TUNNEL_CREDENTIALS.TunnelID }}.json
+no-autoupdate: true
+
+ingress:
+  - hostname: {{ OVIS_TUNNEL.hostname }}
+    service: http://{{ OVIS_HOST }}:{{ OVIS_PORT }}
+    originRequest:
+      access:
+        required: true
+        teamName: {{ OVIS_TUNNEL.access_team }}
+        audTag:
+          - {{ OVIS_TUNNEL.access_aud }}
+  - service: http_status:404
