@@ -4,6 +4,8 @@
 # `localhost`, not the profile name).
 ---
 
-# No personal-only overrides yet. Add fields here to override anything
-# defined in group_vars/all.yml or in role defaults.
-{}
+# Overrides anything defined in group_vars/all.yml or in role defaults.
+
+# Phone access to herdr through the Cloudflare Tunnel; see roles/apps/README.md.
+OVIS_ENABLED: true
+OVIS_HERDR_SESSION: work

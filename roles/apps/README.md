@@ -10,6 +10,7 @@ Catch-all role for desktop apps and their configs. Browsers, chat apps, dev tool
 4. Creates the empty `GCLOUD_NEUTRAL_CONFIG` gcloud configuration, leaving an existing one untouched, and makes it the global active configuration.
 5. Fails with login instructions when `gh` is not authenticated, then installs the `GH_EXTENSIONS`.
 6. Installs the npm-only `cf` Cloudflare CLI with bun, and the missing `VSCODE_EXTENSIONS`.
+7. Where `OVIS_ENABLED` is true, installs Ovis on herdr and the Cloudflare Tunnel that publishes it, both off until `herdr-remote on` ([Ovis](#ovis)).
 
 Caddy is never started or registered at boot: `lokl start` and `lokl stop` run it on demand.
 
@@ -105,6 +106,98 @@ After editing Herdr's config, run `herdr server reload-config` or use `Ctrl+Spac
 The sidebar's `$branch`, `$ctx`, `$handoff`, `$ticket` and `$pr` tokens and the tab bar's usage entry come from the ai role's `hooks/herdr-sidebar.sh`, which Claude's status line and hooks and pi's footer drive.
 Its token names, refresh intervals and PR glyphs live in the harness `statusline.json`; the colours stay here, so a renamed token or glyph has to change in both.
 s-task records each issue title as the branch description, which is where `$ticket` reads it from.
+
+## Ovis
+
+Runs [Ovis](https://github.com/devswha/ovis) as a herdr plugin and publishes it at `herdr.jmanuelrosa.dev` through a Cloudflare Tunnel behind Cloudflare Access, so the herdr sessions on this Mac can be driven from a phone.
+On only where `OVIS_ENABLED` is true, which `host_vars/personal.yml` sets: a tunnel serves one Mac.
+
+```text
+phone ──HTTPS──▶ Cloudflare Access ◀──tunnel── cloudflared (launch agent) ──▶ Ovis 127.0.0.1:7317 ──▶ herdr
+```
+
+Three gates stand in front of the terminals:
+
+1. **Cloudflare Access** lets in only the emails its policy allows.
+2. **cloudflared** verifies the Access token on every request before forwarding it, so a deleted or misconfigured Access application leaves the tunnel closed rather than open.
+3. **`OVIS_TOKEN`**, Ovis's own gate, entered once per device. Access cannot hand it to the app, so it stays on.
+
+Ovis listens on loopback only: nothing on the LAN reaches it, and the Mac opens no inbound port.
+
+### Turning it on and off
+
+Nothing starts at login or with herdr: Ovis and the tunnel stay off until you ask for them.
+
+```sh
+herdr-remote on       # start Ovis in the herdr session it serves, then open the tunnel
+herdr-remote off      # close the tunnel, stop Ovis
+herdr-remote status
+```
+
+`on` needs the `OVIS_HERDR_SESSION` herdr session running, since Ovis runs inside it, and leaves the tunnel closed when Ovis does not start.
+`off` also disables the plugin, because an enabled Ovis starts again with the next herdr session.
+
+### What the Ovis tasks do
+
+- Installs the Ovis plugin with `herdr plugin install` when `herdr plugin list` does not show it, then disables it so it does not start with herdr.
+- Writes the plugin's `env` file (in `herdr plugin config-dir devswha.ovis`, mode `0600`): host, port, token and `OVIS_SETTINGS`. A change stops a running Ovis, and the next `herdr-remote on` starts it with the new settings.
+- Writes the tunnel credentials, `~/.cloudflared/ovis.yml` and the `dotfiles.ovis-tunnel` launch agent that runs `cloudflared tunnel run`. The agent lives in `~/.cloudflared`, not `~/Library/LaunchAgents`, so launchd never loads it at login; an open tunnel is reloaded on a config change, a closed one stays closed. Logs go to `~/Library/Logs/ovis-tunnel.log`.
+- Writes `~/.config/herdr-remote/config` and links `herdr-remote` into `~/.local/bin`.
+
+### Vars
+
+- `OVIS_ENABLED` (`defaults/main.yml`, `false`; `true` in `host_vars/personal.yml`): whether this machine runs Ovis and the tunnel.
+- `OVIS_TUNNEL` (`defaults/main.yml`): hostname, the Zero Trust team name and the Access application's audience tag.
+- `OVIS_HERDR_SESSION` (`defaults/main.yml`, empty; `work` in `host_vars/personal.yml`): the named herdr session Ovis shows. One Ovis serves one session, so the others are not reachable from the phone, and Ovis has nothing to show while that session is not running.
+- `OVIS_SETTINGS` (`defaults/main.yml`): extra Ovis variables, from its [configuration table](https://github.com/devswha/ovis/blob/main/docs/guide.md#configuration).
+- `OVIS_TOKEN` (vault, `vars/secrets.yml`): Ovis's token.
+- `OVIS_TUNNEL_CREDENTIALS` (vault, `vars/secrets.yml`): the tunnel credentials JSON as a mapping. The tunnel ID is read from it.
+
+The play stops with a message naming what is missing until all four are set.
+
+### One-time Cloudflare setup
+
+The tunnel, its DNS record and the Access application live in the Cloudflare account, not on this Mac.
+
+1. Create the tunnel and its DNS record with `cloudflared`, which this role installs on every profile:
+
+   ```sh
+   cloudflared tunnel login
+   cloudflared tunnel create herdr
+   cloudflared tunnel route dns herdr herdr.jmanuelrosa.dev
+   ```
+
+   `create` prints the path of the credentials file, `~/.cloudflared/<tunnel ID>.json`.
+2. In Zero Trust, **Access → Applications → Add an application → Self-hosted**, for `herdr.jmanuelrosa.dev`:
+   - a policy with action **Allow** that includes only your email;
+   - **One-time PIN** or GitHub as the login method;
+   - a session duration of 7 to 30 days, so the phone is not asked every day.
+3. Copy the application's **Application Audience (AUD) Tag** into `OVIS_TUNNEL.access_aud`, and the team name (`<team>` in the `<team>.cloudflareaccess.com` team domain shown under **Settings**) into `OVIS_TUNNEL.access_team`.
+4. Add the secrets with `ansible-vault edit vars/secrets.yml`:
+
+   ```yaml
+   OVIS_TOKEN: <output of `openssl rand -hex 32`>
+   OVIS_TUNNEL_CREDENTIALS:
+     AccountTag: <from the credentials file>
+     TunnelSecret: <from the credentials file>
+     TunnelID: <from the credentials file>
+   ```
+
+   Then delete `~/.cloudflared/<tunnel ID>.json`; the role writes it back from the vault. `cert.pem` from `tunnel login` is only needed to create or route tunnels, and can go too.
+5. `make run-role ROLE=ovis`, then `herdr-remote on`.
+
+### Checks
+
+With `herdr-remote on`:
+
+- `curl -sI https://herdr.jmanuelrosa.dev` answers with a redirect to `<team>.cloudflareaccess.com`.
+- `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:7317/api/session` answers `401` without the token.
+- `herdr plugin action invoke devswha.ovis.status` reports the server and the env files it read.
+
+### On the phone
+
+Open `https://herdr.jmanuelrosa.dev` in Safari, sign in to Access, enter the token, then **Share → Add to Home Screen** and turn on **Alerts** from the **⋯** menu (iOS 16.4 or later).
+The App Store and Play Store apps cannot get past the Access sign-in yet ([devswha/ovis#2008](https://github.com/devswha/ovis/issues/2008)).
 
 ## Helium
 
@@ -213,6 +306,9 @@ These apps are installed but their settings are not restored, for the reason giv
 | Bruno | `preferences.json` holds proxy and cloud credential fields beside window state, and collections carry environments and secrets | Re-open the collections from their repositories |
 | DBeaver | `data-sources.json` holds connections and credentials, and the workspace `.prefs` mix settings with machine paths and update timestamps | Use **File > Export > Preferences** and **File > Import** for settings; add connections by hand |
 | Wrangler | Its global config holds the OAuth login | Run `wrangler login` |
+| Ovis tunnel, DNS record, Access application | They live in the Cloudflare account | [One-time Cloudflare setup](#one-time-cloudflare-setup) |
+| Ovis paired devices, push subscriptions | Machine-local state in `~/.config/ovis` | Sign in again from each device after a reinstall |
+| Ovis while the Mac sleeps | The tunnel goes down whenever the Mac sleeps | None: reach it only while the Mac is awake and online |
 
 ## Notes
 

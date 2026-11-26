@@ -259,8 +259,9 @@ BREW_PACKAGES:
     - awscli
     # Cloudflare needs wrangler for the Workers platform (deploy, dev, tail) and
     # `cf` for the rest of the account. `cf` is not a brew formula, so tasks/main.yml
-    # installs it globally with bun.
+    # installs it globally with bun. cloudflared runs tunnels, Ovis's among them.
     - cloudflare-wrangler
+    - cloudflared
     - colima
     - dive
     - docker
@@ -310,3 +311,43 @@ BREW_PACKAGES:
     - sf-symbols
     - tradingview
     - triage
+
+# --- Ovis ----------------------------------------------------------------------------
+# Phone access to herdr. Off by default: host_vars/<profile>.yml turns it on for the one
+# machine that owns the tunnel, since a tunnel serves one Mac. Even there, Ovis and the
+# tunnel only run between `herdr-remote on` and `herdr-remote off`.
+OVIS_ENABLED: false
+
+OVIS_PLUGIN_ID: devswha.ovis
+OVIS_PLUGIN_SOURCE: devswha/ovis
+
+# Pinned rather than left to the plugin, which moves to another port when this one is taken
+# and would leave the tunnel pointing at nothing.
+OVIS_HOST: 127.0.0.1
+OVIS_PORT: 7317
+
+# One Ovis serves one herdr session, and every session that runs the plugin would start it.
+# Naming a session pins Ovis to it whichever session starts first; empty leaves it to that race.
+OVIS_HERDR_SESSION: ""
+OVIS_HERDR_SOCKET: "{{ HOME }}/.config/herdr/sessions/{{ OVIS_HERDR_SESSION }}/herdr.sock"
+
+# Settings written to the plugin's `env` file, beside the token, host and port.
+OVIS_SETTINGS:
+  OVIS_TELEMETRY: "0"
+  OVIS_APP_NAME: herdr
+
+OVIS_TUNNEL:
+  hostname: herdr.jmanuelrosa.dev
+  # Zero Trust team name and the Access application's audience tag. Neither is secret:
+  # cloudflared uses them to verify the Access token on every request before Ovis sees it.
+  access_team: lively-hat-8c91
+  access_aud: 58f2c154eea51b518a9ff5198cf2a11b5830445a6063ce1facf79c6fdc2bc08a
+  config_dir: "{{ HOME }}/.cloudflared"
+  label: dotfiles.ovis-tunnel
+  log: "{{ HOME }}/Library/Logs/ovis-tunnel.log"
+
+# Outside ~/Library/LaunchAgents, so launchd never loads the tunnel at login.
+OVIS_TUNNEL_PLIST: "{{ OVIS_TUNNEL.config_dir }}/{{ OVIS_TUNNEL.label }}.plist"
+
+# Read by herdr-remote, which has no other way to learn the values above.
+HERDR_REMOTE_CONFIG: "{{ HOME }}/.config/herdr-remote/config"

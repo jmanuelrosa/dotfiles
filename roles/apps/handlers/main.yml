@@ -1,0 +1,11 @@
+# Ansible handlers for the apps role
+# Author: Jose Manuel Rosa <jmanuelrosa@duck.com> (https://jmanuelrosa.dev)
+---
+
+# Ovis reads its env file only at start. Stopping it rather than restarting keeps it off
+# until herdr-remote turns it on again, which then starts it with the new settings.
+- name: Stop Ovis
+  ansible.builtin.command: herdr plugin action invoke {{ OVIS_PLUGIN_ID }}.stop
+  register: ovis_stop
+  changed_when: ovis_stop.rc == 0
+  failed_when: false

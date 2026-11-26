@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>{{ OVIS_TUNNEL.label }}</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/env</string>
+    <string>cloudflared</string>
+    <string>tunnel</string>
+    <string>--config</string>
+    <string>{{ OVIS_TUNNEL.config_dir }}/ovis.yml</string>
+    <string>run</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>{{ ansible_facts['env']['PATH'] }}</string>
+    <key>HOME</key>
+    <string>{{ HOME }}</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>StandardOutPath</key>
+  <string>{{ OVIS_TUNNEL.log }}</string>
+  <key>StandardErrorPath</key>
+  <string>{{ OVIS_TUNNEL.log }}</string>
+</dict>
+</plist>
