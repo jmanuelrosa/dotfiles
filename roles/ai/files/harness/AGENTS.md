@@ -23,6 +23,7 @@ If a CLI is missing or auth-broken, say so; don't silently fall back.
 - A sandboxed ctx7 dies with a causeless `✖ fetch failed`; how each harness exempts it, if at all, is in that harness's adapter. When ctx7 fails to reach the API rather than returning no match, name the failure and fall back to WebSearch/WebFetch, never to training data.
 - Three things take precedence. The domain CLIs above are for *doing* (fetch the ticket, list the PRs) while ctx7 is for *how it works*, so "list my open PRs" is `gh` and "what does `gh pr list --search` accept" is a docs question. For a CLI installed on this machine, `cmd --help` / `man` beats ctx7 on flags and syntax. Claude Code, the Agent SDK and the Anthropic API belong to the `claude-api` skill, not to ctx7.
 - `glab` has multiple authenticated hosts: inside a repo it auto-selects; repo-agnostic `glab api` calls must iterate every host (recipes live in the `pr` skill and the `weekly-recap` script).
+- `ntn` reads are rate-limited to about 3 requests per second per integration, and a 429 exits with code 5. Read a page with `ntn pages get <id>` (one call for the whole page as Markdown), never by walking `v1/blocks/{id}/children` recursively. When blocks are unavoidable, pass `page_size==100`. In a loop, sleep about 0.4 s between calls, and on exit 5 back off (1, 2, 4, 8 s) before retrying rather than firing the next request.
 - JS package manager: match the lockfile. No lockfile but the README names one, follow the README.
 
 ## Commands for the user's terminal
