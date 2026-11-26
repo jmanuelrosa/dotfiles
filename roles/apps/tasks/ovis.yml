@@ -1,0 +1,157 @@
+# Runs Ovis on herdr and publishes it through a Cloudflare Tunnel behind Access
+---
+
+- name: Require the Cloudflare and Ovis values the tunnel cannot start without
+  ansible.builtin.assert:
+    that:
+      - OVIS_TOKEN is defined and OVIS_TOKEN | length > 0
+      - OVIS_TUNNEL_CREDENTIALS is defined and OVIS_TUNNEL_CREDENTIALS.TunnelID is defined
+      - OVIS_TUNNEL.access_team | length > 0
+      - OVIS_TUNNEL.access_aud | length > 0
+    fail_msg: >-
+      Ovis needs OVIS_TOKEN, OVIS_TUNNEL_CREDENTIALS, OVIS_ACCESS_TEAM and OVIS_ACCESS_AUD
+      in vars/secrets.yml. The Ovis section of
+      roles/apps/README.md has the one-time Cloudflare setup that produces them.
+    quiet: true
+
+# --- Ovis ----------------------------------------------------------------------------
+
+- name: List the installed herdr plugins
+  ansible.builtin.command: herdr plugin list --json
+  register: herdr_plugins
+  changed_when: false
+  check_mode: false
+
+# herdr enables a plugin on install, and an enabled Ovis starts with every herdr session.
+# Only a fresh install is disabled, so a run never switches off an Ovis turned on by hand.
+- name: Install the Ovis herdr plugin, off until herdr-remote turns it on
+  when: >-
+    OVIS_PLUGIN_ID not in (herdr_plugins.stdout | from_json).result.plugins
+    | map(attribute='plugin_id') | list
+  block:
+    - name: Install the Ovis herdr plugin
+      ansible.builtin.command: herdr plugin install {{ OVIS_PLUGIN_SOURCE }} --yes
+      changed_when: true
+
+    - name: Disable the new Ovis plugin
+      ansible.builtin.command: herdr plugin disable {{ OVIS_PLUGIN_ID }}
+      changed_when: true
+
+- name: Find the Ovis plugin config directory
+  ansible.builtin.command: herdr plugin config-dir {{ OVIS_PLUGIN_ID }}
+  register: ovis_config_dir
+  changed_when: false
+  # A dry run before the first install has no plugin to ask about yet.
+  failed_when: ovis_config_dir.rc != 0 and not ansible_check_mode
+  check_mode: false
+
+- name: Ensure the Ovis plugin config directory exists
+  ansible.builtin.file:
+    path: "{{ ovis_config_dir.stdout }}"
+    state: directory
+    mode: "0700"
+  when: ovis_config_dir.rc == 0
+
+- name: Write the Ovis settings
+  ansible.builtin.copy:
+    dest: "{{ ovis_config_dir.stdout }}/env"
+    mode: "0600"
+    content: |
+      HOST={{ OVIS_HOST }}
+      PORT={{ OVIS_PORT }}
+      {% if OVIS_HERDR_SESSION %}
+      HERDR_SOCKET={{ OVIS_HERDR_SOCKET }}
+      {% endif %}
+      OVIS_TOKEN={{ OVIS_TOKEN }}
+      {% for key, value in OVIS_SETTINGS.items() %}
+      {{ key }}={{ value }}
+      {% endfor %}
+  when: ovis_config_dir.rc == 0
+  no_log: true
+  notify: Stop Ovis
+
+# --- Cloudflare Tunnel ---------------------------------------------------------------
+
+- name: Ensure the cloudflared config directory exists
+  ansible.builtin.file:
+    path: "{{ OVIS_TUNNEL.config_dir }}"
+    state: directory
+    mode: "0700"
+
+- name: Write the tunnel credentials
+  ansible.builtin.copy:
+    dest: "{{ OVIS_TUNNEL.config_dir }}/{{ OVIS_TUNNEL_CREDENTIALS.TunnelID }}.json"
+    mode: "0600"
+    content: "{{ OVIS_TUNNEL_CREDENTIALS | to_json }}"
+  no_log: true
+  register: ovis_tunnel_credentials
+
+- name: Write the tunnel config
+  ansible.builtin.template:
+    src: ovis-tunnel.yml.j2
+    dest: "{{ OVIS_TUNNEL.config_dir }}/ovis.yml"
+    mode: "0600"
+  register: ovis_tunnel_config
+
+- name: Write the tunnel launch agent
+  ansible.builtin.template:
+    src: ovis-tunnel.plist.j2
+    dest: "{{ OVIS_TUNNEL_PLIST }}"
+    mode: "0644"
+  register: ovis_tunnel_plist
+
+- name: Check whether the tunnel is open
+  ansible.builtin.command: launchctl print gui/{{ ansible_facts['user_uid'] }}/{{ OVIS_TUNNEL.label }}
+  register: ovis_tunnel_loaded
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+# Only an open tunnel is reloaded, so a run never opens one that was closed.
+- name: Unload the open tunnel's outdated launch agent
+  ansible.builtin.command: launchctl bootout gui/{{ ansible_facts['user_uid'] }}/{{ OVIS_TUNNEL.label }}
+  when: ovis_tunnel_plist is changed and ovis_tunnel_loaded.rc == 0
+  changed_when: true
+
+- name: Reload the open tunnel with its new launch agent
+  ansible.builtin.command: launchctl bootstrap gui/{{ ansible_facts['user_uid'] }} {{ OVIS_TUNNEL_PLIST }}
+  when: ovis_tunnel_plist is changed and ovis_tunnel_loaded.rc == 0
+  changed_when: true
+
+# cloudflared reads its config only at start, and an unchanged plist is not reloaded above.
+- name: Restart the tunnel on a config change
+  ansible.builtin.command: launchctl kickstart -k gui/{{ ansible_facts['user_uid'] }}/{{ OVIS_TUNNEL.label }}
+  when:
+    - ovis_tunnel_plist is not changed
+    - ovis_tunnel_loaded.rc == 0
+    - ovis_tunnel_config is changed or ovis_tunnel_credentials is changed
+  changed_when: true
+
+# --- herdr-remote --------------------------------------------------------------------
+
+- name: Ensure the herdr-remote config directory exists
+  ansible.builtin.file:
+    path: "{{ HERDR_REMOTE_CONFIG | dirname }}"
+    state: directory
+    mode: "0755"
+
+- name: Write the herdr-remote config
+  ansible.builtin.copy:
+    dest: "{{ HERDR_REMOTE_CONFIG }}"
+    mode: "0644"
+    content: |
+      label {{ OVIS_TUNNEL.label }}
+      plist {{ OVIS_TUNNEL_PLIST }}
+      plugin {{ OVIS_PLUGIN_ID }}
+      url https://{{ OVIS_TUNNEL.hostname }}
+      {% if OVIS_HERDR_SESSION %}
+      socket {{ OVIS_HERDR_SOCKET }}
+      {% endif %}
+
+# ~/.local/bin is created by the coreutils role, which runs before this one in every profile.
+- name: Link herdr-remote into the user bin directory
+  ansible.builtin.file:
+    src: "{{ role_path }}/files/scripts/herdr-remote/herdr-remote"
+    dest: "{{ HOME }}/.local/bin/herdr-remote"
+    state: link
+    force: true

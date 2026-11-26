@@ -1,0 +1,112 @@
+#!/usr/bin/env -S fish --no-config
+# Ovis and its Cloudflare Tunnel stay off until asked for: nothing starts them at login or
+# with herdr, so the terminals are reachable from outside only between `on` and `off`.
+
+set -g fish_function_path $__fish_config_dir/functions
+
+set -l config $HOME/.config/herdr-remote/config
+
+function _usage
+    echo "Usage: herdr-remote on|off|status"
+    echo "  on      Start Ovis in the herdr session it serves, then open the tunnel"
+    echo "  off     Close the tunnel and stop Ovis"
+    echo "  status  Show whether the tunnel is open and what Ovis reports"
+end
+
+if contains -- "$argv[1]" -h --help
+    _usage
+    exit 0
+end
+
+if not test -r $config
+    _ui err "No herdr-remote config at "(_ui path $config)
+    _ui note "make run-role ROLE=ovis writes it on the machine that owns the tunnel" >&2
+    exit 1
+end
+
+set -l label
+set -l plist
+set -l plugin
+set -l socket
+set -l url
+while read -l key value
+    switch $key
+        case label plist plugin socket url
+            set $key $value
+    end
+end <$config
+
+for key in label plist plugin url
+    if test -z "$$key"
+        _ui err "'$key' is missing from "(_ui path $config)
+        exit 1
+    end
+end
+
+# Outside a herdr pane the CLI would talk to the default session, not the one Ovis serves.
+if test -n "$socket"
+    set -gx HERDR_SOCKET_PATH $socket
+end
+
+set -l domain gui/(id -u)
+set -l service $domain/$label
+
+function _tunnel_loaded --argument-names service
+    launchctl print $service >/dev/null 2>&1
+end
+
+switch "$argv[1]"
+    case on
+        _ui step "Starting Ovis"
+        if not herdr plugin enable $plugin >/dev/null
+            _ui err "Could not enable $plugin"
+            exit 1
+        end
+        if not herdr plugin action invoke $plugin.start >/dev/null
+            herdr plugin disable $plugin >/dev/null
+            _ui err "Ovis did not start, so the tunnel stays closed"
+            _ui note "Ovis runs inside herdr: start the herdr session it serves first" >&2
+            exit 1
+        end
+        if _tunnel_loaded $service
+            _ui ok "Tunnel already open"
+        else
+            _ui step "Opening the tunnel"
+            if not launchctl bootstrap $domain $plist
+                _ui err "launchd did not load "(_ui path $plist)
+                exit 1
+            end
+        end
+        _ui done "Reachable at $url"
+
+    case off
+        if _tunnel_loaded $service
+            _ui step "Closing the tunnel"
+            if not launchctl bootout $service
+                _ui err "launchd did not unload $label"
+                exit 1
+            end
+        end
+        _ui step "Stopping Ovis"
+        if not herdr plugin action invoke $plugin.stop >/dev/null 2>&1
+            _ui warn "herdr could not stop Ovis; it is not running, or neither is herdr"
+        end
+        # An enabled plugin starts Ovis again with the next herdr session.
+        if not herdr plugin disable $plugin >/dev/null
+            _ui err "Could not disable $plugin"
+            exit 1
+        end
+        _ui done "herdr is reachable from this Mac only"
+
+    case status
+        if _tunnel_loaded $service
+            _ui ok "Tunnel open at $url"
+        else
+            _ui --indent 0 item "Tunnel closed"
+        end
+        herdr plugin action invoke $plugin.status
+
+    case '*'
+        _usage >&2
+        exit 1
+end
