@@ -2,6 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "cleanupPeriodDays": 365,
   "syncClaudeAiSkills": false,
+  "includeGitInstructions": false,
   "env": {
     "CLAUDE_AFK_TIMEOUT_MS": "99999999",
     "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
@@ -13,7 +14,8 @@
     "GIT_PAGER": "cat",
     "PAGER": "cat",
     "AWS_PAGER": "",
-    "SSL_CERT_FILE": "/etc/ssl/cert.pem"
+    "SSL_CERT_FILE": "/etc/ssl/cert.pem",
+    "CLAUDE_CODE_EXPERIMENTAL_CODE_MODE": "1"
   },
   "attribution": {
     "commit": "",
