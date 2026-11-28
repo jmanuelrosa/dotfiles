@@ -1,5 +1,5 @@
 {
-  "$schema": "https://pi.dev/schemas/theme.schema.json",
+  "$schema": "file:///opt/homebrew/opt/pi-coding-agent/libexec/lib/node_modules/@earendil-works/pi-coding-agent/schemas/theme.schema.json",
   "name": "solarized-dark",
   "vars": {
     "bg": "#002b36",
